@@ -1,0 +1,91 @@
+syntax = "proto3";
+
+option go_package = "./;protos";
+package trip;
+
+message TripPostion {
+  double latitude = 1;
+  double longitude = 2;
+  double altitude = 3;
+  double altitudeAccuracy = 4;
+  double accuracy = 5;
+  double heading = 6;
+  double speed = 7;
+  int64 timestamp = 8;
+
+  // 本地用
+  double distance = 9;
+}
+message TripStatistics {
+  double totalDistance = 1;
+  double maxSpeed = 2;
+  double averageSpeed = 3;
+  double maxAltitude = 4;
+}
+
+message Trip {
+  string id = 1;
+  // 非必填
+  string name = 2;
+  // Running、Bike、Drive
+  string type = 3;
+  string authorId = 9;
+  repeated TripPostion postions = 4;
+  TripStatistics statistics = 5;
+  int64 status = 6;
+  int64 createTime = 7;
+  int64 startTime = 10;
+  int64 endTime = 8;
+}
+
+message AddTrip {
+  message Request {
+    // Running、Bike、Drive
+    string type = 1;
+    repeated TripPostion postions = 2;
+    TripStatistics statistics = 3;
+    // int64 status = 4;
+    int64 startTime = 5;
+    int64 endTime = 6;
+  }
+  message Response { Trip trip = 1; }
+}
+
+message GetTrips {
+  message Request {
+    // 可选
+    repeated string id = 1;
+    // 必选 All、Running、Bike、Drive
+    string type = 2;
+    // 可选 [createTime,endTime]
+    repeated int64 timeLimit = 3;
+    // 可选 CreateTime / TotalDistance，默认 CreateTime
+    string sort = 4;
+    int64 pageNum = 5;
+    int64 pageSize = 6;
+  }
+  message Response {
+    repeated Trip list = 1;
+    int64 total = 2;
+  }
+}
+
+message GetTripStatistics {
+  message Request {
+    // 可选
+    repeated string id = 1;
+    // 必选 Running、Bike、Drive
+    string type = 2;
+    // 可选 [createTime,endTime]
+    repeated int64 timeLimit = 3;
+    // 可选 CreateTime / TotalDistance，默认 CreateTime
+  }
+  message Response {
+    int64 count = 1;
+    // s
+    int64 time = 2;
+    // m
+    double distance = 3;
+    repeated Trip list = 4;
+  }
+}

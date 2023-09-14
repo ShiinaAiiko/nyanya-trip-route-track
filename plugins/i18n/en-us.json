@@ -1,0 +1,177 @@
+{
+	"common": {
+		"appTitle": "NyaNya Trip Route Track",
+		"logoTitle": "Toolbox",
+		"copy": "Copy",
+		"aiikoBlog": "Aiiko Blog",
+		"login": "Login",
+		"logout": "Logout",
+		"share": "Share"
+	},
+	"languages": {
+		"en-US": "English",
+		"zh-CN": "Chinese(Simplified)",
+		"zh-TW": "Chinese(Traditional)",
+		"system": "Use device language"
+	},
+	"windowsPathToPosixPathPage": {
+		"pageTitle": "Convert Windows Path to Posix Path",
+		"subtitle": "for wsl, Git Bash",
+		"convert": "Convert",
+		"convertAndCopy": "Convert and copy",
+		"windowsPath": "Windows path",
+		"posixPath": "Posix path"
+	},
+	"randomPasswordPage": {
+		"pageTitle": "Random Password",
+		"subtitle": "",
+		"length": "Length",
+		"numbers": "Numbers",
+		"symbols": "Symbols"
+	},
+	"avatarBadgeGeneratorPage": {
+		"pageTitle": "Avatar badge Generator",
+		"subtitle": "Add a badge to your avatar",
+		"badge": "Badge",
+		"style": "Style",
+		"size": "Size",
+		"position": "Position",
+		"topLeft": "Top left",
+		"topRight": "Top right",
+		"bottomLeft": "Bottom left",
+		"bottomRight": "Bottom right",
+		"borderRadius": "Border radius",
+		"distanceBorder": "Distance to border",
+		"borderSize": "Border size",
+		"borderColor": "Border color",
+		"avatar": "Avatar",
+		"avatarStyle": "Avatar style",
+		"output": "Output",
+		"outputParameters": "Output Parameters",
+		"resolution": "Resolution",
+		"quality": "Quality"
+	},
+	"ipPage": {
+		"pageTitle": "Search IP or Domain Name Details",
+		"subtitle": "",
+		"inputPlaceholder": "Type a Ip or Domain Name",
+		"myIPDetails": "My Ip Details",
+		"IPDetails": "Ip Details",
+		"search": "Search",
+		"keyword": "Keyword",
+		"detail": "Detail",
+		"ipv4": "IPv4",
+		"ipv6": "IPv6",
+		"country": "Country",
+		"regionName": "RegionName",
+		"city": "City",
+		"isp": "ISP",
+		"org": "Organize",
+		"lon": "Longitude",
+		"lat": "Katitude",
+		"timezone": "Timezone"
+	},
+	"navigatePage": {
+		"pageTitle": "Navigation speed test",
+		"subtitle": ""
+	},
+	"tripPage": {
+		"pageTitle": "Trip Route Track",
+		"subtitle": "",
+		"all": "All",
+		"running": "Running",
+		"bike": "Bike",
+		"drive": "Drive",
+		"totalDistance": "Total Distance",
+		"maxSpeed": "Max Speed",
+		"maxAltitude": "Max Altitude",
+		"distance": "Distance",
+		"speed": "Speed",
+		"altitude": "Altitude",
+		"duration": "Duration",
+		"trips": "Trips",
+		"day": "Day",
+		"week": "Week",
+		"month": "Month",
+		"year": "Year",
+		"fastest": "Fastest",
+		"slowest": "Slowest",
+		"start": "Start",
+		"stop": "Stop"
+	},
+	"tripHistoryPage": {
+		"pageTitle": "Trip History"
+	},
+	"settings": {
+		"title": "Settings",
+
+		"tripHistory": "Trip history",
+
+		"account": "Account",
+		"general": "General",
+		"language": "Language",
+		"appearance": "Appearance",
+		"sync": "Sync",
+		"backup": "Backup",
+		"syncAndBackup": "Sync and Backup",
+		"syncTo": "Sync to ",
+		"syncingTo": "Syncing to ",
+		"syncPromptForNotLoggedIn": "To enable synchronization, you need to log in to your account.",
+		"modes": "Modes",
+
+		"addAccount": "Add Account",
+		"editProfile": "Edit Profile",
+		"profile": "Profile",
+		"nickname": "Nickname",
+		"username": "Username",
+		"bio": "Bio",
+
+		"openMeowStickyNote": "Open Meow Sticky Note",
+		"openQuickReview": "Open Quick review",
+		"autoCloseWindowAfterCopy": "Automatically close the window after copying",
+
+		"light": "Light",
+		"dark": "Dark",
+		"black": "Black",
+		"system": "Use system setting",
+
+		"switchSuccessfully": "Switched to ",
+
+		"shortcut": "Keyboard Shortcut",
+
+		"storagePath": "Storage path",
+		"automaticBackupFrequency": "Automatic Backup Frequency",
+		"backupAutomatically": "Backup automatically",
+		"keepBackups": "Keep Backups",
+		"chooseStoragePath": "Choose a storage path",
+
+		"atLeastOneMonths": "At least one months",
+		"atLeastThreeMonths": "At least three months",
+		"forever": "Forever",
+
+		"daily": "Daily",
+		"weekly": "Weekly",
+
+		"lastBackupTime": "Last backup time",
+
+		"backUpNow": "Back Up Now",
+
+		"about": "About "
+	},
+	"prompt": {
+		"next": "Next",
+		"back": "Back",
+		"delete": "Delete",
+		"cancel": "Cancel",
+		"confirm": "Confirm",
+		"copySuccessfully": "Copy successfully!",
+		"windowsPathDoesNotExist": "Windows path does not exist.",
+		"posixPathDoesNotExist": "Posix path does not exist.",
+		"download": "Download",
+		"pleaseUploadYourAvatar": "Please upload your avatar.",
+		"ipEmptyTip": "IP or domain name cannot be empty",
+		"querySuccessfully": "Query successful!",
+		"queryFailed": "Query failed, please retype the IP or domain name",
+		"connectMapFailed": "Unable to connect to the map, please check the network."
+	}
+}

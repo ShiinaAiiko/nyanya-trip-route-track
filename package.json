@@ -1,0 +1,52 @@
+{
+	"name": "nyanya-trip-route-track",
+	"version": "0.1.0",
+	"private": true,
+	"scripts": {
+		"nodemon": "nodemon ./nodemon.js",
+		"dev": "cp -r ./config.dev.json ./config.temp.json && rm -rf ./.next && cross-env CLIENT_ENV=development next dev -p 23202",
+		"build": "next build",
+		"devstart": "yarn run build && cross-env CLIENT_ENV=development next start -p 23200",
+		"start": "next build && cross-env CLIENT_ENV=production next start -p 23200",
+		"export": "next build && next export",
+		"docker": "./docker.sh start",
+		"log": "./docker.sh logs",
+		"protos:build": "pbjs -t static-module -w commonjs -o protos/proto.js  ./protos_temp/**/*.proto",
+		"protos:tsc": "pbts -o ./protos/proto.d.ts ./protos/proto.js",
+		"protos": "npm run protos:build && npm run protos:tsc"
+	},
+	"dependencies": {
+		"@nyanyajs/utils": "^1.0.19",
+		"@reduxjs/toolkit": "^1.7.0",
+		"@saki-ui/core": "^1.0.2",
+		"axios": "^0.24.0",
+		"blueimp-md5": "^2.19.0",
+		"chart.js": "^4.4.0",
+		"cross-env": "^7.0.3",
+		"findme-js": "^1.1.0",
+		"html2canvas": "^1.4.1",
+		"i18next": "^21.8.16",
+		"moment": "^2.29.4",
+		"next": "13.4.19",
+		"protobufjs": "^6.11.2",
+		"qs": "^6.10.1",
+		"react": "18.2.0",
+		"react-dom": "18.2.0",
+		"react-i18next": "^11.18.3",
+		"react-redux": "^8.1.2",
+		"redux": "^4.2.1",
+		"socket.io-client": "^4.4.0"
+	},
+	"devDependencies": {
+		"@types/blueimp-md5": "^2.18.0",
+		"@types/dom-screen-wake-lock": "^1.0.1",
+		"@types/leaflet": "^1.9.4",
+		"@types/node": "^14.14.10",
+		"@types/nprogress": "^0.2.0",
+		"@types/qs": "^6.9.7",
+		"@types/react": "^18.2.0",
+		"@types/react-redux": "^7.1.26",
+		"sass": "^1.43.4",
+		"typescript": "^4.1.2"
+	}
+}

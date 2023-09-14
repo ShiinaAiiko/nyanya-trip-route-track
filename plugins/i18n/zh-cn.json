@@ -1,0 +1,177 @@
+{
+	"common": {
+		"appTitle": "行程路线轨迹",
+		"logoTitle": "帐号",
+		"copy": "复制",
+		"aiikoBlog": "爱喵博客",
+		"login": "登录",
+		"logout": "登出",
+		"share": "分享"
+	},
+	"languages": {
+		"en-US": "英文",
+		"zh-CN": "中文(简体)",
+		"zh-TW": "中文(繁体)",
+		"system": "使用设备语言"
+	},
+	"windowsPathToPosixPathPage": {
+		"pageTitle": "将 Windows 路径转换为 Posix 路径",
+		"subtitle": "用于wsl，Git Bash",
+		"convert": "转换",
+		"convertAndCopy": "转换并复制",
+		"windowsPath": "Windows 路径",
+		"posixPath": "Posix 路径"
+	},
+	"randomPasswordPage": {
+		"pageTitle": "随机密码",
+		"subtitle": "",
+		"length": "长度",
+		"numbers": "数字",
+		"symbols": "符号"
+	},
+	"avatarBadgeGeneratorPage": {
+		"pageTitle": "头像角标生成器",
+		"subtitle": "为头像添加角标",
+		"badge": "角标",
+		"style": "样式",
+		"size": "大小",
+		"position": "位置",
+		"topLeft": "左上角",
+		"topRight": "右上角",
+		"bottomLeft": "左下角",
+		"bottomRight": "右下角",
+		"borderRadius": "边界半径",
+		"distanceBorder": "到边界距离",
+		"borderSize": "边框大小",
+		"borderColor": "边框颜色",
+		"avatar": "头像",
+		"avatarStyle": "头像样式",
+		"output": "输出",
+		"outputParameters": "输出参数",
+		"resolution": "分辨率",
+		"quality": "质量"
+	},
+	"ipPage": {
+		"pageTitle": "查询IP或域名详情",
+		"subtitle": "",
+		"inputPlaceholder": "输入 IP 或域名",
+		"myIPDetails": "我的IP详情",
+		"IPDetails": "IP 详情",
+		"search": "查询",
+		"keyword": "关键词",
+		"detail": "详细信息",
+		"ipv4": "IPv4",
+		"ipv6": "IPv6",
+		"country": "国家",
+		"regionName": "省",
+		"city": "城市",
+		"isp": "互联网服务供应商",
+		"org": "公司/组织",
+		"lon": "经度",
+		"lat": "纬度",
+		"timezone": "时区"
+	},
+	"navigatePage": {
+		"pageTitle": "导航测速喵",
+		"subtitle": ""
+	},
+	"tripPage": {
+		"pageTitle": "行程路线轨迹",
+		"subtitle": "",
+		"all": "全部",
+		"running": "跑步",
+		"bike": "骑行",
+		"drive": "驾车",
+		"totalDistance": "总距离",
+		"maxSpeed": "最高速度",
+		"maxAltitude": "最高海拔",
+		"distance": "距离",
+		"speed": "速度",
+		"altitude": "海拔",
+		"duration": "时长",
+		"trips": "次数",
+		"day": "日",
+		"week": "周",
+		"month": "月",
+		"year": "年",
+		"fastest": "最快",
+		"slowest": "最慢",
+		"start": "开始",
+		"stop": "停止"
+	},
+	"tripHistoryPage": {
+		"pageTitle": "行程历史"
+	},
+	"settings": {
+		"title": "设置",
+
+		"tripHistory": "行程历史",
+
+		"account": "帐号",
+		"general": "常规",
+		"language": "多语言",
+		"appearance": "外表",
+		"sync": "同步",
+		"backup": "备份",
+		"syncAndBackup": "同步与备份",
+		"syncTo": "同步至",
+		"syncingTo": "正在同步至",
+		"syncPromptForNotLoggedIn": "启用同步功能前需要先登陆帐号",
+		"modes": "模式",
+
+		"addAccount": "添加账号",
+		"editProfile": "编辑资料",
+		"profile": "资料",
+		"nickname": "昵称",
+		"username": "用户名",
+		"bio": "介绍",
+
+		"openMeowStickyNote": "打开随喵笔记",
+		"openQuickReview": "打开快速预览",
+		"autoCloseWindowAfterCopy": "复制后自动关闭窗口",
+
+		"light": "浅色模式",
+		"dark": "暗黑模式",
+		"black": "黑色模式",
+		"system": "随系统变化",
+
+		"switchSuccessfully": "已切换为 ",
+
+		"shortcut": "快捷键",
+
+		"storagePath": "存储路径",
+		"automaticBackupFrequency": "自动备份频率",
+		"backupAutomatically": "自动备份",
+		"keepBackups": "保留备份",
+		"chooseStoragePath": "选择存储路径",
+
+		"atLeastOneMonths": "至少一个月",
+		"atLeastThreeMonths": "至少三个月",
+		"forever": "永久",
+
+		"daily": "每日",
+		"weekly": "每周",
+
+		"lastBackupTime": "上次备份时间",
+
+		"backUpNow": "立即备份",
+
+		"about": "关于"
+	},
+	"prompt": {
+		"next": "下一步",
+		"back": "返回",
+		"delete": "删除",
+		"cancel": "取消",
+		"confirm": "确认",
+		"copySuccessfully": "复制成功！",
+		"windowsPathDoesNotExist": "Windows 路径不存在。",
+		"posixPathDoesNotExist": "Posix 路径不存在。",
+		"download": "下载",
+		"pleaseUploadYourAvatar": "请上传你的头像",
+		"ipEmptyTip": "IP或者域名不能为空",
+		"querySuccessfully": "查询成功！",
+		"queryFailed": "查询失败，请重新输入IP或域名",
+		"connectMapFailed": "无法连接地图，请检查网络。"
+	}
+}

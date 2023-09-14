@@ -1,0 +1,52 @@
+{
+	"appList": [
+		{
+			"title": {
+				"zh-CN": "将 Windows 路径转换为 Posix 路径",
+				"zh-TW": "將 Windows 路徑轉換為 Posix 路徑",
+				"en-US": "Convert Windows Path to Posix Path"
+			},
+			"url": "http://tools.aiiko.club/windowsPathToPosixPath"
+		},
+		{
+			"title": {
+				"zh-CN": "随机密码",
+				"zh-TW": "隨機密碼",
+				"en-US": "Random Password"
+			},
+			"url": "http://tools.aiiko.club/randomPassword"
+		},
+		{
+			"title": {
+				"zh-CN": "喵链接",
+				"zh-TW": "喵鏈接",
+				"en-US": "Meow Links"
+			},
+			"url": "https://link.aiiko.club"
+		},
+		{
+			"title": {
+				"zh-CN": "头像角标生成器",
+				"zh-TW": "頭像角標生成器",
+				"en-US": "Avatar Badge Generator"
+			},
+			"url": "http://tools.aiiko.club/avatarBadgeGenerator"
+		},
+		{
+			"title": {
+				"zh-CN": "查询IP或域名详情",
+				"zh-TW": "查詢IP或域名詳情",
+				"en-US": "Search IP or Domain Name Details"
+			},
+			"url": "http://tools.aiiko.club/ip"
+		},
+		{
+			"title": {
+				"zh-CN": "行程路线轨迹",
+				"zh-TW": "行程路線軌跡",
+				"en-US": "Trip route track"
+			},
+			"url": "http://tools.aiiko.club/trip"
+		}
+	]
+}
