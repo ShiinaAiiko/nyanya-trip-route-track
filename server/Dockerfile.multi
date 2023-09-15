@@ -54,6 +54,6 @@ COPY --from=BUILD_IMAGE \
 #   /client
 
 
-EXPOSE 23201
+EXPOSE 23203
 
 CMD ["./nyanya-toolbox","--config","config.json"]

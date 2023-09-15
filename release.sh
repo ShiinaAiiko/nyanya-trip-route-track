@@ -1,6 +1,6 @@
 #! /bin/bash
 name="nyanya-trip-route-track"
-port=23200
+port=23202
 branch="main"
 # configFilePath="config.dev.json"
 configFilePath="config.pro.json"
