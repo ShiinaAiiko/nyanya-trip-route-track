@@ -64,19 +64,35 @@ export const getRandomPassword = (
 	return str
 }
 
-let r = 140
+let r = 88
 let g = 200
-let b = 70
+let b = 242
 export const rgbs: string[] = []
 for (let i = 0; i < 20; i++) {
+	g = 200 - Math.floor((19 / 10) * i)
 	if (i < 10) {
-		r = 140 + Math.floor(((200 - 100) / 10) * i)
+		r = 140 + Math.floor(((200 - 92) / 10) * i)
 	} else {
-		g = 200 - Math.floor(((200 - 100) / 10) * (i - 10))
+		b = 242 - Math.floor(((200 - 128) / 10) * (i - 10))
 	}
 
 	rgbs.push(`rgb(${r},${g},${b})`)
 }
+
+// let r = 140
+// let g = 200
+// let b = 70
+// export const rgbs: string[] = []
+// for (let i = 0; i < 20; i++) {
+// 	if (i < 10) {
+// 		r = 140 + Math.floor(((200 - 100) / 10) * i)
+// 	} else {
+// 		g = 200 - Math.floor(((200 - 100) / 10) * (i - 10))
+// 	}
+
+// 	rgbs.push(`rgb(${r},${g},${b})`)
+// }
+// console.log('rgbs', rgbs)
 
 export const getSpeedColor = (
 	currentSpeed: number,
@@ -137,24 +153,24 @@ export const getZoom = (
 	// const distance = 500000
 	if (distance >= 500000) {
 		return 7.3
-  }
+	}
 	if (distance >= 100000) {
 		return 9
-  }
+	}
 	if (distance >= 50000) {
 		return 10
-  }
+	}
 	if (distance >= 10000) {
 		return 12
-  }
+	}
 	if (distance >= 5000) {
 		return 13
-  }
+	}
 	if (distance >= 1500) {
 		return 14
-  }
+	}
 	if (distance >= 900) {
 		return 15
 	}
-  return 16
+	return 16
 }

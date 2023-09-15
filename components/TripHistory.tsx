@@ -140,7 +140,7 @@ const TripHistoryComponent = () => {
 			<div className={'trip-history-component ' + config.deviceType}>
 				<div className='th-header'>
 					<saki-modal-header
-						border
+						// border
 						back-icon={!closeIcon}
 						close-icon={closeIcon}
 						ref={bindEvent({
@@ -150,8 +150,6 @@ const TripHistoryComponent = () => {
 							},
 							back() {
 								console.log('back')
-								store.dispatch(layoutSlice.actions.setSettingType(''))
-								// setMenuType('')
 								setCloseIcon(true)
 							},
 						})}
@@ -171,9 +169,14 @@ const TripHistoryComponent = () => {
 				<div className='th-main'>
 					<TripHistoryPage
 						showTripItemPage={!closeIcon}
-						onShowTripItemPage={(isShow, trip) => {
-							setCloseIcon(false)
+						onTripItemPage={(type, trip) => {
 							setTrip(trip)
+							if (type === 'Show') {
+								setCloseIcon(false)
+								return
+							}
+
+							setCloseIcon(true)
 						}}
 					/>
 				</div>
@@ -183,10 +186,10 @@ const TripHistoryComponent = () => {
 }
 
 const TripHistoryPage = ({
-	onShowTripItemPage,
+	onTripItemPage,
 	showTripItemPage,
 }: {
-	onShowTripItemPage: (isShow: boolean, trip: protoRoot.trip.ITrip) => void
+	onTripItemPage: (type: 'Show' | 'Back', trip?: protoRoot.trip.ITrip) => void
 	showTripItemPage: boolean
 }) => {
 	const { t, i18n } = useTranslation('tripHistoryPage')
@@ -206,7 +209,7 @@ const TripHistoryPage = ({
 		'loaded'
 	)
 	const [trips, setTrips] = useState<protoRoot.trip.ITrip[]>([])
-	const [trip, setTrip] = useState<protoRoot.trip.ITrip>()
+	const [tripId, setTripId] = useState<string>('')
 
 	const dispatch = useDispatch<AppDispatch>()
 
@@ -220,6 +223,12 @@ const TripHistoryPage = ({
 			speedChart?: Chart<'line', any[], unknown>
 		}[]
 	>([])
+
+	useEffect(() => {
+		if (!showTripItemPage) {
+			setTripId('')
+		}
+	}, [showTripItemPage])
 
 	useEffect(() => {
 		setTripStatistics(
@@ -511,8 +520,8 @@ const TripHistoryPage = ({
 
 			setPageNum(pageNum + 1)
 
-			// res.data.list && setTrip(res.data.list[0])
-			// res.data.list && onShowTripItemPage(true, res.data.list[0])
+			// res.data.list && setTripId(res.data.list[0]?.id || '')
+			// res.data.list && onTripItemPage('Show', res.data.list[0])
 			return
 		}
 
@@ -667,8 +676,8 @@ const TripHistoryPage = ({
 											e &&
 												(e.onclick = () => {
 													console.log(1)
-													setTrip(v)
-													onShowTripItemPage(true, v)
+													setTripId(v.id || '')
+													onTripItemPage('Show', v)
 												})
 										}}
 										className='th-l-item'
@@ -696,7 +705,12 @@ const TripHistoryPage = ({
 													{t('maxSpeed', {
 														ns: 'tripPage',
 													})}{' '}
-													{v.statistics?.maxSpeed || 0} km/h
+													{(v?.statistics?.maxSpeed || 0) <= 0
+														? 0
+														: Math.round(
+																((v?.statistics?.maxSpeed || 0) * 3600) / 100
+														  ) / 10}{' '}
+													km/h
 												</div>
 												{/* <div className='info-item'>平均时速 10'05</div> */}
 											</div>
@@ -734,8 +748,21 @@ const TripHistoryPage = ({
 					</div>
 				</div>
 			</saki-scroll-view>
-			<div className={'th-item-page ' + (showTripItemPage ? 'visivle' : '')}>
-				<TripItemComponent trip={trip} />
+			<div className={'th-item-page ' + (tripId ? 'visivle' : '')}>
+				<TripItemComponent
+					onBack={() => {
+						setTripId('')
+						onTripItemPage('Back')
+					}}
+					onTrip={() => {}}
+					onDelete={(tripId) => {
+						setTrips(trips.filter((v) => v.id !== tripId))
+						onTripItemPage('Back')
+					}}
+					isShare={false}
+					tripId={tripId}
+					shareKey=''
+				/>
 			</div>
 		</div>
 	)

@@ -33,16 +33,23 @@ type TripStatistics struct {
 	MaxAltitude   float64 `bson:"maxAltitude" json:"maxAltitude,omitempty"`
 }
 
+type TripPermissions struct {
+	// 为空则不支持分享
+	// 传了则视为分享权限，可无视用户校验
+	ShareKey string `bson:"shareKey" json:"shareKey,omitempty"`
+}
+
 type Trip struct {
 	// 使用短ID
 	Id string `bson:"_id" json:"id,omitempty"`
 	// 非必填
 	Name string `bson:"name" json:"name,omitempty"`
 	// Running、Bike、Drive
-	Type       string          `bson:"type" json:"type,omitempty"`
-	Postions   []*TripPostion  `bson:"postion" json:"postion,omitempty"`
-	Statistics *TripStatistics `bson:"statistics" json:"statistics,omitempty"`
-	AuthorId   string          `bson:"authorId" json:"authorId,omitempty"`
+	Type        string           `bson:"type" json:"type,omitempty"`
+	Postions    []*TripPostion   `bson:"postion" json:"postion,omitempty"`
+	Statistics  *TripStatistics  `bson:"statistics" json:"statistics,omitempty"`
+	Permissions *TripPermissions `bson:"permissions" json:"permissions,omitempty"`
+	AuthorId    string           `bson:"authorId" json:"authorId,omitempty"`
 	// 1 normal -1 delete
 	Status int64 `bson:"status" json:"status,omitempty"`
 	// CreateTime Unix timestamp

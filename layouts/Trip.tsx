@@ -116,11 +116,29 @@ const ToolboxLayout = ({ children }: propsType): JSX.Element => {
 					name='viewport'
 					content='width=device-width, initial-scale=1.0'
 				></meta>
+				<link
+					rel='stylesheet'
+					href='https://unpkg.com/leaflet@1.9.3/dist/leaflet.css'
+					integrity='sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI='
+					crossOrigin=''
+				/>
+				<script
+					src='https://unpkg.com/leaflet@1.9.3/dist/leaflet.js'
+					integrity='sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM='
+					crossOrigin=''
+				></script>
 			</Head>
 			<div className='trip-layout'>
 				<div className='tl-main'>
-					<HeaderComponent visible={layout.header} fixed></HeaderComponent>
-					<div className={'tl-m-main '}>{children}</div>
+					<HeaderComponent
+						visible={layout.header}
+						fixed={layout.headerFiexd}
+					></HeaderComponent>
+					<div
+						className={'tl-m-main ' + (layout.headerFiexd ? 'headerFiexd' : '')}
+					>
+						{children}
+					</div>
 				</div>
 				{/* <>
 					{mounted ? (

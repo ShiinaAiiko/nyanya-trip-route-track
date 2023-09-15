@@ -1,4 +1,4 @@
-.trip-item-component {
+.trip-detail-mobile-component {
 	width: 100%;
 	height: 100%;
 	position: relative;
@@ -28,15 +28,8 @@
 			padding: 10px 20px 20px;
 			// pointer-events: auto;
 			// }
-			.ti-m-c-header {
-				display: flex;
-				justify-content: space-between;
-        align-items: center;
-				.ti-title {
-					color: #666;
-				}
-				.ti-more {
-				}
+			.ti-title {
+				color: #666;
 			}
 			.ti-distance {
 				display: flex;

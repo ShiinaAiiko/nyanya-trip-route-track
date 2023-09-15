@@ -11,6 +11,35 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+func CheckAuthorize(c *gin.Context) int64 {
+	// 解析用户数据
+	token := c.GetString("token")
+	deviceId := c.GetString("deviceId")
+	userAgent := new(sso.UserAgent)
+	userAgentAny, isUserAgentAny := c.Get("userAgent")
+	if !isUserAgentAny {
+		return 10004
+	}
+	if token == "" || deviceId == "" || userAgent == nil {
+		return 10004
+	}
+	userAgent = userAgentAny.(*sso.UserAgent)
+	// Log.Info("token, deviceId, userAgent", deviceId, *userAgent)
+	ret, err := conf.SSO.Verify(token, deviceId, userAgent)
+	// log.Info(ret, err)
+	if err != nil {
+		return 10004
+	}
+	if ret != nil && ret.UserInfo.Uid != "" {
+		c.Set("userInfo", ret.UserInfo)
+		c.Set("loginInfo", ret.LoginInfo)
+		c.Set("deviceId", ret.LoginInfo.DeviceId)
+
+		return 200
+	}
+	return 10004
+}
+
 func Authorize() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if _, isStaticServer := c.Get("isStaticServer"); isStaticServer {
@@ -34,69 +63,12 @@ func Authorize() gin.HandlerFunc {
 			res := response.ResponseProtobufType{}
 			res.Code = 10004
 
-			// 解析用户数据
-			token := c.GetString("token")
-			deviceId := c.GetString("deviceId")
-			userAgent := new(sso.UserAgent)
-			userAgentAny, isUserAgentAny := c.Get("userAgent")
-			if !isUserAgentAny {
+			if code := CheckAuthorize(c); code == 10004 {
 				res.Code = 10004
 				res.Call(c)
 				c.Abort()
 				return
 			}
-			if token == "" || deviceId == "" || userAgent == nil {
-				res.Code = 10004
-				res.Call(c)
-				c.Abort()
-				return
-			}
-			userAgent = userAgentAny.(*sso.UserAgent)
-			// Log.Info("token, deviceId, userAgent", deviceId, *userAgent)
-			ret, err := conf.SSO.Verify(token, deviceId, userAgent)
-			// log.Info(ret, err)
-			if err != nil {
-				// Log.Info("jwt: ", err)
-				res.Call(c)
-				c.Abort()
-				return
-			}
-			// log.Info("token", token)
-			// log.Info("deviceId", deviceId)
-			// log.Info("userAgent", userAgent)
-
-			// Log.Info("ret", ret, ret.Payload)
-			// log.Info(ret != nil, ret.UserInfo.Uid)
-			if ret != nil && ret.UserInfo.Uid != "" {
-
-				// if isExchangeKey := strings.Contains(c.Request.URL.Path, "encryption/exchangeKey"); !isExchangeKey {
-				// 	// 要求登录的同时还没有key就说不过去了
-				// 	// userAesKeyInterface, err := c.Get("userAesKey")
-				// 	// if userAesKeyInterface != nil || !err {
-				// 	// 	userAesKey := userAesKeyInterface.(*encryption.UserAESKey)
-				// 	// 	if userAesKey.Uid != ret.Payload.Uid || userAesKey.DeviceId != ret.Payload.UserAgent.DeviceId {
-				// 	// 		res.Code = 10008
-				// 	// 		res.Call(c)
-				// 	// 		c.Abort()
-				// 	// 		return
-				// 	// 	}
-				// 	// }
-				// }
-				// log.Info(ret.LoginInfo.DeviceId)
-				c.Set("userInfo", ret.UserInfo)
-				c.Set("loginInfo", ret.LoginInfo)
-				c.Set("deviceId", ret.LoginInfo.DeviceId)
-
-				c.Next()
-				return
-			}
-			res.Code = 10004
-			res.Call(c)
-			// Log.Info(res)
-			c.Abort()
-			// res.Call(c)
-			// c.Abort()
-			return
 		}
 
 		c.Next()

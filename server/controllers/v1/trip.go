@@ -4,6 +4,7 @@ import (
 	dbxv1 "github.com/ShiinaAiiko/nyanya-trip-route-track/server/dbx/v1"
 	"github.com/ShiinaAiiko/nyanya-trip-route-track/server/models"
 	"github.com/ShiinaAiiko/nyanya-trip-route-track/server/protos"
+	"github.com/ShiinaAiiko/nyanya-trip-route-track/server/services/middleware"
 	"github.com/ShiinaAiiko/nyanya-trip-route-track/server/services/response"
 	"github.com/cherrai/nyanyago-utils/nint"
 	"github.com/cherrai/nyanyago-utils/nlog"
@@ -23,7 +24,6 @@ type TripController struct {
 }
 
 func formartTrip(v *models.Trip) *protos.Trip {
-
 	postions := []*protos.TripPostion{}
 
 	for _, v := range v.Postions {
@@ -55,6 +55,11 @@ func formartTrip(v *models.Trip) *protos.Trip {
 		CreateTime: v.CreateTime,
 		StartTime:  v.StartTime,
 		EndTime:    v.EndTime,
+	}
+	if v.Permissions != nil {
+		trip.Permissions = &protos.TripPermissions{
+			ShareKey: v.Permissions.ShareKey,
+		}
 	}
 
 	return trip
@@ -156,6 +161,191 @@ func (fc *TripController) AddTrip(c *gin.Context) {
 
 	protoData := &protos.AddTrip_Response{
 		Trip: formartTrip(addTrip),
+	}
+
+	res.Data = protos.Encode(protoData)
+
+	res.Call(c)
+}
+
+func (fc *TripController) UpdateTrip(c *gin.Context) {
+	// 1、请求体
+	var res response.ResponseProtobufType
+	res.Code = 200
+
+	// 2、获取参数
+	data := new(protos.UpdateTrip_Request)
+	var err error
+	if err = protos.DecodeBase64(c.GetString("data"), data); err != nil {
+		res.Error = err.Error()
+		res.Code = 10002
+		res.Call(c)
+		return
+	}
+
+	// log.Info("data", data)
+
+	// 3、验证参数
+	if err = validation.ValidateStruct(
+		data,
+		validation.Parameter(&data.Id, validation.Required()),
+	); err != nil {
+		res.Errors(err)
+		res.Code = 10002
+		res.Call(c)
+		return
+	}
+
+	userInfoAny, exists := c.Get("userInfo")
+	if !exists {
+		res.Errors(err)
+		res.Code = 10004
+		res.Call(c)
+		return
+	}
+	userInfo := userInfoAny.(*sso.UserInfo)
+
+	sk := ""
+	if data.ShareKey {
+		sk = tripDbx.GetShareKey(9)
+	} else {
+		sk = "disable"
+	}
+
+	err = tripDbx.UpdateTrip(
+		userInfo.Uid, data.Id, sk, data.Name,
+	)
+	if err != nil {
+		res.Errors(err)
+		res.Code = 10016
+		res.Call(c)
+		return
+	}
+	if sk == "disable" {
+		sk = ""
+	}
+
+	protoData := &protos.UpdateTrip_Response{
+		ShareKey: sk,
+		Name:     data.Name,
+	}
+
+	res.Data = protos.Encode(protoData)
+
+	res.Call(c)
+}
+
+func (fc *TripController) DeleteTrip(c *gin.Context) {
+	// 1、请求体
+	var res response.ResponseProtobufType
+	res.Code = 200
+
+	// 2、获取参数
+	data := new(protos.DeleteTrip_Request)
+	var err error
+	if err = protos.DecodeBase64(c.GetString("data"), data); err != nil {
+		res.Error = err.Error()
+		res.Code = 10002
+		res.Call(c)
+		return
+	}
+
+	// log.Info("data", data)
+
+	// 3、验证参数
+	if err = validation.ValidateStruct(
+		data,
+		validation.Parameter(&data.Id, validation.Required()),
+	); err != nil {
+		res.Errors(err)
+		res.Code = 10002
+		res.Call(c)
+		return
+	}
+
+	userInfoAny, exists := c.Get("userInfo")
+	if !exists {
+		res.Errors(err)
+		res.Code = 10004
+		res.Call(c)
+		return
+	}
+	userInfo := userInfoAny.(*sso.UserInfo)
+
+	err = tripDbx.DeleteTrip(
+		userInfo.Uid, data.Id,
+	)
+	if err != nil {
+		res.Errors(err)
+		res.Code = 10016
+		res.Call(c)
+		return
+	}
+
+	protoData := &protos.DeleteTrip_Response{}
+
+	res.Data = protos.Encode(protoData)
+
+	res.Call(c)
+}
+
+func (fc *TripController) GetTrip(c *gin.Context) {
+	// 1、请求体
+	var res response.ResponseProtobufType
+	res.Code = 200
+
+	// 2、获取参数
+	data := new(protos.GetTrip_Request)
+	var err error
+	if err = protos.DecodeBase64(c.GetString("data"), data); err != nil {
+		res.Error = err.Error()
+		res.Code = 10002
+		res.Call(c)
+		return
+	}
+
+	// 3、验证参数
+	if err = validation.ValidateStruct(
+		data,
+		validation.Parameter(&data.Id, validation.Required()),
+	); err != nil {
+		res.Errors(err)
+		res.Code = 10002
+		res.Call(c)
+		return
+	}
+
+	authorId := ""
+	// 校验身份
+	if data.ShareKey == "" {
+		if code := middleware.CheckAuthorize(c); code == 10004 {
+			res.Code = 10004
+			res.Call(c)
+			return
+		}
+		userInfoAny, exists := c.Get("userInfo")
+		if !exists {
+			res.Errors(err)
+			res.Code = 10004
+			res.Call(c)
+			return
+		}
+		authorId = userInfoAny.(*sso.UserInfo).Uid
+	}
+
+	// log.Info(data.Id, authorId, data.ShareKey)
+	getTrip, err := tripDbx.GetTrip(data.Id, authorId, data.ShareKey)
+	// log.Info("getTrip, err ", getTrip, err)
+	if err != nil || getTrip == nil {
+		res.Errors(err)
+		res.Code = 10006
+		res.Call(c)
+		return
+	}
+	// log.Info(data.Id, authorId, data.ShareKey)
+
+	protoData := &protos.GetTrip_Response{
+		Trip: formartTrip(getTrip),
 	}
 
 	res.Data = protos.Encode(protoData)

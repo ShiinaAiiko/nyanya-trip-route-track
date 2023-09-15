@@ -13,6 +13,7 @@ export const layoutSlice = createSlice({
 		footer: true,
 		bottomNavigator: true,
 		headerLogoText: '',
+		headerFiexd: false,
 		openSettingsModal: false,
 		openLoginModal: false,
 		openTripHistoryModal: false,
@@ -28,6 +29,15 @@ export const layoutSlice = createSlice({
 			}
 		) => {
 			state.header = params.payload
+		},
+		setLayoutHeaderFixed: (
+			state,
+			params: {
+				payload: boolean
+				type: string
+			}
+		) => {
+			state.headerFiexd = params.payload
 		},
 		setLayoutHeaderLogoText: (
 			state,

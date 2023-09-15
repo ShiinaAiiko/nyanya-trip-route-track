@@ -23,7 +23,17 @@
 		position: relative;
 		.tl-m-main {
 			width: 100%;
-			height: 100%;
+			height: calc(100% - 50px);
+			&.headerFiexd {
+				height: 100%;
+			}
 		}
 	}
+}
+
+.model-content {
+	z-index: 1003 !important;
+}
+.model-bg {
+	z-index: 1002 !important;
 }

@@ -23,6 +23,8 @@ message TripStatistics {
   double maxAltitude = 4;
 }
 
+message TripPermissions { string shareKey = 1; }
+
 message Trip {
   string id = 1;
   // 非必填
@@ -32,6 +34,7 @@ message Trip {
   string authorId = 9;
   repeated TripPostion postions = 4;
   TripStatistics statistics = 5;
+  TripPermissions permissions = 11;
   int64 status = 6;
   int64 createTime = 7;
   int64 startTime = 10;
@@ -47,6 +50,40 @@ message AddTrip {
     // int64 status = 4;
     int64 startTime = 5;
     int64 endTime = 6;
+  }
+  message Response { Trip trip = 1; }
+}
+
+message UpdateTrip {
+  message Request {
+    // 必填
+    string id = 1;
+    // 可填，为true则是生成一个key
+    bool shareKey = 2;
+    // 可填
+    string name = 3;
+  }
+  message Response {
+    // 可填
+    string shareKey = 1;
+    // 可填
+    string name = 2;
+  }
+}
+
+message DeleteTrip {
+  message Request {
+    // 必填
+    string id = 1;
+  }
+  message Response {}
+}
+
+message GetTrip {
+  message Request {
+    string id = 1;
+    // 可填 传了则视为分享权限，可无视用户校验
+    string shareKey = 2;
   }
   message Response { Trip trip = 1; }
 }

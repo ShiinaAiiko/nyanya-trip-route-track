@@ -5,8 +5,8 @@ import { getUrl } from '..'
 
 export const v1 = {
 	async AddTrip(params: protoRoot.trip.AddTrip.IRequest) {
-    const { apiUrls } = store.getState().api
-    
+		const { apiUrls } = store.getState().api
+
 		return await Request<protoRoot.trip.AddTrip.IResponse>(
 			{
 				method: 'POST',
@@ -19,9 +19,54 @@ export const v1 = {
 			protoRoot.trip.AddTrip.Response
 		)
 	},
+	async UpdateTrip(params: protoRoot.trip.UpdateTrip.IRequest) {
+		const { apiUrls } = store.getState().api
+
+		return await Request<protoRoot.trip.UpdateTrip.IResponse>(
+			{
+				method: 'POST',
+				data: PARAMS<protoRoot.trip.UpdateTrip.IRequest>(
+					params,
+					protoRoot.trip.UpdateTrip.Request
+				),
+				url: getUrl(apiUrls.v1.baseUrl, apiUrls.v1.updateTrip),
+			},
+			protoRoot.trip.UpdateTrip.Response
+		)
+	},
+	async DeleteTrip(params: protoRoot.trip.DeleteTrip.IRequest) {
+		const { apiUrls } = store.getState().api
+
+		return await Request<protoRoot.trip.DeleteTrip.IResponse>(
+			{
+				method: 'POST',
+				data: PARAMS<protoRoot.trip.DeleteTrip.IRequest>(
+					params,
+					protoRoot.trip.DeleteTrip.Request
+				),
+				url: getUrl(apiUrls.v1.baseUrl, apiUrls.v1.deleteTrip),
+			},
+			protoRoot.trip.DeleteTrip.Response
+		)
+	},
+	async GetTrip(params: protoRoot.trip.GetTrip.IRequest) {
+		const { apiUrls } = store.getState().api
+
+		return await Request<protoRoot.trip.GetTrip.IResponse>(
+			{
+				method: 'GET',
+				data: PARAMS<protoRoot.trip.GetTrip.IRequest>(
+					params,
+					protoRoot.trip.GetTrip.Request
+				),
+				url: getUrl(apiUrls.v1.baseUrl, apiUrls.v1.getTrip),
+			},
+			protoRoot.trip.GetTrip.Response
+		)
+	},
 	async GetTrips(params: protoRoot.trip.GetTrips.IRequest) {
-    const { apiUrls } = store.getState().api
-    
+		const { apiUrls } = store.getState().api
+
 		return await Request<protoRoot.trip.GetTrips.IResponse>(
 			{
 				method: 'GET',
@@ -35,8 +80,8 @@ export const v1 = {
 		)
 	},
 	async GetTripStatistics(params: protoRoot.trip.GetTripStatistics.IRequest) {
-    const { apiUrls } = store.getState().api
-    
+		const { apiUrls } = store.getState().api
+
 		return await Request<protoRoot.trip.GetTripStatistics.IResponse>(
 			{
 				method: 'GET',
