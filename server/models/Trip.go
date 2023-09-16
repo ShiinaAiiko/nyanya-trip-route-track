@@ -27,10 +27,10 @@ type TripPostion struct {
 }
 
 type TripStatistics struct {
-	TotalDistance float64 `bson:"totalDistance" json:"totalDistance,omitempty"`
-	MaxSpeed      float64 `bson:"maxSpeed" json:"maxSpeed,omitempty"`
-	AverageSpeed  float64 `bson:"averageSpeed" json:"averageSpeed,omitempty"`
-	MaxAltitude   float64 `bson:"maxAltitude" json:"maxAltitude,omitempty"`
+	Distance     float64 `bson:"distance" json:"distance,omitempty"`
+	MaxSpeed     float64 `bson:"maxSpeed" json:"maxSpeed,omitempty"`
+	AverageSpeed float64 `bson:"averageSpeed" json:"averageSpeed,omitempty"`
+	MaxAltitude  float64 `bson:"maxAltitude" json:"maxAltitude,omitempty"`
 }
 
 type TripPermissions struct {
@@ -50,7 +50,7 @@ type Trip struct {
 	Statistics  *TripStatistics  `bson:"statistics" json:"statistics,omitempty"`
 	Permissions *TripPermissions `bson:"permissions" json:"permissions,omitempty"`
 	AuthorId    string           `bson:"authorId" json:"authorId,omitempty"`
-	// 1 normal -1 delete
+	// 1 normal 0 ing -1 delete
 	Status int64 `bson:"status" json:"status,omitempty"`
 	// CreateTime Unix timestamp
 	CreateTime int64 `bson:"createTime" json:"createTime,omitempty"`
@@ -69,7 +69,16 @@ func (s *Trip) Default() error {
 	// }
 	unixTimeStamp := time.Now().Unix()
 
-	s.Status = 1
+	if s.Postions == nil {
+		s.Postions = []*TripPostion{}
+	}
+	if s.Statistics == nil {
+		s.Statistics = &TripStatistics{}
+	}
+	if s.Permissions == nil {
+		s.Permissions = &TripPermissions{}
+	}
+
 	if s.CreateTime == 0 {
 		s.CreateTime = unixTimeStamp
 	}
@@ -100,7 +109,7 @@ func (s *Trip) Validate() error {
 		validation.Parameter(&s.Id, validation.Required(), validation.Type("string")),
 		validation.Parameter(&s.Type, validation.Required(), validation.Enum([]string{"Running", "Bike", "Drive"})),
 		validation.Parameter(&s.AuthorId, validation.Required()),
-		validation.Parameter(&s.Status, validation.Required(), validation.Enum([]int64{1, -1})),
+		validation.Parameter(&s.Status, validation.Required(), validation.Enum([]int64{1, 0, -1})),
 		validation.Parameter(&s.CreateTime, validation.Required()),
 		validation.Parameter(&s.StartTime, validation.Required()),
 		validation.Parameter(&s.DeleteTime, validation.Required()),

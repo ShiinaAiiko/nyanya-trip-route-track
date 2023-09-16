@@ -59,6 +59,78 @@ func (t *TripDbx) AddTrip(trip *models.Trip) (*models.Trip, error) {
 	return trip, nil
 }
 
+func (t *TripDbx) UpdateTripPosition(authorId, id string, postions []*models.TripPostion) error {
+	trip := new(models.Trip)
+
+	if len(postions) == 0 {
+		return nil
+	}
+
+	updateResult, err := trip.GetCollection().UpdateOne(context.TODO(),
+		bson.M{
+			"$and": []bson.M{
+				{
+					"_id":      id,
+					"authorId": authorId,
+					"status":   0,
+				},
+			},
+		}, bson.M{
+			"$push": bson.M{
+				"postions": bson.M{
+					"$each": postions,
+				},
+			},
+		}, options.Update().SetUpsert(false))
+
+	if err != nil {
+		return err
+	}
+	if updateResult.ModifiedCount == 0 {
+		return errors.New("delete fail")
+	}
+
+	// 删除对应redis
+	t.DeleteRedisData(authorId, id)
+	return nil
+}
+
+func (t *TripDbx) FinishTrip(authorId, id string,
+	statistics *models.TripStatistics,
+	permissions *models.TripPermissions, endTime int64) error {
+
+	trip := new(models.Trip)
+
+	updateResult, err := trip.GetCollection().UpdateOne(context.TODO(),
+		bson.M{
+			"$and": []bson.M{
+				{
+					"_id":      id,
+					"authorId": authorId,
+					"status":   0,
+				},
+			},
+		}, bson.M{
+			"$set": bson.M{
+				"status":      1,
+				"statistics":  statistics,
+				"permissions": permissions,
+				"endTime":     endTime,
+			},
+		}, options.Update().SetUpsert(false))
+
+	if err != nil {
+		return err
+	}
+	if updateResult.ModifiedCount == 0 {
+		return errors.New("delete fail")
+	}
+
+	// 删除对应redis
+	t.DeleteRedisData(authorId, id)
+	return nil
+}
+
 func (t *TripDbx) UpdateTrip(authorId, id string, shareKey, name string) error {
 	trip := new(models.Trip)
 
@@ -73,7 +145,7 @@ func (t *TripDbx) UpdateTrip(authorId, id string, shareKey, name string) error {
 		update["name"] = name
 	}
 
-	updateResult, err := trip.GetCollection().UpdateMany(context.TODO(),
+	updateResult, err := trip.GetCollection().UpdateOne(context.TODO(),
 		bson.M{
 			"$and": []bson.M{
 				{
@@ -99,6 +171,28 @@ func (t *TripDbx) UpdateTrip(authorId, id string, shareKey, name string) error {
 	t.DeleteRedisData(authorId, id)
 	return nil
 }
+func (t *TripDbx) PermanentlyDeleteTrip(id string) error {
+	trip := new(models.Trip)
+
+	deleteResult, err := trip.GetCollection().DeleteOne(context.TODO(),
+		bson.M{
+			"$and": []bson.M{
+				{
+					"_id": id,
+				},
+			},
+		})
+
+	if err != nil {
+		return err
+	}
+	if deleteResult.DeletedCount == 0 {
+		return errors.New("delete fail")
+	}
+	// 删除对应redis
+	t.DeleteRedisData("", id)
+	return nil
+}
 
 func (t *TripDbx) DeleteTrip(authorId, id string) error {
 	trip := new(models.Trip)
@@ -111,7 +205,7 @@ func (t *TripDbx) DeleteTrip(authorId, id string) error {
 				},
 				{
 					"authorId": authorId,
-					"status":   1,
+					// "status":   1,
 				},
 			},
 		}, bson.M{
@@ -155,6 +249,28 @@ func (t *TripDbx) GetTrip(id string, authorId string, shareKey string) (*models.
 			params["authorId"] = authorId
 		}
 
+		err := trip.GetCollection().FindOne(context.TODO(), params).Decode(trip)
+		if err != nil {
+			return nil, err
+		}
+	}
+	err = conf.Redisdb.SetStruct(key.GetKey(id), trip, key.GetExpiration())
+	if err != nil {
+		log.Info(err)
+	}
+
+	return trip, nil
+}
+
+func (t *TripDbx) GetTripById(id string) (*models.Trip, error) {
+	trip := new(models.Trip)
+
+	key := conf.Redisdb.GetKey("GetTrip")
+	err := conf.Redisdb.GetStruct(key.GetKey(id), trip)
+	if err != nil {
+		params := bson.M{
+			"_id": id,
+		}
 		err := trip.GetCollection().FindOne(context.TODO(), params).Decode(trip)
 		if err != nil {
 			return nil, err
@@ -221,7 +337,9 @@ func (t *TripDbx) GetTrips(authorId, typeStr string, pageNum, pageSize int64, st
 
 		match := bson.M{
 			"authorId": authorId,
-			"status":   1,
+			"status": bson.M{
+				"$in": []int64{1, 0},
+			},
 			"createTime": bson.M{
 				"$gte": startTime,
 				"$lt":  endTime,
@@ -253,6 +371,7 @@ func (t *TripDbx) GetTrips(authorId, typeStr string, pageNum, pageSize int64, st
 					"_id":         1,
 					"name":        1,
 					"type":        1,
+					"status":      1,
 					"statistics":  1,
 					"permissions": 1,
 					"startTime":   1,
@@ -294,7 +413,9 @@ func (t *TripDbx) GetTripsBaseData(authorId, typeStr string, startTime, endTime 
 	if err != nil || true {
 		match := bson.M{
 			"authorId": authorId,
-			"status":   1,
+			"status": bson.M{
+				"$in": []int64{1, 0},
+			},
 		}
 		if typeStr != "All" {
 			match["type"] = typeStr
@@ -322,6 +443,7 @@ func (t *TripDbx) GetTripsBaseData(authorId, typeStr string, startTime, endTime 
 					"_id":         1,
 					"name":        1,
 					"type":        1,
+					"status":      1,
 					"statistics":  1,
 					"permissions": 1,
 					"startTime":   1,

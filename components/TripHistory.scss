@@ -81,7 +81,8 @@
 					display: flex;
 					justify-content: space-between;
 					align-items: flex-end;
-					.bi-totaldistance {
+					.bi-distance {
+						white-space: nowrap;
 						.value {
 							font-size: 36px;
 							font-weight: 700;
@@ -128,7 +129,7 @@
 		.th-list {
 			.th-l-item {
 				background-color: #fff;
-        border: 1px dashed var(--saki-default-color);
+				border: 1px dashed var(--saki-default-color);
 				// border-bottom: 1px dashed var(--saki-default-color);
 				border-radius: 10px;
 				display: flex;

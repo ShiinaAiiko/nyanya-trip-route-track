@@ -109,6 +109,9 @@ protos() {
   yarn protos
   rm -rf $DIR/protos_temp
   echo "-> 编译Protobuf成功"
+
+  cd ./server
+  ./release.sh protos
 }
 
 logs() {

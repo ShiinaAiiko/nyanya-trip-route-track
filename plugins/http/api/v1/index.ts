@@ -19,6 +19,36 @@ export const v1 = {
 			protoRoot.trip.AddTrip.Response
 		)
 	},
+	async UpdateTripPosition(params: protoRoot.trip.UpdateTripPosition.IRequest) {
+		const { apiUrls } = store.getState().api
+
+		return await Request<protoRoot.trip.UpdateTripPosition.IResponse>(
+			{
+				method: 'POST',
+				data: PARAMS<protoRoot.trip.UpdateTripPosition.IRequest>(
+					params,
+					protoRoot.trip.UpdateTripPosition.Request
+				),
+				url: getUrl(apiUrls.v1.baseUrl, apiUrls.v1.updateTripPosition),
+			},
+			protoRoot.trip.UpdateTripPosition.Response
+		)
+	},
+	async FinishTrip(params: protoRoot.trip.FinishTrip.IRequest) {
+		const { apiUrls } = store.getState().api
+
+		return await Request<protoRoot.trip.FinishTrip.IResponse>(
+			{
+				method: 'POST',
+				data: PARAMS<protoRoot.trip.FinishTrip.IRequest>(
+					params,
+					protoRoot.trip.FinishTrip.Request
+				),
+				url: getUrl(apiUrls.v1.baseUrl, apiUrls.v1.finishTrip),
+			},
+			protoRoot.trip.FinishTrip.Response
+		)
+	},
 	async UpdateTrip(params: protoRoot.trip.UpdateTrip.IRequest) {
 		const { apiUrls } = store.getState().api
 

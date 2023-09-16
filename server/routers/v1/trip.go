@@ -12,7 +12,7 @@ func (r *Routerv1) InitTrip() {
 		BaseUrl: r.BaseUrl,
 	}
 	r.Group.POST(
-		role.SetRole("/trip/addTrip", &middleware.RoleOptionsType{
+		role.SetRole("/trip/add", &middleware.RoleOptionsType{
 			CheckApp:           false,
 			Authorize:          true,
 			RequestEncryption:  false,
@@ -20,6 +20,26 @@ func (r *Routerv1) InitTrip() {
 			ResponseDataType:   "protobuf",
 		}),
 		tc.AddTrip)
+
+	r.Group.POST(
+		role.SetRole("/trip/position/update", &middleware.RoleOptionsType{
+			CheckApp:           false,
+			Authorize:          true,
+			RequestEncryption:  false,
+			ResponseEncryption: false,
+			ResponseDataType:   "protobuf",
+		}),
+		tc.UpdateTripPosition)
+
+	r.Group.POST(
+		role.SetRole("/trip/finish", &middleware.RoleOptionsType{
+			CheckApp:           false,
+			Authorize:          true,
+			RequestEncryption:  false,
+			ResponseEncryption: false,
+			ResponseDataType:   "protobuf",
+		}),
+		tc.FinishTrip)
 
 	r.Group.POST(
 		role.SetRole("/trip/update", &middleware.RoleOptionsType{

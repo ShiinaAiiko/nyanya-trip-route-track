@@ -10,7 +10,9 @@ export const apiSlice = createSlice({
 		apiUrls: {
 			v1: {
 				baseUrl: '/api/v1',
-				addTrip: '/trip/addTrip',
+				addTrip: '/trip/add',
+				updateTripPosition: '/trip/position/update',
+				finishTrip: '/trip/finish',
 				updateTrip: '/trip/update',
 				deleteTrip: '/trip/delete',
 				getTrip: '/trip/get',

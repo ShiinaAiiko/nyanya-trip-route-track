@@ -24,12 +24,13 @@
 			align-items: center;
 			justify-content: center;
 			box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-			transition: width 0.3s, top 0.3s;
+			transition: width 0.3s, top 0.3s, transform 0.3s;
 
 			&.Mobile {
 				width: 100%;
 				height: 160px;
 				top: 0px;
+				transform: translate(0, 0);
 				border-radius: 0 0 20px 20px;
 
 				// background-color: #111111;
@@ -147,7 +148,8 @@
 				display: flex;
 				justify-content: space-between;
 				align-items: flex-end;
-				.bi-totaldistance {
+				.bi-distance {
+					white-space: nowrap;
 					.value {
 						font-size: 36px;
 						font-weight: 700;
@@ -246,7 +248,7 @@
 			color: #555;
 			border-radius: 0 2px 0 0;
 			cursor: pointer;
-      user-select: none;
+			user-select: none;
 		}
 	}
 }

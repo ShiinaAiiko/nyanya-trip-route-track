@@ -74,11 +74,30 @@ const TripItemComponent = ({
 		'loaded'
 	)
 	const [trip, setTrip] = useState<protoRoot.trip.ITrip>()
+	const [position, setPosition] = useState<GeolocationPosition>()
 
 	const [map, setMap] = useState<Leaflet.Map>()
 
 	useEffect(() => {
 		setMounted(true)
+
+		navigator.geolocation.getCurrentPosition(
+			(pos) => {
+				setPosition(pos)
+			},
+			(error) => {
+				if (error.code === 1) {
+					snackbar({
+						message: '必须开启定位权限，请检查下是否开启定位权限',
+						autoHideDuration: 2000,
+						vertical: 'top',
+						horizontal: 'center',
+					}).open()
+				}
+				console.log('GetCurrentPosition Error', error)
+			},
+			{ enableHighAccuracy: true }
+		)
 	}, [])
 	// useEffect(() => {
 	// 	if (tripId) {
@@ -135,17 +154,28 @@ const TripItemComponent = ({
 
 	const initMap = () => {
 		const L: typeof Leaflet = (window as any).L
-		if (L && trip?.postions) {
-			const startPosition = trip.postions[0]
-			const endPosition = trip.postions[trip.postions.length - 1]
+		if (L) {
+			let lat = position?.coords.latitude || 0
+			let lon = position?.coords.longitude || 0
+			let zoom = 13
 
-			let lat =
-				(startPosition.latitude || 0) -
-				((startPosition.latitude || 0) - (endPosition.latitude || 0)) / 2
-			let lon =
-				(startPosition.longitude || 0) -
-				((startPosition.longitude || 0) - (endPosition.longitude || 0)) / 2
+			if (trip?.postions?.length) {
+				const startPosition = trip.postions[0]
+				const endPosition = trip.postions[trip.postions.length - 1]
 
+				lat =
+					(startPosition.latitude || 0) -
+					((startPosition.latitude || 0) - (endPosition.latitude || 0)) / 2
+				lon =
+					(startPosition.longitude || 0) -
+					((startPosition.longitude || 0) - (endPosition.longitude || 0)) / 2
+				zoom = getZoom(
+					startPosition.latitude || 0,
+					startPosition.longitude || 0,
+					lat,
+					lon
+				)
+			}
 			let m: Leaflet.Map = map as any
 			if (!m && L) {
 				m = L.map('ti-map', {
@@ -159,12 +189,7 @@ const TripItemComponent = ({
 					[lat, lon],
 					// [
 					//   120.3814, -1.09],
-					getZoom(
-						startPosition.latitude || 0,
-						startPosition.longitude || 0,
-						lat,
-						lon
-					)
+					zoom
 				)
 				L.tileLayer(
 					config.country === 'China'
@@ -189,29 +214,29 @@ const TripItemComponent = ({
 
 				setMap(m)
 			}
-			console.log('initMap', m)
-			console.log(lat, lon)
 			m && m.panTo([lat, lon])
 
 			// L.marker([lat, lon]).addTo(m).openPopup()
-			const positions = trip.postions
-			positions?.forEach((v, i) => {
-				if (i === 0) return
-				const lv = positions[i - 1]
-				L.polyline(
-					[
-						[lv.latitude || 0, lv.longitude || 0],
-						[v.latitude || 0, v.longitude || 0],
-					],
-					{
-						// smoothFactor:10,
-						// snakingSpeed: 200,
-						color: getSpeedColor(v.speed || 0, 4, 10), //线的颜色
-						weight: 8, //线的粗细
-						// opacity: 0.3,
-					}
-				).addTo(m)
-			})
+			if (trip?.postions) {
+				const positions = trip.postions
+				positions?.forEach((v, i) => {
+					if (i === 0) return
+					const lv = positions[i - 1]
+					L.polyline(
+						[
+							[lv.latitude || 0, lv.longitude || 0],
+							[v.latitude || 0, v.longitude || 0],
+						],
+						{
+							// smoothFactor:10,
+							// snakingSpeed: 200,
+							color: getSpeedColor(v.speed || 0, 4, 10), //线的颜色
+							weight: 8, //线的粗细
+							// opacity: 0.3,
+						}
+					).addTo(m)
+				})
+			}
 			// setTimeout(() => {
 			// 	outShareImage()
 			// }, 1000)
@@ -227,7 +252,7 @@ const TripItemComponent = ({
 
 	const outSpeedLineChart = () => {
 		try {
-			if (speedChart || !trip?.postions?.length) return
+			if (speedChart) return
 			const el = document.getElementById('speed-chart')
 
 			let labels: any[] = []
@@ -654,8 +679,7 @@ const TripItemComponent = ({
 								</div>
 								<div className='ti-distance'>
 									<div className='ti-d-value'>
-										{Math.round((trip?.statistics?.totalDistance || 0) / 10) /
-											100}
+										{Math.round((trip?.statistics?.distance || 0) / 10) / 100}
 									</div>
 									<div className='ti-d-unit'>km</div>
 								</div>
@@ -704,10 +728,14 @@ const TripItemComponent = ({
 									</div>
 									<div className='ti-d-item'>
 										<span className='value'>
-											{formatTime(
-												Number(trip?.startTime),
-												Number(trip?.endTime)
-											)}
+											{Number(trip.endTime || 0) > 0
+												? formatTime(
+														Number(trip.startTime),
+														Number(trip.endTime)
+												  )
+												: t('unfinished', {
+														ns: 'tripPage',
+												  })}
 										</span>
 										<span className='name'>
 											{t('duration', {

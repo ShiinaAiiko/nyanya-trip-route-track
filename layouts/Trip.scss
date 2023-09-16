@@ -37,3 +37,14 @@
 .model-bg {
 	z-index: 1002 !important;
 }
+
+.tool-box-layout-menu-list {
+	.tblml-item {
+		a {
+			font-size: 14px;
+			padding: 14px 16px;
+			display: block;
+			color: #000;
+		}
+	}
+}

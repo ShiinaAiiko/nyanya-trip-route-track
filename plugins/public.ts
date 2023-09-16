@@ -4,11 +4,12 @@ import { protoRoot, FoeEachLongToNumber, PARAMS, Request } from '../protos'
 import { Buffer } from 'buffer'
 import { R } from '../store/config'
 import { deepCopy } from '@nyanyajs/utils'
+import { snackbar } from '@saki-ui/core'
 let RequestType = protoRoot.base.RequestType
 let ResponseType = protoRoot.base.ResponseType
 let ResponseEncryptDataType = protoRoot.base.ResponseEncryptDataType
 
-export const initPublic = ()=>{}
+export const initPublic = () => {}
 
 R.interceptors.request.use(async (config) => {
 	const { api, user } = store.getState()
@@ -145,6 +146,13 @@ R.interceptors.response.use(async (response) => {
 
 		if (data?.code !== 200) {
 			console.error(data)
+
+			snackbar({
+				message: data.msg + (data.error ? ',' + data.error : ''),
+				autoHideDuration: 2000,
+				vertical: 'top',
+				horizontal: 'center',
+			}).open()
 		}
 		// 	}
 		// }

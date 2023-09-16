@@ -159,8 +159,7 @@ const TripHistoryComponent = () => {
 										ns: 'tripPage',
 								  }) +
 								  ' · ' +
-								  Math.round((trip?.statistics?.totalDistance || 0) / 10) /
-										100 +
+								  Math.round((trip?.statistics?.distance || 0) / 10) / 100 +
 								  'km'
 								: t('pageTitle')
 						}
@@ -347,7 +346,7 @@ const TripHistoryPage = ({
 						let t = moment(Number(v.createTime) * 1000).format('YYYY')
 						!tripData[t] && (tripData[t] = 0)
 
-						tripData[t] += v.statistics?.totalDistance || 0
+						tripData[t] += v.statistics?.distance || 0
 					})
 					if (Object.keys(tripData).length === 1) {
 						tripData['2018'] = 0
@@ -363,7 +362,7 @@ const TripHistoryPage = ({
 						let t = moment(Number(v.createTime) * 1000).format('YYYY')
 						!tripData[t] && (tripData[t] = 0)
 
-						tripData[t] += v.statistics?.totalDistance || 0
+						tripData[t] += v.statistics?.distance || 0
 					})
 					break
 				// 最近12个月
@@ -375,7 +374,7 @@ const TripHistoryPage = ({
 						let t = moment(Number(v.createTime) * 1000).format('YYYY-MM')
 						!tripData[t] && (tripData[t] = 0)
 
-						tripData[t] += v.statistics?.totalDistance || 0
+						tripData[t] += v.statistics?.distance || 0
 					})
 					break
 				// 最近12个周
@@ -388,7 +387,7 @@ const TripHistoryPage = ({
 						let c = Number(v.createTime)
 						weeks.some((sv) => {
 							if (c > sv.t) {
-								tripData[sv.key] += v.statistics?.totalDistance || 0
+								tripData[sv.key] += v.statistics?.distance || 0
 								return true
 							}
 						})
@@ -403,7 +402,7 @@ const TripHistoryPage = ({
 						let t = moment(Number(v.createTime) * 1000).format('M/DD')
 						!tripData[t] && (tripData[t] = 0)
 
-						tripData[t] += v.statistics?.totalDistance || 0
+						tripData[t] += v.statistics?.distance || 0
 					})
 					break
 
@@ -605,12 +604,12 @@ const TripHistoryPage = ({
 												})}
 											</div>
 											<div className='si-data'>
-												<div className='bi-totaldistance'>
+												<div className='bi-distance'>
 													<span className='value'>
 														{Math.round(v.distance / 100) / 10 || 0}
 													</span>
 													<span className='name'>
-														{t('totalDistance', {
+														{t('distance', {
 															ns: 'tripPage',
 														}) + ' (km)'}
 													</span>
@@ -674,8 +673,11 @@ const TripHistoryPage = ({
 									<div
 										ref={(e) => {
 											e &&
-												(e.onclick = () => {
-													console.log(1)
+                        (e.onclick = () => {
+                        if (v.status === 0) {
+                          alert
+                        }
+                        
 													setTripId(v.id || '')
 													onTripItemPage('Show', v)
 												})
@@ -689,8 +691,7 @@ const TripHistoryPage = ({
 													ns: 'tripPage',
 												})}
 												{' · '}
-												{Math.round((v.statistics?.totalDistance || 0) / 10) /
-													100 +
+												{Math.round((v.statistics?.distance || 0) / 10) / 100 +
 													' km'}
 											</div>
 											<div className='th-l-i-l-info'>
@@ -698,7 +699,11 @@ const TripHistoryPage = ({
 													{t('duration', {
 														ns: 'tripPage',
 													})}{' '}
-													{formatTime(Number(v.startTime), Number(v.endTime))}
+													{Number(v.endTime || 0) > 0
+														? formatTime(Number(v.startTime), Number(v.endTime))
+														: t('unfinished', {
+																ns: 'tripPage',
+														  })}
 												</div>
 												{/* <div className='info-item'>配速 10'05</div> */}
 												<div className='info-item'>
@@ -717,9 +722,13 @@ const TripHistoryPage = ({
 										</div>
 										<div className='th-l-i-right'>
 											<div className='th-l-i-r-date'>
-												{moment(Number(v.createTime) * 1000).format(
-													'YYYY.MM.DD'
-												)}
+												{v.status === 1
+													? moment(Number(v.createTime) * 1000).format(
+															'YYYY.MM.DD'
+													  )
+													: t('unfinished', {
+															ns: 'tripPage',
+													  })}
 											</div>
 										</div>
 										{/* <div className='th-i-header'>

@@ -182,6 +182,10 @@ func (res *ResponseType) GetResponse() *ResponseType {
 	switch res.Code {
 	case 200:
 
+	case 10017:
+		res.Msg = "Delete failed."
+		res.CnMsg = "删除失败"
+
 	case 10016:
 		res.Msg = "Create failed."
 		res.CnMsg = "创建失败"

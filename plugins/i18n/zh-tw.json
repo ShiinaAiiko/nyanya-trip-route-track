@@ -97,7 +97,9 @@
 		"fastest": "最快",
 		"slowest": "最慢",
 		"start": "開始",
-		"stop": "停止"
+		"stop": "停止",
+
+		"unfinished": "未完成"
 	},
 	"tripHistoryPage": {
 		"pageTitle": "行程歷史"

@@ -17,7 +17,7 @@ message TripPostion {
   double distance = 9;
 }
 message TripStatistics {
-  double totalDistance = 1;
+  double distance = 1;
   double maxSpeed = 2;
   double averageSpeed = 3;
   double maxAltitude = 4;
@@ -35,6 +35,7 @@ message Trip {
   repeated TripPostion postions = 4;
   TripStatistics statistics = 5;
   TripPermissions permissions = 11;
+  // 1 normal 0 ing -1 delete
   int64 status = 6;
   int64 createTime = 7;
   int64 startTime = 10;
@@ -45,13 +46,31 @@ message AddTrip {
   message Request {
     // Running、Bike、Drive
     string type = 1;
-    repeated TripPostion postions = 2;
-    TripStatistics statistics = 3;
+    // repeated TripPostion postions = 2;
     // int64 status = 4;
-    int64 startTime = 5;
-    int64 endTime = 6;
+    // int64 startTime = 5;
   }
   message Response { Trip trip = 1; }
+}
+
+// 30s 更 新一次
+message UpdateTripPosition {
+  message Request {
+    // 必填
+    string id = 1;
+    // 这段时间内的
+    repeated TripPostion postions = 2;
+  }
+  message Response {}
+}
+
+message FinishTrip {
+  message Request {
+    // 必填
+    string id = 1;
+    TripStatistics statistics = 3;
+  }
+  message Response { bool deleted = 1; }
 }
 
 message UpdateTrip {
