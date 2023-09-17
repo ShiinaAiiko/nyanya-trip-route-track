@@ -27,10 +27,10 @@ type TripController struct {
 }
 
 func formartTrip(v *models.Trip) *protos.Trip {
-	postions := []*protos.TripPostion{}
+	postions := []*protos.TripPosition{}
 
-	for _, v := range v.Postions {
-		postions = append(postions, &protos.TripPostion{
+	for _, v := range v.Positions {
+		postions = append(postions, &protos.TripPosition{
 			Latitude:         v.Latitude,
 			Longitude:        v.Longitude,
 			Altitude:         v.Altitude,
@@ -42,12 +42,14 @@ func formartTrip(v *models.Trip) *protos.Trip {
 		})
 	}
 
+	// log.Info(len(v.Positions), len(postions))
+
 	trip := &protos.Trip{
-		Id:       v.Id,
-		Name:     v.Name,
-		Postions: postions,
-		Type:     v.Type,
-		AuthorId: v.AuthorId,
+		Id:        v.Id,
+		Name:      v.Name,
+		Positions: postions,
+		Type:      v.Type,
+		AuthorId:  v.AuthorId,
 		Statistics: &protos.TripStatistics{
 			Distance:     v.Statistics.Distance,
 			MaxSpeed:     v.Statistics.MaxSpeed,
@@ -161,7 +163,7 @@ func (fc *TripController) UpdateTripPosition(c *gin.Context) {
 	if err = validation.ValidateStruct(
 		data,
 		validation.Parameter(&data.Id, validation.Required()),
-		validation.Parameter(&data.Postions, validation.Length(1, 100000000), validation.Required()),
+		validation.Parameter(&data.Positions, validation.Length(1, 100000000), validation.Required()),
 	); err != nil {
 		res.Errors(err)
 		res.Code = 10002
@@ -178,10 +180,10 @@ func (fc *TripController) UpdateTripPosition(c *gin.Context) {
 	}
 	userInfo := userInfoAny.(*sso.UserInfo)
 
-	postions := []*models.TripPostion{}
+	postions := []*models.TripPosition{}
 
-	for _, v := range data.Postions {
-		postions = append(postions, &models.TripPostion{
+	for _, v := range data.Positions {
+		postions = append(postions, &models.TripPosition{
 			Latitude:         v.Latitude,
 			Longitude:        v.Longitude,
 			Altitude:         v.Altitude,
@@ -215,7 +217,7 @@ func (fc *TripController) TestDataAndPermanentlyDeleteTrip(c *gin.Context, id st
 		return errors.New("content does not exist")
 	}
 	// 少于10个坐标视为无效数据
-	if getTrip.Status == 0 && (len(getTrip.Postions) < 10 || getTrip.Statistics.Distance < 50) {
+	if getTrip.Status == 0 && (len(getTrip.Positions) < 10 || getTrip.Statistics.Distance < 50) {
 		if err = tripDbx.PermanentlyDeleteTrip(id); err != nil {
 			return err
 		}
@@ -261,6 +263,7 @@ func (fc *TripController) FinishTrip(c *gin.Context) {
 		res.Code = 10002
 		res.Call(c)
 
+		// log.Info(err)
 		// 检测是否需要删除
 		if data.Statistics.Distance < 50 {
 			if err := fc.TestDataAndPermanentlyDeleteTrip(c, data.Id); err != nil {
@@ -293,19 +296,21 @@ func (fc *TripController) FinishTrip(c *gin.Context) {
 	}
 	userInfo := userInfoAny.(*sso.UserInfo)
 
-	if err := fc.TestDataAndPermanentlyDeleteTrip(c, data.Id); err != nil {
-		res.Errors(err)
-		if err.Error() == "deleted successfully" {
-			protoData := &protos.FinishTrip_Response{
-				Deleted: true,
+	if data.Statistics.Distance < 50 {
+		if err := fc.TestDataAndPermanentlyDeleteTrip(c, data.Id); err != nil {
+			res.Errors(err)
+			if err.Error() == "deleted successfully" {
+				protoData := &protos.FinishTrip_Response{
+					Deleted: true,
+				}
+				res.Data = protos.Encode(protoData)
+				res.Code = 200
+			} else {
+				res.Code = 10017
 			}
-			res.Data = protos.Encode(protoData)
-			res.Code = 200
-		} else {
-			res.Code = 10017
+			res.Call(c)
+			return
 		}
-		res.Call(c)
-		return
 	}
 
 	err = tripDbx.FinishTrip(

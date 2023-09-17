@@ -59,10 +59,10 @@ func (t *TripDbx) AddTrip(trip *models.Trip) (*models.Trip, error) {
 	return trip, nil
 }
 
-func (t *TripDbx) UpdateTripPosition(authorId, id string, postions []*models.TripPostion) error {
+func (t *TripDbx) UpdateTripPosition(authorId, id string, positions []*models.TripPosition) error {
 	trip := new(models.Trip)
 
-	if len(postions) == 0 {
+	if len(positions) == 0 {
 		return nil
 	}
 
@@ -77,8 +77,8 @@ func (t *TripDbx) UpdateTripPosition(authorId, id string, postions []*models.Tri
 			},
 		}, bson.M{
 			"$push": bson.M{
-				"postions": bson.M{
-					"$each": postions,
+				"positions": bson.M{
+					"$each": positions,
 				},
 			},
 		}, options.Update().SetUpsert(false))

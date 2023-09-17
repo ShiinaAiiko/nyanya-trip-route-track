@@ -25,6 +25,7 @@ import {
 	getSpeedColor,
 	getDistance,
 	formatTime,
+	// testGpsData,
 } from '../plugins/methods'
 import { getGeoInfo } from 'findme-js'
 import Leaflet from 'leaflet'
@@ -41,6 +42,7 @@ const TripPage = () => {
 	const config = useSelector((state: RootState) => state.config)
 	const user = useSelector((state: RootState) => state.user)
 
+	const testDataIndex = useRef(0)
 	const updatedPositionIndex = useRef(0)
 	const tDistance = useRef(0)
 	const timer = useRef<NodeJS.Timeout>()
@@ -179,6 +181,21 @@ const TripPage = () => {
 			setListenTime(new Date().getTime() + time)
 			timer.current = setInterval(() => {
 				setListenTime(new Date().getTime() + time)
+				// const v = testGpsData[testDataIndex.current]
+				// console.log('vvvv', v, testDataIndex.current)
+				// setPosition({
+				// 	coords: {
+				// 		latitude: v.latitude,
+				// 		longitude: v.longitude,
+				// 		altitude: v.altitude,
+				// 		altitudeAccuracy: v.altitudeAccuracy,
+				// 		accuracy: v.accuracy,
+				// 		speed: v.speed,
+				// 		heading: v.heading,
+				// 	},
+				// 	timestamp: v.timestamp,
+				// })
+				// testDataIndex.current++
 			}, 1000)
 
 			!trip && addTrip()
@@ -242,7 +259,7 @@ const TripPage = () => {
 	}, [startTrip])
 
 	useEffect(() => {
-		console.log(listenTime)
+		// console.log(listenTime)
 		if (listenTime && Math.floor(listenTime / 1000) % 5 === 0) {
 			updatePosition()
 		}
@@ -250,9 +267,11 @@ const TripPage = () => {
 
 	useEffect(() => {
 		try {
+			// console.log(position)
 			if (position) {
 				panToMap(position)
-				if (startTrip && position.timestamp >= startTime) {
+				// if (startTrip && position.timestamp >= startTime) {
+				if (startTrip) {
 					if ('wakeLock' in navigator) {
 						requestWakeLock()
 					}
@@ -276,6 +295,10 @@ const TripPage = () => {
 							if (map.current && L) {
 								if (lv) {
 									const v = position.coords
+									const speedColorLimit =
+										config.speedColor[
+											(trip?.type?.toLowerCase() || 'running') as any
+										]
 									L.polyline(
 										[
 											[lv.latitude, lv.longitude],
@@ -284,7 +307,11 @@ const TripPage = () => {
 										{
 											// smoothFactor:10,
 											// snakingSpeed: 200,
-											color: getSpeedColor(v.speed || 0, 4, 10), //线的颜色
+											color: getSpeedColor(
+												v.speed || 0,
+												speedColorLimit.minSpeed,
+												speedColorLimit.maxSpeed
+											), //线的颜色
 											weight: 8, //线的粗细
 											// opacity: 0.3,
 										}
@@ -312,10 +339,15 @@ const TripPage = () => {
 										(position.coords.altitude || 0) > statistics.maxAltitude
 											? position.coords.altitude || 0
 											: statistics.maxAltitude,
-									distance: 0,
+									distance: tDistance.current,
 									averageSpeed:
-										distance / Math.round((listenTime - startTime) / 1000),
+										tDistance.current /
+										Math.round((listenTime - startTime) / 1000),
 								})
+								console.log(
+									tDistance.current,
+									Math.round((listenTime - startTime) / 1000)
+								)
 								// console.log("distance",distance)
 							}
 						}
@@ -366,7 +398,7 @@ const TripPage = () => {
 
 	const requestWakeLock = async () => {
 		try {
-			console.log('wakeLock', wakeLock)
+			// console.log('wakeLock', wakeLock)
 			if (wakeLock.current) return
 			wakeLock.current = await navigator.wakeLock.request('screen')
 			console.log('Wake Lock is active!')
@@ -443,6 +475,7 @@ const TripPage = () => {
 					})
 				})
 			}
+			position && panToMap(position)
 			console.log('connectionOSM', config.connectionOSM)
 
 			// console.log('map', map)
@@ -452,11 +485,11 @@ const TripPage = () => {
 	const panToMap = (position: GeolocationPosition) => {
 		const L: typeof Leaflet = (window as any).L
 
-		console.log('position', position)
+		// console.log('panToMap', position, map.current, L, marker.current)
 		if (map.current && L) {
 			const v = position.coords
 			map.current.panTo([v.latitude, v.longitude])
-			console.log('marker', marker)
+			// console.log('marker', marker)
 			if (!marker.current) {
 				marker.current = L.marker([v.latitude, v.longitude])
 					.addTo(map.current)
@@ -503,14 +536,14 @@ const TripPage = () => {
 	}
 
 	const updatePosition = async () => {
-		console.log(1, trip)
 		const pl = positionList.filter((_, i) => {
 			return i > updatedPositionIndex.current
 		})
-		if (!trip?.id || pl.length) return
+		console.log('updatePosition', trip, pl)
+		if (!trip?.id || !pl.length) return
 		const params: protoRoot.trip.UpdateTripPosition.IRequest = {
 			id: trip?.id || '',
-			postions: pl.map((v): protoRoot.trip.ITripPostion => {
+			positions: pl.map((v): protoRoot.trip.ITripPosition => {
 				return {
 					latitude: v.latitude,
 					longitude: v.longitude,
@@ -547,16 +580,18 @@ const TripPage = () => {
 		const res = await httpApi.v1.FinishTrip(params)
 		console.log('FinishTrip', res)
 		if (res.code === 200) {
-			if (res.data.deleted) {
+			setTrip(undefined)
+			if (res?.data?.deleted) {
 				snackbar({
 					message: '距离过短, 距离需过50m才会记录',
 					autoHideDuration: 2000,
 					vertical: 'top',
 					horizontal: 'center',
 				}).open()
+				return
 			}
 		}
-		setTrip(undefined)
+		getTripStatistics()
 	}
 
 	const getTripStatistics = async () => {
@@ -568,17 +603,17 @@ const TripPage = () => {
 		})
 		console.log('getTripStatistics', res)
 		if (res.code === 200 && res?.data?.count) {
-			const obj: any = {}
-			obj[type] = {
-				count: res?.data?.count || 0,
-				distance: res?.data?.distance || 0,
-				time: res?.data?.time || 0,
-			}
-			setHistoricalStatistics({
-				...historicalStatistics,
-				...obj,
-			})
 		}
+		const obj: any = {}
+		obj[type] = {
+			count: res?.data?.count || 0,
+			distance: res?.data?.distance || 0,
+			time: res?.data?.time || 0,
+		}
+		setHistoricalStatistics({
+			...historicalStatistics,
+			...obj,
+		})
 		setLoadStatus('loaded')
 	}
 

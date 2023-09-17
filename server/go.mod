@@ -13,7 +13,7 @@ require (
 )
 
 require (
-	github.com/cherrai/nyanyago-utils v1.0.6
+	github.com/cherrai/nyanyago-utils v1.0.7
 	github.com/cherrai/saki-sso-go v1.0.1
 	github.com/gin-gonic/gin v1.8.1
 	github.com/jinzhu/copier v0.3.5

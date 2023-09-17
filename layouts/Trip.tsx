@@ -43,7 +43,10 @@ const ToolboxLayout = ({ children }: propsType): JSX.Element => {
 		dispatch(methods.sso.Init()).unwrap()
 		dispatch(methods.user.InitUser()).unwrap()
 
-		initNyaNyaWasm()
+    initNyaNyaWasm()
+    
+    
+    dispatch(methods.config.getDeviceType())
 
 		window.addEventListener('resize', () => {
 			dispatch(methods.config.getDeviceType())
@@ -70,9 +73,8 @@ const ToolboxLayout = ({ children }: propsType): JSX.Element => {
 					'https://tools.aiiko.club/api/v1/ip/details?ip=&language=en-US'
 				)
 				if (res?.data?.code === 200 && res?.data?.data?.country) {
-					dispatch(configSlice.actions.setCountry('Argentina'))
-					// dispatch(configSlice.actions.setCountry(res.data.data.country))
-					// dispatch(configSlice.actions.setCountry(res.data.data.country))
+					// dispatch(configSlice.actions.setCountry('Argentina'))
+					dispatch(configSlice.actions.setCountry(res.data.data.country))
 				} else {
 					dispatch(configSlice.actions.setCountry('Argentina'))
 				}

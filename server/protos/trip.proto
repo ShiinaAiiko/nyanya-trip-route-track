@@ -3,7 +3,7 @@ syntax = "proto3";
 option go_package = "./;protos";
 package trip;
 
-message TripPostion {
+message TripPosition {
   double latitude = 1;
   double longitude = 2;
   double altitude = 3;
@@ -32,7 +32,7 @@ message Trip {
   // Running、Bike、Drive
   string type = 3;
   string authorId = 9;
-  repeated TripPostion postions = 4;
+  repeated TripPosition positions = 4;
   TripStatistics statistics = 5;
   TripPermissions permissions = 11;
   // 1 normal 0 ing -1 delete
@@ -46,7 +46,7 @@ message AddTrip {
   message Request {
     // Running、Bike、Drive
     string type = 1;
-    // repeated TripPostion postions = 2;
+    // repeated TripPosition positions = 2;
     // int64 status = 4;
     // int64 startTime = 5;
   }
@@ -59,7 +59,7 @@ message UpdateTripPosition {
     // 必填
     string id = 1;
     // 这段时间内的
-    repeated TripPostion postions = 2;
+    repeated TripPosition positions = 2;
   }
   message Response {}
 }

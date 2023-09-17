@@ -1,7 +1,7 @@
 import Head from 'next/head'
 import TripLaout from '../../layouts/Trip'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import axios from 'axios'
 import { useRouter } from 'next/router'
 import FooterComponent from '../../components/Footer'
@@ -34,71 +34,16 @@ import { setConfig } from 'next/config'
 import { httpApi } from '../../plugins/http/api'
 import { protoRoot } from '../../protos'
 import TripItemComponent from '../../components/TripItem'
-import ShareTripComponent from '../../components/ShareTrip'
 import { cnMap } from '../../store/config'
-import TripDetailMobileComponent from '../../components/TripDetailUi'
-
-let wakeLock: WakeLockSentinel | null
-let timer: NodeJS.Timeout
-let watchId: number
-let tDistance = 0
-let speedChart: any
-let marker: Leaflet.Marker<any>
 
 const TripPage = () => {
 	const { t, i18n } = useTranslation('tripPage')
 	const [mounted, setMounted] = useState(false)
-	const api = useSelector((state: RootState) => state.api)
-	const config = useSelector((state: RootState) => state.config)
-	const user = useSelector((state: RootState) => state.user)
-
 	const router = useRouter()
 
 	const { id, sk } = router.query
 
-	const [map, setMap] = useState<Leaflet.Map>()
-	const [gpsSignalStatus, setGpsSignalStatus] = useState(-1)
-	const [type, setType] = useState<'Running' | 'Bike' | 'Drive'>('Running')
-
-	const [startTrip, setStartTrip] = useState(false)
-	const [startCountdown, setStartCountdown] = useState(-1)
-
-	const [positionList, setPositionList] = useState<
-		{
-			latitude: number
-			longitude: number
-			altitude: number
-			altitudeAccuracy: number
-			accuracy: number
-			heading: number
-			speed: number
-			timestamp: number
-			distance: number
-		}[]
-	>([])
-	const [position, setPosition] = useState<GeolocationPosition>()
-	const [selectPosition, setSelectPosition] = useState<{
-		latitude: number
-		longitude: number
-	}>({
-		latitude: -10000,
-		longitude: -10000,
-	})
-
-	const [startTime, setStartTime] = useState(0)
-	const [listenTime, setListenTime] = useState(0)
-	const [speed, setSpeed] = useState(0)
-	const [maxSpeed, setMaxSpeed] = useState(0)
-	const [isLockScreen, setIsLockScreen] = useState(false)
-
-	const [count, setCount] = useState(0)
-	const [distance, setDistance] = useState(0)
-	const [time, setTime] = useState(0)
-	const [loadStatus, setLoadStatus] = useState<'loading' | 'loaded' | 'noMore'>(
-		'loaded'
-	)
 	const [blankPage, setBlankPage] = useState(false)
-	const [trip, setTrip] = useState<protoRoot.trip.ITrip>()
 
 	const dispatch = useDispatch<AppDispatch>()
 
@@ -111,6 +56,10 @@ const TripPage = () => {
 	useEffect(() => {
 		dispatch(layoutSlice.actions.setLayoutHeaderLogoText(t('pageTitle')))
 	}, [i18n.language])
+
+	const onTrip = useCallback((trip?: protoRoot.trip.ITrip) => {
+		setBlankPage(!trip)
+	}, [])
 
 	return (
 		<>
@@ -135,9 +84,7 @@ const TripPage = () => {
 					isShare={false}
 					onBack={() => {}}
 					onDelete={() => {}}
-					onTrip={(trip) => {
-						setBlankPage(!trip)
-					}}
+					onTrip={onTrip}
 					tripId={String(id || '')}
 					shareKey={String(sk || '')}
 				/>

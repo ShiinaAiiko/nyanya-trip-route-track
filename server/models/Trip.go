@@ -10,7 +10,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-type TripPostion struct {
+type TripPosition struct {
 	Latitude  float64 `bson:"latitude" json:"latitude,omitempty"`
 	Longitude float64 `bson:"longitude" json:"longitude,omitempty"`
 	// -1 则是数据不存在
@@ -46,7 +46,7 @@ type Trip struct {
 	Name string `bson:"name" json:"name,omitempty"`
 	// Running、Bike、Drive
 	Type        string           `bson:"type" json:"type,omitempty"`
-	Postions    []*TripPostion   `bson:"postion" json:"postion,omitempty"`
+	Positions   []*TripPosition  `bson:"positions" json:"positions,omitempty"`
 	Statistics  *TripStatistics  `bson:"statistics" json:"statistics,omitempty"`
 	Permissions *TripPermissions `bson:"permissions" json:"permissions,omitempty"`
 	AuthorId    string           `bson:"authorId" json:"authorId,omitempty"`
@@ -69,8 +69,8 @@ func (s *Trip) Default() error {
 	// }
 	unixTimeStamp := time.Now().Unix()
 
-	if s.Postions == nil {
-		s.Postions = []*TripPostion{}
+	if s.Positions == nil {
+		s.Positions = []*TripPosition{}
 	}
 	if s.Statistics == nil {
 		s.Statistics = &TripStatistics{}

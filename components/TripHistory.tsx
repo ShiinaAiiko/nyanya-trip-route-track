@@ -1,4 +1,4 @@
-import React, { use, useEffect, useState } from 'react'
+import React, { use, useCallback, useEffect, useState } from 'react'
 
 import { useSelector, useDispatch } from 'react-redux'
 import store, {
@@ -526,6 +526,17 @@ const TripHistoryPage = ({
 
 		setLoadStatus('noMore')
 	}
+
+	const onBackTripItemComponent = useCallback(() => {
+		setTripId('')
+		onTripItemPage('Back')
+	}, [])
+
+	const onDeleteTripItemComponent = useCallback((tripId: string) => {
+		setTrips(trips.filter((v) => v.id !== tripId))
+		onTripItemPage('Back')
+	}, [])
+
 	return (
 		<div
 			ref={(e) => {
@@ -673,11 +684,11 @@ const TripHistoryPage = ({
 									<div
 										ref={(e) => {
 											e &&
-                        (e.onclick = () => {
-                        if (v.status === 0) {
-                          alert
-                        }
-                        
+												(e.onclick = () => {
+													if (v.status === 0) {
+														alert
+													}
+
 													setTripId(v.id || '')
 													onTripItemPage('Show', v)
 												})
@@ -758,20 +769,18 @@ const TripHistoryPage = ({
 				</div>
 			</saki-scroll-view>
 			<div className={'th-item-page ' + (tripId ? 'visivle' : '')}>
-				<TripItemComponent
-					onBack={() => {
-						setTripId('')
-						onTripItemPage('Back')
-					}}
-					onTrip={() => {}}
-					onDelete={(tripId) => {
-						setTrips(trips.filter((v) => v.id !== tripId))
-						onTripItemPage('Back')
-					}}
-					isShare={false}
-					tripId={tripId}
-					shareKey=''
-				/>
+				{tripId ? (
+					<TripItemComponent
+						onBack={onBackTripItemComponent}
+						onTrip={() => {}}
+						onDelete={onDeleteTripItemComponent}
+						isShare={false}
+						tripId={tripId}
+						shareKey=''
+					/>
+				) : (
+					''
+				)}
 			</div>
 		</div>
 	)
