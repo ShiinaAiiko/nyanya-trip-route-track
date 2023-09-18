@@ -25,13 +25,14 @@ import { Chart } from 'chart.js/auto'
 import {
 	formatTime,
 	getDistance,
+	getLatLng,
 	getSpeedColor,
 	getZoom,
 	rgbs,
 } from '../plugins/methods'
 import Leaflet from 'leaflet'
 import html2canvas from 'html2canvas'
-import { cnMap } from '../store/config'
+import { cnMap, osmMap } from '../store/config'
 
 const TripItemComponent = memo(
 	({
@@ -176,6 +177,13 @@ const TripItemComponent = memo(
 						lon
 					)
 				}
+
+				const latlng = getLatLng(lat, lon)
+
+				console.log('latlng', latlng, [lat, lon])
+				lat = latlng[0]
+				lon = latlng[1]
+
 				if (!map.current && L) {
 					map.current = L.map('ti-map', {
 						zoomControl: false,
@@ -190,21 +198,11 @@ const TripItemComponent = memo(
 						//   120.3814, -1.09],
 						zoom
 					)
-					L.tileLayer(
-						config.country === 'China'
-							? cnMap
-							: config.connectionOSM
-							? `https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png`
-							: cnMap,
-						{
-							maxZoom: 19,
-							attribution: `&copy; ${
-								config.connectionOSM && config.country !== 'China'
-									? '<a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-									: '<a href="https://map.geoq.cn">ArcGIS</a>'
-							}`,
-						}
-					).addTo(map.current)
+					L.tileLayer(config.map.url, {
+						// errorTileUrl: osmMap,
+						maxZoom: 18,
+						attribution: `&copy;`,
+					}).addTo(map.current)
 					//定义一个地图缩放控件
 					// var zoomControl = L.control.zoom({ position: 'topleft' })
 					// //将地图缩放控件加载到地图
@@ -215,6 +213,7 @@ const TripItemComponent = memo(
 					map.current.panTo([lat, lon])
 					if (trip?.positions) {
 						const positions = trip.positions
+						console.time('getLatLnggetLatLng')
 						positions?.forEach((v, i) => {
 							if (i === 0) return
 							const lv = positions[i - 1]
@@ -223,11 +222,16 @@ const TripItemComponent = memo(
 								config.speedColor[
 									(trip?.type?.toLowerCase() || 'running') as any
 								]
+
+							const latlng = getLatLng(lat, lon)
+
+							lat = latlng[0]
+							lon = latlng[1]
 							map.current &&
 								L.polyline(
 									[
-										[lv.latitude || 0, lv.longitude || 0],
-										[v.latitude || 0, v.longitude || 0],
+										getLatLng(lv.latitude || 0, lv.longitude || 0) as any,
+										getLatLng(v.latitude || 0, v.longitude || 0) as any,
 									],
 									{
 										// smoothFactor:10,
@@ -242,6 +246,7 @@ const TripItemComponent = memo(
 									}
 								).addTo(map.current)
 						})
+						console.timeEnd('getLatLnggetLatLng')
 					}
 				}
 				// L.marker([lat, lon]).addTo(m).openPopup()

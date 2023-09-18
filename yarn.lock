@@ -547,6 +547,11 @@ component-inherit@0.0.3:
   resolved "https://registry.npm.aiiko.club/component-inherit/-/component-inherit-0.0.3.tgz#645fc4adf58b72b649d5cae65135619db26ff143"
   integrity sha1-ZF/ErfWLcrZJ1crmUTVhnbJv8UM=
 
+coordtransform@^2.1.2:
+  version "2.1.2"
+  resolved "https://registry.npmmirror.com/coordtransform/-/coordtransform-2.1.2.tgz#090349cd62b1dc05fae47b291bf9f0b7ce827f66"
+  integrity sha512-0xLJApBlrUP+clyLJWIaqg4GXE5JTbAJb5d/CDMqebIksAMMze8eAyO6YfHEIxWJ+c42mXoMHBzWTeUrG7RFhw==
+
 cross-env@^7.0.3:
   version "7.0.3"
   resolved "https://registry.npmmirror.com/cross-env/-/cross-env-7.0.3.tgz#865264b29677dc015ba8418918965dd232fc54cf"

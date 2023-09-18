@@ -7,6 +7,7 @@ import { useSelector, useStore, useDispatch } from 'react-redux'
 import axios, { AxiosRequestConfig } from 'axios'
 
 import store, { userSlice } from '../store'
+import { connectionOSM, country } from '../store/config'
 
 export const getRegExp = (type: 'email') => {
 	return /^\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$/
@@ -639,3 +640,31 @@ export const getZoom = (
 // 		distance: tDistance,
 // 	}
 // })
+
+const coordtransform = require('coordtransform')
+const latlngCache: {
+	[url: string]: {
+		[latlng: string]: number[]
+	}
+} = {}
+export const getLatLng = (lat: number, lng: number) => {
+	let key = String(lat) + String(lng)
+	const { config } = store.getState()
+
+	if (latlngCache[config.map.url]?.[key])
+		return latlngCache[config.map.url][key]
+
+	// console.log('getLatLnggetLatLng')
+
+	if (config.map.url.indexOf('openstreetmap') < 0) {
+		const gcj02towgs84 = coordtransform.wgs84togcj02(lng, lat)
+		// console.log('gcj02towgs84', gcj02towgs84)
+
+		lng = gcj02towgs84[0]
+		lat = gcj02towgs84[1]
+	}
+	!latlngCache[config.map.url] && (latlngCache[config.map.url] = {})
+	latlngCache[config.map.url][key] = [lat, lng]
+
+	return [lat, lng]
+}

@@ -43,10 +43,9 @@ const ToolboxLayout = ({ children }: propsType): JSX.Element => {
 		dispatch(methods.sso.Init()).unwrap()
 		dispatch(methods.user.InitUser()).unwrap()
 
-    initNyaNyaWasm()
-    
-    
-    dispatch(methods.config.getDeviceType())
+		initNyaNyaWasm()
+
+		dispatch(methods.config.getDeviceType())
 
 		window.addEventListener('resize', () => {
 			dispatch(methods.config.getDeviceType())
@@ -60,10 +59,12 @@ const ToolboxLayout = ({ children }: propsType): JSX.Element => {
 				dispatch(
 					configSlice.actions.setConnectionOSM(
 						(await fetch('https://tile.openstreetmap.org')).status === 200
+							? 1
+							: -1
 					)
 				)
 			} catch (error) {
-				dispatch(configSlice.actions.setConnectionOSM(false))
+				dispatch(configSlice.actions.setConnectionOSM(-1))
 			}
 		}
 		init()

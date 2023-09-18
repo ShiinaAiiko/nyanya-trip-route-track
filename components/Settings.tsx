@@ -19,6 +19,7 @@ import { alert, snackbar, bindEvent } from '@saki-ui/core'
 // console.log(sakiui.bindEvent)
 import { storage } from '../store/storage'
 import { useTranslation } from 'react-i18next'
+import { maps } from '../store/config'
 
 const SettingsComponent = ({
 	visible,
@@ -37,12 +38,18 @@ const SettingsComponent = ({
 	const [closeIcon, setCloseIcon] = useState(true)
 	const [showItemPage, setShowItemPage] = useState(false)
 	useEffect(() => {
+		console.log(layout.settingType)
 		if (layout.settingType) {
 			if (config.deviceType === 'Mobile') {
 				setCloseIcon(false)
 				setShowItemPage(true)
+				// dispatch(layoutSlice.actions.setSettingType(''))
 			}
 		} else {
+			// dispatch(layoutSlice.actions.setSettingType('Account'))
+		}
+
+		if (config.deviceType !== 'Mobile') {
 			dispatch(layoutSlice.actions.setSettingType('Account'))
 		}
 		// setMenuType(type || 'Account')
@@ -77,11 +84,12 @@ const SettingsComponent = ({
 								onClose?.()
 							},
 							back() {
-								console.log('back')
+								console.log('back1')
 								store.dispatch(layoutSlice.actions.setSettingType(''))
 								// setMenuType('')
 								setCloseIcon(true)
 								setShowItemPage(false)
+								console.log('back1')
 							},
 						})}
 						title={
@@ -148,6 +156,7 @@ const SettingsItemList = ({ menuType }: { menuType: string }) => {
 		<>
 			<Account show={menuType === 'Account'} />
 			<Language show={menuType === 'Language'} />
+			<Maps show={menuType === 'Maps'} />
 			{/* 
 			<Appearance show={menuType === 'Appearance'} />
 			<General show={menuType === 'General'} />
@@ -220,6 +229,30 @@ const SettingsNavList = ({
 						></path>
 					</svg>
 					<span className='name'>{t('language')}</span>
+				</div>
+			</saki-menu-item>
+
+			<saki-menu-item
+				active={menuType === 'Maps'}
+				padding='16px 12px'
+				value='Maps'
+			>
+				<div className='settings-menu-item'>
+					<svg
+						className='icon'
+						viewBox='0 0 1024 1024'
+						version='1.1'
+						xmlns='http://www.w3.org/2000/svg'
+						p-id='2761'
+						width={'18px'}
+						height={'18px'}
+					>
+						<path
+							d='M960.599015 55.0318a25.596186 25.596186 0 0 0-24.879493-1.126232l-295.687143 147.843571-295.687142-147.843571a25.698571 25.698571 0 0 0-22.882991 0l-307.154234 153.577117a25.596186 25.596186 0 0 0-14.129095 22.882991v767.885585a25.596186 25.596186 0 0 0 37.063278 22.88299l295.687143-147.843571 295.687142 147.843571c7.218124 3.583466 15.716058 3.583466 22.882991 0l307.154234-153.577117a25.596186 25.596186 0 0 0 14.129094-22.88299v-767.885585a25.596186 25.596186 0 0 0-12.132592-21.756759zM307.230767 828.855701l-255.961862 127.98093V246.184119l255.961862-127.980931v710.652513zM358.423139 118.203188l255.961862 127.980931v710.652512l-255.961862-127.98093V118.203188z m563.116096 710.652513l-255.961862 127.98093V246.184119l255.961862-127.980931v710.652513z'
+							p-id='2762'
+						></path>
+					</svg>
+					<span className='name'>{t('maps')}</span>
 				</div>
 			</saki-menu-item>
 			<saki-menu-item
@@ -585,6 +618,49 @@ const Language = ({ show }: { show: boolean }) => {
 							return (
 								<saki-checkbox-item key={i} padding='14px 0' value={v.value}>
 									{v.content}
+								</saki-checkbox-item>
+							)
+						})}
+					</saki-checkbox>
+				)}
+			></SettingsItem>
+		</div>
+	)
+}
+
+const Maps = ({ show }: { show: boolean }) => {
+	const { t, i18n } = useTranslation('settings')
+	const config = useSelector((state: RootState) => state.config)
+
+	const dispatch = useDispatch<AppDispatch>()
+	// useEffect(() => {
+	// 	setMode(appearance.mode)
+	// }, [appearance.mode])
+
+	return (
+		<div
+			style={{
+				display: show ? 'block' : 'none',
+			}}
+		>
+			<SettingsItem
+				subtitle={() => <div>{t('language')}</div>}
+				main={() => (
+					<saki-checkbox
+						ref={bindEvent({
+							async selectvalue(e) {
+								console.log(e)
+								dispatch(methods.config.setMapKey(e.detail.value))
+							},
+						})}
+						value={config.map.key}
+						flex-direction='Column'
+						type='Radio'
+					>
+						{maps.map((v, i) => {
+							return (
+								<saki-checkbox-item key={i} padding='14px 0' value={v.key}>
+									{v.key}
 								</saki-checkbox-item>
 							)
 						})}

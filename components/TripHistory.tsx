@@ -101,18 +101,6 @@ const TripHistoryComponent = () => {
 	const [closeIcon, setCloseIcon] = useState(true)
 	const [trip, setTrip] = useState<protoRoot.trip.ITrip>()
 
-	useEffect(() => {
-		if (layout.settingType) {
-			if (config.deviceType === 'Mobile') {
-				setCloseIcon(false)
-			}
-		} else {
-			dispatch(layoutSlice.actions.setSettingType('Account'))
-		}
-
-		// setMenuType(type || 'Account')
-	}, [layout.settingType])
-
 	// useEffect(() => {
 	// 	setTimeout(() => {
 	// 		dispatch(layoutSlice.actions.setOpenTripHistoryModal(true))

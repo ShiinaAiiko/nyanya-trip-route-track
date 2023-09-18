@@ -25,6 +25,7 @@ import {
 	getSpeedColor,
 	getDistance,
 	formatTime,
+	getLatLng,
 	// testGpsData,
 } from '../plugins/methods'
 import { getGeoInfo } from 'findme-js'
@@ -34,8 +35,7 @@ import { clearInterval, setInterval } from 'timers'
 import { setConfig } from 'next/config'
 import { httpApi } from '../plugins/http/api'
 import { protoRoot } from '../protos'
-import { cnMap } from '../store/config'
-
+import { cnMap, osmMap } from '../store/config'
 const TripPage = () => {
 	const { t, i18n } = useTranslation('tripPage')
 	const [mounted, setMounted] = useState(false)
@@ -124,7 +124,14 @@ const TripPage = () => {
 								longitude: pos.coords.longitude,
 								latitude: pos.coords.latitude,
 							})
-							setPosition(pos)
+							setPosition({
+								...pos,
+								coords: {
+									...pos.coords,
+									latitude: 29.417266,
+									longitude: 105.594791,
+								},
+							})
 							clearInterval(t)
 						}
 					}, 500)
@@ -301,8 +308,8 @@ const TripPage = () => {
 										]
 									L.polyline(
 										[
-											[lv.latitude, lv.longitude],
-											[v.latitude, v.longitude],
+											getLatLng(lv.latitude || 0, lv.longitude || 0) as any,
+											getLatLng(v.latitude || 0, v.longitude || 0) as any,
 										],
 										{
 											// smoothFactor:10,
@@ -383,10 +390,17 @@ const TripPage = () => {
 	}, [position?.timestamp])
 
 	useEffect(() => {
-		if (config.country) {
+		if (config.country && config.map.url && config.map.url !== 'System') {
+			if (map.current) {
+        map.current?.remove()
+				marker.current?.remove()
+        map.current = undefined
+        marker.current = undefined
+        
+			}
 			initMap()
 		}
-	}, [config.country])
+	}, [config.country, config.map.url])
 	useEffect(() => {
 		position && map && panToMap(position)
 	}, [map])
@@ -415,7 +429,7 @@ const TripPage = () => {
 	}
 
 	const initMap = () => {
-		console.log('initMap')
+		console.log('initMap', config.map, config.country, config.connectionOSM)
 		const L: typeof Leaflet = (window as any).L
 		if (L) {
 			let lat = position?.coords.latitude || 0
@@ -424,31 +438,28 @@ const TripPage = () => {
 			if (!map.current) {
 				map.current = L.map('tp-map', {
 					zoomControl: false,
+
 					// center: [Number(res?.data?.lat), Number(res?.data?.lon)],
 				})
-				// 检测地址如果在中国就用高德地图
 
+				// 检测地址如果在中国就用高德地图
 				map.current.setView(
 					[lat, lon],
 					// [
 					//   120.3814, -1.09],
-					config.connectionOSM ? 13 : 9
+					15
 				)
-				L.tileLayer(
-					config.country === 'China'
-						? cnMap
-						: config.connectionOSM
-						? `https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png`
-						: cnMap,
-					{
-						maxZoom: 19,
-						attribution: `&copy; ${
-							config.connectionOSM && config.country !== 'China'
-								? '<a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-								: '<a href="https://map.geoq.cn">ArcGIS</a>'
-						}`,
-					}
-				).addTo(map.current)
+				// if (config.country === 'China') {
+				// 	(L as any).tileLayer.chinaProvider('GaoDe.Normal.Map')
+				// } else {
+				const layer = L.tileLayer(config.map.url, {
+					// errorTileUrl: osmMap,
+					maxZoom: 18,
+					attribution: `&copy;`,
+				}).addTo(map.current)
+
+				console.log('layer', layer)
+				// }
 				//定义一个地图缩放控件
 				// var zoomControl = L.control.zoom({ position: 'topleft' })
 				// //将地图缩放控件加载到地图
@@ -467,7 +478,7 @@ const TripPage = () => {
 					// 			Math.round(popLocation.lng * 1000000) / 1000000
 					// 		}`
 					// 	)
-					// 	.openOn(m)
+					// 	.openOn(map.current)
 
 					setSelectPosition({
 						latitude: Math.round(popLocation.lat * 1000000) / 1000000,
@@ -487,11 +498,18 @@ const TripPage = () => {
 
 		// console.log('panToMap', position, map.current, L, marker.current)
 		if (map.current && L) {
-			const v = position.coords
-			map.current.panTo([v.latitude, v.longitude])
+			const [lat, lon] = getLatLng(
+				position?.coords.latitude || 0,
+				position?.coords.longitude || 0
+			)
+
+			map.current.panTo([lat, lon], {})
+			// map.current.panInside([v.latitude, v.longitude], {
+			// 	paddingTopLeft: [220, 1],
+			// })
 			// console.log('marker', marker)
 			if (!marker.current) {
-				marker.current = L.marker([v.latitude, v.longitude])
+				marker.current = L.marker([lat, lon])
 					.addTo(map.current)
 					// .bindPopup(
 					// 	`${ipInfoObj.ipv4}`
