@@ -26,8 +26,8 @@ cnMap =
 
 export let maps = [
 	{
-		key: 'System',
-		url: 'System',
+		key: 'AutoSelect',
+		url: 'AutoSelect',
 	},
 	{
 		key: 'OpenStreetMap',
@@ -38,6 +38,10 @@ export let maps = [
 		url: 'http://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=7&x={x}&y={y}&z={z}',
 	},
 	{
+		key: 'GeoQBase',
+		url: 'https://map.geoq.cn/ArcGIS/rest/services/ChinaOnlineCommunity/MapServer/tile/{z}/{y}/{x}',
+  },
+	{
 		key: 'GeoQNight',
 		url: 'https://map.geoq.cn/ArcGIS/rest/services/ChinaOnlineStreetPurplishBlue/MapServer/tile/{z}/{y}/{x}',
 	},
@@ -46,13 +50,14 @@ export let maps = [
 		url: 'https://map.geoq.cn/ArcGIS/rest/services/ChinaOnlineStreetGray/MapServer/tile/{z}/{y}/{x}',
 	},
 	{
+		key: 'GeoQWarm',
+		url: 'https://map.geoq.cn/arcgis/rest/services/ChinaOnlineStreetWarm/MapServer/tile/{z}/{y}/{x}',
+  },
+	{
 		key: 'GeoQStreet',
 		url: 'https://map.geoq.cn/arcgis/rest/services/ChinaOnlineStreetWarm/MapServer/tile/{z}/{y}/{x}',
 	},
-	{
-		key: 'GeoQStreetPOI',
-		url: 'https://map.geoq.cn/ArcGIS/rest/services/ChinaOnlineCommunity/MapServer/tile/{z}/{y}/{x}',
-	},
+  
 ]
 
 export const language: LanguageType = defaultLanguage as any
@@ -60,40 +65,75 @@ export const language: LanguageType = defaultLanguage as any
 export let country = ''
 export let connectionOSM = true
 
+export let speedColorRGBs: string[] = []
+
+export const getSpeedColors = (type: 'RedGreen' | 'PinkBlue') => {
+  speedColorRGBs = []
+	if (type === 'PinkBlue') {
+		let r = 88
+		let g = 200
+		let b = 242
+		for (let i = 0; i < 20; i++) {
+			g = 200 - Math.floor((19 / 10) * i)
+			if (i < 10) {
+				r = 140 + Math.floor(((200 - 92) / 10) * i)
+			} else {
+				b = 242 - Math.floor(((200 - 128) / 10) * (i - 10))
+			}
+
+			speedColorRGBs.push(`rgb(${r},${g},${b})`)
+		}
+		return
+	}
+
+	let r = 140
+	let g = 200
+	let b = 70
+	for (let i = 0; i < 20; i++) {
+		if (i < 10) {
+			r = 140 + Math.floor(((200 - 100) / 10) * i)
+		} else {
+			g = 200 - Math.floor(((200 - 100) / 10) * (i - 10))
+		}
+
+		speedColorRGBs.push(`rgb(${r},${g},${b})`)
+	}
+}
+
 const getMapUrlAuto = () => {
 	setTimeout(() => {
 		const { config } = store.getState()
 
 		let key = ''
-		if (config.map.key === 'System') {
+		if (config.mapKey === 'AutoSelect') {
 			if (config.country && config.connectionOSM !== 0) {
 				if (config.country === 'China') {
-					key = 'GeoQStreetPOI'
+					key = 'GeoQBase'
 				} else {
 					if (config.connectionOSM === 1) {
 						key = 'OpenStreetMap'
 					} else {
-						key = 'GeoQStreetPOI'
+						key = 'GeoQBase'
 					}
 				}
 			} else {
 				return
 			}
 		} else {
-			key = config.map.key
+			key = config.mapKey
 		}
-		console.log(
-			'getMapUrlAuto',
-			config.map.key,
-			config.country,
-			config.connectionOSM,
-			key
-		)
+		// console.log(
+		// 	'getMapUrlAuto',
+		// 	config.map.key,
+		// 	config.country,
+		// 	config.connectionOSM,
+		// 	key
+		// )
 		const v = maps.filter((v) => {
 			return v.key === key
 		})[0]
-		console.log(v.url)
-		store.dispatch(configSlice.actions.setMapUrl(v.url))
+		console.log(v?.url)
+		store.dispatch(configSlice.actions.setMapUrl(v?.url))
 	}, 0)
 }
 
@@ -106,7 +146,13 @@ export const configSlice = createSlice({
 		deviceType,
 		country: '',
 		connectionOSM: 0,
-		speedColor: {
+		mapKey: 'AutoSelect',
+		mapUrl: 'AutoSelect',
+		// map: {
+		// 	key: 'AutoSelect',
+		// 	url: '',
+		// },
+		speedColorLimit: {
 			running: {
 				minSpeed: 1.38,
 				maxSpeed: 4.16,
@@ -125,12 +171,19 @@ export const configSlice = createSlice({
 				maxSpeed: number
 			}
 		},
-		map: {
-			key: 'System',
-			url: '',
-		},
+
+		speedColorType: 'RedGreen' as 'RedGreen' | 'PinkBlue',
 	},
 	reducers: {
+		setSpeedColorType: (
+			state,
+			params: {
+				payload: 'RedGreen' | 'PinkBlue'
+				type: string
+			}
+		) => {
+			state.speedColorType = params.payload
+		},
 		setLanguage: (
 			state,
 			params: {
@@ -170,7 +223,7 @@ export const configSlice = createSlice({
 				type: string
 			}
 		) => {
-			state.map.url = params.payload
+			state.mapUrl = params.payload
 		},
 		setMapKey: (
 			state,
@@ -182,7 +235,8 @@ export const configSlice = createSlice({
 			const v = maps.filter((v) => {
 				return v.key === params.payload
 			})[0]
-			state.map = v
+			state.mapKey = v.key
+			state.mapUrl = v.url
 		},
 	},
 })
@@ -191,8 +245,12 @@ export const configMethods = {
 		const language = (await storage.global.get('language')) || 'system'
 		thunkAPI.dispatch(configMethods.setLanguage(language))
 
-		const map = (await storage.global.get('map')) || 'System'
+		const map = (await storage.global.get('map')) || 'AutoSelect'
 		thunkAPI.dispatch(configMethods.setMapKey(map))
+
+		const speedColorType =
+			(await storage.global.get('speedColorType')) || 'RedGreen'
+		thunkAPI.dispatch(configMethods.setSpeedColorType(speedColorType))
 	}),
 	setLanguage: createAsyncThunk(
 		'config/setLanguage',
@@ -245,6 +303,15 @@ export const configMethods = {
 		async (mapKey: string, thunkAPI) => {
 			thunkAPI.dispatch(configSlice.actions.setMapKey(mapKey))
 			await storage.global.set('map', mapKey)
+			getMapUrlAuto()
+		}
+	),
+	setSpeedColorType: createAsyncThunk(
+		'config/setSpeedColorType',
+		async (type: 'RedGreen' | 'PinkBlue', thunkAPI) => {
+			thunkAPI.dispatch(configSlice.actions.setSpeedColorType(type))
+			getSpeedColors(type)
+			await storage.global.set('speedColorType', type)
 			getMapUrlAuto()
 		}
 	),

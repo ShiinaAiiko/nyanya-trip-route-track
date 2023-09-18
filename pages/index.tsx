@@ -26,6 +26,7 @@ import {
 	getDistance,
 	formatTime,
 	getLatLng,
+	formatDistance,
 	// testGpsData,
 } from '../plugins/methods'
 import { getGeoInfo } from 'findme-js'
@@ -50,6 +51,7 @@ const TripPage = () => {
 	const watchId = useRef(0)
 	const wakeLock = useRef<WakeLockSentinel>()
 	const map = useRef<Leaflet.Map>()
+	const loadedMap = useRef(false)
 
 	const [gpsSignalStatus, setGpsSignalStatus] = useState(-1)
 	const [type, setType] = useState<'Running' | 'Bike' | 'Drive'>('Running')
@@ -117,24 +119,26 @@ const TripPage = () => {
 		if (navigator.geolocation) {
 			navigator.geolocation.getCurrentPosition(
 				(pos) => {
-					const t = setInterval(() => {
-						const L: typeof Leaflet = (window as any).L
-						if (L) {
-							setSelectPosition({
-								longitude: pos.coords.longitude,
-								latitude: pos.coords.latitude,
-							})
-							setPosition({
-								...pos,
-								coords: {
-									...pos.coords,
-									latitude: 29.417266,
-									longitude: 105.594791,
-								},
-							})
-							clearInterval(t)
-						}
-					}, 500)
+					// const t = setTimeout(() => {
+					// const L: typeof Leaflet = (window as any).L
+					// if (L) {
+					setSelectPosition({
+						longitude: pos.coords.longitude,
+						latitude: pos.coords.latitude,
+					})
+
+					setPosition(pos)
+					// setPosition({
+					// 	...pos,
+					// 	// coords: {
+					// 	// 	...pos.coords,
+					// 	// 	latitude: 29.417266,
+					// 	// 	longitude: 105.594791,
+					// 	// },
+					// })
+					// clearTimeout(t)
+					// }
+					// }, 500)
 				},
 				(error) => {
 					if (error.code === 1) {
@@ -148,6 +152,21 @@ const TripPage = () => {
 					console.log('GetCurrentPosition Error', error)
 				},
 				{ enableHighAccuracy: true }
+			)
+
+			navigator.geolocation.clearWatch(watchId.current)
+			watchId.current = navigator.geolocation.watchPosition(
+				(pos) => {
+					// console.log(1, new Date().getTime())
+					// setListenTime(new Date().getTime())
+					setPosition(pos)
+				},
+				(error) => {
+					console.log('GetCurrentPosition Error', error)
+				},
+				{
+					enableHighAccuracy: true,
+				}
 			)
 		} else {
 			console.log('该浏览器不支持获取地理位置')
@@ -207,38 +226,14 @@ const TripPage = () => {
 
 			!trip && addTrip()
 
-			if (navigator.geolocation) {
-				navigator.geolocation.getCurrentPosition(
-					(pos) => {
-						// console.log(2, new Date().getTime())
-						// setListenTime(new Date().getTime())
-						setPosition(pos)
-					},
-					(error) => console.log('GetCurrentPosition Error', error),
-					{ enableHighAccuracy: true }
-				)
-				watchId.current = navigator.geolocation.watchPosition(
-					(pos) => {
-						// console.log(1, new Date().getTime())
-						// setListenTime(new Date().getTime())
-						setPosition(pos)
-					},
-					(error) => {
-						console.log('GetCurrentPosition Error', error)
-					},
-					{
-						enableHighAccuracy: true,
-					}
-				)
-			} else {
-				console.log('该浏览器不支持获取地理位置')
-			}
 			// return
 			// }
 			// console.log('该浏览器不支持获取地理位置')
 			return
 		}
 		tDistance.current = 0
+		updatedPositionIndex.current = 0
+
 		setStatistics({
 			speed: 0,
 			maxSpeed: 0,
@@ -257,9 +252,11 @@ const TripPage = () => {
 		dispatch(layoutSlice.actions.setLayoutHeader(true))
 		dispatch(layoutSlice.actions.setLayoutHeaderFixed(true))
 
-		map.current &&
-			marker.current &&
-			marker.current.addTo(map.current).openPopup()
+		loadedMap.current = false
+		initMap()
+		// map.current &&
+		// 	marker.current &&
+		// 	marker.current.addTo(map.current).openPopup()
 		if (wakeLock.current) {
 			wakeLock.current.release().then(() => (wakeLock.current = undefined))
 		}
@@ -276,6 +273,7 @@ const TripPage = () => {
 		try {
 			// console.log(position)
 			if (position) {
+				initMap()
 				panToMap(position)
 				// if (startTrip && position.timestamp >= startTime) {
 				if (startTrip) {
@@ -287,7 +285,8 @@ const TripPage = () => {
 					const gss = !(
 						position.coords.speed === null ||
 						position.coords.altitude === null ||
-						position.coords.accuracy === null
+						position.coords.accuracy === null ||
+						position.coords.speed < 0
 					)
 					setGpsSignalStatus(gss ? 1 : 0)
 					// 每秒超过500米视为异常
@@ -303,7 +302,7 @@ const TripPage = () => {
 								if (lv) {
 									const v = position.coords
 									const speedColorLimit =
-										config.speedColor[
+										config.speedColorLimit[
 											(trip?.type?.toLowerCase() || 'running') as any
 										]
 									L.polyline(
@@ -390,17 +389,16 @@ const TripPage = () => {
 	}, [position?.timestamp])
 
 	useEffect(() => {
-		if (config.country && config.map.url && config.map.url !== 'System') {
-			if (map.current) {
-        map.current?.remove()
-				marker.current?.remove()
-        map.current = undefined
-        marker.current = undefined
-        
-			}
+		if (config.country && !loadedMap.current) {
 			initMap()
 		}
-	}, [config.country, config.map.url])
+	}, [config.country])
+
+	useEffect(() => {
+		loadedMap.current = false
+		initMap()
+	}, [config.mapUrl])
+
 	useEffect(() => {
 		position && map && panToMap(position)
 	}, [map])
@@ -429,12 +427,34 @@ const TripPage = () => {
 	}
 
 	const initMap = () => {
-		console.log('initMap', config.map, config.country, config.connectionOSM)
 		const L: typeof Leaflet = (window as any).L
-		if (L) {
+		console.log(
+			'initMap',
+			L,
+			config.country,
+			config.connectionOSM,
+			position,
+			loadedMap.current,
+			L &&
+				!loadedMap.current &&
+				position?.coords?.latitude &&
+				config.mapUrl !== 'AutoSelect'
+		)
+		if (
+			L &&
+			!loadedMap.current &&
+			position?.coords?.latitude &&
+			config.mapUrl !== 'AutoSelect'
+		) {
+			console.log('开始加载！')
 			let lat = position?.coords.latitude || 0
 			let lon = position?.coords.longitude || 0
-
+			if (map.current) {
+				map.current?.remove()
+				marker.current?.remove()
+				map.current = undefined
+				marker.current = undefined
+			}
 			if (!map.current) {
 				map.current = L.map('tp-map', {
 					zoomControl: false,
@@ -452,7 +472,7 @@ const TripPage = () => {
 				// if (config.country === 'China') {
 				// 	(L as any).tileLayer.chinaProvider('GaoDe.Normal.Map')
 				// } else {
-				const layer = L.tileLayer(config.map.url, {
+				const layer = L.tileLayer(config.mapUrl, {
 					// errorTileUrl: osmMap,
 					maxZoom: 18,
 					attribution: `&copy;`,
@@ -489,6 +509,7 @@ const TripPage = () => {
 			position && panToMap(position)
 			console.log('connectionOSM', config.connectionOSM)
 
+			loadedMap.current = true
 			// console.log('map', map)
 		}
 	}
@@ -669,11 +690,9 @@ const TripPage = () => {
 							<div className='data-bottom'>
 								<div className='data-b-item'>
 									<div className='di-value'>
-										{Math.round(
-											(positionList[positionList.length - 1]?.distance || 0) /
-												100
-										) / 10}{' '}
-										km
+										{formatDistance(
+											positionList[positionList.length - 1]?.distance
+										)}
 									</div>
 									<div className='di-unit'>里程</div>
 								</div>
@@ -882,7 +901,26 @@ const TripPage = () => {
 						selectPosition.latitude === -10000 &&
 						selectPosition.longitude === -10000
 					) ? (
-						<div className='tp-m-click-position'>
+						<div
+							onClick={() => {
+								console.log(1)
+								window.navigator.clipboard.writeText(
+									selectPosition.latitude + ',' + selectPosition.longitude
+								)
+
+								snackbar({
+									message: t('copySuccessfully', {
+										ns: 'prompt',
+									}),
+									autoHideDuration: 2000,
+									vertical: 'top',
+									horizontal: 'center',
+									backgroundColor: 'var(--saki-default-color)',
+									color: '#fff',
+								}).open()
+							}}
+							className='tp-m-click-position'
+						>
 							{selectPosition.latitude + ',' + selectPosition.longitude}
 						</div>
 					) : (

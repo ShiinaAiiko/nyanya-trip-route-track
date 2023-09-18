@@ -53,6 +53,7 @@ start() {
   # yarn config set link-folder ~/.yarn/link
   cp -r ~/.npmrc $DIR
   cp -r ~/.yarnrc $DIR
+  cp -r ./server/protos $DIR/protos_temp
 
   echo "-> 准备构建Docker"
   docker build \
@@ -65,6 +66,7 @@ start() {
   rm $DIR/.npmrc
   rm $DIR/.yarnrc
   rm -rf $DIR/config.temp.json
+  rm -rf $DIR/protos_temp
 
   echo "-> 准备运行Docker"
   stop

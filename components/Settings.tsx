@@ -46,12 +46,12 @@ const SettingsComponent = ({
 				// dispatch(layoutSlice.actions.setSettingType(''))
 			}
 		} else {
+			if (config.deviceType !== 'Mobile') {
+				dispatch(layoutSlice.actions.setSettingType('Account'))
+			}
 			// dispatch(layoutSlice.actions.setSettingType('Account'))
 		}
 
-		if (config.deviceType !== 'Mobile') {
-			dispatch(layoutSlice.actions.setSettingType('Account'))
-		}
 		// setMenuType(type || 'Account')
 	}, [layout.settingType])
 
@@ -255,7 +255,7 @@ const SettingsNavList = ({
 					<span className='name'>{t('maps')}</span>
 				</div>
 			</saki-menu-item>
-			<saki-menu-item
+			{/* <saki-menu-item
 				active={menuType === 'Appearance'}
 				padding='16px 12px'
 				value='Appearance'
@@ -304,7 +304,7 @@ const SettingsNavList = ({
 					</svg>
 					<span className='name'>{t('syncAndBackup')}</span>
 				</div>
-			</saki-menu-item>
+			</saki-menu-item> */}
 			<saki-menu-item
 				active={menuType === 'About'}
 				padding='16px 12px'
@@ -644,7 +644,7 @@ const Maps = ({ show }: { show: boolean }) => {
 			}}
 		>
 			<SettingsItem
-				subtitle={() => <div>{t('language')}</div>}
+				subtitle={() => <div>{t('basemap')}</div>}
 				main={() => (
 					<saki-checkbox
 						ref={bindEvent({
@@ -653,14 +653,37 @@ const Maps = ({ show }: { show: boolean }) => {
 								dispatch(methods.config.setMapKey(e.detail.value))
 							},
 						})}
-						value={config.map.key}
+						value={config.mapKey}
 						flex-direction='Column'
 						type='Radio'
 					>
 						{maps.map((v, i) => {
 							return (
 								<saki-checkbox-item key={i} padding='14px 0' value={v.key}>
-									{v.key}
+									{t(v.key)}
+								</saki-checkbox-item>
+							)
+						})}
+					</saki-checkbox>
+				)}
+			></SettingsItem>
+			<SettingsItem
+				subtitle={() => <div>{t('speedColor')}</div>}
+				main={() => (
+					<saki-checkbox
+						ref={bindEvent({
+							async selectvalue(e) {
+								dispatch(methods.config.setSpeedColorType(e.detail.value))
+							},
+						})}
+						value={config.speedColorType}
+						flex-direction='Column'
+						type='Radio'
+					>
+						{['RedGreen', 'PinkBlue'].map((v, i) => {
+							return (
+								<saki-checkbox-item key={i} padding='14px 0' value={v}>
+									{t(v)}
 								</saki-checkbox-item>
 							)
 						})}

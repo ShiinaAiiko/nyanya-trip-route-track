@@ -157,7 +157,22 @@
 
 		"backUpNow": "Back Up Now",
 
-		"about": "About "
+		"about": "About ",
+
+		"basemap": "Base Map",
+		"maps": "Maps",
+		"AutoSelect": "Automatically choose",
+		"OpenStreetMap": "Open Street Map",
+		"Amap": "Amap",
+		"GeoQBase": "GeoQ Base",
+		"GeoQNight": "GeoQ Night",
+		"GeoQGrey": "GeoQ Grey",
+		"GeoQWarm": "GeoQ Warm",
+		"GeoQStreet": "GeoQ Street",
+
+		"speedColor": "Speed Color",
+		"RedGreen": "Red Green",
+		"PinkBlue": "Pink Blue"
 	},
 	"prompt": {
 		"next": "Next",

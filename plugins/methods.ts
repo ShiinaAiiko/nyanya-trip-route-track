@@ -7,7 +7,7 @@ import { useSelector, useStore, useDispatch } from 'react-redux'
 import axios, { AxiosRequestConfig } from 'axios'
 
 import store, { userSlice } from '../store'
-import { connectionOSM, country } from '../store/config'
+import { connectionOSM, country, speedColorRGBs } from '../store/config'
 
 export const getRegExp = (type: 'email') => {
 	return /^\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$/
@@ -64,50 +64,19 @@ export const getRandomPassword = (
 	}
 	return str
 }
-
-let r = 88
-let g = 200
-let b = 242
-export const rgbs: string[] = []
-for (let i = 0; i < 20; i++) {
-	g = 200 - Math.floor((19 / 10) * i)
-	if (i < 10) {
-		r = 140 + Math.floor(((200 - 92) / 10) * i)
-	} else {
-		b = 242 - Math.floor(((200 - 128) / 10) * (i - 10))
-	}
-
-	rgbs.push(`rgb(${r},${g},${b})`)
-}
-
-// let r = 140
-// let g = 200
-// let b = 70
-// export const rgbs: string[] = []
-// for (let i = 0; i < 20; i++) {
-// 	if (i < 10) {
-// 		r = 140 + Math.floor(((200 - 100) / 10) * i)
-// 	} else {
-// 		g = 200 - Math.floor(((200 - 100) / 10) * (i - 10))
-// 	}
-
-// 	rgbs.push(`rgb(${r},${g},${b})`)
-// }
-// console.log('rgbs', rgbs)
-
 export const getSpeedColor = (
 	currentSpeed: number,
 	minSpeed: number,
 	maxSpeed: number
 ) => {
 	if (currentSpeed < minSpeed) {
-		return rgbs[0]
+		return speedColorRGBs[0]
 	}
 	if (currentSpeed > maxSpeed) {
-		return rgbs[rgbs.length - 1]
+		return speedColorRGBs[speedColorRGBs.length - 1]
 	}
 
-	return rgbs[
+	return speedColorRGBs[
 		Math.floor((currentSpeed - minSpeed) / ((maxSpeed - minSpeed) / 20))
 	]
 }
@@ -142,6 +111,16 @@ export const formatTime = (startTime: number, endTime: number) => {
 	const m = Math.floor(timestamp / 60) % 60
 	const s = Math.floor(timestamp % 60)
 	return h + 'h ' + m + 'm ' + s + 's'
+}
+
+export const formatDistance = (distance: number) => {
+	if (distance < 1000) {
+		return Math.round(distance || 0) + ' m'
+	}
+	if (distance < 1000 * 10) {
+		return Math.round((distance || 0) / 10) / 100 + ' km'
+	}
+	return Math.round((distance || 0) / 100) / 10 + ' km'
 }
 
 export const getZoom = (
@@ -651,20 +630,19 @@ export const getLatLng = (lat: number, lng: number) => {
 	let key = String(lat) + String(lng)
 	const { config } = store.getState()
 
-	if (latlngCache[config.map.url]?.[key])
-		return latlngCache[config.map.url][key]
+	if (latlngCache[config.mapUrl]?.[key]) return latlngCache[config.mapUrl][key]
 
 	// console.log('getLatLnggetLatLng')
 
-	if (config.map.url.indexOf('openstreetmap') < 0) {
+	if (config.mapUrl.indexOf('openstreetmap') < 0) {
 		const gcj02towgs84 = coordtransform.wgs84togcj02(lng, lat)
 		// console.log('gcj02towgs84', gcj02towgs84)
 
 		lng = gcj02towgs84[0]
 		lat = gcj02towgs84[1]
 	}
-	!latlngCache[config.map.url] && (latlngCache[config.map.url] = {})
-	latlngCache[config.map.url][key] = [lat, lng]
+	!latlngCache[config.mapUrl] && (latlngCache[config.mapUrl] = {})
+	latlngCache[config.mapUrl][key] = [lat, lng]
 
 	return [lat, lng]
 }

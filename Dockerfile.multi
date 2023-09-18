@@ -14,6 +14,7 @@ RUN \
 COPY . .
 
 RUN \
+  yarn protos && \
   yarn export
 
 FROM node:16.13.1-alpine3.13

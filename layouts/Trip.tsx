@@ -54,8 +54,9 @@ const ToolboxLayout = ({ children }: propsType): JSX.Element => {
 			dispatch(methods.config.getDeviceType())
 		})
 
-		const init = async () => {
+		const initConnectionOSM = async () => {
 			try {
+				console.time('initConnectionOSM')
 				dispatch(
 					configSlice.actions.setConnectionOSM(
 						(await fetch('https://tile.openstreetmap.org')).status === 200
@@ -63,14 +64,20 @@ const ToolboxLayout = ({ children }: propsType): JSX.Element => {
 							: -1
 					)
 				)
+				console.timeEnd('initConnectionOSM')
 			} catch (error) {
 				dispatch(configSlice.actions.setConnectionOSM(-1))
 			}
 		}
-		init()
+		initConnectionOSM()
 		const initCountry = async () => {
 			try {
-				const res = await axios(
+				console.time('initCountry')
+        const timer = setTimeout(() => {
+          dispatch(configSlice.actions.setCountry('Argentina'))
+          clearTimeout(timer)
+        }, 4000)
+ 				const res = await axios(
 					'https://tools.aiiko.club/api/v1/ip/details?ip=&language=en-US'
 				)
 				if (res?.data?.code === 200 && res?.data?.data?.country) {
@@ -79,6 +86,8 @@ const ToolboxLayout = ({ children }: propsType): JSX.Element => {
 				} else {
 					dispatch(configSlice.actions.setCountry('Argentina'))
 				}
+				clearTimeout(timer)
+				console.timeEnd('initCountry')
 			} catch (error) {
 				dispatch(configSlice.actions.setCountry('Argentina'))
 			}

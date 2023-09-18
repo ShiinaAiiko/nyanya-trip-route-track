@@ -28,11 +28,10 @@ import {
 	getLatLng,
 	getSpeedColor,
 	getZoom,
-	rgbs,
 } from '../plugins/methods'
 import Leaflet from 'leaflet'
 import html2canvas from 'html2canvas'
-import { cnMap, osmMap } from '../store/config'
+import { cnMap, osmMap, speedColorRGBs } from '../store/config'
 
 const TripItemComponent = memo(
 	({
@@ -198,7 +197,7 @@ const TripItemComponent = memo(
 						//   120.3814, -1.09],
 						zoom
 					)
-					L.tileLayer(config.map.url, {
+					L.tileLayer(config.mapUrl, {
 						// errorTileUrl: osmMap,
 						maxZoom: 18,
 						attribution: `&copy;`,
@@ -214,38 +213,44 @@ const TripItemComponent = memo(
 					if (trip?.positions) {
 						const positions = trip.positions
 						console.time('getLatLnggetLatLng')
-						positions?.forEach((v, i) => {
-							if (i === 0) return
-							const lv = positions[i - 1]
+						positions
+							.filter((v) => {
+								return !(
+									Number(v.speed || 0) < 0 || Number(v.altitude || 0) < 0
+								)
+							})
+							?.forEach((v, i) => {
+								if (i === 0) return
+								const lv = positions[i - 1]
 
-							const speedColorLimit =
-								config.speedColor[
-									(trip?.type?.toLowerCase() || 'running') as any
-								]
+								const speedColorLimit =
+									config.speedColorLimit[
+										(trip?.type?.toLowerCase() || 'running') as any
+									]
 
-							const latlng = getLatLng(lat, lon)
+								const latlng = getLatLng(lat, lon)
 
-							lat = latlng[0]
-							lon = latlng[1]
-							map.current &&
-								L.polyline(
-									[
-										getLatLng(lv.latitude || 0, lv.longitude || 0) as any,
-										getLatLng(v.latitude || 0, v.longitude || 0) as any,
-									],
-									{
-										// smoothFactor:10,
-										// snakingSpeed: 200,
-										color: getSpeedColor(
-											v.speed || 0,
-											speedColorLimit.minSpeed,
-											speedColorLimit.maxSpeed
-										), //线的颜色
-										weight: 8, //线的粗细
-										// opacity: 0.3,
-									}
-								).addTo(map.current)
-						})
+								lat = latlng[0]
+								lon = latlng[1]
+								map.current &&
+									L.polyline(
+										[
+											getLatLng(lv.latitude || 0, lv.longitude || 0) as any,
+											getLatLng(v.latitude || 0, v.longitude || 0) as any,
+										],
+										{
+											// smoothFactor:10,
+											// snakingSpeed: 200,
+											color: getSpeedColor(
+												v.speed || 0,
+												speedColorLimit.minSpeed,
+												speedColorLimit.maxSpeed
+											), //线的颜色
+											weight: 8, //线的粗细
+											// opacity: 0.3,
+										}
+									).addTo(map.current)
+							})
 						console.timeEnd('getLatLnggetLatLng')
 					}
 				}
@@ -300,8 +305,8 @@ const TripItemComponent = memo(
 								}) + ' (m)',
 							data: altitudeData,
 							pointBorderWidth: 0,
-							borderColor: '#58c8f2',
-							backgroundColor: '#58c8f258',
+							borderColor: speedColorRGBs[speedColorRGBs.length - 1],
+							backgroundColor: speedColorRGBs[speedColorRGBs.length - 1],
 							fill: false,
 							cubicInterpolationMode: 'monotone',
 							tension: 0.5,
@@ -314,8 +319,8 @@ const TripItemComponent = memo(
 								}) + ' (km/h)',
 							data: speedData,
 							pointBorderWidth: 0,
-							borderColor: '#f29cb2',
-							backgroundColor: '#f29cb258',
+							borderColor: speedColorRGBs[0],
+							backgroundColor: speedColorRGBs[0],
 							fill: true,
 							cubicInterpolationMode: 'monotone',
 							tension: 0.4,
@@ -358,7 +363,7 @@ const TripItemComponent = memo(
 									// suggestedMin: -10,
 									// suggestedMax: 200,
 									grid: {
-										color: '#f29cb2',
+										color: speedColorRGBs[0],
 										lineWidth: 1,
 										drawOnChartArea: false, // only want the grid lines for one axis to show up
 									},
@@ -377,7 +382,7 @@ const TripItemComponent = memo(
 
 									// grid line settings
 									grid: {
-										color: '#58c8f2',
+										color: speedColorRGBs[speedColorRGBs.length - 1],
 										lineWidth: 1,
 										drawOnChartArea: false, // only want the grid lines for one axis to show up
 									},
@@ -473,7 +478,7 @@ const TripItemComponent = memo(
 		const copyUrl = () => {
 			snackbar({
 				message: t('copySuccessfully', {
-					ns: 'common',
+					ns: 'prompt',
 				}),
 				autoHideDuration: 2000,
 				vertical: 'top',
@@ -700,9 +705,9 @@ const TripItemComponent = memo(
 									</div>
 									<div className='ti-color'>
 										<div
-											// style={{
-											// 	color: 'rgb(140, 200, 70)',
-											// }}
+											style={{
+												color: speedColorRGBs[0],
+											}}
 											className='ti-c-min'
 										>
 											{t('slowest', {
@@ -710,15 +715,17 @@ const TripItemComponent = memo(
 											})}
 										</div>
 										<div
-											// style={{
-											// 	background: `linear-gradient(45deg, rgb(140, 200, 70), rgb(230, 110, 70))`,
-											// }}
+											style={{
+												background: `linear-gradient(45deg, ${
+													speedColorRGBs[0]
+												},${speedColorRGBs[speedColorRGBs.length - 1]})`,
+											}}
 											className='ti-c-line'
 										></div>
 										<div
-											// style={{
-											// 	color: 'rgb(230, 110, 70)',
-											// }}
+											style={{
+												color: speedColorRGBs[speedColorRGBs.length - 1],
+											}}
 											className='ti-c-max'
 										>
 											{t('fastest', {

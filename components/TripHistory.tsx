@@ -21,7 +21,7 @@ import { storage } from '../store/storage'
 import { useTranslation } from 'react-i18next'
 import { httpApi } from '../plugins/http/api'
 import { protoRoot } from '../protos'
-import { formatTime } from '../plugins/methods'
+import { formatDistance, formatTime } from '../plugins/methods'
 import TripItemComponent from './TripItem'
 import { Chart } from 'chart.js'
 
@@ -232,9 +232,10 @@ const TripHistoryPage = ({
 	}, [])
 
 	useEffect(() => {
-		if (pageNum === 1 && user.isLogin && layout.openTripHistoryModal) {
-			getTripHistory()
-			getTripStatistics()
+		if (user.isLogin && layout.openTripHistoryModal) {
+			setTrips([])
+			setPageNum(1)
+			setLoadStatus('loaded')
 		}
 	}, [user, layout.openTripHistoryModal])
 
@@ -690,8 +691,7 @@ const TripHistoryPage = ({
 													ns: 'tripPage',
 												})}
 												{' · '}
-												{Math.round((v.statistics?.distance || 0) / 10) / 100 +
-													' km'}
+												{formatDistance(v.statistics?.distance || 0)}
 											</div>
 											<div className='th-l-i-l-info'>
 												<div className='info-item'>

@@ -158,7 +158,22 @@
 
 		"backUpNow": "立即備份",
 
-		"about": "關於"
+		"about": "關於",
+
+		"basemap": "基礎地圖",
+		"maps": "地圖",
+		"AutoSelect": "自動選擇",
+		"OpenStreetMap": "Open Street Map",
+		"Amap": "高德",
+		"GeoQBase": "GeoQ 標準",
+		"GeoQNight": "GeoQ 夜晚",
+		"GeoQGrey": "GeoQ 灰色",
+		"GeoQWarm": "GeoQ 暖色",
+		"GeoQStreet": "GeoQ 街道",
+
+		"speedColor": "速度顏色",
+		"RedGreen": "紅綠",
+		"PinkBlue": "藍粉"
 	},
 	"prompt": {
 		"next": "繼續",

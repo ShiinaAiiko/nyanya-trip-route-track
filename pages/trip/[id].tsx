@@ -25,6 +25,7 @@ import {
 	getSpeedColor,
 	getDistance,
 	formatTime,
+	formatDistance,
 } from '../../plugins/methods'
 import { getGeoInfo } from 'findme-js'
 import Leaflet from 'leaflet'
@@ -43,7 +44,7 @@ const TripPage = () => {
 
 	const { id, sk } = router.query
 
-	const [blankPage, setBlankPage] = useState(false)
+	const [trip, setTrip] = useState<protoRoot.trip.ITrip>()
 
 	const dispatch = useDispatch<AppDispatch>()
 
@@ -58,16 +59,24 @@ const TripPage = () => {
 	}, [i18n.language])
 
 	const onTrip = useCallback((trip?: protoRoot.trip.ITrip) => {
-		setBlankPage(!trip)
+		setTrip(trip)
 	}, [])
 
 	return (
 		<>
 			<Head>
 				<title>
-					{t('pageTitle', {
-						ns: 'tripPage',
-					}) +
+					{(trip?.id
+						? formatDistance(trip.statistics?.distance || 0) +
+						  ' - ' +
+						  t((trip.type || '')?.toLowerCase(), {
+								ns: 'tripPage',
+						  }) +
+						  ' - '
+						: '') +
+						t('pageTitle', {
+							ns: 'tripPage',
+						}) +
 						' - ' +
 						t('appTitle', {
 							ns: 'common',
@@ -75,7 +84,7 @@ const TripPage = () => {
 				</title>
 			</Head>
 			<div className='trip-detail-page'>
-				{blankPage ? (
+				{!trip?.id ? (
 					<div className='td-none'>空白页面，请检查下Url路径是否正确</div>
 				) : (
 					''

@@ -20,11 +20,11 @@ export interface ActionParams<T = any> {
 }
 
 const rootReducer = combineReducers({
+	config: configSlice.reducer,
 	api: apiSlice.reducer,
 	user: userSlice.reducer,
 	layout: layoutSlice.reducer,
 	sso: ssoSlice.reducer,
-	config: configSlice.reducer,
 })
 
 const store = configureStore({
@@ -33,11 +33,11 @@ const store = configureStore({
 
 export { apiSlice, userSlice, configSlice, ssoSlice, layoutSlice }
 export const methods = {
+	config: configMethods,
 	api: apiMethods,
 	user: userMethods,
 	layout: layoutMethods,
 	sso: ssoMethods,
-	config: configMethods,
 }
 
 // console.log(store.getState())
