@@ -40,7 +40,7 @@ export let maps = [
 	{
 		key: 'GeoQBase',
 		url: 'https://map.geoq.cn/ArcGIS/rest/services/ChinaOnlineCommunity/MapServer/tile/{z}/{y}/{x}',
-  },
+	},
 	{
 		key: 'GeoQNight',
 		url: 'https://map.geoq.cn/ArcGIS/rest/services/ChinaOnlineStreetPurplishBlue/MapServer/tile/{z}/{y}/{x}',
@@ -52,12 +52,11 @@ export let maps = [
 	{
 		key: 'GeoQWarm',
 		url: 'https://map.geoq.cn/arcgis/rest/services/ChinaOnlineStreetWarm/MapServer/tile/{z}/{y}/{x}',
-  },
+	},
 	{
 		key: 'GeoQStreet',
 		url: 'https://map.geoq.cn/arcgis/rest/services/ChinaOnlineStreetWarm/MapServer/tile/{z}/{y}/{x}',
 	},
-  
 ]
 
 export const language: LanguageType = defaultLanguage as any
@@ -67,8 +66,10 @@ export let connectionOSM = true
 
 export let speedColorRGBs: string[] = []
 
+export let eventListener = new NEventListener()
+
 export const getSpeedColors = (type: 'RedGreen' | 'PinkBlue') => {
-  speedColorRGBs = []
+	speedColorRGBs = []
 	if (type === 'PinkBlue') {
 		let r = 88
 		let g = 200
@@ -146,6 +147,9 @@ export const configSlice = createSlice({
 		deviceType,
 		country: '',
 		connectionOSM: 0,
+		mapPolyline: {
+			width: 8,
+		},
 		mapKey: 'AutoSelect',
 		mapUrl: 'AutoSelect',
 		// map: {
@@ -173,6 +177,7 @@ export const configSlice = createSlice({
 		},
 
 		speedColorType: 'RedGreen' as 'RedGreen' | 'PinkBlue',
+		tripTypes: ['Running', 'Bike', 'Drive', 'Local'],
 	},
 	reducers: {
 		setSpeedColorType: (
@@ -238,6 +243,15 @@ export const configSlice = createSlice({
 			state.mapKey = v.key
 			state.mapUrl = v.url
 		},
+		setMapPolylineWidth: (
+			state,
+			params: {
+				payload: number
+				type: string
+			}
+		) => {
+			state.mapPolyline.width = params.payload
+		},
 	},
 })
 export const configMethods = {
@@ -251,6 +265,12 @@ export const configMethods = {
 		const speedColorType =
 			(await storage.global.get('speedColorType')) || 'RedGreen'
 		thunkAPI.dispatch(configMethods.setSpeedColorType(speedColorType))
+
+		thunkAPI.dispatch(
+			configMethods.setMapPolylineWidth(
+				(await storage.global.get('mapPolylineWidth')) || 8
+			)
+		)
 	}),
 	setLanguage: createAsyncThunk(
 		'config/setLanguage',
@@ -313,6 +333,13 @@ export const configMethods = {
 			getSpeedColors(type)
 			await storage.global.set('speedColorType', type)
 			getMapUrlAuto()
+		}
+	),
+	setMapPolylineWidth: createAsyncThunk(
+		'config/setMapPolylineWidth',
+		async (width: number, thunkAPI) => {
+			thunkAPI.dispatch(configSlice.actions.setMapPolylineWidth(width))
+			await storage.global.set('mapPolylineWidth', width)
 		}
 	),
 }

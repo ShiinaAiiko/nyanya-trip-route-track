@@ -43,6 +43,7 @@ declare global {
 			'saki-icon': any
 			'saki-sso': any
 			'saki-scroll-loading': any
+			'saki-linear-progress-bar': any
 		}
 	}
 	namespace Window {

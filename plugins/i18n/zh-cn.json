@@ -6,7 +6,11 @@
 		"aiikoBlog": "爱喵博客",
 		"login": "登录",
 		"logout": "登出",
-		"share": "分享"
+		"share": "分享",
+		"unshare": "取消分享",
+
+		"edit": "编辑",
+		"save": "保存"
 	},
 	"languages": {
 		"en-US": "英文",
@@ -99,7 +103,19 @@
 		"start": "开始",
 		"stop": "停止",
 
-		"unfinished": "未完成"
+		"unfinished": "未完成",
+
+		"averageSpeed": "平均速度",
+		"averageAltitude": "平均海拔",
+		"minAltitude": "最小海拔",
+
+		"editTrip": "编辑行程",
+		"type": "出行类型",
+		"currentType": "当前出行类型",
+
+		"local": "本地",
+
+		"addTripToOnline": "将行程保存到线上"
 	},
 	"tripHistoryPage": {
 		"pageTitle": "行程历史"
@@ -173,7 +189,9 @@
 
 		"speedColor": "速度颜色",
 		"RedGreen": "红绿",
-		"PinkBlue": "蓝粉"
+		"PinkBlue": "蓝粉",
+		"trackLine": "轨迹线",
+		"width": "宽度"
 	},
 	"prompt": {
 		"next": "下一步",
@@ -189,6 +207,16 @@
 		"ipEmptyTip": "IP或者域名不能为空",
 		"querySuccessfully": "查询成功！",
 		"queryFailed": "查询失败，请重新输入IP或域名",
-		"connectMapFailed": "无法连接地图，请检查网络。"
+		"connectMapFailed": "无法连接地图，请检查网络。",
+
+		"deleteThisTrip": "删除此行程？",
+		"deleteThisTrip50m": "距离需要大于50米才能保存。是否删除此行程？",
+		"noLoginSaveTrip": "如果您未登录您的帐户，您的行程记录将存储在本地。",
+		"tripSavedLocally": "已将此行程保存到了本地",
+		"deleteLocalTrip": "同时删除本地数据？",
+
+		"logout": "退出账号",
+		"logoutContent": "确定想退出账号吗",
+		"logoutSuccessfully": "成功退出账号"
 	}
 }

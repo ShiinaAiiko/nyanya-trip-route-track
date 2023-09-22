@@ -8,7 +8,7 @@ html {
 	font-size: 14px;
 
 	@media screen and (max-width: 767px) {
-		font-size: 16px;
+		// font-size: 16px;
 	}
 
 	// CSS变量
@@ -147,4 +147,32 @@ button,
 	border: 1px solid rgba(255, 255, 255, 0);
 	// @include heikaBackground(0);
 	background-clip: padding-box;
+}
+
+saki-button,
+.nav-list .nav-item {
+	-webkit-tap-highlight-color: transparent;
+}
+
+.saki-loading {
+	// position: relative;
+	// &::before {
+	// 	content: '';
+	// 	position: absolute;
+	// 	left: 0;
+	// 	top: 0;
+	// 	width: 100%;
+	// 	height: 100%;
+	// 	background-color: #fff;
+	// 	z-index: 5998;
+	// }
+	// &::after {
+	// 	content: '';
+	// 	position: absolute;
+	// 	left: 0;
+	// 	top: 0;
+	// 	border: 1px solid var(--saki-defalut-color);
+	// 	border-radius: 50%;
+	// 	z-index: 5999;
+	// }
 }

@@ -9,6 +9,7 @@ import store, {
 	configSlice,
 	userSlice,
 	layoutSlice,
+	tripSlice,
 } from '../store'
 
 import { sakisso, version } from '../config'
@@ -23,6 +24,7 @@ import { httpApi } from '../plugins/http/api'
 import { protoRoot } from '../protos'
 import { Chart } from 'chart.js/auto'
 import {
+	formatDistance,
 	formatTime,
 	getDistance,
 	getLatLng,
@@ -31,7 +33,8 @@ import {
 } from '../plugins/methods'
 import Leaflet from 'leaflet'
 import html2canvas from 'html2canvas'
-import { cnMap, osmMap, speedColorRGBs } from '../store/config'
+import { cnMap, eventListener, osmMap, speedColorRGBs } from '../store/config'
+import NoSSR from './NoSSR'
 
 const TripItemComponent = memo(
 	({
@@ -55,6 +58,8 @@ const TripItemComponent = memo(
 		const layout = useSelector((state: RootState) => state.layout)
 		const config = useSelector((state: RootState) => state.config)
 		const user = useSelector((state: RootState) => state.user)
+		const geo = useSelector((state: RootState) => state.geo)
+		const trip = useSelector((state: RootState) => state.trip.detailPage.trip)
 
 		const speedChart = useRef<Chart<'line', any[], unknown>>()
 		const map = useRef<Leaflet.Map>()
@@ -75,29 +80,28 @@ const TripItemComponent = memo(
 		const [loadStatus, setLoadStatus] = useState<
 			'loading' | 'loaded' | 'noMore'
 		>('loaded')
-		const [trip, setTrip] = useState<protoRoot.trip.ITrip>()
-		const [position, setPosition] = useState<GeolocationPosition>()
+		// const [trip, setTrip] = useState<protoRoot.trip.ITrip>()
 
 		useEffect(() => {
 			setMounted(true)
 
-			navigator.geolocation.getCurrentPosition(
-				(pos) => {
-					setPosition(pos)
-				},
-				(error) => {
-					if (error.code === 1) {
-						snackbar({
-							message: '必须开启定位权限，请检查下是否开启定位权限',
-							autoHideDuration: 2000,
-							vertical: 'top',
-							horizontal: 'center',
-						}).open()
-					}
-					console.log('GetCurrentPosition Error', error)
-				},
-				{ enableHighAccuracy: true }
-			)
+			// eventListener.on('editTrip', (v) => {
+			// 	console.log(v, trip)
+			// 	if (trip?.id === v.id) {
+			// 		const obj: any = {}
+
+			// 		v.type && (obj['type'] = v.type)
+
+			// 		console.log(obj, {
+			// 			...trip,
+			// 			...obj,
+			// 		})
+			// 		setTrip({
+			// 			...trip,
+			// 			...obj,
+			// 		})
+			// 	}
+			// })
 		}, [])
 		// useEffect(() => {
 		// 	if (tripId) {
@@ -109,7 +113,13 @@ const TripItemComponent = memo(
 
 		useEffect(() => {
 			console.log(tripId, shareKey, user.isLogin)
+
+			console.log('setTripForDetailPage', tripId, map.current)
 			if (tripId) {
+				if (tripId.indexOf('IDB_') >= 0) {
+					getTrip()
+					return
+				}
 				if (!shareKey) {
 					if (user.isLogin) {
 						getTrip()
@@ -120,10 +130,14 @@ const TripItemComponent = memo(
 					return
 				}
 			}
-			setTrip(undefined)
+			dispatch(tripSlice.actions.setTripForDetailPage(undefined))
+
+			speedChart.current?.destroy()
 			speedChart.current = undefined
+			map.current?.remove()
 			map.current = undefined
 			setShareImageDataBase('')
+			// setTrip(undefined)
 		}, [tripId, shareKey, user])
 
 		useEffect(() => {
@@ -131,22 +145,32 @@ const TripItemComponent = memo(
 		}, [isShare, map])
 
 		useEffect(() => {
-			if (!map.current && config.country && trip) {
+			if (!map.current && config.country && tripId && trip?.id) {
 				let tDistance = 0
-				trip?.positions?.forEach((v, i) => {
-					if (i > 0) {
-						const lv = trip?.positions?.[i - 1]
-						if (lv) {
-							tDistance += getDistance(
-								v.longitude || 0,
-								v.latitude || 0,
-								lv.longitude || 0,
-								lv.latitude || 0
-							)
-						}
-					}
-					v.distance = tDistance
-				})
+
+				dispatch(
+					tripSlice.actions.setTripForDetailPage({
+						...trip,
+						positions: trip?.positions?.map((v, i) => {
+							if (i > 0) {
+								const lv = trip?.positions?.[i - 1]
+								if (lv) {
+									tDistance += getDistance(
+										v.longitude || 0,
+										v.latitude || 0,
+										lv.longitude || 0,
+										lv.latitude || 0
+									)
+								}
+							}
+							return {
+								...v,
+								distance: tDistance,
+							}
+						}),
+					})
+				)
+
 				outSpeedLineChart()
 				initMap()
 			}
@@ -155,8 +179,9 @@ const TripItemComponent = memo(
 		const initMap = () => {
 			const L: typeof Leaflet = (window as any).L
 			if (L) {
-				let lat = position?.coords.latitude || 0
-				let lon = position?.coords.longitude || 0
+				console.log(geo.position)
+				let lat = geo.position?.coords?.latitude || 0
+				let lon = geo.position?.coords?.longitude || 0
 				let zoom = 13
 
 				if (trip?.positions?.length) {
@@ -183,6 +208,10 @@ const TripItemComponent = memo(
 				lat = latlng[0]
 				lon = latlng[1]
 
+				if (map.current) {
+					map.current?.remove()
+					map.current = undefined
+				}
 				if (!map.current && L) {
 					map.current = L.map('ti-map', {
 						zoomControl: false,
@@ -200,7 +229,7 @@ const TripItemComponent = memo(
 					L.tileLayer(config.mapUrl, {
 						// errorTileUrl: osmMap,
 						maxZoom: 18,
-						attribution: `&copy;`,
+						// attribution: `&copy;`,
 					}).addTo(map.current)
 					//定义一个地图缩放控件
 					// var zoomControl = L.control.zoom({ position: 'topleft' })
@@ -213,6 +242,7 @@ const TripItemComponent = memo(
 					if (trip?.positions) {
 						const positions = trip.positions
 						console.time('getLatLnggetLatLng')
+
 						positions
 							.filter((v) => {
 								return !(
@@ -220,8 +250,16 @@ const TripItemComponent = memo(
 								)
 							})
 							?.forEach((v, i) => {
-								if (i === 0) return
+								if (i === 0) {
+									return
+								}
 								const lv = positions[i - 1]
+
+								// console.log(
+								// 	i,
+								// 	getLatLng(lv.latitude || 0, lv.longitude || 0) as any,
+								// 	getLatLng(v.latitude || 0, v.longitude || 0) as any
+								// )
 
 								const speedColorLimit =
 									config.speedColorLimit[
@@ -246,11 +284,66 @@ const TripItemComponent = memo(
 												speedColorLimit.minSpeed,
 												speedColorLimit.maxSpeed
 											), //线的颜色
-											weight: 8, //线的粗细
+											weight: config.mapPolyline.width,
 											// opacity: 0.3,
 										}
 									).addTo(map.current)
 							})
+
+						if (positions?.[0]) {
+							let startIcon = L.icon({
+								className: 'map_position_start_icon',
+								iconUrl: '/position_start_green.png',
+								iconSize: [28, 28],
+								// shadowSize: [36, 36],
+								// iconAnchor: [22, 94],
+								// shadowAnchor: [4, 62],
+								// popupAnchor: [-3, -76],
+							})
+							L.marker(
+								getLatLng(
+									positions[0]?.latitude || 0,
+									positions[0]?.longitude || 0
+								) as any,
+								{
+									icon: startIcon,
+								}
+							)
+								.addTo(map.current)
+								// .bindPopup(
+								// 	`${ipInfoObj.ipv4}`
+								// 	// `${ipInfoObj.country}, ${ipInfoObj.regionName}, ${ipInfoObj.city}`
+								// )
+								.openPopup()
+						}
+						if (positions?.[positions.length - 1]) {
+							let endIcon = L.icon({
+								className: 'map_position_end_icon',
+								iconUrl: '/position_end_black.png',
+								iconSize: [26, 34],
+								// iconUrl: '/position_start.png',
+								// iconSize: [28, 28],
+								// shadowSize: [36, 36],
+								iconAnchor: [0, 26],
+								// shadowAnchor: [4, 62],
+								// popupAnchor: [-3, -76],
+							})
+							L.marker(
+								getLatLng(
+									positions[positions.length - 1]?.latitude || 0,
+									positions[positions.length - 1]?.longitude || 0
+								) as any,
+								{
+									icon: endIcon,
+								}
+							)
+								.addTo(map.current)
+								// .bindPopup(
+								// 	`${ipInfoObj.ipv4}`
+								// 	// `${ipInfoObj.country}, ${ipInfoObj.regionName}, ${ipInfoObj.city}`
+								// )
+								.openPopup()
+						}
 						console.timeEnd('getLatLnggetLatLng')
 					}
 				}
@@ -408,68 +501,102 @@ const TripItemComponent = memo(
 				closeIcon: true,
 			})
 			pb.open()
-			// 生成地图图片
-			let mapEl: any = document.querySelector('#ti-map')
-			let contentEl: any = document.querySelector('.ti-m-content')
+			setTimeout(async () => {
+				// 生成地图图片
+				let mapEl: any = document.querySelector('#ti-map')
+				let contentEl: any = document.querySelector('.ti-m-content')
 
-			if (mapEl && contentEl) {
-				console.log('mapEl.scrollHeight', mapEl.offsetHeight)
-				const mapCvs = await html2canvas(mapEl, {
-					backgroundColor: 'white',
-					useCORS: true,
-					scale: 1,
-					height: mapEl.offsetHeight,
-					windowHeight: mapEl.offsetHeight,
-				})
+				if (mapEl && contentEl) {
+					console.log('mapEl.scrollHeight', mapEl.offsetHeight)
+					const mapCvs = await html2canvas(mapEl, {
+						backgroundColor: 'white',
+						useCORS: true,
+						scale: 1,
+						height: mapEl.offsetHeight,
+						windowHeight: mapEl.offsetHeight,
+					})
 
-				// 生成内容图
-				const contentCvs = await html2canvas(contentEl, {
-					backgroundColor: 'white',
-					useCORS: true,
-					scale: 1,
-					height: contentEl.scrollHeight,
-					windowHeight: contentEl.scrollHeight,
-				})
+					// 生成内容图
+					const contentCvs = await html2canvas(contentEl, {
+						backgroundColor: 'white',
+						useCORS: true,
+						scale: 1,
+						height: contentEl.scrollHeight,
+						windowHeight: contentEl.scrollHeight,
+					})
 
-				// const mapPng = mapCvs.toDataURL('image/png', 1)
-				// const contentPng = contentCvs.toDataURL('image/png', 1)
+					// const mapPng = mapCvs.toDataURL('image/png', 1)
+					// const contentPng = contentCvs.toDataURL('image/png', 1)
 
-				//创建新的canvas并绘制两个图片数据
-				var shareImageCvs = document.createElement('canvas')
-				var ctx = shareImageCvs.getContext('2d')
-				if (ctx) {
-					shareImageCvs.width = Math.max(mapCvs.width, contentCvs.width)
-					shareImageCvs.height = mapCvs.height + contentCvs.height
-					// console.log(mapCvs.height, contentCvs.height)
-					// console.log(shareImageCvs.width, shareImageCvs.height)
-					ctx.drawImage(mapCvs, 0, 0)
-					ctx.drawImage(contentCvs, 0, mapCvs.height)
+					//创建新的canvas并绘制两个图片数据
+					var shareImageCvs = document.createElement('canvas')
+					var ctx = shareImageCvs.getContext('2d')
+					if (ctx) {
+						shareImageCvs.width = Math.max(mapCvs.width, contentCvs.width)
+						shareImageCvs.height = mapCvs.height + contentCvs.height
+						// console.log(mapCvs.height, contentCvs.height)
+						// console.log(shareImageCvs.width, shareImageCvs.height)
+						ctx.drawImage(mapCvs, 0, 0)
+						ctx.drawImage(contentCvs, 0, mapCvs.height)
+					}
+					//将新的canvas转换为图片数据并保存
+					setShareImageDataBase(shareImageCvs.toDataURL('image/png', 1))
+					setGeneratingSharedData(false)
+					pb.close()
+					// var finalDataURL = newCanvas.toDataURL('image/png')
+					// var link = document.createElement('a')
+					// link.download = 'merged.png'
+					// link.href = finalDataURL
+					// link.click()
+					// document.body?.appendChild(mapCvs)
+					// document.body?.appendChild(contentCvs)
 				}
-				//将新的canvas转换为图片数据并保存
-				setShareImageDataBase(shareImageCvs.toDataURL('image/png', 1))
-				setGeneratingSharedData(false)
-				pb.close()
-				// var finalDataURL = newCanvas.toDataURL('image/png')
-				// var link = document.createElement('a')
-				// link.download = 'merged.png'
-				// link.href = finalDataURL
-				// link.click()
-				// document.body?.appendChild(mapCvs)
-				// document.body?.appendChild(contentCvs)
-			}
+			}, 500)
 		}
 
 		const getTrip = async () => {
 			if (loadStatus === 'loading') return
 			setLoadStatus('loading')
+
 			console.log('getTrip', tripId)
+
+			if (tripId.indexOf('IDB_') >= 0) {
+				const v = await storage.trips.get(tripId)
+				console.log('getTrip', v)
+				if (v) {
+					// setTrip(res?.data?.trip)
+					if (v.statistics && v?.positions?.length) {
+						v.statistics.minAltitude = Math.min(
+							...(v.positions?.map((v) => v.altitude || 0) || [0])
+						)
+					}
+					onTrip(v || undefined)
+					setLoadStatus('noMore')
+					dispatch(tripSlice.actions.setTripForDetailPage(v))
+				}
+				return
+			}
 			const res = await httpApi.v1.GetTrip({
 				id: tripId,
 				shareKey: shareKey,
 			})
 			console.log('getTrip', res)
-			if (res.code === 200) {
-				res?.data?.trip && setTrip(res?.data?.trip)
+			if (res.code === 200 && res?.data?.trip) {
+				// setTrip(res?.data?.trip)
+				if (res.data.trip?.statistics) {
+					res.data.trip.statistics.minAltitude = Math.min(
+						...(res?.data?.trip?.positions?.map((v) => v.altitude || 0) || [0])
+					)
+				}
+
+				dispatch(tripSlice.actions.setTripForDetailPage(res?.data?.trip))
+
+				// dispatch(
+				// 	layoutSlice.actions.setEditTripModal({
+				// 		visible: true,
+				// 		trip: res.data.trip,
+				// 	})
+				// )
 			}
 			onTrip(res?.data?.trip || undefined)
 			setLoadStatus('noMore')
@@ -516,19 +643,22 @@ const TripItemComponent = memo(
 
 					const res = await httpApi.v1.UpdateTrip({
 						id: tripId,
-						shareKey: !trip?.permissions?.shareKey,
+						shareKey: !trip?.permissions?.shareKey ? 'Delete' : 'Generate',
 					})
 					console.log('res', res)
 					if (res.code === 200) {
 						if (trip?.permissions?.shareKey) {
 						}
-						setTrip({
-							...trip,
-							permissions: {
-								...(trip?.permissions || {}),
-								shareKey: res?.data?.shareKey || '',
-							},
-						})
+						dispatch(
+							tripSlice.actions.setTripForDetailPage({
+								...trip,
+								permissions: {
+									...(trip?.permissions || {}),
+									shareKey: res?.data?.shareKey || '',
+								},
+							})
+						)
+
 						snackbar({
 							message: res?.data?.shareKey ? '分享成功！' : '已成功取消分享',
 							vertical: 'top',
@@ -553,9 +683,175 @@ const TripItemComponent = memo(
 				},
 			}).open()
 		}
+
+		const finishTrip = async () => {
+			if (!trip?.id) return
+			if ((trip?.statistics?.distance || 0) < 50) {
+				deleteTrip()
+				return
+			}
+			const params: protoRoot.trip.FinishTrip.IRequest = {
+				id: trip?.id || '',
+				statistics: {
+					distance: trip?.statistics?.distance || 0,
+					maxSpeed: trip?.statistics?.maxSpeed || 0,
+					averageSpeed: trip?.statistics?.averageSpeed || 0,
+					maxAltitude: trip?.statistics?.maxAltitude || 0,
+				},
+			}
+			console.log(params)
+			const res = await httpApi.v1.FinishTrip(params)
+			console.log('FinishTrip', res)
+			if (res.code === 200) {
+				if (res?.data?.deleted) {
+					snackbar({
+						message: '距离过短, 距离需过50m才会记录',
+						autoHideDuration: 2000,
+						vertical: 'top',
+						horizontal: 'center',
+					}).open()
+					return
+				}
+			}
+			getTrip()
+		}
+
+		const deleteTrip = async () => {
+			// onBack()
+
+			alert({
+				title: t('delete', {
+					ns: 'prompt',
+				}),
+				content:
+					(trip?.statistics?.distance || 0) < 50
+						? t('deleteThisTrip50m', {
+								ns: 'prompt',
+						  })
+						: t('deleteThisTrip', {
+								ns: 'prompt',
+						  }),
+				cancelText: t('cancel', {
+					ns: 'prompt',
+				}),
+				confirmText: t('delete', {
+					ns: 'prompt',
+				}),
+				onCancel() {},
+				async onConfirm() {
+					// onDelete(tripId)
+					if (!trip?.authorId) {
+						storage.trips.delete(trip?.id || '')
+						snackbar({
+							message: '删除成功！',
+							vertical: 'top',
+							horizontal: 'center',
+							backgroundColor: 'var(--saki-default-color)',
+							color: '#fff',
+							autoHideDuration: 2000,
+						}).open()
+						onDelete(tripId)
+						return
+					}
+					const res = await httpApi.v1.DeleteTrip({
+						id: tripId,
+					})
+					if (res.code === 200) {
+						snackbar({
+							message: '删除成功！',
+							vertical: 'top',
+							horizontal: 'center',
+							backgroundColor: 'var(--saki-default-color)',
+							color: '#fff',
+							autoHideDuration: 2000,
+						}).open()
+						onDelete(tripId)
+						return
+					}
+
+					snackbar({
+						message: res.msg,
+						vertical: 'top',
+						horizontal: 'center',
+						autoHideDuration: 2000,
+						closeIcon: true,
+					}).open()
+				},
+			}).open()
+		}
+
+		const addTripToOnline = async () => {
+			console.log('AddTripToOnline')
+
+			const params: protoRoot.trip.AddTripToOnline.IRequest = {
+				type: trip?.type,
+				positions: trip?.positions?.map((v): protoRoot.trip.ITripPosition => {
+					return {
+						latitude: v.latitude,
+						longitude: v.longitude,
+						altitude: v.altitude,
+						altitudeAccuracy: v.altitudeAccuracy,
+						accuracy: v.accuracy,
+						heading: v.heading,
+						speed: v.speed,
+						timestamp: v.timestamp,
+					}
+				}),
+				statistics: {
+					distance: trip?.statistics?.distance,
+					maxSpeed: trip?.statistics?.maxSpeed,
+					averageSpeed: trip?.statistics?.averageSpeed,
+					maxAltitude: trip?.statistics?.maxAltitude,
+				},
+				createTime: trip?.createTime,
+				startTime: trip?.startTime,
+				endTime: trip?.endTime,
+				// startTime: Math.floor(startTime / 1000),
+			}
+			console.log(params)
+			const res = await httpApi.v1.AddTripToOnline(params)
+			console.log('AddTripToOnline', res)
+			if (res.code === 200 && res?.data?.trip) {
+				const localTripId = trip?.id
+				alert({
+					title: t('delete', {
+						ns: 'prompt',
+					}),
+					content: t('deleteLocalTrip', {
+						ns: 'prompt',
+					}),
+					cancelText: t('cancel', {
+						ns: 'prompt',
+					}),
+					confirmText: t('delete', {
+						ns: 'prompt',
+					}),
+					onCancel() {},
+					async onConfirm() {
+						storage.trips.delete(localTripId || '')
+						snackbar({
+							message: '删除成功！',
+							vertical: 'top',
+							horizontal: 'center',
+							backgroundColor: 'var(--saki-default-color)',
+							color: '#fff',
+							autoHideDuration: 2000,
+						}).open()
+					},
+				}).open()
+
+				if (res.data.trip?.statistics) {
+					res.data.trip.statistics.minAltitude = Math.min(
+						...(res?.data?.trip?.positions?.map((v) => v.altitude || 0) || [0])
+					)
+				}
+				console.log(res?.data?.trip)
+				dispatch(tripSlice.actions.setTripForDetailPage(res?.data?.trip))
+			}
+		}
 		return (
 			<div className='trip-item-component'>
-				{trip ? (
+				{trip?.id ? (
 					<>
 						<div id='ti-map'></div>
 
@@ -581,120 +877,151 @@ const TripItemComponent = memo(
 											{moment(Number(trip?.createTime) * 1000).format(
 												'YYYY-MM-DD HH:mm:ss'
 											)}
+
+											{!trip?.authorId
+												? ' · ' +
+												  t('local', {
+														ns: 'tripPage',
+												  })
+												: ''}
 										</div>
 										<div className='ti-more'>
-											{user.isLogin ? (
-												<saki-dropdown
-													visible={openMoreDropDownMenu}
-													floating-direction='Left'
-													z-index='1099'
+											<saki-dropdown
+												visible={openMoreDropDownMenu}
+												floating-direction='Left'
+												z-index='1099'
+												ref={bindEvent({
+													close: (e) => {
+														setOpenMoreDropDownMenu(false)
+													},
+												})}
+											>
+												<saki-button
 													ref={bindEvent({
-														close: (e) => {
-															setOpenMoreDropDownMenu(false)
+														tap: () => {
+															setOpenMoreDropDownMenu(!openMoreDropDownMenu)
 														},
 													})}
+													type='CircleIconGrayHover'
 												>
-													<saki-button
+													<saki-icon color='#999' type='More'></saki-icon>
+												</saki-button>
+
+												<div slot='main'>
+													<saki-menu
 														ref={bindEvent({
-															tap: () => {
-																setOpenMoreDropDownMenu(!openMoreDropDownMenu)
+															selectvalue: async (e) => {
+																console.log(e.detail.value)
+																switch (e.detail.value) {
+																	case 'Share':
+																		console.log(trip)
+																		switchShareKey(false)
+																		break
+																	case 'AddTripToOnline':
+																		addTripToOnline()
+																		break
+																	case 'FinishTrip':
+																		finishTrip()
+																		break
+																	case 'Edit':
+																		dispatch(
+																			layoutSlice.actions.setEditTripModal({
+																				visible: true,
+																				trip: trip,
+																			})
+																		)
+																		break
+																	case 'Delete':
+																		deleteTrip()
+																		break
+
+																	default:
+																		break
+																}
+																setOpenMoreDropDownMenu(false)
 															},
 														})}
-														type='CircleIconGrayHover'
 													>
-														<saki-icon color='#999' type='More'></saki-icon>
-													</saki-button>
-
-													<div slot='main'>
-														<saki-menu
-															ref={bindEvent({
-																selectvalue: async (e) => {
-																	console.log(e.detail.value)
-																	switch (e.detail.value) {
-																		case 'Share':
-																			console.log(trip)
-																			switchShareKey(false)
-																			break
-																		case 'Delete':
-																			alert({
-																				title: t('delete', {
-																					ns: 'common',
-																				}),
-																				content: t('deleteThistrip', {
-																					ns: 'common',
-																				}),
-																				cancelText: t('cancel', {
-																					ns: 'common',
-																				}),
-																				confirmText: t('delete', {
-																					ns: 'common',
-																				}),
-																				onCancel() {},
-																				async onConfirm() {
-																					// onDelete(tripId)
-																					// onBack()
-																					const res =
-																						await httpApi.v1.DeleteTrip({
-																							id: tripId,
-																						})
-																					if (res.code === 200) {
-																						snackbar({
-																							message: '删除成功！',
-																							vertical: 'top',
-																							horizontal: 'center',
-																							backgroundColor:
-																								'var(--saki-default-color)',
-																							color: '#fff',
-																							autoHideDuration: 2000,
-																						}).open()
-																						onDelete(tripId)
-																						return
-																					}
-
-																					snackbar({
-																						message: res.msg,
-																						vertical: 'top',
-																						horizontal: 'center',
-																						autoHideDuration: 2000,
-																						closeIcon: true,
-																					}).open()
-																				},
-																			}).open()
-																			break
-
-																		default:
-																			break
-																	}
-																	setOpenMoreDropDownMenu(false)
-																},
-															})}
-														>
+														{trip?.status === 1 ? (
+															<>
+																<saki-menu-item
+																	padding='10px 18px'
+																	value={'Edit'}
+																>
+																	<div className='tb-h -r-user-item'>
+																		<span>
+																			{t('edit', {
+																				ns: 'common',
+																			})}
+																		</span>
+																	</div>
+																</saki-menu-item>
+																<saki-menu-item
+																	padding='10px 18px'
+																	value={'Share'}
+																>
+																	<div className='tb-h-r-user-item'>
+																		<span>
+																			{!trip?.permissions?.shareKey
+																				? t('share', {
+																						ns: 'common',
+																				  })
+																				: t('unshare', {
+																						ns: 'common',
+																				  })}
+																		</span>
+																	</div>
+																</saki-menu-item>
+															</>
+														) : trip?.status === 0 || !trip?.status ? (
+															<>
+																<saki-menu-item
+																	padding='10px 18px'
+																	value={'FinishTrip'}
+																>
+																	<div className='tb-h-r-user-item'>
+																		<span>
+																			{t('finishTrip', {
+																				ns: 'tripPage',
+																			})}
+																		</span>
+																	</div>
+																</saki-menu-item>
+															</>
+														) : (
+															''
+														)}
+														{!trip?.authorId && user.isLogin ? (
 															<saki-menu-item
 																padding='10px 18px'
-																value={'Share'}
+																value={'AddTripToOnline'}
 															>
 																<div className='tb-h-r-user-item'>
 																	<span>
-																		{!trip?.permissions?.shareKey
-																			? '分享'
-																			: '取消分享'}
+																		{t('addTripToOnline', {
+																			ns: 'tripPage',
+																		})}
 																	</span>
 																</div>
 															</saki-menu-item>
-															<saki-menu-item
-																padding='10px 18px'
-																value={'Delete'}
-															>
-																<div className='tb-h-r-user-item'>
-																	<span>删除</span>
-																</div>
-															</saki-menu-item>
-														</saki-menu>
-													</div>
-												</saki-dropdown>
-											) : (
-												''
-											)}
+														) : (
+															''
+														)}
+														<saki-menu-item
+															padding='10px 18px'
+															value={'Delete'}
+														>
+															<div className='tb-h-r-user-item'>
+																<span>
+																	{t('delete', {
+																		ns: 'prompt',
+																	})}
+																</span>
+															</div>
+														</saki-menu-item>
+													</saki-menu>
+												</div>
+											</saki-dropdown>
 										</div>
 									</div>
 									<div className='ti-distance'>
@@ -734,45 +1061,112 @@ const TripItemComponent = memo(
 										</div>
 									</div>
 									<div className='ti-data'>
-										<div className='ti-d-item'>
-											<span className='value'>
-												{(trip?.statistics?.maxSpeed || 0) <= 0
-													? 0
-													: Math.round(
-															((trip?.statistics?.maxSpeed || 0) * 3600) / 100
-													  ) / 10}
-											</span>
-											<span className='name'>
-												{t('maxSpeed', {
-													ns: 'tripPage',
-												}) + ' (km/h)'}
-											</span>
+										<div className='ti-d-top'>
+											<div className='ti-d-item'>
+												<span className='value'>
+													{(trip?.statistics?.maxSpeed || 0) <= 0
+														? 0
+														: Math.round(
+																((trip?.statistics?.maxSpeed || 0) * 3600) / 100
+														  ) / 10}
+												</span>
+												<span className='name'>
+													{t('maxSpeed', {
+														ns: 'tripPage',
+													}) + ' (km/h)'}
+												</span>
+											</div>
+											<div className='ti-d-item'>
+												<span className='value'>
+													{Number(trip.endTime || 0) > 0
+														? formatTime(
+																Number(trip.startTime),
+																Number(trip.endTime)
+														  )
+														: t('unfinished', {
+																ns: 'tripPage',
+														  })}
+												</span>
+												<span className='name'>
+													{t('duration', {
+														ns: 'tripPage',
+													})}
+												</span>
+											</div>
+											<div className='ti-d-item'>
+												<span className='value'>
+													{(trip?.statistics?.maxAltitude || 0) <= 0
+														? 0
+														: Math.round(
+																(trip?.statistics?.maxAltitude || 0) * 10
+														  ) / 10}
+												</span>
+												<span className='name'>
+													{t('maxAltitude', {
+														ns: 'tripPage',
+													}) + ' (m)'}
+												</span>
+											</div>
 										</div>
-										<div className='ti-d-item'>
-											<span className='value'>
-												{Number(trip.endTime || 0) > 0
-													? formatTime(
-															Number(trip.startTime),
-															Number(trip.endTime)
-													  )
-													: t('unfinished', {
-															ns: 'tripPage',
-													  })}
+										<div className={'ti-d-bottom ' + config.deviceType}>
+											<span className='ti-d-b-item'>
+												<span>
+													{t('averageSpeed', {
+														ns: 'tripPage',
+													}) + ' '}
+												</span>
+												<span>
+													{Math.round(
+														((trip?.statistics?.averageSpeed || 0) * 3600) / 100
+													) / 10}{' '}
+													km/h
+												</span>
 											</span>
-											<span className='name'>
-												{t('duration', {
-													ns: 'tripPage',
-												}) + ' (h)'}
+											<span
+												className='ti-d-b-item'
+												style={{
+													margin: '0 6px',
+												}}
+											>
+												-
 											</span>
-										</div>
-										<div className='ti-d-item'>
-											<span className='value'>
-												{trip?.statistics?.maxAltitude || 0}
+											<span className='ti-d-b-item'>
+												<span>
+													{t('averageAltitude', {
+														ns: 'tripPage',
+													}) + ' '}
+												</span>
+												<span>
+													{Math.round(
+														(((trip?.statistics?.maxAltitude || 0) -
+															(trip?.statistics?.minAltitude || 0)) /
+															2 +
+															(trip?.statistics?.minAltitude || 0)) *
+															10
+													) / 10}{' '}
+													m
+												</span>
 											</span>
-											<span className='name'>
-												{t('maxAltitude', {
-													ns: 'tripPage',
-												}) + ' (m)'}
+											<span
+												className='ti-d-b-item'
+												style={{
+													margin: '0 6px',
+												}}
+											>
+												-
+											</span>
+											<span className='ti-d-b-item'>
+												<span>
+													{t('minAltitude', {
+														ns: 'tripPage',
+													}) + ' '}
+												</span>
+												<span>
+													{Math.round(
+														(trip?.statistics?.minAltitude || 0) * 10
+													) / 10}{' '}
+													m
+												</span>
 											</span>
 										</div>
 									</div>
@@ -821,7 +1215,7 @@ const TripItemComponent = memo(
 							</div>
 						</saki-scroll-view>
 
-						{mounted ? (
+						<NoSSR>
 							<saki-modal
 								ref={bindEvent({
 									close() {
@@ -838,6 +1232,7 @@ const TripItemComponent = memo(
 								mask-closable='false'
 								background-color='rgba(0,0,0,0.3)'
 								visible={!!shareImageDataBase}
+								z-index={1010}
 							>
 								<div className={'ti-share-component ' + config.deviceType}>
 									<div className='ts-main'>
@@ -882,35 +1277,37 @@ const TripItemComponent = memo(
 														<span>保存图片</span>
 													</div>
 												</saki-button>
-												<saki-button
-													ref={bindEvent({
-														tap: () => {
-															if (trip?.permissions?.shareKey) {
-																copyUrl()
-																return
-															}
-															switchShareKey(true)
-														},
-													})}
-													padding='10px 10px'
-													border='none'
-													// padding="2"
-												>
-													<div className='buttons-item'>
-														<div className='bi-icon link'>
-															<saki-icon color='#fff' type='Link'></saki-icon>
+												{user.isLogin ? (
+													<saki-button
+														ref={bindEvent({
+															tap: () => {
+																if (trip?.permissions?.shareKey) {
+																	copyUrl()
+																	return
+																}
+																switchShareKey(true)
+															},
+														})}
+														padding='10px 10px'
+														border='none'
+														// padding="2"
+													>
+														<div className='buttons-item'>
+															<div className='bi-icon link'>
+																<saki-icon color='#fff' type='Link'></saki-icon>
+															</div>
+															<span>复制链接</span>
 														</div>
-														<span>复制链接</span>
-													</div>
-												</saki-button>
+													</saki-button>
+												) : (
+													''
+												)}
 											</div>
 										</div>
 									</div>
 								</div>
 							</saki-modal>
-						) : (
-							''
-						)}
+						</NoSSR>
 					</>
 				) : (
 					''

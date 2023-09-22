@@ -11,7 +11,7 @@ import {
 	configSlice,
 } from '../store'
 import { useTranslation } from 'react-i18next'
-import { bindEvent } from '@saki-ui/core'
+import { alert, bindEvent, snackbar } from '@saki-ui/core'
 import { useSelector, useStore, useDispatch } from 'react-redux'
 import axios from 'axios'
 import { appListUrl } from '../config'
@@ -65,11 +65,13 @@ const HeaderComponent = ({
 						<meow-apps-dropdown
 							bg-color='rgba(0,0,0,0)'
 							language={config.lang}
+							z-index='1001'
 						></meow-apps-dropdown>
 
 						<saki-dropdown
 							visible={openUserDropDownMenu}
 							floating-direction='Left'
+							z-index='1001'
 							ref={bindEvent({
 								close: (e) => {
 									setOpenUserDropDownMenu(false)
@@ -114,11 +116,10 @@ const HeaderComponent = ({
 													dispatch(layoutSlice.actions.setOpenLoginModal(true))
 													break
 												case 'Logout':
-													dispatch(userSlice.actions.logout({}))
+													dispatch(methods.user.logout())
 													break
 												case 'TripHistory':
 													// router.push('/tripHistory')
-
 													dispatch(
 														layoutSlice.actions.setOpenTripHistoryModal(true)
 													)

@@ -22,6 +22,16 @@ func (r *Routerv1) InitTrip() {
 		tc.AddTrip)
 
 	r.Group.POST(
+		role.SetRole("/trip/addTripToOnline", &middleware.RoleOptionsType{
+			CheckApp:           false,
+			Authorize:          true,
+			RequestEncryption:  false,
+			ResponseEncryption: false,
+			ResponseDataType:   "protobuf",
+		}),
+		tc.AddTripToOnline)
+
+	r.Group.POST(
 		role.SetRole("/trip/position/update", &middleware.RoleOptionsType{
 			CheckApp:           false,
 			Authorize:          true,

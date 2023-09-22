@@ -13,6 +13,8 @@ import { userSlice, userMethods } from './user'
 import { layoutSlice, layoutMethods } from './layout'
 import { ssoSlice, ssoMethods } from './sso'
 import { configSlice, configMethods } from './config'
+import { geoSlice, geoMethods } from './geo'
+import { tripSlice, tripMethods } from './trip'
 
 export interface ActionParams<T = any> {
 	type: string
@@ -25,19 +27,35 @@ const rootReducer = combineReducers({
 	user: userSlice.reducer,
 	layout: layoutSlice.reducer,
 	sso: ssoSlice.reducer,
+	geo: geoSlice.reducer,
+	trip: tripSlice.reducer,
 })
 
 const store = configureStore({
 	reducer: rootReducer,
+	middleware: (getDefaultMiddleware) =>
+		getDefaultMiddleware({
+			serializableCheck: false,
+		}),
 })
 
-export { apiSlice, userSlice, configSlice, ssoSlice, layoutSlice }
+export {
+	apiSlice,
+	tripSlice,
+	userSlice,
+	geoSlice,
+	configSlice,
+	ssoSlice,
+	layoutSlice,
+}
 export const methods = {
 	config: configMethods,
 	api: apiMethods,
 	user: userMethods,
 	layout: layoutMethods,
 	sso: ssoMethods,
+	geo: geoMethods,
+	trip: tripMethods,
 }
 
 // console.log(store.getState())

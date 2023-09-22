@@ -6,7 +6,11 @@
 		"aiikoBlog": "Aiiko Blog",
 		"login": "Login",
 		"logout": "Logout",
-		"share": "Share"
+		"share": "Share",
+		"unshare": "Unshare",
+
+		"edit": "Edit",
+		"save": "Save"
 	},
 	"languages": {
 		"en-US": "English",
@@ -98,7 +102,19 @@
 		"start": "Start",
 		"stop": "Stop",
 
-		"unfinished": "Unfinished"
+		"unfinished": "Unfinished",
+
+		"averageSpeed": "Average Speed",
+		"averageAltitude": "Average Altitude",
+		"minAltitude": "Min Altitude",
+
+		"editTrip": "Edit Trip",
+		"type": "Trip Type",
+		"currentType": "Current Trip Type",
+
+		"local": "Local",
+
+		"addTripToOnline": "Add Trip to Online"
 	},
 	"tripHistoryPage": {
 		"pageTitle": "Trip History"
@@ -169,10 +185,11 @@
 		"GeoQGrey": "GeoQ Grey",
 		"GeoQWarm": "GeoQ Warm",
 		"GeoQStreet": "GeoQ Street",
-
 		"speedColor": "Speed Color",
 		"RedGreen": "Red Green",
-		"PinkBlue": "Pink Blue"
+		"PinkBlue": "Pink Blue",
+		"trackLine": "Track Line",
+		"width": "Width"
 	},
 	"prompt": {
 		"next": "Next",
@@ -188,6 +205,16 @@
 		"ipEmptyTip": "IP or domain name cannot be empty",
 		"querySuccessfully": "Query successful!",
 		"queryFailed": "Query failed, please retype the IP or domain name",
-		"connectMapFailed": "Unable to connect to the map, please check the network."
+		"connectMapFailed": "Unable to connect to the map, please check the network.",
+
+		"deleteThisTrip": "Delete this trip?",
+		"deleteThisTrip50m": "The distance needs to be more than 50 meters before it can be saved. Do you want to delete this trip?",
+		"noLoginSaveTrip": "If you are not logged in to your account, your trip records will be stored locally.",
+		"tripSavedLocally": "This trip has been saved locally.",
+		"deleteLocalTrip": "Also delete local data?",
+
+		"logout": "Log out",
+		"logoutContent": "Are you sure you want to log out?",
+		"logoutSuccessfully": "Successfully logged out of the account"
 	}
 }

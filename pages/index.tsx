@@ -13,6 +13,7 @@ import {
 	useAppDispatch,
 	methods,
 	apiSlice,
+	geoSlice,
 } from '../store'
 import { useSelector, useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
@@ -37,24 +38,29 @@ import { setConfig } from 'next/config'
 import { httpApi } from '../plugins/http/api'
 import { protoRoot } from '../protos'
 import { cnMap, osmMap } from '../store/config'
+import { storage } from '../store/storage'
+import NoSSR from '../components/NoSSR'
+import md5 from 'blueimp-md5'
 const TripPage = () => {
 	const { t, i18n } = useTranslation('tripPage')
 	const [mounted, setMounted] = useState(false)
 	const config = useSelector((state: RootState) => state.config)
 	const user = useSelector((state: RootState) => state.user)
+	const geo = useSelector((state: RootState) => state.geo)
 
 	const testDataIndex = useRef(0)
 	const updatedPositionIndex = useRef(0)
 	const tDistance = useRef(0)
 	const timer = useRef<NodeJS.Timeout>()
 	const marker = useRef<Leaflet.Marker<any>>()
-	const watchId = useRef(0)
 	const wakeLock = useRef<WakeLockSentinel>()
 	const map = useRef<Leaflet.Map>()
 	const loadedMap = useRef(false)
 
 	const [gpsSignalStatus, setGpsSignalStatus] = useState(-1)
-	const [type, setType] = useState<'Running' | 'Bike' | 'Drive'>('Running')
+	const [type, setType] = useState<'Running' | 'Bike' | 'Drive' | 'Local'>(
+		'Running'
+	)
 
 	const [startTrip, setStartTrip] = useState(false)
 	const [startCountdown, setStartCountdown] = useState(-1)
@@ -72,14 +78,6 @@ const TripPage = () => {
 			distance: number
 		}[]
 	>([])
-	const [position, setPosition] = useState<GeolocationPosition>()
-	const [selectPosition, setSelectPosition] = useState<{
-		latitude: number
-		longitude: number
-	}>({
-		latitude: -10000,
-		longitude: -10000,
-	})
 
 	const [startTime, setStartTime] = useState(0)
 	const [listenTime, setListenTime] = useState(0)
@@ -92,6 +90,7 @@ const TripPage = () => {
 		distance: 0,
 	})
 	const [isLockScreen, setIsLockScreen] = useState(false)
+	const [disablePanTo, setDisablePanTo] = useState(false)
 
 	const [historicalStatistics, setHistoricalStatistics] = useState<{
 		[type: string]: {
@@ -104,73 +103,24 @@ const TripPage = () => {
 		'loaded'
 	)
 	const [trip, setTrip] = useState<protoRoot.trip.ITrip>()
+	const [tripLength, setTripLength] = useState<number>(0)
 
 	const dispatch = useDispatch<AppDispatch>()
 
 	useEffect(() => {
 		setMounted(true)
+		const init = async () => {
+			const trips = await storage.trips.getAll()
+			console.log('trips.getAll', trips)
 
-		document.addEventListener('visibilitychange', async () => {
-			if (wakeLock !== null && document.visibilityState === 'visible') {
-				requestWakeLock()
-			}
-		})
-
-		if (navigator.geolocation) {
-			navigator.geolocation.getCurrentPosition(
-				(pos) => {
-					// const t = setTimeout(() => {
-					// const L: typeof Leaflet = (window as any).L
-					// if (L) {
-					setSelectPosition({
-						longitude: pos.coords.longitude,
-						latitude: pos.coords.latitude,
-					})
-
-					setPosition(pos)
-					// setPosition({
-					// 	...pos,
-					// 	// coords: {
-					// 	// 	...pos.coords,
-					// 	// 	latitude: 29.417266,
-					// 	// 	longitude: 105.594791,
-					// 	// },
-					// })
-					// clearTimeout(t)
-					// }
-					// }, 500)
-				},
-				(error) => {
-					if (error.code === 1) {
-						snackbar({
-							message: '必须开启定位权限，请检查下是否开启定位权限',
-							autoHideDuration: 2000,
-							vertical: 'top',
-							horizontal: 'center',
-						}).open()
-					}
-					console.log('GetCurrentPosition Error', error)
-				},
-				{ enableHighAccuracy: true }
-			)
-
-			navigator.geolocation.clearWatch(watchId.current)
-			watchId.current = navigator.geolocation.watchPosition(
-				(pos) => {
-					// console.log(1, new Date().getTime())
-					// setListenTime(new Date().getTime())
-					setPosition(pos)
-				},
-				(error) => {
-					console.log('GetCurrentPosition Error', error)
-				},
-				{
-					enableHighAccuracy: true,
+			setTripLength(trips.length)
+			document.addEventListener('visibilitychange', async () => {
+				if (wakeLock !== null && document.visibilityState === 'visible') {
+					requestWakeLock()
 				}
-			)
-		} else {
-			console.log('该浏览器不支持获取地理位置')
+			})
 		}
+		init()
 	}, [])
 
 	useEffect(() => {
@@ -179,6 +129,7 @@ const TripPage = () => {
 
 	useEffect(() => {
 		if (startCountdown === 0) {
+			setDisablePanTo(false)
 			setStartTrip(true)
 			setStartCountdown(-1)
 			return
@@ -192,8 +143,11 @@ const TripPage = () => {
 
 	useEffect(() => {
 		timer && clearInterval(timer.current)
-		navigator.geolocation.clearWatch(watchId.current)
+		// navigator.geolocation.clearWatch(watchId.current)
 		if (startTrip) {
+			tDistance.current = 0
+			updatedPositionIndex.current = 0
+
 			dispatch(layoutSlice.actions.setLayoutHeader(false))
 			dispatch(layoutSlice.actions.setBottomNavigator(false))
 
@@ -207,6 +161,7 @@ const TripPage = () => {
 			setListenTime(new Date().getTime() + time)
 			timer.current = setInterval(() => {
 				setListenTime(new Date().getTime() + time)
+				// updatedPositionIndex.current += 1
 				// const v = testGpsData[testDataIndex.current]
 				// console.log('vvvv', v, testDataIndex.current)
 				// setPosition({
@@ -231,8 +186,6 @@ const TripPage = () => {
 			// console.log('该浏览器不支持获取地理位置')
 			return
 		}
-		tDistance.current = 0
-		updatedPositionIndex.current = 0
 
 		setStatistics({
 			speed: 0,
@@ -272,9 +225,9 @@ const TripPage = () => {
 	useEffect(() => {
 		try {
 			// console.log(position)
-			if (position) {
+			if (geo.position) {
 				initMap()
-				panToMap(position)
+				panToMap(geo.position)
 				// if (startTrip && position.timestamp >= startTime) {
 				if (startTrip) {
 					if ('wakeLock' in navigator) {
@@ -283,16 +236,15 @@ const TripPage = () => {
 					// console.log("tDistance",tDistance)
 					// ？检测信号是否异常
 					const gss = !(
-						position.coords.speed === null ||
-						position.coords.altitude === null ||
-						position.coords.accuracy === null ||
-						position.coords.speed < 0
+						geo.position.coords.speed === null ||
+						geo.position.coords.altitude === null ||
+						geo.position.coords.accuracy === null
 					)
 					setGpsSignalStatus(gss ? 1 : 0)
 					// 每秒超过500米视为异常
 					if (
-						position.coords?.latitude &&
-						Number(position.coords?.speed) < 500
+						geo.position.coords?.latitude &&
+						Number(geo.position.coords?.speed) < 500
 					) {
 						// 在这里绘制新的图
 						if (gss) {
@@ -300,7 +252,7 @@ const TripPage = () => {
 							const lv = positionList[positionList.length - 1]
 							if (map.current && L) {
 								if (lv) {
-									const v = position.coords
+									const v = geo.position.coords
 									const speedColorLimit =
 										config.speedColorLimit[
 											(trip?.type?.toLowerCase() || 'running') as any
@@ -318,7 +270,7 @@ const TripPage = () => {
 												speedColorLimit.minSpeed,
 												speedColorLimit.maxSpeed
 											), //线的颜色
-											weight: 8, //线的粗细
+											weight: config.mapPolyline.width, //线的粗细
 											// opacity: 0.3,
 										}
 									).addTo(map.current)
@@ -326,8 +278,8 @@ const TripPage = () => {
 							}
 							if (lv) {
 								const distance = getDistance(
-									position.coords.latitude,
-									position.coords.longitude,
+									geo.position.coords.latitude,
+									geo.position.coords.longitude,
 									lv.latitude,
 									lv.longitude
 								)
@@ -336,14 +288,14 @@ const TripPage = () => {
 								setStatistics({
 									speed:
 										distance /
-										(Math.abs(position.timestamp - lv.timestamp) / 1000),
+										(Math.abs(geo.position.timestamp - lv.timestamp) / 1000),
 									maxSpeed:
-										(position.coords.speed || 0) > statistics.maxSpeed
-											? position.coords.speed || 0
+										(geo.position.coords.speed || 0) > statistics.maxSpeed
+											? geo.position.coords.speed || 0
 											: statistics.maxSpeed,
 									maxAltitude:
-										(position.coords.altitude || 0) > statistics.maxAltitude
-											? position.coords.altitude || 0
+										(geo.position.coords.altitude || 0) > statistics.maxAltitude
+											? geo.position.coords.altitude || 0
 											: statistics.maxAltitude,
 									distance: tDistance.current,
 									averageSpeed:
@@ -360,14 +312,14 @@ const TripPage = () => {
 						setPositionList(
 							positionList.concat([
 								{
-									longitude: position.coords.longitude || 0,
-									latitude: position.coords.latitude || 0,
-									altitude: position.coords.altitude || -1,
-									altitudeAccuracy: position.coords.altitudeAccuracy || -1,
-									accuracy: position.coords.accuracy || -1,
-									heading: position.coords.heading || -1,
-									speed: position.coords.speed || -1,
-									timestamp: position.timestamp || 0,
+									longitude: geo.position.coords.longitude || 0,
+									latitude: geo.position.coords.latitude || 0,
+									altitude: geo.position.coords.altitude || -1,
+									altitudeAccuracy: geo.position.coords.altitudeAccuracy || -1,
+									accuracy: geo.position.coords.accuracy || -1,
+									heading: geo.position.coords.heading || -1,
+									speed: geo.position.coords.speed || -1,
+									timestamp: geo.position.timestamp || 0,
 									distance: tDistance.current,
 								},
 							])
@@ -386,7 +338,7 @@ const TripPage = () => {
 				color: '#fff',
 			}).open()
 		}
-	}, [position?.timestamp])
+	}, [geo.position?.timestamp])
 
 	useEffect(() => {
 		if (config.country && !loadedMap.current) {
@@ -400,12 +352,12 @@ const TripPage = () => {
 	}, [config.mapUrl])
 
 	useEffect(() => {
-		position && map && panToMap(position)
+		geo.position && map && panToMap(geo.position)
 	}, [map])
 
 	useEffect(() => {
 		console.log('tyupe', type, user.isLogin)
-		user.isLogin && getTripStatistics()
+		getTripStatistics()
 	}, [user, type])
 
 	const requestWakeLock = async () => {
@@ -433,22 +385,23 @@ const TripPage = () => {
 			L,
 			config.country,
 			config.connectionOSM,
-			position,
+			geo.position,
+			deepCopy(geo.position),
 			loadedMap.current,
 			L &&
 				!loadedMap.current &&
-				position?.coords?.latitude &&
+				geo.position?.coords?.latitude &&
 				config.mapUrl !== 'AutoSelect'
 		)
 		if (
 			L &&
 			!loadedMap.current &&
-			position?.coords?.latitude &&
+			geo.position?.coords?.latitude &&
 			config.mapUrl !== 'AutoSelect'
 		) {
 			console.log('开始加载！')
-			let lat = position?.coords.latitude || 0
-			let lon = position?.coords.longitude || 0
+			let lat = geo.position?.coords.latitude || 0
+			let lon = geo.position?.coords.longitude || 0
 			if (map.current) {
 				map.current?.remove()
 				marker.current?.remove()
@@ -458,6 +411,8 @@ const TripPage = () => {
 			if (!map.current) {
 				map.current = L.map('tp-map', {
 					zoomControl: false,
+					minZoom: 3,
+					maxZoom: 18,
 
 					// center: [Number(res?.data?.lat), Number(res?.data?.lon)],
 				})
@@ -469,13 +424,24 @@ const TripPage = () => {
 					//   120.3814, -1.09],
 					15
 				)
+				// map.current.addEventListener('zoom', (v) => {
+				//   // 8 18
+				//   // 325.8 251837.9
+				// 	console.log(
+				// 		'zoom',
+				// 		getDistance(22.316587, 114.172867, 22.316448, 114.176027),
+				// 		getDistance(30.519681, 104.078979, 30.496018, 106.704712),
+				// 		getDistance(29.413432,105.596595, 29.411937,105.615134),
+				// 		v,
+				// 		map.current?.getZoom()
+				// 	)
+				// })
 				// if (config.country === 'China') {
 				// 	(L as any).tileLayer.chinaProvider('GaoDe.Normal.Map')
 				// } else {
 				const layer = L.tileLayer(config.mapUrl, {
 					// errorTileUrl: osmMap,
-					maxZoom: 18,
-					attribution: `&copy;`,
+					// attribution: `&copy;`,
 				}).addTo(map.current)
 
 				console.log('layer', layer)
@@ -500,13 +466,18 @@ const TripPage = () => {
 					// 	)
 					// 	.openOn(map.current)
 
-					setSelectPosition({
-						latitude: Math.round(popLocation.lat * 1000000) / 1000000,
-						longitude: Math.round(popLocation.lng * 1000000) / 1000000,
-					})
+					dispatch(
+						geoSlice.actions.setSelectPosition({
+							latitude: Math.round(popLocation.lat * 1000000) / 1000000,
+							longitude: Math.round(popLocation.lng * 1000000) / 1000000,
+						})
+					)
+				})
+				map.current.on('movestart', (e) => {
+					!startTrip && setDisablePanTo(true)
 				})
 			}
-			position && panToMap(position)
+			geo.position && panToMap(geo.position)
 			console.log('connectionOSM', config.connectionOSM)
 
 			loadedMap.current = true
@@ -514,7 +485,7 @@ const TripPage = () => {
 		}
 	}
 
-	const panToMap = (position: GeolocationPosition) => {
+	const panToMap = (position: GeolocationPosition, allowPanto?: boolean) => {
 		const L: typeof Leaflet = (window as any).L
 
 		// console.log('panToMap', position, map.current, L, marker.current)
@@ -524,19 +495,33 @@ const TripPage = () => {
 				position?.coords.longitude || 0
 			)
 
-			map.current.panTo([lat, lon], {})
+			;(!disablePanTo || allowPanto) && map.current.panTo([lat, lon], {})
 			// map.current.panInside([v.latitude, v.longitude], {
 			// 	paddingTopLeft: [220, 1],
 			// })
 			// console.log('marker', marker)
-			if (!marker.current) {
-				marker.current = L.marker([lat, lon])
-					.addTo(map.current)
-					// .bindPopup(
-					// 	`${ipInfoObj.ipv4}`
-					// 	// `${ipInfoObj.country}, ${ipInfoObj.regionName}, ${ipInfoObj.city}`
-					// )
-					.openPopup()
+			if (!startTrip) {
+				if (!marker.current) {
+					let icon = L.icon({
+						className: 'map_current_position_icon',
+						iconUrl: '/current_position_50px.png',
+						iconSize: [20, 20], // size of the icon
+						// shadowSize: [36, 36], // size of the shadow
+						// iconAnchor: [22, 94], // point of the icon which will correspond to marker's location
+						// shadowAnchor: [4, 62], // the same for the shadow
+						// popupAnchor: [-3, -76], // point from which the popup should open relative to the iconAnchor
+					})
+					marker.current = L.marker([lat, lon], {
+						icon: icon,
+					})
+						.addTo(map.current)
+						// .bindPopup(
+						// 	`${ipInfoObj.ipv4}`
+						// 	// `${ipInfoObj.country}, ${ipInfoObj.regionName}, ${ipInfoObj.city}`
+						// )
+						.openPopup()
+				}
+				marker.current.setLatLng([lat, lon])
 			}
 			// positionList.forEach((v, i) => {
 			// 	if (i === 0) return
@@ -561,6 +546,34 @@ const TripPage = () => {
 	}
 
 	const addTrip = async () => {
+		if (!user.isLogin) {
+			const id = 'IDB_' + md5(String(startTime))
+
+			const v = {
+				id,
+				type,
+				positions: [],
+				statistics: {},
+				permissions: {},
+				status: 0,
+				createTime: Math.floor(new Date().getTime() / 1000),
+				startTime: Math.floor(new Date().getTime() / 1000),
+			}
+			setTrip(v)
+			await storage.trips.set(id, v)
+
+			snackbar({
+				message: t('noLoginSaveTrip', {
+					ns: 'prompt',
+				}),
+				autoHideDuration: 2000,
+				vertical: 'top',
+				horizontal: 'center',
+				backgroundColor: 'var(--saki-default-color)',
+				color: '#fff',
+			}).open()
+			return
+		}
 		const params: protoRoot.trip.AddTrip.IRequest = {
 			type,
 			// startTime: Math.floor(startTime / 1000),
@@ -596,10 +609,24 @@ const TripPage = () => {
 			}),
 		}
 		console.log(params)
+		const pLength = positionList.length
+
+		if (!trip?.authorId) {
+			setTrip({
+				...trip,
+				...params,
+			})
+			await storage.trips.set(trip.id, {
+				...trip,
+				...params,
+			})
+			updatedPositionIndex.current = pLength - 1
+			return
+		}
 		const res = await httpApi.v1.UpdateTripPosition(params)
 		console.log('updateTripPosition', res)
 		if (res.code === 200) {
-			updatedPositionIndex.current = positionList.length - 1
+			updatedPositionIndex.current = pLength - 1
 		}
 	}
 
@@ -616,6 +643,41 @@ const TripPage = () => {
 			},
 		}
 		console.log(params)
+
+		if (!trip?.authorId) {
+			if (statistics.distance < 50) {
+				snackbar({
+					message: '距离过短, 距离需过50m才会记录',
+					autoHideDuration: 2000,
+					vertical: 'top',
+					horizontal: 'center',
+				}).open()
+				return
+			}
+			setTrip({
+				...trip,
+				...params,
+				status: 1,
+				endTime: Math.floor(new Date().getTime() / 1000),
+			})
+			await storage.trips.set(trip.id, {
+				...trip,
+				...params,
+				status: 1,
+				endTime: Math.floor(new Date().getTime() / 1000),
+			})
+			snackbar({
+				message: t('tripSavedLocally', {
+					ns: 'prompt',
+				}),
+				autoHideDuration: 2000,
+				vertical: 'top',
+				horizontal: 'center',
+				backgroundColor: 'var(--saki-default-color)',
+				color: '#fff',
+			}).open()
+			return
+		}
 		const res = await httpApi.v1.FinishTrip(params)
 		console.log('FinishTrip', res)
 		if (res.code === 200) {
@@ -634,14 +696,40 @@ const TripPage = () => {
 	}
 
 	const getTripStatistics = async () => {
+		console.log(loadStatus,loadStatus === 'loading' || loadStatus == 'noMore')
 		if (loadStatus === 'loading' || loadStatus == 'noMore') return
-		setLoadStatus('loading')
+    setLoadStatus('loading') 
+    console.log(!user.isLogin || type === 'Local')
+		if (!user.isLogin || type === 'Local') {
+			const trips = await storage.trips.getAll()
+			console.log('getLocalTrips', trips)
+
+			let distance = 0
+			let time = 0
+			trips.forEach((v) => {
+				distance += v.value.statistics?.distance || 0
+				time +=
+					(Number(v.value.endTime) || 0) - (Number(v.value.startTime) || 0)
+			})
+			const obj: any = {}
+			obj[type] = {
+				count: trips.length || 0,
+				distance: distance,
+				time: time,
+			}
+			setHistoricalStatistics({
+				...historicalStatistics,
+				...obj,
+			})
+			setLoadStatus('loaded')
+			return
+		}
 		const res = await httpApi.v1.GetTripStatistics({
 			type: type,
 			timeLimit: [1540915200, Math.floor(new Date().getTime() / 1000)],
 		})
 		console.log('getTripStatistics', res)
-		if (res.code === 200 && res?.data?.count) {
+		if (res.code === 200) {
 		}
 		const obj: any = {}
 		obj[type] = {
@@ -672,7 +760,48 @@ const TripPage = () => {
 			<div className='trip-page'>
 				<div className='tp-main'>
 					<div id='tp-map'></div>
-
+					<div className='map-buttons'>
+						<NoSSR>
+							{/* <saki-button
+								ref={bindEvent({
+									tap: () => {
+										setDisablePanTo(true)
+										geo.position && panToMap(geo.position, true)
+									},
+								})}
+								padding='24px'
+								margin='16px 0 0 0'
+								type='CircleIconGrayHover'
+								box-shadow='0 0 10px rgba(0, 0, 0, 0.3)'
+							>
+								<saki-icon
+									color='var(--saki-default-color)'
+									width='20px'
+									height='20px'
+									type='Send'
+								></saki-icon>
+							</saki-button> */}
+							<saki-button
+								ref={bindEvent({
+									tap: () => {
+										setDisablePanTo(true)
+										geo.position && panToMap(geo.position, true)
+									},
+								})}
+								padding='24px'
+								margin='16px 0 0 0'
+								type='CircleIconGrayHover'
+								box-shadow='0 0 10px rgba(0, 0, 0, 0.3)'
+							>
+								<saki-icon
+									color='var(--saki-default-color)'
+									width='30px'
+									height='30px'
+									type='CurrentPosition'
+								></saki-icon>
+							</saki-button>
+						</NoSSR>
+					</div>
 					{startTrip ? (
 						<div className={'tp-m-data ' + config.deviceType}>
 							<div className='data-speed'>
@@ -694,7 +823,11 @@ const TripPage = () => {
 											positionList[positionList.length - 1]?.distance
 										)}
 									</div>
-									<div className='di-unit'>里程</div>
+									<div className='di-unit'>
+										{t('distance', {
+											ns: 'tripPage',
+										})}
+									</div>
 								</div>
 								<div className='data-b-item'>
 									<div className='di-value'>
@@ -702,7 +835,11 @@ const TripPage = () => {
 											{formatTime(startTime / 1000, listenTime / 1000)}
 										</span>
 									</div>
-									<div className='di-unit'>时间</div>
+									<div className='di-unit'>
+										{t('duration', {
+											ns: 'tripPage',
+										})}
+									</div>
 								</div>
 								<div className='data-b-item'>
 									<div className='di-value'>
@@ -714,28 +851,34 @@ const TripPage = () => {
 											  ) / 10}{' '}
 										m
 									</div>
-									<div className='di-unit'>海拔</div>
+									<div className='di-unit'>
+										{t('altitude', {
+											ns: 'tripPage',
+										})}
+									</div>
 								</div>
 							</div>
 							<div className='data-position'>
-								<span>{position?.coords.latitude}</span>
+								<span>{geo.position?.coords.latitude}</span>
 								<span> - </span>
-								<span>{position?.coords.longitude}</span>
+								<span>{geo.position?.coords.longitude}</span>
 								<span> - </span>
 								<span>
-									{updatedPositionIndex.current + ' / ' + positionList.length}
+									{updatedPositionIndex.current + '/' + positionList.length}
 								</span>
 								<span> - </span>
 								<span>
-									Avg{' '}
+									{t('averageSpeed', {
+										ns: 'tripPage',
+									}) + ' '}
 									{Math.round(((statistics.averageSpeed || 0) * 3600) / 100) /
 										10}{' '}
 									km/h
 								</span>
-								<span> - </span>
+								{/* <span> - </span>
 								<span>
 									{Math.round(((statistics.speed || 0) * 3600) / 100) / 10} km/h
-								</span>
+								</span> */}
 							</div>
 							<div className='data-gps'>
 								<saki-icon
@@ -759,8 +902,9 @@ const TripPage = () => {
 									// header-max-width='740px'
 									// header-border-bottom='none'
 									header-padding='0 10px'
-									header-item-min-width='80px'
-									active-tab-label={'Running'}
+									// header-item-min-width='80px'
+									active-tab-label={type}
+									disable-more-button
 									ref={bindEvent({
 										tap: (e) => {
 											console.log('tap', e)
@@ -768,8 +912,8 @@ const TripPage = () => {
 										},
 									})}
 								>
-									{['Running', 'Bike', 'Drive'].map((v, i) => {
-										return (
+									{config.tripTypes.map((v, i) => {
+										return v === 'Local' || (user.isLogin && v !== 'Local') ? (
 											<saki-tabs-item
 												font-size='14px'
 												label={v}
@@ -787,9 +931,10 @@ const TripPage = () => {
 															) / 10 || 0}
 														</span>
 														<span className='name'>
-															{t('distance', {
-																ns: 'tripPage',
-															}) + ' (km)'}
+															km
+															{/* {t('distance', {
+                              ns: 'tripPage',
+                            }) + ' (km)'} */}
 														</span>
 													</div>
 													<div className='bi-right'>
@@ -822,7 +967,7 @@ const TripPage = () => {
 																tap: () => {
 																	dispatch(
 																		layoutSlice.actions.setTripHistoryType(
-																			v as any
+																			(user.isLogin ? v : 'Local') as any
 																		)
 																	)
 																	dispatch(
@@ -839,6 +984,8 @@ const TripPage = () => {
 													</div>
 												</div>
 											</saki-tabs-item>
+										) : (
+											''
 										)
 									})}
 								</saki-tabs>
@@ -898,14 +1045,16 @@ const TripPage = () => {
 					</div>
 
 					{!(
-						selectPosition.latitude === -10000 &&
-						selectPosition.longitude === -10000
+						geo.selectPosition.latitude === -10000 &&
+						geo.selectPosition.longitude === -10000
 					) ? (
 						<div
 							onClick={() => {
 								console.log(1)
 								window.navigator.clipboard.writeText(
-									selectPosition.latitude + ',' + selectPosition.longitude
+									geo.selectPosition.latitude +
+										',' +
+										geo.selectPosition.longitude
 								)
 
 								snackbar({
@@ -921,7 +1070,7 @@ const TripPage = () => {
 							}}
 							className='tp-m-click-position'
 						>
-							{selectPosition.latitude + ',' + selectPosition.longitude}
+							{geo.selectPosition.latitude + ',' + geo.selectPosition.longitude}
 						</div>
 					) : (
 						''

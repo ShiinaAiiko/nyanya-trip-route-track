@@ -4,6 +4,7 @@ import {
 	combineReducers,
 	configureStore,
 } from '@reduxjs/toolkit'
+import { protoRoot } from '../protos'
 
 export const layoutMethods = {}
 export const layoutSlice = createSlice({
@@ -17,8 +18,10 @@ export const layoutSlice = createSlice({
 		openSettingsModal: false,
 		openLoginModal: false,
 		openTripHistoryModal: false,
+		editTripModal: false,
+		editTripData: undefined as protoRoot.trip.ITrip | undefined,
 		settingType: '',
-		tripHistoryType: 'All' as 'All' | 'Running' | 'Bike' | 'Drive',
+		tripHistoryType: 'All' as 'All' | 'Running' | 'Bike' | 'Drive' | 'Local',
 	},
 	reducers: {
 		setLayoutHeader: (
@@ -29,6 +32,19 @@ export const layoutSlice = createSlice({
 			}
 		) => {
 			state.header = params.payload
+		},
+		setEditTripModal: (
+			state,
+			params: {
+				payload: {
+					visible: boolean
+					trip?: protoRoot.trip.ITrip
+				}
+				type: string
+			}
+		) => {
+			state.editTripModal = params.payload.visible
+			state.editTripData = params.payload.trip
 		},
 		setLayoutHeaderFixed: (
 			state,

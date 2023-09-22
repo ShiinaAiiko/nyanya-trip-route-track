@@ -144,6 +144,111 @@ func (fc *TripController) AddTrip(c *gin.Context) {
 	res.Call(c)
 }
 
+func (fc *TripController) AddTripToOnline(c *gin.Context) {
+	// 1、请求体
+	var res response.ResponseProtobufType
+	res.Code = 200
+
+	// 2、获取参数
+	data := new(protos.AddTripToOnline_Request)
+	var err error
+	if err = protos.DecodeBase64(c.GetString("data"), data); err != nil {
+		res.Error = err.Error()
+		res.Code = 10002
+		res.Call(c)
+		return
+	}
+
+	// log.Info("data", data)
+
+	// 3、验证参数
+	if err = validation.ValidateStruct(
+		data,
+		validation.Parameter(&data.Type, validation.Required(), validation.Enum([]string{"Running", "Bike", "Drive"})),
+		validation.Parameter(&data.Positions, validation.Length(1, 100000000), validation.Required()),
+		validation.Parameter(&data.StartTime, validation.Greater(int64(0)), validation.Required()),
+		validation.Parameter(&data.EndTime, validation.Greater(int64(0)), validation.Required()),
+		validation.Parameter(&data.CreateTime, validation.Greater(int64(0)), validation.Required()),
+	); err != nil {
+		res.Errors(err)
+		res.Code = 10002
+		res.Call(c)
+		return
+	}
+
+	if err = validation.ValidateStruct(
+		data.Statistics,
+		validation.Parameter(&data.Statistics.Distance, validation.GreaterEqual(float64(50)), validation.Required()),
+		validation.Parameter(&data.Statistics.MaxSpeed, validation.Required()),
+		validation.Parameter(&data.Statistics.AverageSpeed, validation.Required()),
+		validation.Parameter(&data.Statistics.MaxAltitude, validation.Required()),
+	); err != nil {
+		res.Errors(err)
+		res.Code = 10002
+		res.Call(c)
+
+		return
+	}
+
+	userInfoAny, exists := c.Get("userInfo")
+	if !exists {
+		res.Errors(err)
+		res.Code = 10004
+		res.Call(c)
+		return
+	}
+	userInfo := userInfoAny.(*sso.UserInfo)
+
+	postions := []*models.TripPosition{}
+
+	for _, v := range data.Positions {
+		postions = append(postions, &models.TripPosition{
+			Latitude:         v.Latitude,
+			Longitude:        v.Longitude,
+			Altitude:         v.Altitude,
+			AltitudeAccuracy: v.AltitudeAccuracy,
+			Accuracy:         v.Accuracy,
+			Heading:          v.Heading,
+			Speed:            v.Speed,
+			Timestamp:        v.Timestamp,
+		})
+	}
+	// log.Info("userInfo", userInfo)
+
+	addTrip, err := tripDbx.AddTrip(&models.Trip{
+		Type:      data.Type,
+		Positions: postions,
+		Statistics: &models.TripStatistics{
+			Distance:     data.Statistics.Distance,
+			MaxSpeed:     data.Statistics.MaxSpeed,
+			AverageSpeed: data.Statistics.AverageSpeed,
+			MaxAltitude:  data.Statistics.MaxAltitude,
+		},
+		AuthorId:   userInfo.Uid,
+		Status:     1,
+		CreateTime: data.CreateTime,
+		StartTime:  data.StartTime,
+		EndTime:    data.EndTime,
+	})
+	if err != nil {
+		res.Errors(err)
+		res.Code = 10016
+		res.Call(c)
+		return
+	}
+	// log.Info(addTrip)
+
+	// authorId := c.MustGet("userInfo").(*sso.UserInfo).Uid
+
+	protoData := &protos.AddTrip_Response{
+		Trip: formartTrip(addTrip),
+	}
+
+	res.Data = protos.Encode(protoData)
+
+	res.Call(c)
+}
+
 func (fc *TripController) UpdateTripPosition(c *gin.Context) {
 	// 1、请求体
 	var res response.ResponseProtobufType
@@ -368,6 +473,36 @@ func (fc *TripController) UpdateTrip(c *gin.Context) {
 		return
 	}
 
+	if data.Type != "" {
+		if err = validation.ValidateStruct(
+			data,
+			validation.Parameter(&data.Type, validation.Required(), validation.Enum([]string{"Running", "Bike", "Drive"})),
+		); err != nil {
+			res.Errors(err)
+			res.Code = 10002
+			res.Call(c)
+			return
+		}
+	}
+	sk := ""
+	if data.ShareKey != "" {
+		if err = validation.ValidateStruct(
+			data,
+			validation.Parameter(&data.ShareKey, validation.Required(), validation.Enum([]string{"Generate", "Delete"})),
+		); err != nil {
+			res.Errors(err)
+			res.Code = 10002
+			res.Call(c)
+			return
+		}
+		if data.ShareKey == "Generate" {
+			sk = tripDbx.GetShareKey(9)
+		}
+		if data.ShareKey == "Delete" {
+			sk = "disable"
+		}
+	}
+
 	userInfoAny, exists := c.Get("userInfo")
 	if !exists {
 		res.Errors(err)
@@ -377,19 +512,13 @@ func (fc *TripController) UpdateTrip(c *gin.Context) {
 	}
 	userInfo := userInfoAny.(*sso.UserInfo)
 
-	sk := ""
-	if data.ShareKey {
-		sk = tripDbx.GetShareKey(9)
-	} else {
-		sk = "disable"
-	}
-
+	// log.Info(userInfo.Uid, data.Id, sk, data.Name, data.Type)
 	err = tripDbx.UpdateTrip(
-		userInfo.Uid, data.Id, sk, data.Name,
+		userInfo.Uid, data.Id, sk, data.Name, data.Type,
 	)
 	if err != nil {
 		res.Errors(err)
-		res.Code = 10016
+		res.Code = 10011
 		res.Call(c)
 		return
 	}
@@ -558,8 +687,8 @@ func (fc *TripController) GetTrips(c *gin.Context) {
 		data,
 		validation.Parameter(&data.Type, validation.Required(), validation.Enum([]string{"All", "Running", "Bike", "Drive"})),
 		validation.Parameter(&data.TimeLimit, validation.Length(2, 2), validation.Required()),
-		validation.Parameter(&data.PageNum, validation.GreaterEqual(1), validation.Required()),
-		validation.Parameter(&data.PageSize, validation.NumRange(1, 50), validation.Required()),
+		validation.Parameter(&data.PageNum, validation.GreaterEqual(int64(1)), validation.Required()),
+		validation.Parameter(&data.PageSize, validation.NumRange(int64(1), int64(50)), validation.Required()),
 	); err != nil {
 		res.Errors(err)
 		res.Code = 10002

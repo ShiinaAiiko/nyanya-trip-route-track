@@ -1,0 +1,17 @@
+.trip-edit-component {
+	background-color: #fff;
+	.tr-main {
+		padding: 20px;
+		.tr-m-item {
+			margin-bottom: 10px;
+			.tr-m-i-content {
+				display: flex;
+				justify-content: space-between;
+			}
+		}
+		.tr-m-buttons {
+			display: flex;
+			justify-content: center;
+		}
+	}
+}

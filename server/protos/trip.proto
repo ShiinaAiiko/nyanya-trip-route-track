@@ -21,6 +21,8 @@ message TripStatistics {
   double maxSpeed = 2;
   double averageSpeed = 3;
   double maxAltitude = 4;
+  double minAltitude = 5;
+  double averageAltitude = 6;
 }
 
 message TripPermissions { string shareKey = 1; }
@@ -53,6 +55,20 @@ message AddTrip {
   message Response { Trip trip = 1; }
 }
 
+message AddTripToOnline {
+  message Request {
+    // Running、Bike、Drive
+    string type = 1;
+    repeated TripPosition positions = 2;
+    TripStatistics statistics = 3;
+    // int64 status = 4;
+    int64 createTime = 7;
+    int64 startTime = 5;
+    int64 endTime = 6;
+  }
+  message Response { Trip trip = 1; }
+}
+
 // 30s 更 新一次
 message UpdateTripPosition {
   message Request {
@@ -77,10 +93,12 @@ message UpdateTrip {
   message Request {
     // 必填
     string id = 1;
-    // 可填，为true则是生成一个key
-    bool shareKey = 2;
+    // 可填，Generate、Delete
+    string shareKey = 2;
     // 可填
     string name = 3;
+    // 可填，Running、Bike、Drive
+    string type = 4;
   }
   message Response {
     // 可填

@@ -148,6 +148,16 @@
 					display: flex;
 					flex-direction: column;
 					.th-l-i-l-title {
+						display: flex;
+						justify-content: flex-start;
+            align-items: center;
+						.th-l-i-l-t-local {
+							background-color: var(--saki-default-color);
+							color: #fff;
+							border-radius: 4px;
+							padding: 2px 6px;
+							margin-left: 6px;
+						}
 					}
 					.th-l-i-l-info {
 						display: flex;
@@ -168,12 +178,15 @@
 						.info-item {
 							color: #555;
 							margin-right: 10px;
+							white-space: nowrap;
+							font-size: 12px;
 						}
 					}
 				}
 				.th-l-i-right {
 					.th-l-i-r-date {
 						color: #999;
+						white-space: nowrap;
 						font-size: 12px;
 					}
 				}

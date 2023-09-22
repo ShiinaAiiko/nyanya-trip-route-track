@@ -11,6 +11,7 @@ import '../components/Login.scss'
 import '../components/MenuDropdown.scss'
 import '../components/TripHistory.scss'
 import '../components/TripItem.scss'
+import '../components/TripEdit.scss'
 
 import { useRouter } from 'next/router'
 import { Provider } from 'react-redux'

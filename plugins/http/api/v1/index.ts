@@ -19,6 +19,21 @@ export const v1 = {
 			protoRoot.trip.AddTrip.Response
 		)
 	},
+	async AddTripToOnline(params: protoRoot.trip.AddTripToOnline.IRequest) {
+		const { apiUrls } = store.getState().api
+
+		return await Request<protoRoot.trip.AddTripToOnline.IResponse>(
+			{
+				method: 'POST',
+				data: PARAMS<protoRoot.trip.AddTripToOnline.IRequest>(
+					params,
+					protoRoot.trip.AddTripToOnline.Request
+				),
+				url: getUrl(apiUrls.v1.baseUrl, apiUrls.v1.addTripToOnline),
+			},
+			protoRoot.trip.AddTripToOnline.Response
+		)
+	},
 	async UpdateTripPosition(params: protoRoot.trip.UpdateTripPosition.IRequest) {
 		const { apiUrls } = store.getState().api
 

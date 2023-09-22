@@ -17,8 +17,12 @@ import { stringify } from 'querystring'
 import { resolve } from 'path'
 import { nanoid } from 'nanoid'
 import { client } from './sso'
+import { alert, snackbar } from '@saki-ui/core'
+import i18n from '../plugins/i18n/i18n'
 
 export const modeName = 'user'
+
+const t = i18n.t
 
 export const userMethods = {
 	Init: createAsyncThunk<
@@ -104,6 +108,36 @@ export const userMethods = {
 			} catch (error) {}
 		}
 	),
+	logout: createAsyncThunk(modeName + '/logout', async (_, thunkAPI) => {
+		alert({
+			title: t('logout', {
+				ns: 'prompt',
+			}),
+			content: t('logoutContent', {
+				ns: 'prompt',
+			}),
+			cancelText: t('cancel', {
+				ns: 'prompt',
+			}),
+			confirmText: t('logout', {
+				ns: 'prompt',
+			}),
+			onCancel() {},
+			async onConfirm() {
+				thunkAPI.dispatch(userSlice.actions.logout({}))
+				snackbar({
+					message: t('logoutSuccessfully', {
+						ns: 'prompt',
+					}),
+					autoHideDuration: 2000,
+					vertical: 'top',
+					horizontal: 'center',
+					backgroundColor: 'var(--saki-default-color)',
+					color: '#fff',
+				}).open()
+			},
+		}).open()
+	}),
 }
 
 export type UserInfo = {

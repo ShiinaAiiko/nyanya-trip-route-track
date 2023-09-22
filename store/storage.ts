@@ -7,6 +7,7 @@ import {
 import md5 from 'blueimp-md5'
 import store, { ActionParams } from '.'
 import { WebStorage } from '@nyanyajs/utils'
+import { protoRoot } from '../protos'
 // import { User } from './user'
 // import { WebStorage } from '@nyanyajs/utils'
 
@@ -19,10 +20,10 @@ export let storage = {
 	// 	storage: 'IndexedDB',
 	// 	baseLabel: 'token',
 	// }),
-	// users: new WebStorage<number, User>({
-	// 	storage: 'IndexedDB',
-	// 	baseLabel: 'users',
-	// }),
+	trips: new WebStorage<string, protoRoot.trip.ITrip>({
+		storage: 'IndexedDB',
+		baseLabel: 'trips',
+	}),
 }
 
 export const storageMethods = {

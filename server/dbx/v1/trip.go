@@ -131,7 +131,7 @@ func (t *TripDbx) FinishTrip(authorId, id string,
 	return nil
 }
 
-func (t *TripDbx) UpdateTrip(authorId, id string, shareKey, name string) error {
+func (t *TripDbx) UpdateTrip(authorId, id string, shareKey, name, typeStr string) error {
 	trip := new(models.Trip)
 
 	update := bson.M{}
@@ -144,6 +144,11 @@ func (t *TripDbx) UpdateTrip(authorId, id string, shareKey, name string) error {
 	if name != "" {
 		update["name"] = name
 	}
+	if typeStr != "" {
+		update["type"] = typeStr
+	}
+
+	// log.Info(authorId, id, update)
 
 	updateResult, err := trip.GetCollection().UpdateOne(context.TODO(),
 		bson.M{
@@ -164,7 +169,7 @@ func (t *TripDbx) UpdateTrip(authorId, id string, shareKey, name string) error {
 		return err
 	}
 	if updateResult.ModifiedCount == 0 {
-		return errors.New("delete fail")
+		return errors.New("update fail")
 	}
 
 	// 删除对应redis

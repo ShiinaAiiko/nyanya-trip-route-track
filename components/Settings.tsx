@@ -19,7 +19,7 @@ import { alert, snackbar, bindEvent } from '@saki-ui/core'
 // console.log(sakiui.bindEvent)
 import { storage } from '../store/storage'
 import { useTranslation } from 'react-i18next'
-import { maps } from '../store/config'
+import { configMethods, maps } from '../store/config'
 
 const SettingsComponent = ({
 	visible,
@@ -444,7 +444,7 @@ const Account = ({ show }: { show: boolean }) => {
 							<saki-button
 								ref={bindEvent({
 									tap: () => {
-										store.dispatch(userSlice.actions.logout({}))
+										dispatch(methods.user.logout())
 									},
 								})}
 								margin='10px 0 0'
@@ -641,7 +641,9 @@ const Maps = ({ show }: { show: boolean }) => {
 		<div
 			style={{
 				display: show ? 'block' : 'none',
+				height: '100%',
 			}}
+			className='setting-maps scrollBarHover'
 		>
 			<SettingsItem
 				subtitle={() => <div>{t('basemap')}</div>}
@@ -688,6 +690,49 @@ const Maps = ({ show }: { show: boolean }) => {
 							)
 						})}
 					</saki-checkbox>
+				)}
+			></SettingsItem>
+			<SettingsItem
+				subtitle={() => <div>{t('trackLine')}</div>}
+				main={() => (
+					<div
+						style={{
+							display: 'flex',
+							alignItems: 'center',
+						}}
+					>
+						<span
+							style={{
+								paddingRight: '6px',
+							}}
+						>
+							{t('width')}
+						</span>
+						<saki-input
+							ref={bindEvent({
+								changevalue: (v) => {
+									dispatch(
+										configMethods.setMapPolylineWidth(Number(v.detail) || 8)
+									)
+								},
+							})}
+							style={{
+								flex: '1',
+							}}
+							width='100%'
+							type='Range'
+							value={config.mapPolyline.width}
+							min='1'
+							max='10'
+						></saki-input>
+						<span
+							style={{
+								paddingLeft: '6px',
+							}}
+						>
+							{config.mapPolyline.width}px
+						</span>
+					</div>
 				)}
 			></SettingsItem>
 		</div>
@@ -1344,7 +1389,7 @@ const About = ({ show }: { show: boolean }) => {
 			className='setting-about-page'
 		>
 			<div className='version-info'>
-				<img src='/favicon.ico' alt='' />
+				<img src='/icons/256x256.png' alt='' />
 				<div className='version-code'>
 					<span>Version v{version}</span>
 				</div>

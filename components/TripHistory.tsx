@@ -9,6 +9,7 @@ import store, {
 	configSlice,
 	userSlice,
 	layoutSlice,
+	tripSlice,
 } from '../store'
 
 import { sakisso, version } from '../config'
@@ -24,6 +25,7 @@ import { protoRoot } from '../protos'
 import { formatDistance, formatTime } from '../plugins/methods'
 import TripItemComponent from './TripItem'
 import { Chart } from 'chart.js'
+import { deepCopy } from '@nyanyajs/utils'
 
 const getMonth = () => {
 	let dataArr = []
@@ -94,12 +96,13 @@ const TripHistoryComponent = () => {
 	const { t, i18n } = useTranslation('tripHistoryPage')
 	const layout = useSelector((state: RootState) => state.layout)
 	const config = useSelector((state: RootState) => state.config)
+	const trip = useSelector((state: RootState) => state.trip)
 
 	const dispatch = useDispatch<AppDispatch>()
 	// const [menuType, setMenuType] = useState('Appearance')
 	// const [menuType, setMenuType] = useState(type || 'Account')
 	const [closeIcon, setCloseIcon] = useState(true)
-	const [trip, setTrip] = useState<protoRoot.trip.ITrip>()
+	// const [trip, setTrip] = useState<protoRoot.trip.ITrip>()
 
 	// useEffect(() => {
 	// 	setTimeout(() => {
@@ -137,18 +140,27 @@ const TripHistoryComponent = () => {
 								dispatch(layoutSlice.actions.setOpenTripHistoryModal(false))
 							},
 							back() {
+								// dispatch(tripSlice.actions.setTripForDetailPage(undefined))
+
 								console.log('back')
 								setCloseIcon(true)
 							},
 						})}
 						title={
 							!closeIcon
-								? t((trip?.type || '')?.toLowerCase(), {
+								? t((trip.detailPage.trip?.type || '')?.toLowerCase(), {
 										ns: 'tripPage',
 								  }) +
 								  ' · ' +
-								  Math.round((trip?.statistics?.distance || 0) / 10) / 100 +
-								  'km'
+								  (trip.detailPage.trip?.status === 1
+										? Math.round(
+												(trip.detailPage.trip?.statistics?.distance || 0) / 10
+										  ) /
+												100 +
+										  'km'
+										: t('unfinished', {
+												ns: 'tripPage',
+										  }))
 								: t('pageTitle')
 						}
 					/>
@@ -157,7 +169,7 @@ const TripHistoryComponent = () => {
 					<TripHistoryPage
 						showTripItemPage={!closeIcon}
 						onTripItemPage={(type, trip) => {
-							setTrip(trip)
+							// setTrip(trip)
 							if (type === 'Show') {
 								setCloseIcon(false)
 								return
@@ -196,13 +208,14 @@ const TripHistoryPage = ({
 		'loaded'
 	)
 	const [trips, setTrips] = useState<protoRoot.trip.ITrip[]>([])
+	const [localTrips, setLocalTrips] = useState<protoRoot.trip.ITrip[]>([])
 	const [tripId, setTripId] = useState<string>('')
 
 	const dispatch = useDispatch<AppDispatch>()
 
 	const [tripStatistics, setTripStatistics] = useState<
 		{
-			type: 'All' | 'Running' | 'Bike' | 'Drive'
+			type: 'All' | 'Running' | 'Bike' | 'Drive' | 'Local'
 			count: number
 			distance: number
 			time: number
@@ -212,6 +225,7 @@ const TripHistoryPage = ({
 	>([])
 
 	useEffect(() => {
+		console.log('showTripItemPage', showTripItemPage)
 		if (!showTripItemPage) {
 			setTripId('')
 		}
@@ -219,7 +233,7 @@ const TripHistoryPage = ({
 
 	useEffect(() => {
 		setTripStatistics(
-			['All', 'Running', 'Bike', 'Drive'].map((v, i) => {
+			['All', 'Running', 'Bike', 'Drive', 'Local'].map((v, i) => {
 				return {
 					type: v as any,
 					count: 0,
@@ -241,17 +255,43 @@ const TripHistoryPage = ({
 
 	useEffect(() => {
 		if (
-			user.isLogin &&
+			tripStatistics.length &&
+			layout.tripHistoryType === 'Local' &&
+			layout.openTripHistoryModal
+		) {
+			getLocalTrips()
+		}
+	}, [
+		layout.openTripHistoryModal,
+		layout.tripHistoryType,
+		tripStatistics.length,
+	])
+
+	useEffect(() => {
+		if (
+			layout.openTripHistoryModal &&
+			tripStatistics.length &&
 			pageNum === 1 &&
 			loadStatus === 'loaded' &&
 			trips.length === 0
 		) {
-			getTripHistory()
-			getTripStatistics()
+			if (!user.isLogin || layout.tripHistoryType === 'Local') {
+				getLocalTrips()
+				return
+			}
+			if (user.isLogin) {
+				getTripHistory()
+				getTripStatistics()
+			}
 		}
-	}, [pageNum, loadStatus, trips])
+	}, [pageNum, loadStatus, trips, tripStatistics.length])
+
+	// useEffect(() => {
+	// 	// setTrips(list)
+	// }, [trips, localTrips, type])
 
 	useEffect(() => {
+		// mergeTripStatistics()
 		outSpeedLineChart()
 	}, [tripStatistics])
 
@@ -335,7 +375,7 @@ const TripHistoryPage = ({
 						let t = moment(Number(v.createTime) * 1000).format('YYYY')
 						!tripData[t] && (tripData[t] = 0)
 
-						tripData[t] += v.statistics?.distance || 0
+						tripData[t] += Math.round((v.statistics?.distance || 0) / 100) / 10
 					})
 					if (Object.keys(tripData).length === 1) {
 						tripData['2018'] = 0
@@ -351,7 +391,7 @@ const TripHistoryPage = ({
 						let t = moment(Number(v.createTime) * 1000).format('YYYY')
 						!tripData[t] && (tripData[t] = 0)
 
-						tripData[t] += v.statistics?.distance || 0
+						tripData[t] += Math.round((v.statistics?.distance || 0) / 100) / 10
 					})
 					break
 				// 最近12个月
@@ -363,7 +403,7 @@ const TripHistoryPage = ({
 						let t = moment(Number(v.createTime) * 1000).format('YYYY-MM')
 						!tripData[t] && (tripData[t] = 0)
 
-						tripData[t] += v.statistics?.distance || 0
+						tripData[t] += Math.round((v.statistics?.distance || 0) / 100) / 10
 					})
 					break
 				// 最近12个周
@@ -376,7 +416,8 @@ const TripHistoryPage = ({
 						let c = Number(v.createTime)
 						weeks.some((sv) => {
 							if (c > sv.t) {
-								tripData[sv.key] += v.statistics?.distance || 0
+								tripData[sv.key] +=
+									Math.round((v.statistics?.distance || 0) / 100) / 10
 								return true
 							}
 						})
@@ -391,7 +432,7 @@ const TripHistoryPage = ({
 						let t = moment(Number(v.createTime) * 1000).format('M/DD')
 						!tripData[t] && (tripData[t] = 0)
 
-						tripData[t] += v.statistics?.distance || 0
+						tripData[t] += Math.round((v.statistics?.distance || 0) / 100) / 10
 					})
 					break
 
@@ -411,9 +452,10 @@ const TripHistoryPage = ({
 			)
 			if (tsItem?.speedChart) {
 				tsItem.speedChart.destroy()
+				tsItem.speedChart = undefined
 				// return
 			}
-			const el = document.querySelector('.si-c-cvs-' + type)
+			const el = document.querySelector('.si-c-cvs-' + type) as HTMLElement
 
 			console.log('elelelel', el)
 			let labels: any[] = []
@@ -484,8 +526,19 @@ const TripHistoryPage = ({
 						},
 					},
 				})
+				// el.onclick = (e) => {
+				// 	// getSegmentsAtEvent(e)
+				// 	const activePoints = chart.getElementsAtEventForMode(
+				// 		e,
+				// 		'nearest',
+				// 		{ intersect: true },
+				// 		true
+				// 	)
+
+				// 	console.log(activePoints)
+				// }
 				tsItem.speedChart = chart
-				setTripStatistics(tripStatistics)
+				// setTripStatistics(tripStatistics)
 			}
 		} catch (error) {
 			console.error(error)
@@ -516,13 +569,67 @@ const TripHistoryPage = ({
 		setLoadStatus('noMore')
 	}
 
+	const getLocalTrips = async () => {
+		const trips = await storage.trips.getAll()
+		console.log('getLocalTrips', trips)
+		if (trips?.length) {
+			let distance = 0
+			let time = 0
+			const list = trips
+				.filter((v) => {
+					return type === 'Local' ? true : v.value.type === type
+				})
+				.map((v) => {
+					distance += v.value.statistics?.distance || 0
+					time +=
+						(Number(v.value.endTime) || 0) - (Number(v.value.startTime) || 0)
+					return v.value
+				})
+			setPageNum(2)
+			setTrips(list)
+
+			console.log(
+				type,
+				tripStatistics.map((v) => {
+					if (v.type === String(type)) {
+						return {
+							...v,
+							count: list?.length,
+							distance: distance,
+							time: time,
+							list: list || [],
+						}
+					}
+					return v
+				})
+			)
+			setTripStatistics(
+				tripStatistics.map((v) => {
+					if (v.type === String(type)) {
+						return {
+							...v,
+							count: list?.length,
+							distance: distance,
+							time: time,
+							list: list || [],
+						}
+					}
+					return v
+				})
+			)
+		}
+	}
+
 	const onBackTripItemComponent = useCallback(() => {
 		setTripId('')
 		onTripItemPage('Back')
 	}, [])
 
 	const onDeleteTripItemComponent = useCallback((tripId: string) => {
-		setTrips(trips.filter((v) => v.id !== tripId))
+		// setTrips(trips.filter((v) => v.id !== tripId))
+		setTrips([])
+		setPageNum(1)
+		setLoadStatus('loaded')
 		onTripItemPage('Back')
 	}, [])
 
@@ -552,7 +659,8 @@ const TripHistoryPage = ({
 
 							header-border-bottom='none'
 							header-padding='0 10px'
-							header-item-min-width='80px'
+							// header-item-min-width='80px'
+							disable-more-button
 							active-tab-label={type}
 							ref={bindEvent({
 								tap: (e) => {
@@ -567,88 +675,96 @@ const TripHistoryPage = ({
 								},
 							})}
 						>
-							{tripStatistics.map((v, i) => {
-								return (
-									<saki-tabs-item
-										key={i}
-										font-size='14px'
-										label={v.type}
-										name={t(v.type.toLowerCase(), {
-											ns: 'tripPage',
-										})}
-									>
-										<div className='statistics-item'>
-											<div className='si-time'>
-												{['Day', 'Week', 'Month', 'Year', 'All'].map((v, i) => {
-													return (
-														<div
-															ref={(e) => {
-																e &&
-																	(e.onclick = () => {
-																		setTime(v as any)
-																		setTrips([])
-																		setPageNum(1)
-																		setLoadStatus('loaded')
-																	})
-															}}
-															className={
-																'si-t-item ' + (time === v ? 'active' : '')
-															}
-															key={i}
-														>
-															{t(v.toLowerCase(), {
-																ns: 'tripPage',
-															})}
-														</div>
-													)
-												})}
-											</div>
-											<div className='si-data'>
-												<div className='bi-distance'>
-													<span className='value'>
-														{Math.round(v.distance / 100) / 10 || 0}
-													</span>
-													<span className='name'>
-														{t('distance', {
-															ns: 'tripPage',
-														}) + ' (km)'}
-													</span>
+							{tripStatistics
+								.filter((v) => {
+									return user.isLogin ? true : v.type === 'Local'
+								})
+								.map((v, i) => {
+									return (
+										<saki-tabs-item
+											key={i}
+											font-size='14px'
+											label={v.type}
+											name={t(v.type.toLowerCase(), {
+												ns: 'tripPage',
+											})}
+										>
+											<div className='statistics-item'>
+												<div className='si-time'>
+													{['Day', 'Week', 'Month', 'Year', 'All'].map(
+														(v, i) => {
+															return (
+																<div
+																	ref={(e) => {
+																		e &&
+																			(e.onclick = () => {
+																				setTime(v as any)
+																				setTrips([])
+																				setPageNum(1)
+																				setLoadStatus('loaded')
+																			})
+																	}}
+																	className={
+																		'si-t-item ' + (time === v ? 'active' : '')
+																	}
+																	key={i}
+																>
+																	{t(v.toLowerCase(), {
+																		ns: 'tripPage',
+																	})}
+																</div>
+															)
+														}
+													)}
 												</div>
-												<div className='bi-right'>
-													<div className='bi-time'>
+
+												<div className='si-data'>
+													<div className='bi-distance'>
 														<span className='value'>
-															{Math.round((v.time / 3600) * 100) / 100 || 0}
+															{Math.round(v.distance / 100) / 10 || 0}
 														</span>
 														<span className='name'>
-															{' '}
-															{t('duration', {
-																ns: 'tripPage',
-															}) + ' (h)'}
+															km
+															{/* {t('distance', {
+															ns: 'tripPage',
+														}) + ' (km)'} */}
 														</span>
 													</div>
-													<div className='bi-count'>
-														<span className='value'>{v.count || 0}</span>
-														<span className='name'>
-															{' '}
-															{t('trips', {
-																ns: 'tripPage',
-															})}
-														</span>
+													<div className='bi-right'>
+														<div className='bi-time'>
+															<span className='value'>
+																{Math.round((v.time / 3600) * 100) / 100 || 0}
+															</span>
+															<span className='name'>
+																{' '}
+																{t('duration', {
+																	ns: 'tripPage',
+																}) + ' (h)'}
+															</span>
+														</div>
+														<div className='bi-count'>
+															<span className='value'>{v.count || 0}</span>
+															<span className='name'>
+																{' '}
+																{t('trips', {
+																	ns: 'tripPage',
+																})}
+															</span>
+														</div>
 													</div>
 												</div>
+												<div className='si-chart'>
+													<canvas className={'si-c-cvs-' + v.type}></canvas>
+												</div>
 											</div>
-											<div className='si-chart'>
-												<canvas className={'si-c-cvs-' + v.type}></canvas>
-											</div>
-										</div>
-									</saki-tabs-item>
-								)
-							})}
+										</saki-tabs-item>
+									)
+								})}
 						</saki-tabs>
 					</div>
 					<div className='th-list'>
 						{trips
-							// .concat(trips)
+							// .concat(localTrips)
 							// .concat(trips)
 							// .concat(trips)
 							// .concat(trips)
@@ -687,11 +803,23 @@ const TripHistoryPage = ({
 									>
 										<div className='th-l-i-left'>
 											<div className='th-l-i-l-title'>
-												{t((v.type || '')?.toLowerCase(), {
-													ns: 'tripPage',
-												})}
-												{' · '}
-												{formatDistance(v.statistics?.distance || 0)}
+												<span>
+													{t((v.type || '')?.toLowerCase(), {
+														ns: 'tripPage',
+													})}
+													{' · '}
+													{formatDistance(v.statistics?.distance || 0)}
+												</span>
+
+												{(v.id || '').indexOf('IDB_') >= 0 ? (
+													<div className='th-l-i-l-t-local'>
+														{t('local', {
+															ns: 'tripPage',
+														})}
+													</div>
+												) : (
+													''
+												)}
 											</div>
 											<div className='th-l-i-l-info'>
 												<div className='info-item'>
@@ -757,18 +885,14 @@ const TripHistoryPage = ({
 				</div>
 			</saki-scroll-view>
 			<div className={'th-item-page ' + (tripId ? 'visivle' : '')}>
-				{tripId ? (
-					<TripItemComponent
-						onBack={onBackTripItemComponent}
-						onTrip={() => {}}
-						onDelete={onDeleteTripItemComponent}
-						isShare={false}
-						tripId={tripId}
-						shareKey=''
-					/>
-				) : (
-					''
-				)}
+				<TripItemComponent
+					onBack={onBackTripItemComponent}
+					onTrip={() => {}}
+					onDelete={onDeleteTripItemComponent}
+					isShare={false}
+					tripId={tripId}
+					shareKey=''
+				/>
 			</div>
 		</div>
 	)

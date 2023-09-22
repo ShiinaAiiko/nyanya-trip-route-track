@@ -17,8 +17,10 @@ const Init = () => {
 	const store = useStore()
 
 	useEffect(() => {
-    const init = async () => {
-      initPublic()
+		const init = async () => {
+			document.body.ontouchstart = () => {}
+			initPublic()
+
 			await dispatch(methods.config.init()).unwrap()
 		}
 		init()

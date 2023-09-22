@@ -1,16 +1,18 @@
 import Head from 'next/head'
+import dynamic from 'next/dynamic'
 import Link from 'next/link'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/router'
 // import './App.module.scss'
 import { useSelector, useStore, useDispatch } from 'react-redux'
-import {
+import store, {
 	RootState,
 	userSlice,
 	AppDispatch,
 	layoutSlice,
 	methods,
 	configSlice,
+	geoSlice,
 } from '../store'
 import { useTranslation } from 'react-i18next'
 // import { userAgent } from './userAgent'
@@ -21,13 +23,23 @@ import HeaderComponent from '../components/Header'
 import SettingsComponent from '../components/Settings'
 import LoginComponent from '../components/Login'
 import TripHistoryComponent from '../components/TripHistory'
-import { bindEvent } from '@saki-ui/core'
+import NoSSR from '../components/NoSSR'
+import { bindEvent, snackbar } from '@saki-ui/core'
 import axios from 'axios'
+import { position } from 'html2canvas/dist/types/css/property-descriptors/position'
+import TripEditComponent from '../components/TripEdit'
 // import parserFunc from 'ua-parser-js'
+
+// const NonSSRWrapper = (props) => (
+// 	<React.Fragment>{props.children}</React.Fragment>
+// )
 
 const ToolboxLayout = ({ children }: propsType): JSX.Element => {
 	const { t, i18n } = useTranslation()
 	const [mounted, setMounted] = useState(false)
+
+	const watchId = useRef(-1)
+
 	// console.log('Index Layout')
 
 	// const cccc = useSelector((state: RootState) => state.)
@@ -36,8 +48,14 @@ const ToolboxLayout = ({ children }: propsType): JSX.Element => {
 	const config = useSelector((state: RootState) => state.config)
 	const [showLanguageDropdown, setShowLanguageDropdown] = useState(false)
 
+	const [hideLoading, setHideLoading] = useState(false)
+	const [sakiuiInit, setSakiuiInit] = useState(false)
+	const [loadProgressBar, setLoadProgressBar] = useState(false)
+	const [progressBar, setProgressBar] = useState(0.01)
+
 	useEffect(() => {
 		setMounted(true)
+		setProgressBar(progressBar + 0.2 >= 1 ? 1 : progressBar + 0.2)
 
 		dispatch(methods.user.Init()).unwrap()
 		dispatch(methods.sso.Init()).unwrap()
@@ -53,6 +71,51 @@ const ToolboxLayout = ({ children }: propsType): JSX.Element => {
 		window.addEventListener('load', () => {
 			dispatch(methods.config.getDeviceType())
 		})
+
+		if (navigator.geolocation) {
+			navigator.geolocation.getCurrentPosition(
+				(pos) => {
+					// const t = setTimeout(() => {
+					// const L: typeof Leaflet = (window as any).L
+					// if (L) {
+
+					dispatch(
+						geoSlice.actions.setSelectPosition({
+							longitude: pos.coords.longitude,
+							latitude: pos.coords.latitude,
+						})
+					)
+
+					dispatch(geoSlice.actions.setPosition(pos))
+
+					// setPosition({
+					// 	...pos,
+					// 	// coords: {
+					// 	// 	...pos.coords,
+					// 	// 	latitude: 29.417266,
+					// 	// 	longitude: 105.594791,
+					// 	// },
+					// })
+					// clearTimeout(t)
+					// }
+					// }, 500)
+				},
+				(error) => {
+					if (error.code === 1) {
+						snackbar({
+							message: '必须开启定位权限，请检查下是否开启定位权限',
+							autoHideDuration: 2000,
+							vertical: 'top',
+							horizontal: 'center',
+						}).open()
+					}
+					console.log('GetCurrentPosition Error', error)
+				},
+				{ enableHighAccuracy: true }
+			)
+		} else {
+			console.log('该浏览器不支持获取地理位置')
+		}
 
 		const initConnectionOSM = async () => {
 			try {
@@ -73,11 +136,11 @@ const ToolboxLayout = ({ children }: propsType): JSX.Element => {
 		const initCountry = async () => {
 			try {
 				console.time('initCountry')
-        const timer = setTimeout(() => {
-          dispatch(configSlice.actions.setCountry('Argentina'))
-          clearTimeout(timer)
-        }, 4000)
- 				const res = await axios(
+				const timer = setTimeout(() => {
+					dispatch(configSlice.actions.setCountry('Argentina'))
+					clearTimeout(timer)
+				}, 3000)
+				const res = await axios(
 					'https://tools.aiiko.club/api/v1/ip/details?ip=&language=en-US'
 				)
 				if (res?.data?.code === 200 && res?.data?.data?.country) {
@@ -94,6 +157,39 @@ const ToolboxLayout = ({ children }: propsType): JSX.Element => {
 		}
 		initCountry()
 	}, [])
+
+	useEffect(() => {
+		if (loadProgressBar && sakiuiInit && mounted) {
+			progressBar < 1 &&
+				setTimeout(() => {
+					setProgressBar(1)
+				}, 500)
+		}
+	}, [loadProgressBar, sakiuiInit, mounted])
+
+	useEffect(() => {
+		if (navigator.geolocation) {
+			navigator.geolocation.clearWatch(watchId.current)
+
+			watchId.current = navigator.geolocation.watchPosition(
+				(pos) => {
+					console.log('watchPosition', pos)
+					// setListenTime(new Date().getTime())
+
+					dispatch(geoSlice.actions.setPosition(pos))
+				},
+				(error) => {
+					console.log('GetCurrentPosition Error', error)
+				},
+				{
+					enableHighAccuracy: true,
+				}
+			)
+			console.log('watchPosition', watchId.current)
+		} else {
+			console.log('该浏览器不支持获取地理位置')
+		}
+	}, [config.connectionOSM])
 
 	const initNyaNyaWasm = async () => {
 		NyaNyaWasm.setWasmPath('./nyanyajs-utils-wasm.wasm')
@@ -140,7 +236,114 @@ const ToolboxLayout = ({ children }: propsType): JSX.Element => {
 					crossOrigin=''
 				></script>
 			</Head>
-			<div className='trip-layout'>
+			<div className='trip-layout saki-loading'>
+				<NoSSR>
+					<>
+						<saki-base-style></saki-base-style>
+						<saki-init
+							ref={bindEvent({
+								mounted(e) {
+									console.log('mounted', e)
+									setSakiuiInit(true)
+									// store.dispatch(
+									// 	configSlice.actions.setStatus({
+									// 		type: 'sakiUIInitStatus',
+									// 		v: true,
+									// 	})
+									// )
+									// setProgressBar(progressBar + 0.2 >= 1 ? 1 : progressBar + 0.2)
+									// setProgressBar(.6)
+								},
+							})}
+						></saki-init>
+					</>
+				</NoSSR>
+
+				<div
+					onTransitionEnd={() => {
+						console.log('onTransitionEnd')
+						// setHideLoading(true)
+					}}
+					className={
+						'il-loading active ' +
+						// (!(appStatus.noteInitStatus && appStatus.sakiUIInitStatus)
+						// 	? 'active '
+						// 	: '') +
+						(hideLoading ? 'hide' : '')
+					}
+				>
+					{/* <div className='loading-animation'></div>
+				<div className='loading-name'>
+					{t('appTitle', {
+						ns: 'common',
+					})}
+				</div> */}
+					<div className='loading-logo'>
+						<img src={'/icons/256x256.png'} alt='' crossOrigin='anonymous' />
+					</div>
+					{/* <div>progressBar, {progressBar}</div> */}
+					<div className='loading-progress-bar'>
+						{/* {dynamic(
+							() => (
+								<div></div>
+							),
+							{
+								ssr: false,
+							}
+						)} */}
+
+						<NoSSR>
+							<saki-linear-progress-bar
+								ref={bindEvent({
+									loaded: () => {
+										console.log('progress-bar', progressBar)
+										setProgressBar(0)
+										setTimeout(() => {
+											progressBar < 1 &&
+												setProgressBar(
+													progressBar + 0.2 >= 1 ? 1 : progressBar + 0.2
+												)
+										}, 0)
+										setLoadProgressBar(true)
+									},
+									transitionEnd: (e: CustomEvent) => {
+										console.log('progress-bar', e)
+										if (e.detail === 1) {
+											const el: HTMLDivElement | null =
+												document.querySelector('.il-loading')
+											if (el) {
+												const animation = el.animate(
+													[
+														{
+															opacity: 1,
+														},
+														{
+															opacity: 0,
+														},
+													],
+													{
+														duration: 500,
+														iterations: 1,
+													}
+												)
+												animation.onfinish = () => {
+													el.style.display = 'none'
+													setHideLoading(true)
+												}
+											}
+										}
+									},
+								})}
+								max-width='280px'
+								transition='width 1s'
+								width='100%'
+								height='10px'
+								progress={progressBar}
+								border-radius='5px'
+							></saki-linear-progress-bar>
+						</NoSSR>
+					</div>
+				</div>
 				<div className='tl-main'>
 					<HeaderComponent
 						visible={layout.header}
@@ -152,6 +355,7 @@ const ToolboxLayout = ({ children }: propsType): JSX.Element => {
 						{children}
 					</div>
 				</div>
+
 				{/* <>
 					{mounted ? (
 						<>
@@ -254,6 +458,8 @@ const ToolboxLayout = ({ children }: propsType): JSX.Element => {
 				) : (
 					''
 				)}
+
+				<TripEditComponent />
 			</div>
 		</>
 	)
