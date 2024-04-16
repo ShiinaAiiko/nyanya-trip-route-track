@@ -24,11 +24,9 @@ export let storage = {
 		storage: 'IndexedDB',
 		baseLabel: 'trips',
 	}),
-}
-
-export const storageMethods = {
-	init: createAsyncThunk('storage/init', async ({}, thunkAPI) => {
-		return
+	tripPositions: new WebStorage<string, protoRoot.trip.ITripPositions>({
+		storage: 'IndexedDB',
+		baseLabel: 'tripPositions',
 	}),
 }
 
@@ -43,3 +41,13 @@ export const storageSlice = createSlice({
 		},
 	},
 })
+
+export const storageMethods = {
+	init: createAsyncThunk('storage/init', async ({}, thunkAPI) => {
+		return
+	}),
+	clearCache: createAsyncThunk('storage/clearCache', async ({}, thunkAPI) => {
+		console.log('storageMethods ')
+		// storage.tripPositions.deleteAll()
+	}),
+}

@@ -3,10 +3,16 @@ package dbxV1
 import (
 	"context"
 	"errors"
+	"math"
+	"sort"
+	"strings"
 	"time"
 
 	conf "github.com/ShiinaAiiko/nyanya-trip-route-track/server/config"
 	"github.com/ShiinaAiiko/nyanya-trip-route-track/server/models"
+	"github.com/ShiinaAiiko/nyanya-trip-route-track/server/services/methods"
+	"github.com/cherrai/nyanyago-utils/narrays"
+	"github.com/cherrai/nyanyago-utils/ncommon"
 	"github.com/cherrai/nyanyago-utils/nlog"
 	"github.com/cherrai/nyanyago-utils/nshortid"
 	"github.com/cherrai/nyanyago-utils/nstrings"
@@ -59,11 +65,17 @@ func (t *TripDbx) AddTrip(trip *models.Trip) (*models.Trip, error) {
 	return trip, nil
 }
 
-func (t *TripDbx) UpdateTripPosition(authorId, id string, positions []*models.TripPosition) error {
+func (t *TripDbx) UpdateTripPosition(authorId, id string, positions []*models.TripPosition, distance float64) error {
 	trip := new(models.Trip)
 
 	if len(positions) == 0 {
 		return nil
+	}
+
+	setUp := bson.M{}
+
+	if distance > 0 {
+		setUp["statistics.distance"] = distance
 	}
 
 	updateResult, err := trip.GetCollection().UpdateOne(context.TODO(),
@@ -81,6 +93,7 @@ func (t *TripDbx) UpdateTripPosition(authorId, id string, positions []*models.Tr
 					"$each": positions,
 				},
 			},
+			"$set": setUp,
 		}, options.Update().SetUpsert(false))
 
 	if err != nil {
@@ -123,7 +136,124 @@ func (t *TripDbx) FinishTrip(authorId, id string,
 		return err
 	}
 	if updateResult.ModifiedCount == 0 {
-		return errors.New("delete fail")
+		return errors.New("update fail")
+	}
+
+	// 删除对应redis
+	t.DeleteRedisData(authorId, id)
+	return nil
+}
+
+func (t *TripDbx) FilterPositions(positions []*models.TripPosition, createTime int64, endTime int64) (
+	[]*models.TripPosition, []int64,
+) {
+
+	sort.Slice(positions, func(a, b int) bool {
+		return positions[a].Timestamp < positions[b].Timestamp
+	})
+	existsTimestamp := []int64{}
+	return narrays.Filter(positions, func(v *models.TripPosition) bool {
+		if narrays.Includes(existsTimestamp, v.Timestamp) {
+			return false
+		}
+		existsTimestamp = append(existsTimestamp, v.Timestamp)
+
+		return methods.GSS(v, createTime, endTime)
+	}), existsTimestamp
+}
+
+func (t *TripDbx) GetTripStatistics(
+	id string,
+	endTime int64,
+) (*models.TripStatistics, error) {
+	ts := new(models.TripStatistics)
+	// log.Info("GetStatistics", id)
+
+	trip, err := t.GetTrip(id, "", "")
+
+	// log.Info("trip", trip)
+
+	if endTime == 0 {
+		endTime = trip.EndTime
+	}
+
+	ts.Distance = 0
+	ts.MaxSpeed = 0
+	ts.MaxAltitude = 0
+	ts.MinAltitude = 0
+	ts.ClimbAltitude = 0
+	ts.DescendAltitude = 0
+	ts.AverageSpeed = 0
+	positions, _ := t.FilterPositions(trip.Positions, trip.CreateTime, trip.EndTime)
+	for i, v := range positions {
+		ts.MaxSpeed = ncommon.IfElse(v.Speed > ts.MaxSpeed, v.Speed, ts.MaxSpeed)
+		ts.MaxAltitude = ncommon.IfElse(v.Altitude > ts.MaxAltitude, v.Altitude, ts.MaxAltitude)
+		ts.MinAltitude = ncommon.IfElse(v.Altitude < ts.MinAltitude, v.Altitude, ts.MinAltitude)
+
+		if i == 0 {
+			ts.MinAltitude = v.Altitude
+			continue
+		}
+		lv := positions[i-1]
+
+		// log.Info(v, lv)
+		// log.Info(methods.GetGeoDistance(v.Latitude, v.Longitude, lv.Latitude, lv.Longitude))
+		ts.Distance += methods.GetGeoDistance(v.Latitude, v.Longitude, lv.Latitude, lv.Longitude)
+
+		if v.Altitude > lv.Altitude {
+			ts.ClimbAltitude += v.Altitude - lv.Altitude
+		}
+		if v.Altitude < lv.Altitude {
+			ts.DescendAltitude += lv.Altitude - v.Altitude
+		}
+
+	}
+
+	ts.AverageSpeed = ts.Distance / (float64(endTime) - float64(trip.CreateTime))
+
+	ts.Distance = math.Round(ts.Distance*1000) / 1000
+	ts.MaxSpeed = math.Round(ts.MaxSpeed*1000) / 1000
+	ts.MaxAltitude = math.Round(ts.MaxAltitude*1000) / 1000
+	ts.MinAltitude = math.Round(ts.MinAltitude*1000) / 1000
+	ts.ClimbAltitude = math.Round(ts.ClimbAltitude*1000) / 1000
+	ts.DescendAltitude = math.Round(ts.DescendAltitude*1000) / 1000
+	ts.AverageSpeed = math.Round(ts.AverageSpeed*1000) / 1000
+
+	// log.Info("distance", len(positions), ts.Distance)
+	// log.Info("maxSpeed", ts.MaxSpeed)
+	// log.Info("MaxAltitude", ts.MaxAltitude)
+	// log.Info("MinAltitude", ts.MinAltitude)
+	// log.Info("ClimbAltitude", ts.ClimbAltitude)
+	// log.Info("DescendAltitude", ts.DescendAltitude)
+	// log.Info("AverageSpeed", ts.AverageSpeed, ts.AverageSpeed*3.6)
+
+	return ts, err
+}
+
+func (t *TripDbx) CorrectedTripData(authorId, id string,
+	statistics *models.TripStatistics) error {
+
+	trip := new(models.Trip)
+
+	updateResult, err := trip.GetCollection().UpdateOne(context.TODO(),
+		bson.M{
+			"$and": []bson.M{
+				{
+					"_id":      id,
+					"authorId": authorId,
+				},
+			},
+		}, bson.M{
+			"$set": bson.M{
+				"statistics": statistics,
+			},
+		}, options.Update().SetUpsert(false))
+
+	if err != nil {
+		return err
+	}
+	if updateResult.ModifiedCount == 0 {
+		return errors.New("update fail")
 	}
 
 	// 删除对应redis
@@ -208,10 +338,10 @@ func (t *TripDbx) DeleteTrip(authorId, id string) error {
 				{
 					"_id": id,
 				},
-				{
-					"authorId": authorId,
-					// "status":   1,
-				},
+				// {
+				// 	"authorId": authorId,
+				// 	// "status":   1,
+				// },
 			},
 		}, bson.M{
 			"$set": bson.M{
@@ -229,6 +359,55 @@ func (t *TripDbx) DeleteTrip(authorId, id string) error {
 	// 删除对应redis
 	t.DeleteRedisData(authorId, id)
 	return nil
+}
+
+// 这个是重新设置positions，所以需要重新完成
+func (t *TripDbx) UpdateTripAllPositions(authorId, id string, positions []*models.TripPosition) error {
+	trip := new(models.Trip)
+
+	updateResult, err := trip.GetCollection().UpdateMany(context.TODO(),
+		bson.M{
+			"$and": []bson.M{
+				{
+					"_id": id,
+				},
+			},
+		}, bson.M{
+			"$set": bson.M{
+				"positions": positions,
+				"status":    0,
+			},
+		}, options.Update().SetUpsert(false))
+
+	if err != nil {
+		return err
+	}
+	if updateResult.ModifiedCount == 0 {
+		return errors.New("delete fail")
+	}
+	// 删除对应redis
+	t.DeleteRedisData(authorId, id)
+	return nil
+}
+
+var tripProject = bson.M{
+	"_id":                 1,
+	"name":                1,
+	"type":                1,
+	"positions.latitude":  1,
+	"positions.longitude": 1,
+	"positions.altitude":  1,
+	"positions.accuracy":  1,
+	"positions.speed":     1,
+	"positions.timestamp": 1,
+	"statistics":          1,
+	"permissions":         1,
+	"authorId":            1,
+	"status":              1,
+	"createTime":          1,
+	"startTime":           1,
+	"endTime":             1,
+	"deleteTime":          1,
 }
 
 func (t *TripDbx) GetTrip(id string, authorId string, shareKey string) (*models.Trip, error) {
@@ -250,11 +429,16 @@ func (t *TripDbx) GetTrip(id string, authorId string, shareKey string) (*models.
 		}
 		if shareKey != "" {
 			params["permissions.shareKey"] = shareKey
-		} else {
+		}
+
+		if authorId != "" {
 			params["authorId"] = authorId
 		}
 
-		err := trip.GetCollection().FindOne(context.TODO(), params).Decode(trip)
+		opts := options.FindOne().SetProjection(
+			tripProject,
+		)
+		err := trip.GetCollection().FindOne(context.TODO(), params, opts).Decode(trip)
 		if err != nil {
 			return nil, err
 		}
@@ -276,7 +460,10 @@ func (t *TripDbx) GetTripById(id string) (*models.Trip, error) {
 		params := bson.M{
 			"_id": id,
 		}
-		err := trip.GetCollection().FindOne(context.TODO(), params).Decode(trip)
+		opts := options.FindOne().SetProjection(
+			tripProject,
+		)
+		err := trip.GetCollection().FindOne(context.TODO(), params, opts).Decode(trip)
 		if err != nil {
 			return nil, err
 		}
@@ -326,6 +513,95 @@ func (t *TripDbx) GetTripByShareKey(shareKey string) (string, error) {
 	return trip.Permissions.ShareKey, nil
 }
 
+func (t *TripDbx) GetTripAllPositions(authorId, typeStr string, pageNum, pageSize int64, ids []string) ([]*models.Trip, error) {
+	trip := new(models.Trip)
+	var results []*models.Trip
+
+	key := conf.Redisdb.GetKey("GetAllTripPositions")
+
+	err := conf.Redisdb.GetStruct(key.GetKey(
+		authorId+typeStr+
+			nstrings.ToString(pageNum)+
+			nstrings.ToString(pageSize)+
+			strings.Join(ids, "-"),
+	), results)
+	if err != nil || true {
+		match := bson.M{
+			"authorId": authorId,
+			"status": bson.M{
+				"$in": []int64{1, 0},
+			},
+		}
+		if typeStr != "All" {
+			match["type"] = typeStr
+		}
+		if len(ids) > 0 {
+			match["_id"] = bson.M{
+				"$nin": ids,
+			}
+
+		}
+
+		params := []bson.M{
+			{
+				"$match": bson.M{
+					"$and": []bson.M{
+						match,
+					},
+				},
+			}, {
+				"$sort": bson.M{
+					"createTime": -1,
+				},
+			},
+			{
+				"$project": bson.M{
+					"_id":                  1,
+					"type":                 1,
+					"status":               1,
+					"positions.latitude":   1,
+					"positions.longitude":  1,
+					"positions.altitude":   1,
+					"positions.accuracy":   1,
+					"positions.speed":      1,
+					"positions.timestamp":  1,
+					"permissions.shareKey": 1,
+					"startTime":            1,
+					"endTime":              1,
+				},
+			},
+			{
+				"$skip": pageSize * (pageNum - 1),
+			},
+			{
+				"$limit": pageSize,
+			},
+		}
+
+		opts, err := trip.GetCollection().Aggregate(context.TODO(), params)
+		if err != nil {
+			// log.Error(err)
+			return nil, err
+		}
+		if err = opts.All(context.TODO(), &results); err != nil {
+			// log.Error(err)
+			return nil, err
+		}
+	}
+	err = conf.Redisdb.SetStruct(key.GetKey(
+		authorId+typeStr+
+			nstrings.ToString(pageNum)+
+			nstrings.ToString(pageSize)+
+			strings.Join(ids, "-"),
+	),
+		results, key.GetExpiration())
+	if err != nil {
+		log.Info(err)
+	}
+
+	return results, nil
+}
+
 func (t *TripDbx) GetTrips(authorId, typeStr string, pageNum, pageSize int64, startTime, endTime int64) ([]*models.Trip, error) {
 	trip := new(models.Trip)
 	var results []*models.Trip
@@ -362,6 +638,7 @@ func (t *TripDbx) GetTrips(authorId, typeStr string, pageNum, pageSize int64, st
 				},
 			}, {
 				"$sort": bson.M{
+					"status":     1,
 					"createTime": -1,
 				},
 			},

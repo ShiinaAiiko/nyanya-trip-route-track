@@ -15,6 +15,7 @@ import { ssoSlice, ssoMethods } from './sso'
 import { configSlice, configMethods } from './config'
 import { geoSlice, geoMethods } from './geo'
 import { tripSlice, tripMethods } from './trip'
+import { storageSlice, storageMethods } from './storage'
 
 export interface ActionParams<T = any> {
 	type: string
@@ -29,6 +30,7 @@ const rootReducer = combineReducers({
 	sso: ssoSlice.reducer,
 	geo: geoSlice.reducer,
 	trip: tripSlice.reducer,
+	storage: storageSlice.reducer,
 })
 
 const store = configureStore({
@@ -47,6 +49,7 @@ export {
 	configSlice,
 	ssoSlice,
 	layoutSlice,
+	storageSlice,
 }
 export const methods = {
 	config: configMethods,
@@ -56,6 +59,7 @@ export const methods = {
 	sso: ssoMethods,
 	geo: geoMethods,
 	trip: tripMethods,
+	storage: storageMethods,
 }
 
 // console.log(store.getState())

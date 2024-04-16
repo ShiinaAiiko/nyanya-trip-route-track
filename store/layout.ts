@@ -18,10 +18,21 @@ export const layoutSlice = createSlice({
 		openSettingsModal: false,
 		openLoginModal: false,
 		openTripHistoryModal: false,
+		openMapLayerModal: false,
+		openTripTrackRoute: false,
+		openTripTrackFilterModal: false,
 		editTripModal: false,
 		editTripData: undefined as protoRoot.trip.ITrip | undefined,
 		settingType: '',
-		tripHistoryType: 'All' as 'All' | 'Running' | 'Bike' | 'Drive' | 'Local',
+		tripHistoryType: 'All' as
+			| 'All'
+			| 'Running'
+			| 'Bike'
+			| 'Drive'
+			| 'Motorcycle'
+			| 'Walking'
+			| 'PowerWalking'
+			| 'Local',
 	},
 	reducers: {
 		setLayoutHeader: (
@@ -32,6 +43,33 @@ export const layoutSlice = createSlice({
 			}
 		) => {
 			state.header = params.payload
+		},
+		setOpenTripTrackRoute: (
+			state,
+			params: {
+				payload: boolean
+				type: string
+			}
+		) => {
+			state.openTripTrackRoute = params.payload
+		},
+		setOpenTripTrackFilterModal: (
+			state,
+			params: {
+				payload: boolean
+				type: string
+			}
+		) => {
+			state.openTripTrackFilterModal = params.payload
+		},
+		setOpenMapLayerModal: (
+			state,
+			params: {
+				payload: boolean
+				type: string
+			}
+		) => {
+			state.openMapLayerModal = params.payload
 		},
 		setEditTripModal: (
 			state,

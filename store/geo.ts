@@ -15,6 +15,7 @@ export const geoSlice = createSlice({
 			latitude: -10000,
 			longitude: -10000,
 		},
+		watchUpdateTime: 0,
 	},
 	reducers: {
 		setPosition: (
@@ -40,7 +41,7 @@ export const geoSlice = createSlice({
 			// 	},
 			// 	timestamp: v.timestamp,
 			// }
-			console.log(v)
+			// console.log(v)
 			if (state.position?.timestamp) {
 				storage.global.set('currentPosition', {
 					coords: {
@@ -59,11 +60,20 @@ export const geoSlice = createSlice({
 		) => {
 			state.selectPosition = params.payload
 		},
+		setWatchUpdateTime: (
+			state,
+			params: {
+				payload: (typeof state)['watchUpdateTime']
+				type: string
+			}
+		) => {
+			state.watchUpdateTime = params.payload
+		},
 	},
 })
 
 export const geoMethods = {
-	init: createAsyncThunk(modelName + '/init', async (_, thunkAPI) => {
+	Init: createAsyncThunk(modelName + '/Init', async (_, thunkAPI) => {
 		const cp = await storage.global.get('currentPosition')
 		console.log('currentPosition', cp)
 

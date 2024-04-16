@@ -23,4 +23,8 @@ var RedisCacheKeys = map[string]*nredis.RedisCacheKeysType{
 		Key:        "GetTrips",
 		Expiration: 5 * 60 * time.Second,
 	},
+	"GetAllTripPositions": {
+		Key:        "GetAllTripPositions",
+		Expiration: 5 * 60 * time.Second,
+	},
 }

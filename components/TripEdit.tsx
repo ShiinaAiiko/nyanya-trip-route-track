@@ -61,6 +61,7 @@ const TripEditComponent = memo(() => {
 	const [openEditTypeDropdown, setOpenEditTypeDropdown] = useState(false)
 
 	const [type, setType] = useState('')
+	const [changed, setChanged] = useState(false)
 
 	const [loadStatus, setLoadStatus] = useState<'loading' | 'loaded' | 'noMore'>(
 		'loaded'
@@ -71,6 +72,8 @@ const TripEditComponent = memo(() => {
 	}, [layout.editTripData?.id])
 
 	const editTrip = async () => {
+		setChanged(false)
+
 		const obj: any = {}
 
 		type && (obj['type'] = type)
@@ -167,6 +170,7 @@ const TripEditComponent = memo(() => {
 				<div className={'trip-edit-component ' + config.deviceType}>
 					<saki-modal-header
 						border
+            right-width={'56px'}
 						close-icon={true}
 						ref={bindEvent({
 							close() {
@@ -242,6 +246,7 @@ const TripEditComponent = memo(() => {
 												selectvalue: async (e) => {
 													setType(e.detail.value)
 													setOpenEditTypeDropdown(false)
+													setChanged(true)
 												},
 											})}
 										>
@@ -276,6 +281,7 @@ const TripEditComponent = memo(() => {
 								padding='10px 50px'
 								type='Primary'
 								loading={generatingSharedData}
+								disabled={!changed}
 							>
 								{t('save', {
 									ns: 'common',

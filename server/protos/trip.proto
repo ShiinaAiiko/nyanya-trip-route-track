@@ -3,6 +3,9 @@ syntax = "proto3";
 option go_package = "./;protos";
 package trip;
 
+// 位置精度和海拔精度可以不输出，速度精确到小数点后2位即可，
+// 也就是cm单位就行了，时间戳使用秒级单位数据，
+// heading方向输出小数点后3位即可
 message TripPosition {
   double latitude = 1;
   double longitude = 2;
@@ -23,6 +26,8 @@ message TripStatistics {
   double maxAltitude = 4;
   double minAltitude = 5;
   double averageAltitude = 6;
+  double climbAltitude = 7;
+  double descendAltitude = 8;
 }
 
 message TripPermissions { string shareKey = 1; }
@@ -42,6 +47,9 @@ message Trip {
   int64 createTime = 7;
   int64 startTime = 10;
   int64 endTime = 8;
+
+  // web专属
+  int64 correctedData = 12;
 }
 
 message AddTrip {
@@ -60,7 +68,7 @@ message AddTripToOnline {
     // Running、Bike、Drive
     string type = 1;
     repeated TripPosition positions = 2;
-    TripStatistics statistics = 3;
+    // TripStatistics statistics = 3;
     // int64 status = 4;
     int64 createTime = 7;
     int64 startTime = 5;
@@ -76,6 +84,7 @@ message UpdateTripPosition {
     string id = 1;
     // 这段时间内的
     repeated TripPosition positions = 2;
+    double distance = 3;
   }
   message Response {}
 }
@@ -84,9 +93,19 @@ message FinishTrip {
   message Request {
     // 必填
     string id = 1;
-    TripStatistics statistics = 3;
+    // TripStatistics statistics = 2;
+    int64 endTime = 3;
   }
   message Response { bool deleted = 1; }
+}
+
+message CorrectedTripData {
+  message Request {
+    // 必填
+    string id = 1;
+    // TripStatistics statistics = 2;
+  }
+  message Response {}
 }
 
 message UpdateTrip {
@@ -125,6 +144,50 @@ message GetTrip {
   message Response { Trip trip = 1; }
 }
 
+message GetTripPositions {
+  message Request {
+    string id = 1;
+    // 可填 传了则视为分享权限，可无视用户校验
+    string shareKey = 2;
+  }
+  message Response {
+    // 时间记得是输出秒，且输出与startTime相差多少s的数字即可
+    // startTime为第一个position的时间戳
+    TripPositions tripPositions = 1;
+  }
+}
+
+message TripPositions {
+  // 时间记得是输出秒，且输出与startTime相差多少s的数字即可
+  // startTime为第一个position的时间戳
+  int64 startTime = 1;
+  // 禁止输出了一些数据，具体的看代码
+  repeated string positions = 2;
+  int64 total = 3;
+  string id = 4;
+  string type = 5;
+  // 详情页专属
+  int64 status = 6;
+
+  // web专属
+  int64 correctedData = 7;
+}
+
+message GetTripHistoryPositions {
+  message Request {
+    string shareKey = 1;
+    // 必选 All、Running、Bike、Drive
+    string type = 2;
+    repeated string ids = 3;
+    int64 pageNum = 4;
+    int64 pageSize = 5;
+  }
+  message Response {
+    repeated TripPositions list = 1;
+    int64 total = 2;
+  }
+}
+
 message GetTrips {
   message Request {
     // 可选
@@ -160,6 +223,8 @@ message GetTripStatistics {
     int64 time = 2;
     // m
     double distance = 3;
+
     repeated Trip list = 4;
+    repeated string uselessData = 5;
   }
 }

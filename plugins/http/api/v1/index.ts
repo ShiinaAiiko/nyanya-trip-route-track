@@ -2,6 +2,7 @@ import { protoRoot, PARAMS, Request } from '../../../../protos'
 import store from '../../../../store'
 import axios from 'axios'
 import { getUrl } from '..'
+import { R } from '../../../../store/config'
 
 export const v1 = {
 	async AddTrip(params: protoRoot.trip.AddTrip.IRequest) {
@@ -64,6 +65,21 @@ export const v1 = {
 			protoRoot.trip.FinishTrip.Response
 		)
 	},
+	async CorrectedTripData(params: protoRoot.trip.CorrectedTripData.IRequest) {
+		const { apiUrls } = store.getState().api
+
+		return await Request<protoRoot.trip.CorrectedTripData.IResponse>(
+			{
+				method: 'POST',
+				data: PARAMS<protoRoot.trip.CorrectedTripData.IRequest>(
+					params,
+					protoRoot.trip.CorrectedTripData.Request
+				),
+				url: getUrl(apiUrls.v1.baseUrl, apiUrls.v1.correctedTripData),
+			},
+			protoRoot.trip.CorrectedTripData.Response
+		)
+	},
 	async UpdateTrip(params: protoRoot.trip.UpdateTrip.IRequest) {
 		const { apiUrls } = store.getState().api
 
@@ -109,6 +125,21 @@ export const v1 = {
 			protoRoot.trip.GetTrip.Response
 		)
 	},
+	async GetTripPositions(params: protoRoot.trip.GetTripPositions.IRequest) {
+		const { apiUrls } = store.getState().api
+
+		return await Request<protoRoot.trip.GetTripPositions.IResponse>(
+			{
+				method: 'GET',
+				data: PARAMS<protoRoot.trip.GetTripPositions.IRequest>(
+					params,
+					protoRoot.trip.GetTripPositions.Request
+				),
+				url: getUrl(apiUrls.v1.baseUrl, apiUrls.v1.getTripPositions),
+			},
+			protoRoot.trip.GetTripPositions.Response
+		)
+	},
 	async GetTrips(params: protoRoot.trip.GetTrips.IRequest) {
 		const { apiUrls } = store.getState().api
 
@@ -137,6 +168,30 @@ export const v1 = {
 				url: getUrl(apiUrls.v1.baseUrl, apiUrls.v1.getTripStatistics),
 			},
 			protoRoot.trip.GetTripStatistics.Response
+		)
+	},
+	async GetTripHistoryPositions(
+		params: protoRoot.trip.GetTripHistoryPositions.IRequest
+	) {
+		const { apiUrls } = store.getState().api
+
+    // console.log('GetTripHistoryPositions',params)
+		// return await R.request({
+		// 	method: 'GET',
+		// 	data: params,
+		// 	url: getUrl(apiUrls.v1.baseUrl, apiUrls.v1.getTripHistoryPositions),
+		// })
+
+		return await Request<protoRoot.trip.GetTripHistoryPositions.IResponse>(
+			{
+				method: 'GET',
+				data: PARAMS<protoRoot.trip.GetTripHistoryPositions.IRequest>(
+					params,
+					protoRoot.trip.GetTripHistoryPositions.Request
+				),
+				url: getUrl(apiUrls.v1.baseUrl, apiUrls.v1.getTripHistoryPositions),
+			},
+			protoRoot.trip.GetTripHistoryPositions.Response
 		)
 	},
 }

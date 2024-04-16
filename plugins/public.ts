@@ -151,7 +151,8 @@ R.interceptors.response.use(async (response) => {
 				message: data.msg + (data.error ? ',' + data.error : ''),
 				autoHideDuration: 2000,
 				vertical: 'top',
-				horizontal: 'center',
+        horizontal: 'left',
+        
 			}).open()
 		}
 		// 	}

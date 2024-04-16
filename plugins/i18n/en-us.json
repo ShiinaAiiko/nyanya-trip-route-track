@@ -1,13 +1,11 @@
 {
 	"common": {
-		"appTitle": "NyaNya Trip Route Track",
+		"appTitle": "Trip Route Track",
 		"logoTitle": "Toolbox",
 		"copy": "Copy",
 		"aiikoBlog": "Aiiko Blog",
 		"login": "Login",
 		"logout": "Logout",
-		"share": "Share",
-		"unshare": "Unshare",
 
 		"edit": "Edit",
 		"save": "Save"
@@ -18,76 +16,20 @@
 		"zh-TW": "Chinese(Traditional)",
 		"system": "Use device language"
 	},
-	"windowsPathToPosixPathPage": {
-		"pageTitle": "Convert Windows Path to Posix Path",
-		"subtitle": "for wsl, Git Bash",
-		"convert": "Convert",
-		"convertAndCopy": "Convert and copy",
-		"windowsPath": "Windows path",
-		"posixPath": "Posix path"
-	},
-	"randomPasswordPage": {
-		"pageTitle": "Random Password",
-		"subtitle": "",
-		"length": "Length",
-		"numbers": "Numbers",
-		"symbols": "Symbols"
-	},
-	"avatarBadgeGeneratorPage": {
-		"pageTitle": "Avatar badge Generator",
-		"subtitle": "Add a badge to your avatar",
-		"badge": "Badge",
-		"style": "Style",
-		"size": "Size",
-		"position": "Position",
-		"topLeft": "Top left",
-		"topRight": "Top right",
-		"bottomLeft": "Bottom left",
-		"bottomRight": "Bottom right",
-		"borderRadius": "Border radius",
-		"distanceBorder": "Distance to border",
-		"borderSize": "Border size",
-		"borderColor": "Border color",
-		"avatar": "Avatar",
-		"avatarStyle": "Avatar style",
-		"output": "Output",
-		"outputParameters": "Output Parameters",
-		"resolution": "Resolution",
-		"quality": "Quality"
-	},
-	"ipPage": {
-		"pageTitle": "Search IP or Domain Name Details",
-		"subtitle": "",
-		"inputPlaceholder": "Type a Ip or Domain Name",
-		"myIPDetails": "My Ip Details",
-		"IPDetails": "Ip Details",
-		"search": "Search",
-		"keyword": "Keyword",
-		"detail": "Detail",
-		"ipv4": "IPv4",
-		"ipv6": "IPv6",
-		"country": "Country",
-		"regionName": "RegionName",
-		"city": "City",
-		"isp": "ISP",
-		"org": "Organize",
-		"lon": "Longitude",
-		"lat": "Katitude",
-		"timezone": "Timezone"
-	},
-	"navigatePage": {
-		"pageTitle": "Navigation speed test",
-		"subtitle": ""
-	},
 	"tripPage": {
 		"pageTitle": "Trip Route Track",
-		"subtitle": "",
+		"subtitle": "Conveniently record GPS route trajectories, speed, mileage, altitude and other travel data~, supporting multiple travel modes such as walking, cycling, and driving.",
 		"all": "All",
 		"running": "Running",
 		"bike": "Bike",
 		"drive": "Drive",
+		"walking": "Walking",
+		"powerwalking": "Power Walking",
+		"motorcycle": "Motorcycle",
 		"maxSpeed": "Max Speed",
-		"maxAltitude": "Max Altitude",
+		"maxAltitude": "Highest Altitude",
+		"climbAltitude": "Climb Altitude",
+		"descendAltitude": "Descend Altitude",
 		"distance": "Distance",
 		"speed": "Speed",
 		"altitude": "Altitude",
@@ -106,7 +48,7 @@
 
 		"averageSpeed": "Average Speed",
 		"averageAltitude": "Average Altitude",
-		"minAltitude": "Min Altitude",
+		"minAltitude": "Lowest Altitude",
 
 		"editTrip": "Edit Trip",
 		"type": "Trip Type",
@@ -114,7 +56,19 @@
 
 		"local": "Local",
 
-		"addTripToOnline": "Add Trip to Online"
+		"addTripToOnline": "Add Trip to Online",
+
+		"finishTrip": "Finish Trip",
+
+		"correctedData": "Corrected Trip Data",
+		"tripDataCanBeCorrected": "Trip data can be corrected",
+
+		"tripsCount": "{{num}} trips",
+		"durationText": "{{num}} h"
+	},
+	"trackRoutePage": {
+		"pageTitle": "Historical trip track",
+		"subtitle": "All tracks and routes of recorded trips will be drawn"
 	},
 	"tripHistoryPage": {
 		"pageTitle": "Trip History"
@@ -143,10 +97,6 @@
 		"username": "Username",
 		"bio": "Bio",
 
-		"openMeowStickyNote": "Open Meow Sticky Note",
-		"openQuickReview": "Open Quick review",
-		"autoCloseWindowAfterCopy": "Automatically close the window after copying",
-
 		"light": "Light",
 		"dark": "Dark",
 		"black": "Black",
@@ -154,32 +104,16 @@
 
 		"switchSuccessfully": "Switched to ",
 
-		"shortcut": "Keyboard Shortcut",
-
-		"storagePath": "Storage path",
-		"automaticBackupFrequency": "Automatic Backup Frequency",
-		"backupAutomatically": "Backup automatically",
-		"keepBackups": "Keep Backups",
-		"chooseStoragePath": "Choose a storage path",
-
-		"atLeastOneMonths": "At least one months",
-		"atLeastThreeMonths": "At least three months",
-		"forever": "Forever",
-
-		"daily": "Daily",
-		"weekly": "Weekly",
-
-		"lastBackupTime": "Last backup time",
-
-		"backUpNow": "Back Up Now",
-
 		"about": "About ",
 
 		"basemap": "Base Map",
 		"maps": "Maps",
 		"AutoSelect": "Automatically choose",
 		"OpenStreetMap": "Open Street Map",
+		"Google": "Google",
+		"GoogleSatellite": "Google Satellite",
 		"Amap": "Amap",
+		"AmapSatellite": "Amap Satellite",
 		"GeoQBase": "GeoQ Base",
 		"GeoQNight": "GeoQ Night",
 		"GeoQGrey": "GeoQ Grey",
@@ -189,7 +123,19 @@
 		"RedGreen": "Red Green",
 		"PinkBlue": "Pink Blue",
 		"trackLine": "Track Line",
-		"width": "Width"
+		"width": "Width",
+		"realtimeTravelTrackWidth": "Real-time travel track width",
+		"historyTravelTrackWidth": "Historical travel track width",
+
+		"cache": "Cache",
+		"clearCache": "Clear Cache ({{size}})",
+
+		"trackRouteBaseMap": "Historical Track Route Base Map",
+
+		"trackRouteColor": "Historical Track Route Color",
+		"blue": "Blue",
+		"pink": "Pink",
+		"red": "Red"
 	},
 	"prompt": {
 		"next": "Next",
@@ -198,15 +144,7 @@
 		"cancel": "Cancel",
 		"confirm": "Confirm",
 		"copySuccessfully": "Copy successfully!",
-		"windowsPathDoesNotExist": "Windows path does not exist.",
-		"posixPathDoesNotExist": "Posix path does not exist.",
-		"download": "Download",
-		"pleaseUploadYourAvatar": "Please upload your avatar.",
-		"ipEmptyTip": "IP or domain name cannot be empty",
-		"querySuccessfully": "Query successful!",
-		"queryFailed": "Query failed, please retype the IP or domain name",
-		"connectMapFailed": "Unable to connect to the map, please check the network.",
-
+		"deletedSuccessfully": "Deleted successfully!",
 		"deleteThisTrip": "Delete this trip?",
 		"deleteThisTrip50m": "The distance needs to be more than 50 meters before it can be saved. Do you want to delete this trip?",
 		"noLoginSaveTrip": "If you are not logged in to your account, your trip records will be stored locally.",
@@ -215,6 +153,25 @@
 
 		"logout": "Log out",
 		"logoutContent": "Are you sure you want to log out?",
-		"logoutSuccessfully": "Successfully logged out of the account"
+		"logoutSuccessfully": "Successfully logged out of the account",
+
+		"deleteInvalidTrip": "Delete invalid trip",
+		"deleteAllTrip50m": "There are {{uselessDataCount}} trips with invalid data. Are you sure you want to delete these trips?",
+
+		"loadingData": "Data is loading",
+		"loadedData": "{{percentage}} of trip data loaded",
+
+		"noLoginTrip": "You need to log in to your account to continue accessing",
+
+		"share": "Share",
+		"unshare": "Unshare",
+		"generatingSharingContent": "Generating sharing content...",
+		"enableShare": "Enable sharing",
+		"disableShare": "Disable sharing",
+		"enableShareContent": "Are you sure you want to enable sharing?",
+		"disableShareContent": "Are you sure you want to disable sharing?",
+
+		"saveImage": "Save image",
+		"copyLink": "Copy link"
 	}
 }

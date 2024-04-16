@@ -85,7 +85,7 @@ start() {
 
   ./ssh.sh run
 
-  rm $DIR/build.tgz
+  # rm $DIR/build.tgz
 }
 
 unzip() {

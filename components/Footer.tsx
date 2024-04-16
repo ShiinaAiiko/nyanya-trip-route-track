@@ -13,6 +13,7 @@ import {
 } from '../store'
 import { useTranslation } from 'react-i18next'
 import { bindEvent } from '@saki-ui/core'
+import { Query } from '../plugins/methods'
 
 const FooterComponent = (): JSX.Element => {
 	const { t, i18n } = useTranslation()
@@ -26,6 +27,9 @@ const FooterComponent = (): JSX.Element => {
 	const config = useSelector((state: RootState) => state.config)
 	const dispatch = useDispatch<AppDispatch>()
 	const [showLanguageDropdown, setShowLanguageDropdown] = useState(false)
+
+	let basePathname = router.pathname.replace('/[lang]', '')
+
 	return (
 		<div className='footer-component'>
 			<div className='f-left'>
@@ -77,16 +81,36 @@ const FooterComponent = (): JSX.Element => {
 								<saki-menu
 									ref={bindEvent({
 										selectvalue: async (e) => {
-											dispatch(methods.config.setLanguage(e.detail.value))
-											switch (e.detail.value) {
-												case 'logout':
-													break
-												case 'deleteDevice':
-													break
+											// dispatch(methods.config.setLanguage(e.detail.value))
 
-												default:
-													break
-											}
+											localStorage.setItem('language', e.detail.value)
+
+											// router.locale = e.detail
+											Object.keys(router.query).forEach((k) => {
+												// console.log(k, basePathname.indexOf(`[${k}]`))
+												const i = basePathname.indexOf(`[${k}]`)
+												if (i >= 0) {
+													basePathname = basePathname.replace(
+														`[${k}]`,
+														String(router.query[k])
+													)
+
+													delete router.query[k]
+												}
+											})
+											// console.log('basePathname', basePathname)
+											const pathname = Query(
+												(e.detail.value === 'system' ? '' : '/' + e.detail.value) +
+													basePathname,
+												{
+													...router.query,
+													lang: '',
+												}
+											)
+											console.log('pathname', router, pathname)
+
+											router.replace(pathname || '/')
+
 											setShowLanguageDropdown(false)
 										},
 									})}

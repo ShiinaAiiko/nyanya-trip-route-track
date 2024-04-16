@@ -97,7 +97,7 @@
 }
 
 .settings-item-component {
-	padding: 8px 10px;
+	padding: 6px 10px;
 	&.border {
 		margin-bottom: 16px;
 		// border: 1px solid var(--default-color);
@@ -258,5 +258,16 @@
 }
 
 .setting-maps {
-  
+	.sm-basemap {
+		display: flex;
+		justify-content: space-between;
+		margin: 20px 0 0;
+	}
+}
+
+.setting-cache {
+	display: flex;
+	flex-direction: column;
+	justify-content: flex-start;
+	align-items: center;
 }

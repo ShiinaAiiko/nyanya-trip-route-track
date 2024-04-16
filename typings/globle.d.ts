@@ -17,6 +17,7 @@ declare global {
 			'saki-context-menu-item': any
 			'saki-avatar': any
 			'saki-modal': any
+			'saki-aside-modal': any
 			'saki-modal-header': any
 			'saki-checkbox': any
 			'saki-checkbox-item': any
@@ -44,6 +45,7 @@ declare global {
 			'saki-sso': any
 			'saki-scroll-loading': any
 			'saki-linear-progress-bar': any
+			'saki-row': any
 		}
 	}
 	namespace Window {

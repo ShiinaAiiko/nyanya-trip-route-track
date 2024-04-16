@@ -22,8 +22,7 @@ pnpm-debug.log*
 /dist
 .gitignore
 docker.sh
-Dockerfile
-Dockerfile.multi
+Dockerfile*
 README.md
 
 # go
@@ -39,3 +38,5 @@ dump.rdb
 !/client/out
 
 go.work*
+
+ssh*

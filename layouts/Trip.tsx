@@ -2,7 +2,6 @@ import Head from 'next/head'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import React, { useEffect, useRef, useState } from 'react'
-import { useRouter } from 'next/router'
 // import './App.module.scss'
 import { useSelector, useStore, useDispatch } from 'react-redux'
 import store, {
@@ -17,7 +16,7 @@ import store, {
 import { useTranslation } from 'react-i18next'
 // import { userAgent } from './userAgent'
 import { userAgent, CipherSignature, NyaNyaWasm } from '@nyanyajs/utils'
-import debounce from '@nyanyajs/utils/dist/debounce'
+import debounce, { Debounce } from '@nyanyajs/utils/dist/debounce'
 import * as nyanyalog from 'nyanyajs-log'
 import HeaderComponent from '../components/Header'
 import SettingsComponent from '../components/Settings'
@@ -28,15 +27,49 @@ import { bindEvent, snackbar } from '@saki-ui/core'
 import axios from 'axios'
 import { position } from 'html2canvas/dist/types/css/property-descriptors/position'
 import TripEditComponent from '../components/TripEdit'
+import {
+	defaultLanguage,
+	detectionLanguage,
+	changeLanguage,
+} from '../plugins/i18n/i18n'
+import Leaflet from 'leaflet'
+// import { testGpsData } from '../plugins/methods'
 // import parserFunc from 'ua-parser-js'
 
 // const NonSSRWrapper = (props) => (
 // 	<React.Fragment>{props.children}</React.Fragment>
 // )
 
-const ToolboxLayout = ({ children }: propsType): JSX.Element => {
+let watchPosTimer: NodeJS.Timeout
+
+const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
 	const { t, i18n } = useTranslation()
+
+	const { lang } = pageProps
+
+	if (pageProps && process.env.OUTPUT === 'export') {
+		const lang =
+			pageProps?.router?.asPath?.split('/')?.[1] ||
+			pageProps?.lang ||
+			(typeof window === 'undefined' ? defaultLanguage : detectionLanguage())
+		// isInPwa()
+
+		// console.log(
+		// 	'isInPwa',
+		// 	isInPwa(),
+		// 	detectionLanguage() as any,
+		// )
+		pageProps && i18n.language !== lang && changeLanguage(lang)
+	}
+
+	useEffect(() => {
+		const l = lang || 'system'
+
+		l && dispatch(methods.config.setLanguage(l))
+	}, [lang])
+
 	const [mounted, setMounted] = useState(false)
+	const [watchPosDeb] = useState(new Debounce())
 
 	const watchId = useRef(-1)
 
@@ -46,6 +79,9 @@ const ToolboxLayout = ({ children }: propsType): JSX.Element => {
 	const dispatch = useDispatch<AppDispatch>()
 	const layout = useSelector((state: RootState) => state.layout)
 	const config = useSelector((state: RootState) => state.config)
+	const geoWatchUpdateTime = useSelector(
+		(state: RootState) => state.geo.watchUpdateTime
+	)
 	const [showLanguageDropdown, setShowLanguageDropdown] = useState(false)
 
 	const [hideLoading, setHideLoading] = useState(false)
@@ -54,10 +90,17 @@ const ToolboxLayout = ({ children }: propsType): JSX.Element => {
 	const [progressBar, setProgressBar] = useState(0.01)
 
 	useEffect(() => {
+		const L: typeof Leaflet = (window as any).L
+
+		if (L) {
+			;(window as any)?.leafletPolycolor?.(L)
+		}
+
 		setMounted(true)
 		setProgressBar(progressBar + 0.2 >= 1 ? 1 : progressBar + 0.2)
 
 		dispatch(methods.user.Init()).unwrap()
+		dispatch(methods.geo.Init()).unwrap()
 		dispatch(methods.sso.Init()).unwrap()
 		dispatch(methods.user.InitUser()).unwrap()
 
@@ -168,28 +211,45 @@ const ToolboxLayout = ({ children }: propsType): JSX.Element => {
 	}, [loadProgressBar, sakiuiInit, mounted])
 
 	useEffect(() => {
-		if (navigator.geolocation) {
-			navigator.geolocation.clearWatch(watchId.current)
+		try {
+			if (navigator.geolocation) {
+				navigator.geolocation.clearWatch(watchId.current)
 
-			watchId.current = navigator.geolocation.watchPosition(
-				(pos) => {
-					console.log('watchPosition', pos)
-					// setListenTime(new Date().getTime())
+				watchId.current = navigator.geolocation.watchPosition(
+					(pos) => {
+						console.log('watchPosition', pos)
+						// setListenTime(new Date().getTime())
 
-					dispatch(geoSlice.actions.setPosition(pos))
-				},
-				(error) => {
-					console.log('GetCurrentPosition Error', error)
-				},
-				{
-					enableHighAccuracy: true,
-				}
-			)
-			console.log('watchPosition', watchId.current)
-		} else {
-			console.log('该浏览器不支持获取地理位置')
+						dispatch(geoSlice.actions.setPosition(pos))
+
+						clearInterval(watchPosTimer)
+						// 5秒内不更新，就重新获取GPS
+						watchPosTimer = setInterval(() => {
+							dispatch(
+								geoSlice.actions.setWatchUpdateTime(new Date().getTime())
+							)
+						}, 10 * 1000)
+					},
+					(error) => {
+						console.log('GetCurrentPosition Error', error)
+					},
+					{
+						enableHighAccuracy: true,
+					}
+				)
+				console.log('watchPosition', watchId.current)
+			} else {
+				console.log('该浏览器不支持获取地理位置')
+			}
+		} catch (error) {
+			snackbar({
+				message: String(error),
+				autoHideDuration: 2000,
+				vertical: 'top',
+				horizontal: 'center',
+			}).open()
 		}
-	}, [config.connectionOSM])
+	}, [config.connectionOSM, geoWatchUpdateTime])
 
 	const initNyaNyaWasm = async () => {
 		NyaNyaWasm.setWasmPath('./nyanyajs-utils-wasm.wasm')
@@ -224,17 +284,9 @@ const ToolboxLayout = ({ children }: propsType): JSX.Element => {
 					name='viewport'
 					content='width=device-width, initial-scale=1.0'
 				></meta>
-				<link
-					rel='stylesheet'
-					href='https://unpkg.com/leaflet@1.9.3/dist/leaflet.css'
-					integrity='sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI='
-					crossOrigin=''
-				/>
-				<script
-					src='https://unpkg.com/leaflet@1.9.3/dist/leaflet.js'
-					integrity='sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM='
-					crossOrigin=''
-				></script>
+				<link rel='stylesheet' href='/css/leaflet.css' crossOrigin='' />
+				<script src='/js/leaflet.js' crossOrigin=''></script>
+				<script src='/js/leaflet-polycolor.min.js'></script>
 			</Head>
 			<div className='trip-layout saki-loading'>
 				<NoSSR>
@@ -356,93 +408,6 @@ const ToolboxLayout = ({ children }: propsType): JSX.Element => {
 					</div>
 				</div>
 
-				{/* <>
-					{mounted ? (
-						<>
-							<saki-base-style></saki-base-style>
-
-							<saki-chat-layout
-								bottom-navigator={layout.bottomNavigator && innerWidth <= 768}
-								device-type={config.deviceType}
-							>
-								<div className='tl-side-navigator' slot='side-navigator'>
-									<saki-chat-layout-side-navigator
-										ref={bindEvent({
-											expandStatus: async (e) => {},
-											change: async (e) => {},
-										})}
-										expand={false}
-									>
-										<div slot='top'>
-											<saki-chat-layout-side-navigator-menu-item
-												margin='0 0 12px 0'
-												active={true}
-												icon-type={'Messages'}
-												name={'开始行程'}
-												count={0}
-												href='/'
-											></saki-chat-layout-side-navigator-menu-item>
-											<saki-chat-layout-side-navigator-menu-item
-												margin='0 0 12px 0'
-												active={false}
-												icon-type={'User'}
-												name={'行程历史'}
-												count={0}
-												href='/contacts'
-											></saki-chat-layout-side-navigator-menu-item>
-										
-										</div>
-										<div slot='bottom'>
-											<saki-chat-layout-side-navigator-menu-item
-												margin='12px 0 0 0'
-												active={false}
-												icon-type={'Settings'}
-												icon-size='20px'
-												name={'SETTINGS'}
-												href='/settings'
-											></saki-chat-layout-side-navigator-menu-item>
-										</div>
-									</saki-chat-layout-side-navigator>
-								</div>
-								<div className='tl-bottom-navigator' slot='bottom-navigator'>
-									<saki-chat-layout-bottom-navigator
-										ref={bindEvent({
-											expandStatus: async (e) => {},
-											change: async (e) => {},
-										})}
-									>
-										<saki-chat-layout-bottom-navigator-item
-											active={true}
-											icon-type={'Messages'}
-											name={'开始行程'}
-											count={0}
-											href='/'
-										></saki-chat-layout-bottom-navigator-item>
-										<saki-chat-layout-bottom-navigator-item
-											active={false}
-											icon-type={'User'}
-											name={'行程历史'}
-											// count={20}
-											count={0}
-											href='/contacts'
-										></saki-chat-layout-bottom-navigator-item>
-										<saki-chat-layout-bottom-navigator-item
-											active={false}
-											icon-type={'Settings'}
-											name={'SETTINGS'}
-											// count={20}
-											count={0}
-											href='/contacts'
-										></saki-chat-layout-bottom-navigator-item>
-									</saki-chat-layout-bottom-navigator>
-								</div>
-							
-							</saki-chat-layout>
-						</>
-					) : (
-						''
-					)}
-				</> */}
 				{mounted ? (
 					<>
 						<SettingsComponent
@@ -462,6 +427,18 @@ const ToolboxLayout = ({ children }: propsType): JSX.Element => {
 				<TripEditComponent />
 			</div>
 		</>
+	)
+}
+
+export function getLayout(page: any, pageProps: any) {
+	return (
+		<ToolboxLayout
+			pageProps={{
+				...pageProps,
+			}}
+		>
+			{page}
+		</ToolboxLayout>
 	)
 }
 

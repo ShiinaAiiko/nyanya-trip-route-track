@@ -4,6 +4,7 @@ import (
 	conf "github.com/ShiinaAiiko/nyanya-trip-route-track/server/config"
 	"github.com/ShiinaAiiko/nyanya-trip-route-track/server/routers"
 	"github.com/ShiinaAiiko/nyanya-trip-route-track/server/services/middleware"
+	"github.com/gin-contrib/gzip"
 
 	"github.com/cherrai/nyanyago-utils/nlog"
 	"github.com/cherrai/nyanyago-utils/nstrings"
@@ -40,6 +41,7 @@ func InitRouter() {
 	// // 处理解密加密
 	// Router.Use(middleware.Encryption())
 	Router.Use(middleware.Authorize())
+	Router.Use(gzip.Gzip(gzip.DefaultCompression, gzip.WithExcludedPaths([]string{"/api/"})))
 
 	// midArr := [...]gin.HandlerFunc{GinMiddleware("*"), middleware.Authorize()}
 	// fmt.Println(midArr)

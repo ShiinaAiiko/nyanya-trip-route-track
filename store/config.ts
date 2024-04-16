@@ -14,6 +14,14 @@ import { set } from 'nprogress'
 
 export const R = new NRequest()
 
+export type TripType =
+	| 'Running'
+	| 'Bike'
+	| 'Drive'
+	| 'Motorcycle'
+	| 'Walking'
+	| 'PowerWalking'
+	| 'Local'
 export type DeviceType = 'Mobile' | 'Pad' | 'PC'
 export type LanguageType = Languages | 'system'
 export let deviceType: DeviceType | undefined
@@ -34,8 +42,20 @@ export let maps = [
 		url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
 	},
 	{
+		key: 'Google',
+		url: 'https://www.google.com/maps/vt?lyrs=m@189&gl=cn&x={x}&y={y}&z={z}',
+	},
+	{
+		key: 'GoogleSatellite',
+		url: 'https://www.google.com/maps/vt?lyrs=s@189&gl=cn&x={x}&y={y}&z={z}',
+	},
+	{
 		key: 'Amap',
-		url: 'http://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=7&x={x}&y={y}&z={z}',
+		url: 'https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}',
+	},
+	{
+		key: 'AmapSatellite',
+		url: 'https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}',
 	},
 	{
 		key: 'GeoQBase',
@@ -101,6 +121,16 @@ export const getSpeedColors = (type: 'RedGreen' | 'PinkBlue') => {
 	}
 }
 
+export const getTrackRouteColor = (type: 'Blue' | 'Pink' | 'Red') => {
+	if (type === 'Blue') {
+		return '#4af0fe'
+	}
+	if (type === 'Pink') {
+		return '#f29cb2'
+	}
+	return '#e66e46'
+}
+
 const getMapUrlAuto = () => {
 	setTimeout(() => {
 		const { config } = store.getState()
@@ -109,12 +139,12 @@ const getMapUrlAuto = () => {
 		if (config.mapKey === 'AutoSelect') {
 			if (config.country && config.connectionOSM !== 0) {
 				if (config.country === 'China') {
-					key = 'GeoQBase'
+					key = 'Amap'
 				} else {
 					if (config.connectionOSM === 1) {
 						key = 'OpenStreetMap'
 					} else {
-						key = 'GeoQBase'
+						key = 'Amap'
 					}
 				}
 			} else {
@@ -138,6 +168,38 @@ const getMapUrlAuto = () => {
 	}, 0)
 }
 
+const getTrackRouteMapUrlAuto = () => {
+	setTimeout(() => {
+		const { config } = store.getState()
+
+		let key = ''
+		if (config.trackRouteMapKey === 'AutoSelect') {
+			if (config.country && config.connectionOSM !== 0) {
+				if (config.country === 'China') {
+					key = 'GeoQNight'
+				} else {
+					if (config.connectionOSM === 1) {
+						key = 'OpenStreetMap'
+					} else {
+						key = 'GeoQNight'
+					}
+				}
+			} else {
+				return
+			}
+		} else {
+			key = config.trackRouteMapKey
+		}
+		const v = maps.filter((v) => {
+			return v.key === key
+		})[0]
+		store.dispatch(configSlice.actions.setTrackRouteMapUrl(v?.url))
+	}, 0)
+}
+
+const tempRealtimeTravelTrackWidth = 4
+const tempHistoryTravelTrackWidth = 1
+
 export const configSlice = createSlice({
 	name: 'config',
 	initialState: {
@@ -148,10 +210,13 @@ export const configSlice = createSlice({
 		country: '',
 		connectionOSM: 0,
 		mapPolyline: {
-			width: 8,
+			realtimeTravelTrackWidth: tempRealtimeTravelTrackWidth,
+			historyTravelTrackWidth: tempHistoryTravelTrackWidth,
 		},
 		mapKey: 'AutoSelect',
 		mapUrl: 'AutoSelect',
+		trackRouteMapKey: 'AutoSelect',
+		trackRouteMapUrl: 'AutoSelect',
 		// map: {
 		// 	key: 'AutoSelect',
 		// 	url: '',
@@ -167,7 +232,19 @@ export const configSlice = createSlice({
 			},
 			drive: {
 				minSpeed: 8.33,
+				maxSpeed: 22.22,
+			},
+			motorcycle: {
+				minSpeed: 8.33,
+				maxSpeed: 22.22,
+			},
+			walking: {
+				minSpeed: 8.33,
 				maxSpeed: 16.66,
+			},
+			powerwalking: {
+				minSpeed: 1.38,
+				maxSpeed: 2.77,
 			},
 		} as {
 			[type: string]: {
@@ -177,9 +254,59 @@ export const configSlice = createSlice({
 		},
 
 		speedColorType: 'RedGreen' as 'RedGreen' | 'PinkBlue',
-		tripTypes: ['Running', 'Bike', 'Drive', 'Local'],
+		trackRouteColor: 'Blue' as 'Blue' | 'Pink' | 'Red',
+		tripTypes: [
+			'Running',
+			'Bike',
+			'Drive',
+			'Walking',
+			'PowerWalking',
+			'Motorcycle',
+			'Local',
+		] as TripType[],
+
+		selectedTripTypes: [] as string[],
+		selectedTripIds: [] as string[],
+
+		updateTimeForTripHistoryList: 0,
 	},
 	reducers: {
+		setTrackRouteColor: (
+			state,
+			params: {
+				payload: 'Blue' | 'Pink' | 'Red'
+				type: string
+			}
+		) => {
+			state.trackRouteColor = params.payload
+		},
+		setSelectedTripTypes: (
+			state,
+			params: {
+				payload: string[]
+				type: string
+			}
+		) => {
+			state.selectedTripTypes = params.payload
+		},
+		setSelectedTripIds: (
+			state,
+			params: {
+				payload: string[]
+				type: string
+			}
+		) => {
+			state.selectedTripIds = params.payload
+		},
+		setUpdateTimeForTripHistoryList: (
+			state,
+			params: {
+				payload: number
+				type: string
+			}
+		) => {
+			state.updateTimeForTripHistoryList = params.payload
+		},
 		setSpeedColorType: (
 			state,
 			params: {
@@ -215,11 +342,13 @@ export const configSlice = createSlice({
 			country = state.country
 
 			getMapUrlAuto()
+			getTrackRouteMapUrlAuto()
 		},
 		setConnectionOSM: (state, params: ActionParams<number>) => {
 			state.connectionOSM = params.payload
 
 			getMapUrlAuto()
+			getTrackRouteMapUrlAuto()
 		},
 		setMapUrl: (
 			state,
@@ -243,14 +372,53 @@ export const configSlice = createSlice({
 			state.mapKey = v.key
 			state.mapUrl = v.url
 		},
-		setMapPolylineWidth: (
+		setTrackRouteMapUrl: (
+			state,
+			params: {
+				payload: string
+				type: string
+			}
+		) => {
+			state.trackRouteMapUrl = params.payload
+		},
+		setTrackRouteMapKey: (
+			state,
+			params: {
+				payload: string
+				type: string
+			}
+		) => {
+			const v = maps.filter((v) => {
+				return v.key === params.payload
+			})[0]
+			state.trackRouteMapKey = v.key
+			state.trackRouteMapUrl = v.url
+		},
+		setRealtimeTravelTrackWidth: (
 			state,
 			params: {
 				payload: number
 				type: string
 			}
 		) => {
-			state.mapPolyline.width = params.payload
+			state.mapPolyline.realtimeTravelTrackWidth = params.payload
+			storage.global.setSync(
+				'mapPolylineRealtimeTravelTrackWidth',
+				params.payload
+			)
+		},
+		setHistoryTravelTrackWidth: (
+			state,
+			params: {
+				payload: number
+				type: string
+			}
+		) => {
+			state.mapPolyline.historyTravelTrackWidth = params.payload
+			storage.global.setSync(
+				'mapPolylineHistoryTravelTrackWidth',
+				params.payload
+			)
 		},
 	},
 })
@@ -261,14 +429,27 @@ export const configMethods = {
 
 		const map = (await storage.global.get('map')) || 'AutoSelect'
 		thunkAPI.dispatch(configMethods.setMapKey(map))
+		const trackRouteMap =
+			(await storage.global.get('trackRouteMap')) || 'AutoSelect'
+		thunkAPI.dispatch(configMethods.setTrackRouteMapKey(trackRouteMap))
 
 		const speedColorType =
 			(await storage.global.get('speedColorType')) || 'RedGreen'
 		thunkAPI.dispatch(configMethods.setSpeedColorType(speedColorType))
+		const trackRouteColor =
+			(await storage.global.get('trackRouteColor')) || 'Blue'
+		thunkAPI.dispatch(configMethods.setTrackRouteColor(trackRouteColor))
 
 		thunkAPI.dispatch(
-			configMethods.setMapPolylineWidth(
-				(await storage.global.get('mapPolylineWidth')) || 8
+			configSlice.actions.setRealtimeTravelTrackWidth(
+				(await storage.global.get('mapPolylineRealtimeTravelTrackWidth')) ||
+					tempRealtimeTravelTrackWidth
+			)
+		)
+		thunkAPI.dispatch(
+			configSlice.actions.setHistoryTravelTrackWidth(
+				(await storage.global.get('mapPolylineHistoryTravelTrackWidth')) ||
+					tempHistoryTravelTrackWidth
 			)
 		)
 	}),
@@ -326,20 +507,27 @@ export const configMethods = {
 			getMapUrlAuto()
 		}
 	),
+	setTrackRouteMapKey: createAsyncThunk(
+		'config/setTrackRouteMapKey',
+		async (mapKey: string, thunkAPI) => {
+			thunkAPI.dispatch(configSlice.actions.setTrackRouteMapKey(mapKey))
+			await storage.global.set('trackRouteMap', mapKey)
+			getTrackRouteMapUrlAuto()
+		}
+	),
 	setSpeedColorType: createAsyncThunk(
 		'config/setSpeedColorType',
 		async (type: 'RedGreen' | 'PinkBlue', thunkAPI) => {
 			thunkAPI.dispatch(configSlice.actions.setSpeedColorType(type))
 			getSpeedColors(type)
 			await storage.global.set('speedColorType', type)
-			getMapUrlAuto()
 		}
 	),
-	setMapPolylineWidth: createAsyncThunk(
-		'config/setMapPolylineWidth',
-		async (width: number, thunkAPI) => {
-			thunkAPI.dispatch(configSlice.actions.setMapPolylineWidth(width))
-			await storage.global.set('mapPolylineWidth', width)
+	setTrackRouteColor: createAsyncThunk(
+		'config/setTrackRouteColor',
+		async (type: 'Blue' | 'Pink' | 'Red', thunkAPI) => {
+			thunkAPI.dispatch(configSlice.actions.setTrackRouteColor(type || 'Blue'))
+			await storage.global.set('trackRouteColor', type)
 		}
 	),
 }

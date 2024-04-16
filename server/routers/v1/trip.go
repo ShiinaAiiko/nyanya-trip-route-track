@@ -52,6 +52,16 @@ func (r *Routerv1) InitTrip() {
 		tc.FinishTrip)
 
 	r.Group.POST(
+		role.SetRole("/trip/correctedData", &middleware.RoleOptionsType{
+			CheckApp:           false,
+			Authorize:          true,
+			RequestEncryption:  false,
+			ResponseEncryption: false,
+			ResponseDataType:   "protobuf",
+		}),
+		tc.CorrectedTripData)
+
+	r.Group.POST(
 		role.SetRole("/trip/update", &middleware.RoleOptionsType{
 			CheckApp:           false,
 			Authorize:          true,
@@ -80,6 +90,26 @@ func (r *Routerv1) InitTrip() {
 			ResponseDataType:   "protobuf",
 		}),
 		tc.GetTrip)
+
+	r.Group.GET(
+		role.SetRole("/trip/positions/get", &middleware.RoleOptionsType{
+			CheckApp:           false,
+			Authorize:          false,
+			RequestEncryption:  false,
+			ResponseEncryption: false,
+			ResponseDataType:   "protobuf",
+		}),
+		tc.GetTripPositions)
+
+	r.Group.GET(
+		role.SetRole("/trip/history/positions/get", &middleware.RoleOptionsType{
+			CheckApp:           false,
+			Authorize:          true,
+			RequestEncryption:  false,
+			ResponseEncryption: false,
+			ResponseDataType:   "protobuf",
+		}),
+		tc.GetTripHistoryPositions)
 
 	r.Group.GET(
 		role.SetRole("/trip/list/get", &middleware.RoleOptionsType{

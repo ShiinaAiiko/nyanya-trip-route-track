@@ -2,8 +2,9 @@ import React, { useEffect, useState } from 'react'
 import Head from 'next/head'
 import { Router } from 'next/router'
 import '../layouts/Trip.scss'
-import './index.scss'
-import './trip/[id].scss'
+import './[lang]/index.scss'
+import './[lang]/trackRoute.scss'
+import './[lang]/trip/detail.scss'
 import '../components/Footer.scss'
 import '../components/Settings.scss'
 import '../components/Header.scss'
@@ -12,6 +13,8 @@ import '../components/MenuDropdown.scss'
 import '../components/TripHistory.scss'
 import '../components/TripItem.scss'
 import '../components/TripEdit.scss'
+import '../components/MapTrackRoute.scss'
+import '../components/Buttons.scss'
 
 import { useRouter } from 'next/router'
 import { Provider } from 'react-redux'
@@ -36,10 +39,19 @@ export default function App({ Component, pageProps }: any) {
 
 	const router = useRouter()
 
+	const ProviderAny = Provider as any
+
 	return (
-		<Provider store={store}>
-			<Init />
-			{getLayout(<Component router={router} {...pageProps} />)}
-		</Provider>
+		<ProviderAny store={store}>
+			<>
+				<Init />
+
+				{getLayout() ? (
+					getLayout(<Component router={router} {...pageProps} />, pageProps)
+				) : (
+					<Component router={router} {...pageProps} />
+				)}
+			</>
+		</ProviderAny>
 	)
 }

@@ -57,6 +57,15 @@
 					margin: 0 0 5px 4px;
 					color: #666;
 				}
+				.ti-d-tip {
+					font-size: 10px;
+					margin: 0 0 5px 4px;
+					color: #999;
+					font-style: italic;
+					background-color: #eee;
+					padding: 4px 8px;
+					border-radius: 6px;
+				}
 			}
 			.ti-color {
 				display: flex;
@@ -87,16 +96,47 @@
 				flex-direction: column;
 				margin-top: 14px;
 				// background-color: rgb(247, 247, 247);
-				padding: 20px 20px;
+				padding: 20px 6px;
 				border-radius: 10px;
 				border: 1px dashed var(--saki-default-color);
+
+				&.en-US {
+					@media screen and (max-width: 767px) {
+						.ti-d-top {
+							.ti-d-item {
+								&.time {
+									.value {
+										font-size: 18px;
+										margin: 2px 0;
+									}
+								}
+								.name {
+									font-size: 10px;
+								}
+							}
+						}
+
+						.ti-d-bottom {
+							.ti-d-b-item {
+								span {
+									&:nth-child(1) {
+										font-size: 10px;
+									}
+								}
+							}
+						}
+					}
+				}
 				.ti-d-top {
 					display: flex;
 					justify-content: space-between;
+					align-items: center;
+
 					.ti-d-item {
 						display: flex;
 						flex-direction: column;
 						align-items: center;
+						width: 33.3333%;
 						.value {
 							font-size: 22px;
 							font-weight: 700;
@@ -111,21 +151,41 @@
 					}
 				}
 				.ti-d-bottom {
-					display: flex;
-					justify-content: center;
+					// display: flex;
+					// justify-content: center;
 					border-top: 1px dashed #eee;
 					margin: 10px 0 0 0;
 					padding: 10px 0 0 0;
+
+					display: grid;
+					grid-template-columns: repeat(3, 1fr);
+					grid-template-rows: repeat(2, 1fr);
 					.ti-d-b-item {
-						// white-space: nowrap;
+						white-space: nowrap;
 						color: #666;
 						font-size: 12px;
+						position: relative;
+						margin: 6px 0;
+						text-align: center;
+						&::before {
+							content: '-';
+							position: absolute;
+							right: 0;
+							top: 50%;
+							transform: translateY(-50%);
+						}
+						&:nth-child(3n),
+						&:nth-last-child(1) {
+							&::before {
+								content: '';
+							}
+						}
 					}
 					&.Mobile {
 						justify-content: space-between;
 						.ti-d-b-item {
 							display: flex;
-							flex-direction: column;
+							flex-direction: column-reverse;
 						}
 					}
 				}

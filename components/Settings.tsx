@@ -1,25 +1,18 @@
 import React, { useEffect, useState } from 'react'
 
 import { useSelector, useDispatch } from 'react-redux'
-import store, {
-	RootState,
-	AppDispatch,
-	useAppDispatch,
-	methods,
-	configSlice,
-	userSlice,
-	layoutSlice,
-} from '../store'
+import store, { RootState, AppDispatch, methods, layoutSlice } from '../store'
+import { useRouter } from 'next/router'
 
 import { sakisso, version } from '../config'
 
-import moment from 'moment'
-
-import { alert, snackbar, bindEvent } from '@saki-ui/core'
+import { bindEvent } from '@saki-ui/core'
 // console.log(sakiui.bindEvent)
-import { storage } from '../store/storage'
 import { useTranslation } from 'react-i18next'
-import { configMethods, maps } from '../store/config'
+import { configMethods, configSlice, maps } from '../store/config'
+import { Query } from '../plugins/methods'
+import { storage, storageMethods } from '../store/storage'
+import { byteConvert } from '@nyanyajs/utils'
 
 const SettingsComponent = ({
 	visible,
@@ -79,6 +72,7 @@ const SettingsComponent = ({
 						border
 						back-icon={!closeIcon}
 						close-icon={closeIcon}
+            right-width={'56px'}
 						ref={bindEvent({
 							close() {
 								onClose?.()
@@ -162,6 +156,7 @@ const SettingsItemList = ({ menuType }: { menuType: string }) => {
 			<General show={menuType === 'General'} />
 			<SyncAndBackup show={menuType === 'SyncAndBackup'} />
 		*/}
+			<Cache show={menuType === 'Cache'} />
 			<About show={menuType === 'About'} />
 		</>
 	)
@@ -305,6 +300,33 @@ const SettingsNavList = ({
 					<span className='name'>{t('syncAndBackup')}</span>
 				</div>
 			</saki-menu-item> */}
+			<saki-menu-item
+				active={menuType === 'Cache'}
+				padding='16px 12px'
+				value='Cache'
+			>
+				<div className='settings-menu-item'>
+					<svg
+						className='icon'
+						width={'16px'}
+						height={'16px'}
+						viewBox='0 0 1024 1024'
+						version='1.1'
+						xmlns='http://www.w3.org/2000/svg'
+						p-id='23126'
+					>
+						<path
+							d='M511.250625 414.911719a46.545031 46.545031 0 0 1 46.545031 46.545031l0.162908 283.575604a46.545031 46.545031 0 0 1-93.090063 0l-0.162907-283.575604a46.545031 46.545031 0 0 1 46.545031-46.545031z m-50.012636-136.53985a50.035909 50.035909 0 0 1 100.071817 0l0.18618 1.512714a50.035909 50.035909 0 0 1-100.071817 0zM511.995345 1024a508.178653 508.178653 0 0 1-293.233697-93.299515 46.405396 46.405396 0 0 1-34.210598-44.683231l-0.418906-4.305415a46.405396 46.405396 0 0 1 80.592722-31.557531 420.534359 420.534359 0 1 0-132.653339-160.161453l-7.540295 7.540295a46.545031 46.545031 0 0 1 29.020827 43.077426l0.442177 4.328688a46.428669 46.428669 0 0 1-91.088626 12.776611A511.995345 511.995345 0 1 1 511.995345 1024z'
+							p-id='23127'
+						></path>
+					</svg>
+					<span className='name'>
+						{t('cache', {
+							ns: 'settings',
+						})}
+					</span>
+				</div>
+			</saki-menu-item>
 			<saki-menu-item
 				active={menuType === 'About'}
 				padding='16px 12px'
@@ -575,6 +597,7 @@ const Language = ({ show }: { show: boolean }) => {
 	// useEffect(() => {
 	// 	setMode(appearance.mode)
 	// }, [appearance.mode])
+	const router = useRouter()
 
 	useEffect(() => {}, [language])
 
@@ -592,6 +615,9 @@ const Language = ({ show }: { show: boolean }) => {
 			content: 'English - English',
 		},
 	])
+
+	let basePathname = router.pathname.replace('/[lang]', '')
+
 	return (
 		<div
 			style={{
@@ -604,7 +630,35 @@ const Language = ({ show }: { show: boolean }) => {
 					<saki-checkbox
 						ref={bindEvent({
 							async selectvalue(e) {
-								store.dispatch(methods.config.setLanguage(e.detail.value))
+								localStorage.setItem('language', e.detail.value)
+
+								// router.locale = e.detail
+								Object.keys(router.query).forEach((k) => {
+									// console.log(k, basePathname.indexOf(`[${k}]`))
+									const i = basePathname.indexOf(`[${k}]`)
+									if (i >= 0) {
+										basePathname = basePathname.replace(
+											`[${k}]`,
+											String(router.query[k])
+										)
+
+										delete router.query[k]
+									}
+								})
+								// console.log('basePathname', basePathname)
+								const pathname = Query(
+									(e.detail.value === 'system' ? '' : '/' + e.detail.value) +
+										basePathname,
+									{
+										...router.query,
+										lang: '',
+									}
+								)
+								console.log('pathname', router, pathname)
+
+								router.replace(pathname || '/')
+
+								// store.dispatch(methods.config.setLanguage(e.detail.value))
 							},
 						})}
 						value={language}
@@ -633,6 +687,10 @@ const Maps = ({ show }: { show: boolean }) => {
 	const config = useSelector((state: RootState) => state.config)
 
 	const dispatch = useDispatch<AppDispatch>()
+
+	const [openMapUrlDowndrop, setOpenMapUrlDowndrop] = useState(false)
+	const [openTrackRouteMapUrlDowndrop, setOpenTrackRouteMapUrlDowndrop] =
+		useState(false)
 	// useEffect(() => {
 	// 	setMode(appearance.mode)
 	// }, [appearance.mode])
@@ -648,25 +706,172 @@ const Maps = ({ show }: { show: boolean }) => {
 			<SettingsItem
 				subtitle={() => <div>{t('basemap')}</div>}
 				main={() => (
-					<saki-checkbox
-						ref={bindEvent({
-							async selectvalue(e) {
-								console.log(e)
-								dispatch(methods.config.setMapKey(e.detail.value))
-							},
-						})}
-						value={config.mapKey}
-						flex-direction='Column'
-						type='Radio'
-					>
-						{maps.map((v, i) => {
-							return (
-								<saki-checkbox-item key={i} padding='14px 0' value={v.key}>
-									{t(v.key)}
-								</saki-checkbox-item>
-							)
-						})}
-					</saki-checkbox>
+					// <saki-checkbox
+					// 	ref={bindEvent({
+					// 		async selectvalue(e) {
+					// 			console.log(e)
+					// 			dispatch(methods.config.setMapKey(e.detail.value))
+					// 		},
+					// 	})}
+					// 	value={config.mapKey}
+					// 	flex-direction='Column'
+					// 	type='Radio'
+					// >
+					// 	{maps.map((v, i) => {
+					// 		return (
+					// 			<saki-checkbox-item key={i} padding='14px 0' value={v.key}>
+					// 				{t(v.key)}
+					// 			</saki-checkbox-item>
+					// 		)
+					// 	})}
+					// </saki-checkbox>
+					<>
+						<div className='sm-basemap'>
+							<span>{t('basemap')}</span>
+							<saki-dropdown
+								visible={openMapUrlDowndrop}
+								floating-direction='Left'
+								z-index='1000'
+								ref={bindEvent({
+									close: () => {
+										setOpenMapUrlDowndrop(false)
+									},
+								})}
+							>
+								<saki-button
+									border='none'
+									bg-hover-color='transparent'
+									bg-active-color='transparent'
+									padding='0px'
+									ref={bindEvent({
+										tap: () => {
+											setOpenMapUrlDowndrop(true)
+										},
+									})}
+								>
+									<span
+										style={{
+											color: '#666',
+										}}
+										className='name'
+									>
+										{t(
+											maps.filter((v) => {
+												return v.key === config.mapKey
+											})?.[0]?.key
+										)}
+									</span>
+									<saki-icon
+										width='12px'
+										height='12px'
+										color='#999'
+										margin='0 0 0 6px'
+										type='Bottom'
+									></saki-icon>
+								</saki-button>
+								<div slot='main'>
+									<saki-menu
+										ref={bindEvent({
+											selectvalue: async (e) => {
+												console.log(e.detail.value)
+												dispatch(methods.config.setMapKey(e.detail.value))
+												setOpenMapUrlDowndrop(false)
+											},
+										})}
+									>
+										{maps.map((v, i) => {
+											return (
+												<saki-menu-item
+													key={i}
+													// width={dropdownWidth}
+													padding='10px 18px'
+													value={v.key}
+												>
+													<div className='note-item'>
+														<span className='text-elipsis'>{t(v.key)}</span>
+													</div>
+												</saki-menu-item>
+											)
+										})}
+									</saki-menu>
+								</div>
+							</saki-dropdown>
+						</div>
+
+						<div className='sm-basemap'>
+							<span>{t('trackRouteBaseMap')}</span>
+							<saki-dropdown
+								visible={openTrackRouteMapUrlDowndrop}
+								floating-direction='Left'
+								z-index='1000'
+								ref={bindEvent({
+									close: () => {
+										setOpenTrackRouteMapUrlDowndrop(false)
+									},
+								})}
+							>
+								<saki-button
+									border='none'
+									bg-hover-color='transparent'
+									bg-active-color='transparent'
+									padding='0px'
+									ref={bindEvent({
+										tap: () => {
+											setOpenTrackRouteMapUrlDowndrop(true)
+										},
+									})}
+								>
+									<span
+										style={{
+											color: '#666',
+										}}
+										className='name'
+									>
+										{t(
+											maps.filter((v) => {
+												return v.key === config.trackRouteMapKey
+											})?.[0]?.key
+										)}
+									</span>
+									<saki-icon
+										width='12px'
+										height='12px'
+										color='#999'
+										margin='0 0 0 6px'
+										type='Bottom'
+									></saki-icon>
+								</saki-button>
+								<div slot='main'>
+									<saki-menu
+										ref={bindEvent({
+											selectvalue: async (e) => {
+												console.log(e.detail.value)
+												dispatch(
+													methods.config.setTrackRouteMapKey(e.detail.value)
+												)
+												setOpenTrackRouteMapUrlDowndrop(false)
+											},
+										})}
+									>
+										{maps.map((v, i) => {
+											return (
+												<saki-menu-item
+													key={i}
+													// width={dropdownWidth}
+													padding='10px 18px'
+													value={v.key}
+												>
+													<div className='note-item'>
+														<span className='text-elipsis'>{t(v.key)}</span>
+													</div>
+												</saki-menu-item>
+											)
+										})}
+									</saki-menu>
+								</div>
+							</saki-dropdown>
+						</div>
+					</>
 				)}
 			></SettingsItem>
 			<SettingsItem
@@ -684,8 +889,31 @@ const Maps = ({ show }: { show: boolean }) => {
 					>
 						{['RedGreen', 'PinkBlue'].map((v, i) => {
 							return (
-								<saki-checkbox-item key={i} padding='14px 0' value={v}>
+								<saki-checkbox-item key={i} padding='10px 0' value={v}>
 									{t(v)}
+								</saki-checkbox-item>
+							)
+						})}
+					</saki-checkbox>
+				)}
+			></SettingsItem>
+			<SettingsItem
+				subtitle={() => <div>{t('trackRouteColor')}</div>}
+				main={() => (
+					<saki-checkbox
+						ref={bindEvent({
+							async selectvalue(e) {
+								dispatch(methods.config.setTrackRouteColor(e.detail.value))
+							},
+						})}
+						value={config.trackRouteColor}
+						flex-direction='Column'
+						type='Radio'
+					>
+						{['Blue', 'Pink', 'Red'].map((v, i) => {
+							return (
+								<saki-checkbox-item key={i} padding='10px 0' value={v}>
+									{t(v.toLowerCase())}
 								</saki-checkbox-item>
 							)
 						})}
@@ -695,44 +923,90 @@ const Maps = ({ show }: { show: boolean }) => {
 			<SettingsItem
 				subtitle={() => <div>{t('trackLine')}</div>}
 				main={() => (
-					<div
-						style={{
-							display: 'flex',
-							alignItems: 'center',
-						}}
-					>
-						<span
+					<>
+						<div
 							style={{
-								paddingRight: '6px',
+								display: 'flex',
+								alignItems: 'center',
+								margin: '16px 0',
 							}}
 						>
-							{t('width')}
-						</span>
-						<saki-input
-							ref={bindEvent({
-								changevalue: (v) => {
-									dispatch(
-										configMethods.setMapPolylineWidth(Number(v.detail) || 8)
-									)
-								},
-							})}
+							<span
+								style={{
+									paddingRight: '6px',
+								}}
+							>
+								{t('realtimeTravelTrackWidth')}
+							</span>
+							<saki-input
+								ref={bindEvent({
+									changevalue: (v) => {
+										dispatch(
+											configSlice.actions.setRealtimeTravelTrackWidth(
+												Number(v.detail) || 8
+											)
+										)
+									},
+								})}
+								style={{
+									flex: '1',
+								}}
+								width='100%'
+								type='Range'
+								value={config.mapPolyline.realtimeTravelTrackWidth}
+								min='1'
+								max='10'
+							></saki-input>
+							<span
+								style={{
+									paddingLeft: '6px',
+								}}
+							>
+								{config.mapPolyline.realtimeTravelTrackWidth}px
+							</span>
+						</div>
+						<div
 							style={{
-								flex: '1',
-							}}
-							width='100%'
-							type='Range'
-							value={config.mapPolyline.width}
-							min='1'
-							max='10'
-						></saki-input>
-						<span
-							style={{
-								paddingLeft: '6px',
+								display: 'flex',
+								alignItems: 'center',
+								margin: '16px 0',
 							}}
 						>
-							{config.mapPolyline.width}px
-						</span>
-					</div>
+							<span
+								style={{
+									paddingRight: '6px',
+								}}
+							>
+								{t('historyTravelTrackWidth')}
+							</span>
+							<saki-input
+								ref={bindEvent({
+									changevalue: (v) => {
+										dispatch(
+											configSlice.actions.setHistoryTravelTrackWidth(
+												Number(v.detail) || 8
+											)
+										)
+									},
+								})}
+								style={{
+									flex: '1',
+								}}
+								width='100%'
+								type='Range'
+								value={config.mapPolyline.historyTravelTrackWidth}
+								min='1'
+								max='10'
+							></saki-input>
+							<span
+								style={{
+									paddingLeft: '6px',
+								}}
+							>
+								{config.mapPolyline.historyTravelTrackWidth}px
+							</span>
+						</div>
+					</>
 				)}
 			></SettingsItem>
 		</div>
@@ -803,577 +1077,58 @@ const Maps = ({ show }: { show: boolean }) => {
 // 	)
 // }
 
-// const General = ({ show }: { show: boolean }) => {
-// 	const { t, i18n } = useTranslation('settings')
-// 	const ref = React.useRef<HTMLInputElement>(null)
-// 	const appearance = useSelector((state: RootState) => state.appearance)
-// 	const config = useSelector((state: RootState) => state.config)
-// 	const autoCloseWindowAfterCopy = useSelector(
-// 		(state: RootState) => state.config.general.autoCloseWindowAfterCopy
-// 	)
+const Cache = ({ show }: { show: boolean }) => {
+	const { t, i18n } = useTranslation('settings')
+	const dispatch = useDispatch<AppDispatch>()
 
-// 	const dispatch = useDispatch<AppDispatch>()
-// 	const [mode, setMode] = useState(appearance.mode)
-// 	useEffect(() => {
-// 		setMode(appearance.mode)
-// 	}, [appearance.mode])
+	const layout = useSelector((state: RootState) => state.layout)
 
-// 	useEffect(() => {
-// 		if (ref.current !== null) {
-// 			ref.current.setAttribute('directory', '')
-// 			ref.current.setAttribute('webkitdirectory', '')
-// 		}
-// 	}, [ref])
-// 	return (
-// 		<div
-// 			style={{
-// 				display: show ? 'block' : 'none',
-// 			}}
-// 		>
-// 			<SettingsItem
-// 				subtitle={() => <div>{t('shortcut')}</div>}
-// 				main={() => (
-// 					<saki-checkbox
-// 						ref={bindEvent({
-// 							async selectvalue(e) {
-// 								console.log(e.detail.value)
-// 								// await dispatch(
-// 								// 	methods.appearance.SetMode(e.detail.value)
-// 								// ).unwrap()
+	const [size, setSize] = useState(0)
 
-// 								// api.showNotification({
-// 								// 	title: t('appearance', {
-// 								// 		ns: 'settings',
-// 								// 	}),
-// 								// 	content:
-// 								// 		t('switchSuccessfully', {
-// 								// 			ns: 'settings',
-// 								// 		}) + t(e.detail.value),
-// 								// 	timeout: 3000,
-// 								// })
-// 							},
-// 						})}
-// 						value={mode}
-// 						flex-direction='Column'
-// 						type='Radio'
-// 					>
-// 						<div className='shortcut-item'>
-// 							<span>
-// 								{t('openMeowStickyNote', {
-// 									ns: 'settings',
-// 								})}
-// 							</span>
-// 							<div className='keys'>
-// 								<div className='key-item'>CTRL</div>
-// 								<div className='key-item'>ALT</div>
-// 								<div className='key-item'>N</div>
-// 							</div>
-// 						</div>
-// 						<div className='shortcut-item'>
-// 							<span>
-// 								{t('openQuickReview', {
-// 									ns: 'settings',
-// 								})}
-// 							</span>
-// 							<div className='keys'>
-// 								<div className='key-item'>CTRL</div>
-// 								<div className='key-item'>ALT</div>
-// 								<div className='key-item'>R</div>
-// 							</div>
-// 						</div>
-// 					</saki-checkbox>
-// 				)}
-// 			></SettingsItem>
-// 			<SettingsItem
-// 				subtitle={() => (
-// 					<div>
-// 						{t('pageTitle', {
-// 							ns: 'quickReviewPage',
-// 						})}
-// 					</div>
-// 				)}
-// 				main={() => (
-// 					<div className='auto-close-window-after-copy'>
-// 						<span>
-// 							{t('autoCloseWindowAfterCopy', {
-// 								ns: 'settings',
-// 							})}
-// 						</span>
-// 						<saki-switch
-// 							ref={bindEvent({
-// 								change: (e) => {
-// 									store.dispatch(
-// 										configSlice.actions.setAutoCloseWindowAfterCopy(e.detail)
-// 									)
-// 									api.updateSetting({
-// 										type: 'autoCloseWindowAfterCopy',
-// 									})
-// 								},
-// 							})}
-// 							height='24px'
-// 							value={autoCloseWindowAfterCopy}
-// 						></saki-switch>
-// 					</div>
-// 				)}
-// 			></SettingsItem>
+	useEffect(() => {
+		if (show) {
+			getSize()
+		}
+	}, [show, layout.settingType])
 
-// 			{/* <input ref={ref} type='file' /> */}
-// 		</div>
-// 	)
-// }
+	const getSize = async () => {
+		const tripPositions = await storage.tripPositions.getAll()
 
-// const SyncAndBackup = ({ show }: { show: boolean }) => {
-// 	const { t, i18n } = useTranslation('settings')
-// 	const ref = React.useRef<HTMLInputElement>(null)
-// 	const appearance = useSelector((state: RootState) => state.appearance)
-// 	const config = useSelector((state: RootState) => state.config)
-// 	const user = useSelector((state: RootState) => state.user)
-// 	const sync = useSelector((state: RootState) => state.config.sync)
-// 	const dispatch = useDispatch<AppDispatch>()
-// 	const [
-// 		openAutomaticBackupFrequencyDropDown,
-// 		setOpenAutomaticBackupFrequencyDropDown,
-// 	] = useState(false)
-// 	const [openKeepBackupsDropDown, setOpenKeepBackupsDropDown] = useState(false)
+		// console.log(tripPositions, JSON.stringify(tripPositions).length)
+		const s = JSON.stringify(tripPositions).length - 2
+		setSize(s <= 0 ? 0 : s)
+	}
 
-// 	let dropdownWidth = '180px'
-// 	let keepBackupsValues = [
-// 		{
-// 			value: String(2592000),
-// 			key: t('atLeastOneMonths', {
-// 				ns: 'settings',
-// 			}),
-// 		},
-// 		{
-// 			value: String(7776000),
-// 			key: t('atLeastThreeMonths', {
-// 				ns: 'settings',
-// 			}),
-// 		},
-// 		{
-// 			value: String(3784320000),
-// 			key: t('forever', {
-// 				ns: 'settings',
-// 			}),
-// 		},
-// 	]
-// 	let automaticBackupFrequencyValues = [
-// 		{
-// 			value: String(86400),
-// 			key: t('daily', {
-// 				ns: 'settings',
-// 			}),
-// 		},
-// 		{
-// 			value: String(604800),
-// 			key: t('weekly', {
-// 				ns: 'settings',
-// 			}),
-// 		},
-// 	]
-
-// 	useEffect(() => {
-// 		show && dispatch(methods.config.getLastBackupTime())
-// 	}, [show])
-
-// 	return (
-// 		<div
-// 			style={{
-// 				display: show ? 'block' : 'none',
-// 			}}
-// 		>
-// 			<SettingsItem
-// 				subtitle={() => <div>{t('sync')}</div>}
-// 				main={() => (
-// 					<div className='s-sync'>
-// 						<span>
-// 							{!user.isLogin
-// 								? t('syncPromptForNotLoggedIn')
-// 								: sync
-// 								? t('syncingTo') +
-// 								  (user.userInfo.email || user.userInfo.username)
-// 								: t('syncTo') + (user.userInfo.email || user.userInfo.username)}
-// 						</span>
-// 						<saki-switch
-// 							ref={bindEvent({
-// 								change: (e) => {
-// 									if (!user.isLogin) {
-// 										snackbar({
-// 											message: t('goToLogin', {
-// 												ns: 'common',
-// 											}),
-// 											horizontal: 'center',
-// 											vertical: 'top',
-// 											autoHideDuration: 2000,
-// 											closeIcon: true,
-// 										}).open()
-// 									} else {
-// 										store.dispatch(configSlice.actions.setSync(e.detail))
-// 										api.updateSetting({
-// 											type: 'sync',
-// 										})
-// 									}
-// 								},
-// 							})}
-// 							height='24px'
-// 							value={!user.isLogin ? false : sync}
-// 						></saki-switch>
-// 					</div>
-// 				)}
-// 			></SettingsItem>
-// 			{/* backup automatically  */}
-// 			{config.platform === 'Electron' ? (
-// 				<>
-// 					<SettingsItem
-// 						subtitle={() => <div>{t('backup')}</div>}
-// 						main={() => (
-// 							<div className='s-backup'>
-// 								<div className='s-b-path'>
-// 									<span className='name'>
-// 										{t('storagePath', {
-// 											ns: 'settings',
-// 										})}
-// 									</span>
-// 									<saki-button
-// 										border='none'
-// 										bg-hover-color='transparent'
-// 										bg-active-color='transparent'
-// 										padding='0px'
-// 										ref={bindEvent({
-// 											tap: () => {
-// 												api.openFolder(config.backup.storagePath, 'BackupPath')
-// 											},
-// 										})}
-// 									>
-// 										<div
-// 											className='content'
-// 											title={
-// 												config.backup.storagePath ||
-// 												t('chooseStoragePath', {
-// 													ns: 'settings',
-// 												})
-// 											}
-// 										>
-// 											<span className='path text-elipsis'>
-// 												{config.backup.storagePath
-// 													? config.backup.storagePath
-// 													: t('chooseStoragePath', {
-// 															ns: 'settings',
-// 													  })}
-// 											</span>
-// 											<svg
-// 												className='icon'
-// 												viewBox='0 0 1024 1024'
-// 												version='1.1'
-// 												xmlns='http://www.w3.org/2000/svg'
-// 												p-id='48694'
-// 											>
-// 												<path
-// 													d='M621.254 877.254l320-320c24.994-24.992 24.994-65.516 0-90.51l-320-320c-24.994-24.992-65.516-24.992-90.51 0-24.994 24.994-24.994 65.516 0 90.51L741.49 448 128 448c-35.346 0-64 28.654-64 64s28.654 64 64 64l613.49 0L530.744 786.746C518.248 799.242 512 815.622 512 832s6.248 32.758 18.744 45.254C555.738 902.248 596.26 902.248 621.254 877.254z'
-// 													p-id='48695'
-// 												></path>
-// 											</svg>
-// 										</div>
-// 									</saki-button>
-// 								</div>
-
-// 								<div className='s-p-last-backup-time'>
-// 									<div>
-// 										<span>
-// 											{t('lastBackupTime', {
-// 												ns: 'settings',
-// 											}) + ': '}
-// 										</span>
-// 										<span
-// 											style={{
-// 												color: '#999',
-// 											}}
-// 										>
-// 											{config.backup.lastBackupTime
-// 												? moment(config.backup.lastBackupTime * 1000).format(
-// 														'YYYY-MM-DD hh:mm:ss'
-// 												  )
-// 												: ''}
-// 										</span>
-// 									</div>
-
-// 									<saki-button
-// 										ref={bindEvent({
-// 											tap: () => {
-// 												api.backup(true)
-
-// 												setTimeout(() => {
-// 													dispatch(methods.config.getLastBackupTime())
-// 												}, 500)
-// 											},
-// 										})}
-// 										padding='6px 10px'
-// 										type='Primary'
-// 									>
-// 										{t('backUpNow', {
-// 											ns: 'settings',
-// 										})}
-// 									</saki-button>
-// 								</div>
-// 								{/* <div className='s-p-buttons'>
-// 									<saki-button
-// 										ref={bindEvent({
-// 											tap: () => {
-// 												api.backup(true)
-
-// 												setTimeout(() => {
-// 													dispatch(methods.config.getLastBackupTime())
-// 												}, 500)
-// 											},
-// 										})}
-// 										margin='18px 0 0'
-// 										padding='6px 10px'
-// 										type='Primary'
-// 									>
-// 										Back Up Now
-// 									</saki-button>
-// 								</div> */}
-// 							</div>
-// 						)}
-// 					></SettingsItem>
-
-// 					<SettingsItem
-// 						subtitle={() => <div>{t('backupAutomatically')}</div>}
-// 						main={() => (
-// 							<div className='s-backup'>
-// 								<div className='s-p-automatically'>
-// 									<span>
-// 										{t('backupAutomatically', {
-// 											ns: 'settings',
-// 										})}
-// 									</span>
-// 									<saki-switch
-// 										ref={bindEvent({
-// 											change: (e) => {
-// 												if (!config.backup.storagePath) {
-// 													snackbar({
-// 														message: '请先选择一个存储路径',
-// 														horizontal: 'center',
-// 														vertical: 'top',
-// 														autoHideDuration: 2000,
-// 														closeIcon: true,
-// 													}).open()
-// 													store.dispatch(
-// 														configSlice.actions.setBackup({
-// 															type: 'backupAutomatically',
-// 															v: false,
-// 														})
-// 													)
-// 													return
-// 												}
-// 												store.dispatch(
-// 													configSlice.actions.setBackup({
-// 														type: 'backupAutomatically',
-// 														v: e.detail,
-// 													})
-// 												)
-// 												if (e.detail) {
-// 													api.backup()
-// 												}
-// 											},
-// 										})}
-// 										height='24px'
-// 										value={config.backup.backupAutomatically}
-// 									></saki-switch>
-// 								</div>
-
-// 								<div className='s-p-automatically'>
-// 									<span>
-// 										{t('automaticBackupFrequency', {
-// 											ns: 'settings',
-// 										})}
-// 									</span>
-
-// 									<saki-dropdown
-// 										visible={openAutomaticBackupFrequencyDropDown}
-// 										floating-direction='Left'
-// 										z-index='1000'
-// 										ref={bindEvent({
-// 											close: () => {
-// 												setOpenAutomaticBackupFrequencyDropDown(false)
-// 											},
-// 										})}
-// 									>
-// 										<saki-button
-// 											border='none'
-// 											bg-hover-color='transparent'
-// 											bg-active-color='transparent'
-// 											padding='0px'
-// 											ref={bindEvent({
-// 												tap: () => {
-// 													console.log('自动备份频率')
-// 													setOpenAutomaticBackupFrequencyDropDown(true)
-// 												},
-// 											})}
-// 										>
-// 											<span
-// 												style={{
-// 													color: '#999',
-// 												}}
-// 												className='name'
-// 											>
-// 												{
-// 													automaticBackupFrequencyValues.filter((v) => {
-// 														return (
-// 															v.value === config.backup.automaticBackupFrequency
-// 														)
-// 													})?.[0]?.key
-// 												}
-// 											</span>
-// 											<svg
-// 												className='icon'
-// 												viewBox='0 0 1024 1024'
-// 												version='1.1'
-// 												xmlns='http://www.w3.org/2000/svg'
-// 												p-id='51874'
-// 												width='16'
-// 												height='16'
-// 												fill='#999'
-// 											>
-// 												<path
-// 													d='M228.266667 347.733333h569.6c14.933333 0 25.6 4.266667 27.733333 12.8 4.266667 8.533333 0 17.066667-10.666667 27.733334l-281.6 281.6c-4.266667 4.266667-12.8 8.533333-19.2 8.533333-8.533333 0-14.933333-2.133333-19.2-8.533333l-281.6-281.6c-10.666667-10.666667-14.933333-21.333333-10.666666-27.733334 0-8.533333 8.533333-12.8 25.6-12.8z'
-// 													p-id='51875'
-// 												></path>
-// 											</svg>
-// 										</saki-button>
-// 										<div slot='main'>
-// 											<saki-menu
-// 												ref={bindEvent({
-// 													selectvalue: async (e) => {
-// 														console.log(e.detail.value)
-// 														store.dispatch(
-// 															configSlice.actions.setBackup({
-// 																type: 'automaticBackupFrequency',
-// 																v: e.detail.value,
-// 															})
-// 														)
-// 														setOpenAutomaticBackupFrequencyDropDown(false)
-// 													},
-// 												})}
-// 											>
-// 												{automaticBackupFrequencyValues.map((v, i) => {
-// 													return (
-// 														<saki-menu-item
-// 															key={i}
-// 															width={dropdownWidth}
-// 															padding='10px 18px'
-// 															value={v.value}
-// 														>
-// 															<div className='note-item'>
-// 																<span className='text-elipsis'>{v.key}</span>
-// 															</div>
-// 														</saki-menu-item>
-// 													)
-// 												})}
-// 											</saki-menu>
-// 										</div>
-// 									</saki-dropdown>
-// 								</div>
-
-// 								<div className='s-p-automatically'>
-// 									<span>
-// 										{t('keepBackups', {
-// 											ns: 'settings',
-// 										})}
-// 									</span>
-
-// 									<saki-dropdown
-// 										visible={openKeepBackupsDropDown}
-// 										floating-direction='Left'
-// 										z-index='1000'
-// 										ref={bindEvent({
-// 											close: () => {
-// 												setOpenKeepBackupsDropDown(false)
-// 											},
-// 										})}
-// 									>
-// 										<saki-button
-// 											border='none'
-// 											bg-hover-color='transparent'
-// 											bg-active-color='transparent'
-// 											padding='0px'
-// 											ref={bindEvent({
-// 												tap: () => {
-// 													setOpenKeepBackupsDropDown(true)
-// 												},
-// 											})}
-// 										>
-// 											<span
-// 												style={{
-// 													color: '#999',
-// 												}}
-// 												className='name'
-// 											>
-// 												{
-// 													keepBackupsValues.filter((v) => {
-// 														return v.value === config.backup.keepBackups
-// 													})?.[0]?.key
-// 												}
-// 											</span>
-// 											<svg
-// 												className='icon'
-// 												viewBox='0 0 1024 1024'
-// 												version='1.1'
-// 												xmlns='http://www.w3.org/2000/svg'
-// 												p-id='51874'
-// 												width='16'
-// 												height='16'
-// 												fill='#999'
-// 											>
-// 												<path
-// 													d='M228.266667 347.733333h569.6c14.933333 0 25.6 4.266667 27.733333 12.8 4.266667 8.533333 0 17.066667-10.666667 27.733334l-281.6 281.6c-4.266667 4.266667-12.8 8.533333-19.2 8.533333-8.533333 0-14.933333-2.133333-19.2-8.533333l-281.6-281.6c-10.666667-10.666667-14.933333-21.333333-10.666666-27.733334 0-8.533333 8.533333-12.8 25.6-12.8z'
-// 													p-id='51875'
-// 												></path>
-// 											</svg>
-// 										</saki-button>
-// 										<div slot='main'>
-// 											<saki-menu
-// 												ref={bindEvent({
-// 													selectvalue: async (e) => {
-// 														console.log(e.detail)
-// 														store.dispatch(
-// 															configSlice.actions.setBackup({
-// 																type: 'keepBackups',
-// 																v: e.detail.value,
-// 															})
-// 														)
-// 														setOpenKeepBackupsDropDown(false)
-// 													},
-// 												})}
-// 											>
-// 												{keepBackupsValues.map((v, i) => {
-// 													return (
-// 														<saki-menu-item
-// 															key={i}
-// 															width={dropdownWidth}
-// 															padding='10px 18px'
-// 															value={v.value}
-// 														>
-// 															<div className='note-item'>
-// 																<span className='text-elipsis'>{v.key}</span>
-// 															</div>
-// 														</saki-menu-item>
-// 													)
-// 												})}
-// 											</saki-menu>
-// 										</div>
-// 									</saki-dropdown>
-// 								</div>
-// 							</div>
-// 						)}
-// 					></SettingsItem>
-// 				</>
-// 			) : (
-// 				''
-// 			)}
-// 		</div>
-// 	)
-// }
+	return (
+		<div
+			style={{
+				display: show ? 'block' : 'none',
+			}}
+		>
+			<div className='setting-cache'>
+				<saki-button
+					ref={bindEvent({
+						tap: () => {
+							storage.tripPositions.deleteAll()
+							setTimeout(() => {
+								getSize()
+							}, 300)
+						},
+					})}
+					margin='20px 0 0'
+					width='200px'
+					padding='10px 10px'
+					type='Primary'
+				>
+					{t('clearCache', {
+						ns: 'settings',
+						size: byteConvert(size),
+					})}
+				</saki-button>
+			</div>
+		</div>
+	)
+}
 
 const About = ({ show }: { show: boolean }) => {
 	const { t, i18n } = useTranslation('settings')

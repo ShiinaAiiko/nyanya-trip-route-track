@@ -1,4 +1,4 @@
-FROM node:16.15.1 as BUILD_IMAGE
+FROM node:18.19.1 as BUILD_IMAGE
 
 WORKDIR /app
 
@@ -17,7 +17,7 @@ RUN \
   # yarn protos && \
   yarn export
 
-FROM node:16.13.1-alpine3.13
+FROM node:18.19.1-alpine3.19
 
 ENV CLIENT_ENV=production
 
@@ -28,7 +28,7 @@ COPY --from=BUILD_IMAGE \
   /dist
 
 RUN \ 
-  yarn global add spa-http-server --registry https://registry.npmmirror.com/ && \
+  # yarn global add spa-http-server --registry https://registry.npmmirror.com/ && \
   tar cvzf /build.tgz  -C /dist .
 
 EXPOSE 23202

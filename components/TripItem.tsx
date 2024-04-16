@@ -25,16 +25,25 @@ import { protoRoot } from '../protos'
 import { Chart } from 'chart.js/auto'
 import {
 	formatDistance,
+	formatPositionsStr,
 	formatTime,
 	getDistance,
 	getLatLng,
 	getSpeedColor,
 	getZoom,
+	// testGpsData,
 } from '../plugins/methods'
 import Leaflet from 'leaflet'
 import html2canvas from 'html2canvas'
-import { cnMap, eventListener, osmMap, speedColorRGBs } from '../store/config'
+import {
+	cnMap,
+	eventListener,
+	maps,
+	osmMap,
+	speedColorRGBs,
+} from '../store/config'
 import NoSSR from './NoSSR'
+import { useRouter } from 'next/router'
 
 const TripItemComponent = memo(
 	({
@@ -53,7 +62,7 @@ const TripItemComponent = memo(
 		onDelete: (tripId: string) => void
 		onTrip: (trip?: protoRoot.trip.ITrip) => void
 	}) => {
-		console.log('TripItemComponent')
+		console.log('TripItemComponent', tripId)
 		const { t, i18n } = useTranslation('tripItemPage')
 		const layout = useSelector((state: RootState) => state.layout)
 		const config = useSelector((state: RootState) => state.config)
@@ -63,6 +72,8 @@ const TripItemComponent = memo(
 
 		const speedChart = useRef<Chart<'line', any[], unknown>>()
 		const map = useRef<Leaflet.Map>()
+
+		const router = useRouter()
 
 		const dispatch = useDispatch<AppDispatch>()
 		// const [menuType, setMenuType] = useState('Appearance')
@@ -146,37 +157,15 @@ const TripItemComponent = memo(
 
 		useEffect(() => {
 			if (!map.current && config.country && tripId && trip?.id) {
-				let tDistance = 0
-
-				dispatch(
-					tripSlice.actions.setTripForDetailPage({
-						...trip,
-						positions: trip?.positions?.map((v, i) => {
-							if (i > 0) {
-								const lv = trip?.positions?.[i - 1]
-								if (lv) {
-									tDistance += getDistance(
-										v.longitude || 0,
-										v.latitude || 0,
-										lv.longitude || 0,
-										lv.latitude || 0
-									)
-								}
-							}
-							return {
-								...v,
-								distance: tDistance,
-							}
-						}),
-					})
-				)
-
 				outSpeedLineChart()
 				initMap()
 			}
 		}, [trip?.id, config.country])
 
 		const initMap = () => {
+			const { config } = store.getState()
+
+			console.log('---initMap---')
 			const L: typeof Leaflet = (window as any).L
 			if (L) {
 				console.log(geo.position)
@@ -184,9 +173,42 @@ const TripItemComponent = memo(
 				let lon = geo.position?.coords?.longitude || 0
 				let zoom = 13
 
-				if (trip?.positions?.length) {
-					const startPosition = trip.positions[0]
-					const endPosition = trip.positions[trip.positions.length - 1]
+				// const positions = testGpsData
+				// const positions =
+				// 	testGpsData.filter((v) => {
+				// 		const gss = !(
+				// 			v.speed === null ||
+				// 			v.altitude === null ||
+				// 			v.accuracy === null ||
+				// 			v.accuracy > 20
+				// 		)
+				// 		// console.log(v)
+
+				// 		console.log('gss', gss)
+				// 		return gss
+
+				// 		return !(Number(v.speed || 0) < 0 || Number(v.altitude || 0) < 0)
+				// 	}) || []
+				let positions = trip?.positions || []
+
+				positions = positions.filter((v, i) => {
+					const gss = !(
+						(v.speed === null || v.altitude === null)
+						// ||
+						// v.accuracy === null ||
+						// (v.accuracy || 0) > 20
+					)
+
+					if (v.speed && v.speed > 45) {
+						console.log(v.speed, v.timestamp)
+					}
+					return gss
+
+					return !(Number(v.speed || 0) < 0 || Number(v.altitude || 0) < 0)
+				})
+				if (positions.length) {
+					const startPosition = positions[0]
+					const endPosition = positions[positions.length - 1]
 
 					lat =
 						(startPosition.latitude || 0) -
@@ -216,6 +238,7 @@ const TripItemComponent = memo(
 					map.current = L.map('ti-map', {
 						zoomControl: false,
 						renderer: L.canvas(),
+						attributionControl: false,
 						// center: [Number(res?.data?.lat), Number(res?.data?.lon)],
 					})
 					// 检测地址如果在中国就用高德地图
@@ -226,11 +249,16 @@ const TripItemComponent = memo(
 						//   120.3814, -1.09],
 						zoom
 					)
-					L.tileLayer(config.mapUrl, {
-						// errorTileUrl: osmMap,
-						maxZoom: 18,
-						// attribution: `&copy;`,
-					}).addTo(map.current)
+					L.tileLayer(
+						config.mapUrl,
+						// maps.filter((v) => v.key === 'GeoQNight')?.[0]?.url ||
+						// 	config.mapUrl,
+						{
+							// errorTileUrl: osmMap,
+							maxZoom: 18,
+							// attribution: `&copy;`,
+						}
+					).addTo(map.current)
 					//定义一个地图缩放控件
 					// var zoomControl = L.control.zoom({ position: 'topleft' })
 					// //将地图缩放控件加载到地图
@@ -238,10 +266,30 @@ const TripItemComponent = memo(
 					// m.removeControl(zoomControl)
 				}
 				if (map.current) {
-					map.current.panTo([lat, lon])
+					map.current.panTo([lat, lon], {
+						animate: false,
+					})
 					if (trip?.positions) {
-						const positions = trip.positions
 						console.time('getLatLnggetLatLng')
+
+						// testGpsData
+						// .map((v) => {
+						// 	return {
+						// 		coords: {
+						// 			latitude: v.latitude,
+						// 			longitude: v.longitude,
+						// 			altitude: v.altitude,
+						// 			altitudeAccuracy: v.altitudeAccuracy,
+						// 			accuracy: v.accuracy,
+						// 			speed: v.speed,
+						// 			heading: v.heading,
+						// 		},
+						// 		timestamp: v.timestamp,
+						// 	}
+						// })
+
+						const latLngs: number[][] = []
+						const colors: string[] = []
 
 						positions
 							.filter((v) => {
@@ -249,11 +297,20 @@ const TripItemComponent = memo(
 									Number(v.speed || 0) < 0 || Number(v.altitude || 0) < 0
 								)
 							})
-							?.forEach((v, i) => {
-								if (i === 0) {
-									return
-								}
-								const lv = positions[i - 1]
+							?.forEach((v, i, arr) => {
+								// if (i > arr.length - 2554) {
+								// 	return
+								// }
+								// console.log(
+								// 	'v.latitude',
+								// 	v.latitude,
+								// 	positions[0].latitude,
+								// 	i,
+								// 	arr.length - 10,
+								// 	i < arr.length - 10
+								// )
+
+								// const lv = positions[i - 1]
 
 								// console.log(
 								// 	i,
@@ -266,29 +323,54 @@ const TripItemComponent = memo(
 										(trip?.type?.toLowerCase() || 'running') as any
 									]
 
-								const latlng = getLatLng(lat, lon)
+								// const latlng = getLatLng(lat, lon)
 
-								lat = latlng[0]
-								lon = latlng[1]
-								map.current &&
-									L.polyline(
-										[
-											getLatLng(lv.latitude || 0, lv.longitude || 0) as any,
-											getLatLng(v.latitude || 0, v.longitude || 0) as any,
-										],
-										{
-											// smoothFactor:10,
-											// snakingSpeed: 200,
-											color: getSpeedColor(
-												v.speed || 0,
-												speedColorLimit.minSpeed,
-												speedColorLimit.maxSpeed
-											), //线的颜色
-											weight: config.mapPolyline.width,
-											// opacity: 0.3,
-										}
-									).addTo(map.current)
+								// lat = latlng[0]
+								// lon = latlng[1]
+
+								latLngs.push(
+									getLatLng(v.latitude || 0, v.longitude || 0) as any
+								)
+								colors.push(
+									getSpeedColor(
+										v.speed || 0,
+										speedColorLimit.minSpeed,
+										speedColorLimit.maxSpeed
+									)
+								)
+								// map.current &&
+								// 	L.polyline(
+								// 		[
+								// 			getLatLng(lv.latitude || 0, lv.longitude || 0) as any,
+								// 			getLatLng(v.latitude || 0, v.longitude || 0) as any,
+								// 		],
+								// 		{
+								// 			// smoothFactor:10,
+								// 			// snakingSpeed: 200,
+								// 			color: getSpeedColor(
+								// 				v.speed || 0,
+								// 				speedColorLimit.minSpeed,
+								// 				speedColorLimit.maxSpeed
+								// 			), //线的颜色
+								// 			weight: config.mapPolyline.realtimeTravelTrackWidth,
+								// 			// weight: config.mapPolyline.historyTravelTrackWidth,
+								// 			// opacity: 0.3,
+								// 		}
+								// 	).addTo(map.current)
 							})
+
+						// console.log('LLLL', L)
+						const playline = (L as any)
+							.polycolor(latLngs, {
+								colors: colors,
+								useGradient: true,
+								weight: config.mapPolyline.realtimeTravelTrackWidth,
+							})
+							.addTo(map.current)
+						// console.log('LLLLplayline', playline)
+						// console.log('LLLLplayline', playline, playline.setLatLngs(latLngs))
+
+						// console.log('config.mapPolyline.width', config.mapPolyline.width)
 
 						if (positions?.[0]) {
 							let startIcon = L.icon({
@@ -296,7 +378,7 @@ const TripItemComponent = memo(
 								iconUrl: '/position_start_green.png',
 								iconSize: [28, 28],
 								// shadowSize: [36, 36],
-								// iconAnchor: [22, 94],
+								iconAnchor: [14, 25],
 								// shadowAnchor: [4, 62],
 								// popupAnchor: [-3, -76],
 							})
@@ -324,7 +406,7 @@ const TripItemComponent = memo(
 								// iconUrl: '/position_start.png',
 								// iconSize: [28, 28],
 								// shadowSize: [36, 36],
-								iconAnchor: [0, 26],
+								iconAnchor: [0, 30],
 								// shadowAnchor: [4, 62],
 								// popupAnchor: [-3, -76],
 							})
@@ -364,16 +446,25 @@ const TripItemComponent = memo(
 
 		const outSpeedLineChart = () => {
 			try {
-				// console.log('	trip?.positions', trip?.positions)
+				const startTime = Number(trip?.startTime)
+				const endTime = Number(trip?.endTime)
+				console.log(
+					'outSpeedLineChart',
+					startTime,
+					endTime,
+					endTime - startTime,
+					trip?.positions
+				)
 				if (speedChart.current) return
 				const el = document.getElementById('speed-chart')
 
 				let labels: any[] = []
 				let speedData: number[] = []
 				let altitudeData: number[] = []
+
 				trip?.positions?.forEach((v, i) => {
 					// if (i > 10) return
-					labels.push(Math.floor(v?.distance || 0))
+					labels.push(Math.round((v.distance || 0) / 10) / 100 + 'km')
 					speedData.push((v.speed || 0) < 0 ? 0 : (v.speed || 0) * 3.6)
 					altitudeData.push(v.altitude || 0)
 				})
@@ -426,6 +517,7 @@ const TripItemComponent = memo(
 					speedChart.current = new Chart(el as any, {
 						type: 'line',
 						data: data as any,
+
 						options: {
 							responsive: true,
 							plugins: {
@@ -492,7 +584,9 @@ const TripItemComponent = memo(
 		const outShareImage = async () => {
 			setGeneratingSharedData(true)
 			const pb = snackbar({
-				message: '正在生成分享内容...',
+				message: t('generatingSharingContent', {
+					ns: 'prompt',
+				}),
 				vertical: 'center',
 				horizontal: 'center',
 				padding: '14px 20px',
@@ -581,12 +675,87 @@ const TripItemComponent = memo(
 				shareKey: shareKey,
 			})
 			console.log('getTrip', res)
-			if (res.code === 200 && res?.data?.trip) {
+			let tripPositions = await storage.tripPositions.get(tripId)
+
+			console.log(
+				'storage tripPositions',
+				(tripPositions?.positions?.[0]?.split('-') || [])?.length <= 2,
+				tripPositions,
+				!tripPositions
+			)
+			if (
+				!tripPositions ||
+				(tripPositions?.positions?.[0]?.split('-') || [])?.length <= 2 ||
+				!tripPositions?.status
+			) {
+				const posRes = await httpApi.v1.GetTripPositions({
+					id: tripId,
+					shareKey: shareKey,
+				})
+
+				if (posRes.code === 200 && posRes.data?.tripPositions?.positions) {
+					res.data.trip &&
+						(res.data.trip.status =
+							Number(posRes.data?.tripPositions.status) || 0)
+					tripPositions = posRes.data.tripPositions
+					if (posRes.data?.tripPositions.status) {
+						await storage.tripPositions.set(tripId, posRes.data.tripPositions)
+					}
+				}
+			}
+
+			console.log('GetTripPositions pospos', tripPositions)
+			if (res.code === 200 && res?.data?.trip && tripPositions) {
+				res.data.trip.positions = formatPositionsStr(
+					Number(tripPositions.startTime),
+					tripPositions.positions || []
+				)
+				console.log('pospos', res.data.trip.positions)
+				// if (pos) {
+				// 	console.log('getTrip', pos[0].timestamp)
+				// 	console.log('getTrip', pos[pos.length - 1].timestamp)
+				// }
 				// setTrip(res?.data?.trip)
 				if (res.data.trip?.statistics) {
 					res.data.trip.statistics.minAltitude = Math.min(
 						...(res?.data?.trip?.positions?.map((v) => v.altitude || 0) || [0])
 					)
+
+					// console.log(
+					// 	'res.data.trip.statistics?.climbAltitude',
+					// 	res.data.trip.statistics?.climbAltitude,
+					// 	res.data.trip?.positions
+					// )
+					if (
+						!res.data.trip.statistics?.climbAltitude ||
+						!res.data.trip.statistics?.descendAltitude
+					) {
+						let climbAltitude = 0
+						let descendAltitude = 0
+						res.data.trip?.positions?.forEach((v, i) => {
+							if (i === 0) return
+							let lv = res.data.trip?.positions?.[i - 1]
+							if (lv?.altitude && Number(v.altitude) > lv.altitude) {
+								climbAltitude =
+									Math.floor(
+										(climbAltitude +
+											(Number(v.altitude) - Number(lv.altitude))) *
+											1000
+									) / 1000
+							}
+							if (lv?.altitude && Number(v.altitude) < lv.altitude) {
+								descendAltitude =
+									Math.floor(
+										(descendAltitude +
+											(Number(lv.altitude) - Number(v.altitude))) *
+											1000
+									) / 1000
+							}
+						})
+
+						res.data.trip.statistics.climbAltitude = climbAltitude
+						res.data.trip.statistics.descendAltitude = descendAltitude
+					}
 				}
 
 				dispatch(tripSlice.actions.setTripForDetailPage(res?.data?.trip))
@@ -613,28 +782,43 @@ const TripItemComponent = memo(
 				backgroundColor: 'var(--saki-default-color)',
 				color: '#fff',
 			}).open()
+
 			window.navigator.clipboard.writeText(
 				location.origin +
-					'/trip/' +
+					(config.language === 'system' ? '' : '/' + config.language) +
+					'/trip/detail' +
+					'?id=' +
 					tripId +
-					'?sk=' +
+					'&sk=' +
 					(trip?.permissions?.shareKey || '')
 			)
 		}
 
 		const switchShareKey = async (copy: boolean) => {
 			alert({
-				title: !trip?.permissions?.shareKey ? '开启分享' : '关闭分享',
-				content: '分享',
+				title: !trip?.permissions?.shareKey
+					? t('enableShare', {
+							ns: 'prompt',
+					  })
+					: t('disableShare', {
+							ns: 'prompt',
+					  }),
+				content: !trip?.permissions?.shareKey
+					? t('enableShareContent', {
+							ns: 'prompt',
+					  })
+					: t('disableShareContent', {
+							ns: 'prompt',
+					  }),
 				cancelText: t('cancel', {
-					ns: 'common',
+					ns: 'prompt',
 				}),
 				confirmText: !trip?.permissions?.shareKey
 					? t('share', {
-							ns: 'common',
+							ns: 'prompt',
 					  })
 					: t('unshare', {
-							ns: 'common',
+							ns: 'prompt',
 					  }),
 				onCancel() {},
 				async onConfirm() {
@@ -643,9 +827,9 @@ const TripItemComponent = memo(
 
 					const res = await httpApi.v1.UpdateTrip({
 						id: tripId,
-						shareKey: !trip?.permissions?.shareKey ? 'Delete' : 'Generate',
+						shareKey: !!trip?.permissions?.shareKey ? 'Delete' : 'Generate',
 					})
-					console.log('res', res)
+					console.log('res', res, !!trip?.permissions?.shareKey)
 					if (res.code === 200) {
 						if (trip?.permissions?.shareKey) {
 						}
@@ -667,7 +851,7 @@ const TripItemComponent = memo(
 							color: '#fff',
 							autoHideDuration: 2000,
 						}).open()
-						if (copy) {
+						if (res?.data?.shareKey && copy) {
 							copyUrl()
 						}
 						return
@@ -684,22 +868,44 @@ const TripItemComponent = memo(
 			}).open()
 		}
 
-		const finishTrip = async () => {
+		const finishTrip = async (correctedData: boolean) => {
 			if (!trip?.id) return
-			if ((trip?.statistics?.distance || 0) < 50) {
-				deleteTrip()
-				return
+
+			let endTime = 0
+			if (trip?.positions?.length && trip?.positions?.length >= 10) {
+				endTime =
+					Number(trip?.positions[trip?.positions.length - 1].timestamp) || 0
 			}
+			// if ((trip?.statistics?.distance || tDistance || 0) < 50) {
+			// 	deleteTrip()
+			// 	return
+			// }
 			const params: protoRoot.trip.FinishTrip.IRequest = {
 				id: trip?.id || '',
-				statistics: {
-					distance: trip?.statistics?.distance || 0,
-					maxSpeed: trip?.statistics?.maxSpeed || 0,
-					averageSpeed: trip?.statistics?.averageSpeed || 0,
-					maxAltitude: trip?.statistics?.maxAltitude || 0,
-				},
 			}
-			console.log(params)
+
+			if (!trip.endTime) {
+				params.endTime = endTime
+			}
+
+			console.log('params', params, trip)
+			if (correctedData) {
+				const res = await httpApi.v1.CorrectedTripData(params as any)
+				console.log('FinishTrip', res)
+				if (res.code === 200) {
+					getTrip()
+					return
+				}
+
+				snackbar({
+					message: res.error || res.msg,
+					autoHideDuration: 2000,
+					vertical: 'top',
+					horizontal: 'center',
+				}).open()
+				return
+			}
+
 			const res = await httpApi.v1.FinishTrip(params)
 			console.log('FinishTrip', res)
 			if (res.code === 200) {
@@ -712,8 +918,16 @@ const TripItemComponent = memo(
 					}).open()
 					return
 				}
+				getTrip()
+				return
 			}
-			getTrip()
+
+			snackbar({
+				message: res.error || res.msg,
+				autoHideDuration: 2000,
+				vertical: 'top',
+				horizontal: 'center',
+			}).open()
 		}
 
 		const deleteTrip = async () => {
@@ -797,12 +1011,6 @@ const TripItemComponent = memo(
 						timestamp: v.timestamp,
 					}
 				}),
-				statistics: {
-					distance: trip?.statistics?.distance,
-					maxSpeed: trip?.statistics?.maxSpeed,
-					averageSpeed: trip?.statistics?.averageSpeed,
-					maxAltitude: trip?.statistics?.maxAltitude,
-				},
 				createTime: trip?.createTime,
 				startTime: trip?.startTime,
 				endTime: trip?.endTime,
@@ -830,7 +1038,9 @@ const TripItemComponent = memo(
 					async onConfirm() {
 						storage.trips.delete(localTripId || '')
 						snackbar({
-							message: '删除成功！',
+							message: t('deletedSuccessfully', {
+								ns: 'prompt',
+							}),
 							vertical: 'top',
 							horizontal: 'center',
 							backgroundColor: 'var(--saki-default-color)',
@@ -884,6 +1094,14 @@ const TripItemComponent = memo(
 														ns: 'tripPage',
 												  })
 												: ''}
+											{/* {' · ' +
+												(!trip?.permissions?.shareKey
+													? t('enableShare', {
+															ns: 'prompt',
+													  })
+													: t('disableShare', {
+															ns: 'prompt',
+													  }))} */}
 										</div>
 										<div className='ti-more'>
 											<saki-dropdown
@@ -915,13 +1133,16 @@ const TripItemComponent = memo(
 																switch (e.detail.value) {
 																	case 'Share':
 																		console.log(trip)
-																		switchShareKey(false)
+																		switchShareKey(true)
 																		break
 																	case 'AddTripToOnline':
 																		addTripToOnline()
 																		break
 																	case 'FinishTrip':
-																		finishTrip()
+																		finishTrip(false)
+																		break
+																	case 'CorrectedData':
+																		finishTrip(true)
 																		break
 																	case 'Edit':
 																		dispatch(
@@ -956,24 +1177,46 @@ const TripItemComponent = memo(
 																		</span>
 																	</div>
 																</saki-menu-item>
-																<saki-menu-item
-																	padding='10px 18px'
-																	value={'Share'}
-																>
-																	<div className='tb-h-r-user-item'>
-																		<span>
-																			{!trip?.permissions?.shareKey
-																				? t('share', {
-																						ns: 'common',
-																				  })
-																				: t('unshare', {
-																						ns: 'common',
-																				  })}
-																		</span>
-																	</div>
-																</saki-menu-item>
+																{trip?.statistics?.distance !==
+																	trip?.positions?.[trip?.positions.length - 1]
+																		?.distance || 0 ? (
+																	<saki-menu-item
+																		padding='10px 18px'
+																		value={'CorrectedData'}
+																	>
+																		<div className='tb-h-r-user-item'>
+																			<span>
+																				{t('correctedData', {
+																					ns: 'tripPage',
+																				})}
+																			</span>
+																		</div>
+																	</saki-menu-item>
+																) : (
+																	''
+																)}
+																{user.isLogin ? (
+																	<saki-menu-item
+																		padding='10px 18px'
+																		value={'Share'}
+																	>
+																		<div className='tb-h-r-user-item'>
+																			<span>
+																				{!trip?.permissions?.shareKey
+																					? t('share', {
+																							ns: 'prompt',
+																					  })
+																					: t('unshare', {
+																							ns: 'prompt',
+																					  })}
+																			</span>
+																		</div>
+																	</saki-menu-item>
+																) : (
+																	''
+																)}
 															</>
-														) : trip?.status === 0 || !trip?.status ? (
+														) : trip?.status !== 1 || !trip?.status ? (
 															<>
 																<saki-menu-item
 																	padding='10px 18px'
@@ -1026,9 +1269,34 @@ const TripItemComponent = memo(
 									</div>
 									<div className='ti-distance'>
 										<div className='ti-d-value'>
-											{Math.round((trip?.statistics?.distance || 0) / 10) / 100}
+											<span>
+												{Math.round((trip?.statistics?.distance || 0) / 10) /
+													100}
+											</span>
 										</div>
 										<div className='ti-d-unit'>km</div>
+										{/* {trip?.statistics?.distance !==
+											trip?.positions?.[trip?.positions.length - 1]?.distance ||
+										0 ? (
+										) : (
+											''
+										)} */}
+
+										<span
+											style={{
+												display: 'none',
+											}}
+											className='ti-d-tip'
+											data-old-distance={trip?.statistics?.distance}
+											data-new-distance={
+												trip?.positions?.[trip?.positions.length - 1]
+													?.distance || 0
+											}
+										>
+											{t('tripDataCanBeCorrected', {
+												ns: 'tripPage',
+											})}
+										</span>
 									</div>
 									<div className='ti-color'>
 										<div
@@ -1060,7 +1328,7 @@ const TripItemComponent = memo(
 											})}
 										</div>
 									</div>
-									<div className='ti-data'>
+									<div className={'ti-data ' + config.lang}>
 										<div className='ti-d-top'>
 											<div className='ti-d-item'>
 												<span className='value'>
@@ -1076,7 +1344,7 @@ const TripItemComponent = memo(
 													}) + ' (km/h)'}
 												</span>
 											</div>
-											<div className='ti-d-item'>
+											<div className='ti-d-item time'>
 												<span className='value'>
 													{Number(trip.endTime || 0) > 0
 														? formatTime(
@@ -1122,14 +1390,14 @@ const TripItemComponent = memo(
 													km/h
 												</span>
 											</span>
-											<span
+											{/* <span
 												className='ti-d-b-item'
 												style={{
 													margin: '0 6px',
 												}}
 											>
 												-
-											</span>
+											</span> */}
 											<span className='ti-d-b-item'>
 												<span>
 													{t('averageAltitude', {
@@ -1147,14 +1415,14 @@ const TripItemComponent = memo(
 													m
 												</span>
 											</span>
-											<span
+											{/* <span
 												className='ti-d-b-item'
 												style={{
 													margin: '0 6px',
 												}}
 											>
 												-
-											</span>
+											</span> */}
 											<span className='ti-d-b-item'>
 												<span>
 													{t('minAltitude', {
@@ -1164,6 +1432,34 @@ const TripItemComponent = memo(
 												<span>
 													{Math.round(
 														(trip?.statistics?.minAltitude || 0) * 10
+													) / 10}{' '}
+													m
+												</span>
+											</span>
+
+											<span className='ti-d-b-item'>
+												<span>
+													{t('climbAltitude', {
+														ns: 'tripPage',
+													}) + ' '}
+												</span>
+												<span>
+													{Math.round(
+														(trip?.statistics?.climbAltitude || 0) * 10
+													) / 10}{' '}
+													m
+												</span>
+											</span>
+
+											<span className='ti-d-b-item'>
+												<span>
+													{t('descendAltitude', {
+														ns: 'tripPage',
+													}) + ' '}
+												</span>
+												<span>
+													{Math.round(
+														(trip?.statistics?.descendAltitude || 0) * 10
 													) / 10}{' '}
 													m
 												</span>
@@ -1208,7 +1504,7 @@ const TripItemComponent = memo(
 										loading={generatingSharedData}
 									>
 										{t('share', {
-											ns: 'common',
+											ns: 'prompt',
 										})}
 									</saki-button>
 								</div>
@@ -1243,6 +1539,7 @@ const TripItemComponent = memo(
 											<div className='buttons-header'>
 												<saki-modal-header
 													border
+													right-width={'56px'}
 													close-icon={true}
 													ref={bindEvent({
 														close() {
@@ -1250,7 +1547,9 @@ const TripItemComponent = memo(
 															setShareImageDataBase('')
 														},
 													})}
-													title={'分享'}
+													title={t('share', {
+														ns: 'prompt',
+													})}
 												/>
 											</div>
 											<div className='buttons-main'>
@@ -1274,7 +1573,11 @@ const TripItemComponent = memo(
 																type='Download'
 															></saki-icon>
 														</div>
-														<span>保存图片</span>
+														<span>
+															{t('saveImage', {
+																ns: 'prompt',
+															})}
+														</span>
 													</div>
 												</saki-button>
 												{user.isLogin ? (
@@ -1296,7 +1599,11 @@ const TripItemComponent = memo(
 															<div className='bi-icon link'>
 																<saki-icon color='#fff' type='Link'></saki-icon>
 															</div>
-															<span>复制链接</span>
+															<span>
+																{t('copyLink', {
+																	ns: 'prompt',
+																})}
+															</span>
 														</div>
 													</saki-button>
 												) : (

@@ -27,16 +27,21 @@ type TripPosition struct {
 }
 
 type TripStatistics struct {
-	Distance     float64 `bson:"distance" json:"distance,omitempty"`
-	MaxSpeed     float64 `bson:"maxSpeed" json:"maxSpeed,omitempty"`
-	AverageSpeed float64 `bson:"averageSpeed" json:"averageSpeed,omitempty"`
-	MaxAltitude  float64 `bson:"maxAltitude" json:"maxAltitude,omitempty"`
+	Distance        float64 `bson:"distance" json:"distance,omitempty"`
+	MaxSpeed        float64 `bson:"maxSpeed" json:"maxSpeed,omitempty"`
+	AverageSpeed    float64 `bson:"averageSpeed" json:"averageSpeed,omitempty"`
+	MaxAltitude     float64 `bson:"maxAltitude" json:"maxAltitude,omitempty"`
+	MinAltitude     float64 `bson:"minAltitude" json:"minAltitude,omitempty"`
+	ClimbAltitude   float64 `bson:"climbAltitude" json:"climbAltitude,omitempty"`
+	DescendAltitude float64 `bson:"descendAltitude" json:"descendAltitude,omitempty"`
 }
 
 type TripPermissions struct {
 	// 为空则不支持分享
 	// 传了则视为分享权限，可无视用户校验
 	ShareKey string `bson:"shareKey" json:"shareKey,omitempty"`
+
+	// Share bool `bson:"share" json:"share,omitempty"`
 }
 
 type Trip struct {
@@ -44,7 +49,7 @@ type Trip struct {
 	Id string `bson:"_id" json:"id,omitempty"`
 	// 非必填
 	Name string `bson:"name" json:"name,omitempty"`
-	// Running、Bike、Drive
+	// Running、Bike、Drive、Motorcycle、Walking、PowerWalking
 	Type        string           `bson:"type" json:"type,omitempty"`
 	Positions   []*TripPosition  `bson:"positions" json:"positions,omitempty"`
 	Statistics  *TripStatistics  `bson:"statistics" json:"statistics,omitempty"`
@@ -107,7 +112,13 @@ func (s *Trip) Validate() error {
 	return validation.ValidateStruct(
 		s,
 		validation.Parameter(&s.Id, validation.Required(), validation.Type("string")),
-		validation.Parameter(&s.Type, validation.Required(), validation.Enum([]string{"Running", "Bike", "Drive"})),
+		validation.Parameter(&s.Type, validation.Required(), validation.Enum([]string{
+			"Running",
+			"Bike",
+			"Drive",
+			"Motorcycle",
+			"Walking",
+			"PowerWalking"})),
 		validation.Parameter(&s.AuthorId, validation.Required()),
 		validation.Parameter(&s.Status, validation.Required(), validation.Enum([]int64{1, 0, -1})),
 		validation.Parameter(&s.CreateTime, validation.Required()),

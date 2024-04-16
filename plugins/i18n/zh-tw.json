@@ -6,8 +6,6 @@
 		"aiikoBlog": "愛喵博客",
 		"login": "登錄",
 		"logout": "登出",
-		"share": "分享",
-		"unshare": "取消分享",
 
 		"edit": "編輯",
 		"save": "儲存"
@@ -18,77 +16,21 @@
 		"zh-TW": "中文(繁體)",
 		"system": "使用設備語言"
 	},
-	"windowsPathToPosixPathPage": {
-		"pageTitle": "將 Windows 路徑轉換為 Posix 路徑",
-		"subtitle": "用於wsl、git bash",
-		"convert": "轉換",
-		"convertAndCopy": "轉換和復制",
-		"windowsPath": "Windows 路徑",
-		"posixPath": "Posix 路徑"
-	},
-	"randomPasswordPage": {
-		"pageTitle": "随机密码",
-		"subtitle": "",
-		"length": "长度",
-		"numbers": "數字",
-		"symbols": "符号"
-	},
-	"avatarBadgeGeneratorPage": {
-		"pageTitle": "頭像角標生成器",
-		"subtitle": "為頭像添加角標",
-		"badge": "角標",
-		"style": "樣式",
-		"size": "大小",
-		"position": "位置",
-		"topLeft": "左上角",
-		"topRight": "右上角",
-		"bottomLeft": "左下角",
-		"bottomRight": "右下角",
-		"borderRadius": "邊界半徑",
-		"distanceBorder": "到邊界距離",
-		"borderSize": "邊框大小",
-		"borderColor": "邊框顏色",
-		"avatar": "頭像",
-		"avatarStyle": "頭像樣式",
-		"output": "輸出",
-		"outputParameters": "輸出參數",
-		"resolution": "分辨率",
-		"quality": "質量"
-	},
-	"ipPage": {
-		"pageTitle": "查詢IP或域名詳情",
-		"subtitle": "",
-		"inputPlaceholder": "輸入 IP 或域名",
-		"myIPDetails": "我的 IP 詳情",
-		"IPDetails": "IP 詳情",
-		"search": "查詢",
-		"keyword": "關鍵詞",
-		"detail": "詳細信息",
-		"ipv4": "IPv4",
-		"ipv6": "IPv6",
-		"country": "國家",
-		"regionName": "省",
-		"city": "城市",
-		"isp": "互聯網服務供應商",
-		"org": "公司/組織",
-		"lon": "經度",
-		"lat": "緯度",
-		"timezone": "時區"
-	},
-	"navigatePage": {
-		"pageTitle": "導航測速喵",
-		"subtitle": ""
-	},
 	"tripPage": {
 		"pageTitle": "行程路線軌跡",
-		"subtitle": "",
+		"subtitle": "便捷方便的記錄GPS路線軌跡、速度、里程、海拔等行程數據~，支援步行、騎行、駕車等多種出行方式。",
 		"all": "全部",
 		"running": "跑步",
 		"bike": "騎行",
 		"drive": "駕車",
+		"walking": "步行",
+		"powerwalking": "健走",
+		"motorcycle": "摩托車",
 		"totalDistance": "總距離",
 		"maxSpeed": "最高速度",
 		"maxAltitude": "最高海拔",
+		"climbAltitude": "爬升海拔",
+		"descendAltitude": "下降海拔",
 		"distance": "距離",
 		"speed": "速度",
 		"altitude": "海拔",
@@ -107,15 +49,27 @@
 
 		"averageSpeed": "平均速度",
 		"averageAltitude": "平均海拔",
-		"minAltitude": "最小海拔",
+		"minAltitude": "最低海拔",
 
 		"editTrip": "編輯行程",
 		"type": "出行類型",
 		"currentType": "目前出行類型",
 
 		"local": "本地",
-    
-		"addTripToOnline": "將行程儲存到線上"
+
+		"addTripToOnline": "將行程儲存到線上",
+
+		"finishTrip": "結束行程",
+
+		"correctedData": "修復行程數據",
+		"tripDataCanBeCorrected": "行程數據可修正",
+
+		"tripsCount": "{{num}}次行程",
+		"durationText": "{{num}}小時"
+	},
+	"trackRoutePage": {
+		"pageTitle": "歷史行程軌跡",
+		"subtitle": "已記錄的行程所有軌跡路線會被繪製"
 	},
 	"tripHistoryPage": {
 		"pageTitle": "行程歷史"
@@ -144,10 +98,6 @@
 		"username": "用戶名",
 		"bio": "介紹",
 
-		"openMeowStickyNote": "打開随喵笔记",
-		"openQuickReview": "打開快速預覽",
-		"autoCloseWindowAfterCopy": "複製后自動關閉窗口",
-
 		"light": "淺色模式",
 		"dark": "暗黑模式",
 		"black": "黑色模式",
@@ -155,32 +105,16 @@
 
 		"switchSuccessfully": "已切換為 ",
 
-		"shortcut": "快捷鍵",
-
-		"storagePath": "存儲路徑",
-		"automaticBackupFrequency": "自動備份頻率",
-		"backupAutomatically": "自動備份",
-		"keepBackups": "保留備份",
-		"chooseStoragePath": "選擇一個存儲路徑",
-
-		"atLeastOneMonths": "至少一個月",
-		"atLeastThreeMonths": "至少三個月",
-		"forever": "永遠",
-
-		"daily": "每日",
-		"weekly": "每週",
-
-		"lastBackupTime": "上次備份時間",
-
-		"backUpNow": "立即備份",
-
 		"about": "關於",
 
 		"basemap": "基礎地圖",
 		"maps": "地圖",
 		"AutoSelect": "自動選擇",
-		"OpenStreetMap": "Open Street Map",
+		"OpenStreetMap": "開放街道地圖",
+		"Google": "Google",
+		"GoogleSatellite": "Google 衛星圖",
 		"Amap": "高德",
+		"AmapSatellite": "高德衛星圖",
 		"GeoQBase": "GeoQ 標準",
 		"GeoQNight": "GeoQ 夜晚",
 		"GeoQGrey": "GeoQ 灰色",
@@ -191,7 +125,19 @@
 		"RedGreen": "紅綠",
 		"PinkBlue": "藍粉",
 		"trackLine": "軌跡線",
-		"width": "寬度"
+		"width": "寬度",
+		"realtimeTravelTrackWidth": "即時行程軌跡寬度",
+		"historyTravelTrackWidth": "歷史行程軌跡寬度",
+
+		"cache": "快取",
+		"clearCache": "清除快取 ({{size}})",
+
+		"trackRouteBaseMap": "歷史軌跡路線底圖",
+
+		"trackRouteColor": "歷史軌跡路線顏色",
+		"blue": "藍色",
+		"pink": "粉紅色",
+		"red": "紅色"
 	},
 	"prompt": {
 		"next": "繼續",
@@ -200,16 +146,9 @@
 		"cancel": "取消",
 		"confirm": "確認",
 		"copySuccessfully": "複製成功！",
-		"windowsPathDoesNotExist": "Windows 路徑不存在。",
-		"posixPathDoesNotExist": "Posix 路徑不存在。",
-		"download": "下載",
-		"pleaseUploadYourAvatar": "請上傳你的頭像",
-		"ipEmptyTip": "IP或者域名不能為空",
-		"querySuccessfully": "查詢成功！",
-		"queryFailed": "查詢失敗，請重新輸入IP或域名",
-		"connectMapFailed": "無法連接地圖，請檢查網絡。",
 
 		"deleteThisTrip": "刪除此行程？",
+		"deletedSuccessfully": "刪除成功!",
 		"deleteThisTrip50m": "距離需要大於50公尺才能儲存。是否刪除此行程？",
 		"noLoginSaveTrip": "如果您未登入您的帳戶，您的行程記錄將儲存在本機。",
 		"tripSavedLocally": "已將此行程儲存到了本地",
@@ -217,6 +156,25 @@
 
 		"logout": "登出",
 		"logoutContent": "你確定要退出嗎？",
-		"logoutSuccessfully": "成功退出賬戶"
+		"logoutSuccessfully": "成功退出賬戶",
+
+		"deleteInvalidTrip": "刪除無效行程",
+		"deleteAllTrip50m": "有{{uselessDataCount}}個行程是無效數據，您確定要刪除這些行程嗎？",
+
+		"loadingData": "正在載入數據",
+		"loadedData": "已載入 {{percentage}} 的行程資料",
+
+		"noLoginTrip": "您需要登入您的帳戶才能繼續訪問",
+
+		"share": "分享",
+		"unshare": "取消分享",
+		"generatingSharingContent": "正在產生分享內容...",
+		"enableShare": "啟用分享",
+		"disableShare": "停用分享",
+		"enableShareContent": "您確定要啟用分享嗎？",
+		"disableShareContent": "您確定要停用分享嗎？",
+
+		"saveImage": "儲存圖片",
+		"copyLink": "複製連結"
 	}
 }

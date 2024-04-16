@@ -1,0 +1,28 @@
+
+.map-track-route-modal-component {
+	display: flex;
+	justify-content: flex-start;
+	flex-direction: column;
+	height: 100%;
+	user-select: none;
+
+	.ml-header {
+	}
+	.ml-main {
+		display: flex;
+		justify-content: space-between;
+		height: calc(100% - 56px);
+		// border-top: 1px solid #eee;
+
+		.settings-m-left {
+			width: 200px;
+			height: 100%;
+			border-right: 1px solid #eee;
+		}
+		.settings-m-main {
+			width: calc(100% - 200px);
+			height: 100%;
+			padding: 10px 0px;
+		}
+	}
+}

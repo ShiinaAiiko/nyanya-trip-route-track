@@ -6,8 +6,6 @@
 		"aiikoBlog": "爱喵博客",
 		"login": "登录",
 		"logout": "登出",
-		"share": "分享",
-		"unshare": "取消分享",
 
 		"edit": "编辑",
 		"save": "保存"
@@ -18,77 +16,21 @@
 		"zh-TW": "中文(繁体)",
 		"system": "使用设备语言"
 	},
-	"windowsPathToPosixPathPage": {
-		"pageTitle": "将 Windows 路径转换为 Posix 路径",
-		"subtitle": "用于wsl，Git Bash",
-		"convert": "转换",
-		"convertAndCopy": "转换并复制",
-		"windowsPath": "Windows 路径",
-		"posixPath": "Posix 路径"
-	},
-	"randomPasswordPage": {
-		"pageTitle": "随机密码",
-		"subtitle": "",
-		"length": "长度",
-		"numbers": "数字",
-		"symbols": "符号"
-	},
-	"avatarBadgeGeneratorPage": {
-		"pageTitle": "头像角标生成器",
-		"subtitle": "为头像添加角标",
-		"badge": "角标",
-		"style": "样式",
-		"size": "大小",
-		"position": "位置",
-		"topLeft": "左上角",
-		"topRight": "右上角",
-		"bottomLeft": "左下角",
-		"bottomRight": "右下角",
-		"borderRadius": "边界半径",
-		"distanceBorder": "到边界距离",
-		"borderSize": "边框大小",
-		"borderColor": "边框颜色",
-		"avatar": "头像",
-		"avatarStyle": "头像样式",
-		"output": "输出",
-		"outputParameters": "输出参数",
-		"resolution": "分辨率",
-		"quality": "质量"
-	},
-	"ipPage": {
-		"pageTitle": "查询IP或域名详情",
-		"subtitle": "",
-		"inputPlaceholder": "输入 IP 或域名",
-		"myIPDetails": "我的IP详情",
-		"IPDetails": "IP 详情",
-		"search": "查询",
-		"keyword": "关键词",
-		"detail": "详细信息",
-		"ipv4": "IPv4",
-		"ipv6": "IPv6",
-		"country": "国家",
-		"regionName": "省",
-		"city": "城市",
-		"isp": "互联网服务供应商",
-		"org": "公司/组织",
-		"lon": "经度",
-		"lat": "纬度",
-		"timezone": "时区"
-	},
-	"navigatePage": {
-		"pageTitle": "导航测速喵",
-		"subtitle": ""
-	},
 	"tripPage": {
 		"pageTitle": "行程路线轨迹",
-		"subtitle": "",
+		"subtitle": "便捷方便的记录GPS路线轨迹、速度、里程、海拔等行程数据~，支持步行、骑行、驾车等多种出行方式。",
 		"all": "全部",
 		"running": "跑步",
 		"bike": "骑行",
 		"drive": "驾车",
+		"walking": "步行",
+		"powerwalking": "健走",
+		"motorcycle": "摩托车",
 		"totalDistance": "总距离",
 		"maxSpeed": "最高速度",
 		"maxAltitude": "最高海拔",
+		"climbAltitude": "爬升海拔",
+		"descendAltitude": "下降海拔",
 		"distance": "距离",
 		"speed": "速度",
 		"altitude": "海拔",
@@ -107,7 +49,7 @@
 
 		"averageSpeed": "平均速度",
 		"averageAltitude": "平均海拔",
-		"minAltitude": "最小海拔",
+		"minAltitude": "最低海拔",
 
 		"editTrip": "编辑行程",
 		"type": "出行类型",
@@ -115,7 +57,19 @@
 
 		"local": "本地",
 
-		"addTripToOnline": "将行程保存到线上"
+		"addTripToOnline": "将行程保存到线上",
+
+		"finishTrip": "结束行程",
+
+		"correctedData": "修复行程数据",
+		"tripDataCanBeCorrected": "行程数据可修正",
+
+		"tripsCount": "{{num}}次行程",
+		"durationText": "{{num}}小时"
+	},
+	"trackRoutePage": {
+		"pageTitle": "历史行程轨迹",
+		"subtitle": "已记录过的行程所有轨迹路线均会被绘制"
 	},
 	"tripHistoryPage": {
 		"pageTitle": "行程历史"
@@ -144,10 +98,6 @@
 		"username": "用户名",
 		"bio": "介绍",
 
-		"openMeowStickyNote": "打开随喵笔记",
-		"openQuickReview": "打开快速预览",
-		"autoCloseWindowAfterCopy": "复制后自动关闭窗口",
-
 		"light": "浅色模式",
 		"dark": "暗黑模式",
 		"black": "黑色模式",
@@ -155,32 +105,16 @@
 
 		"switchSuccessfully": "已切换为 ",
 
-		"shortcut": "快捷键",
-
-		"storagePath": "存储路径",
-		"automaticBackupFrequency": "自动备份频率",
-		"backupAutomatically": "自动备份",
-		"keepBackups": "保留备份",
-		"chooseStoragePath": "选择存储路径",
-
-		"atLeastOneMonths": "至少一个月",
-		"atLeastThreeMonths": "至少三个月",
-		"forever": "永久",
-
-		"daily": "每日",
-		"weekly": "每周",
-
-		"lastBackupTime": "上次备份时间",
-
-		"backUpNow": "立即备份",
-
 		"about": "关于",
 
 		"basemap": "基础地图",
 		"maps": "地图",
 		"AutoSelect": "自动选择",
-		"OpenStreetMap": "Open Street Map",
+		"OpenStreetMap": "开放街道地图",
+		"Google": "谷歌",
+		"GoogleSatellite": "谷歌卫星图",
 		"Amap": "高德",
+		"AmapSatellite": "高德卫星图",
 		"GeoQBase": "GeoQ 标准",
 		"GeoQNight": "GeoQ 夜晚",
 		"GeoQGrey": "GeoQ 灰色",
@@ -191,7 +125,19 @@
 		"RedGreen": "红绿",
 		"PinkBlue": "蓝粉",
 		"trackLine": "轨迹线",
-		"width": "宽度"
+		"width": "宽度",
+		"realtimeTravelTrackWidth": "实时行程轨迹宽度",
+		"historyTravelTrackWidth": "历史行程轨迹宽度",
+
+		"cache": "缓存",
+		"clearCache": "清除缓存 ({{size}})",
+
+		"trackRouteBaseMap": "历史轨迹路线底图",
+
+		"trackRouteColor": "历史轨迹路线颜色",
+		"blue": "蓝色",
+		"pink": "粉色",
+		"red": "红色"
 	},
 	"prompt": {
 		"next": "下一步",
@@ -200,16 +146,9 @@
 		"cancel": "取消",
 		"confirm": "确认",
 		"copySuccessfully": "复制成功！",
-		"windowsPathDoesNotExist": "Windows 路径不存在。",
-		"posixPathDoesNotExist": "Posix 路径不存在。",
-		"download": "下载",
-		"pleaseUploadYourAvatar": "请上传你的头像",
-		"ipEmptyTip": "IP或者域名不能为空",
-		"querySuccessfully": "查询成功！",
-		"queryFailed": "查询失败，请重新输入IP或域名",
-		"connectMapFailed": "无法连接地图，请检查网络。",
 
 		"deleteThisTrip": "删除此行程？",
+		"deletedSuccessfully": "删除成功!",
 		"deleteThisTrip50m": "距离需要大于50米才能保存。是否删除此行程？",
 		"noLoginSaveTrip": "如果您未登录您的帐户，您的行程记录将存储在本地。",
 		"tripSavedLocally": "已将此行程保存到了本地",
@@ -217,6 +156,25 @@
 
 		"logout": "退出账号",
 		"logoutContent": "确定想退出账号吗",
-		"logoutSuccessfully": "成功退出账号"
+		"logoutSuccessfully": "成功退出账号",
+
+		"deleteInvalidTrip": "删除无效行程",
+		"deleteAllTrip50m": "有{{uselessDataCount}}个行程是无效数据，您确定要删除这些行程吗？",
+
+		"loadingData": "正在加载数据",
+		"loadedData": "已加载 {{percentage}} 的行程数据",
+
+		"noLoginTrip": "您需要登录您的帐户才能继续访问",
+
+		"share": "分享",
+		"unshare": "取消分享",
+		"generatingSharingContent": "正在生成分享内容...",
+		"enableShare": "启用分享",
+		"disableShare": "禁用分享",
+		"enableShareContent": "您确定要启用分享吗？",
+		"disableShareContent": "您确定要禁用分享吗？",
+
+		"saveImage": "保存图片",
+		"copyLink": "复制链接"
 	}
 }

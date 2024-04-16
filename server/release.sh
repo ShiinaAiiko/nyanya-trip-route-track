@@ -1,11 +1,12 @@
 #! /bin/bash
 name="nyanya-trip-route-track-server"
+runName="$name-run"
 port=23203
 branch="main"
 # configFilePath="config.dev.json"
 configFilePath="config.pro.json"
 DIR=$(cd $(dirname $0) && pwd)
-allowMethods=("stop gitpull protos dockerremove start logs")
+allowMethods=("run stop gitpull protos dockerremove start logs")
 
 gitpull() {
   echo "-> 正在拉取远程仓库"
@@ -54,15 +55,43 @@ start() {
     --restart=always \
     -d $name
 
-  # echo "-> 编译前端镜头文件"
-  # cd ./client
-  # ./release.sh start
-  # cd ..
+  echo "-> 整理文件资源"
+  docker cp $name:/nyanya-toolbox $DIR/nyanya-toolbox
+  stop
+
+  ./ssh.sh run
+
+  rm -rf $DIR/nyanya-toolbox
+}
+
+run() {
+  echo "-> 正在启动「${runName}」服务"
+  dockerremove
+
+  echo "-> 准备构建Docker"
+  docker build \
+    -t \
+    $runName \
+    --network host \
+    . \
+    -f Dockerfile.run.multi
+
+  echo "-> 准备运行Docker"
+  stop
+  docker run \
+    -v $DIR/$configFilePath:/config.json \
+    -v $DIR/client:/client \
+    --name=$runName \
+    -p $port:$port \
+    --restart=always \
+    -d $runName
 }
 
 stop() {
   docker stop $name
   docker rm $name
+  docker stop $runName
+  docker rm $runName
 }
 
 protos() {
