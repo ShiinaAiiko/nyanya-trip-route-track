@@ -26,6 +26,9 @@
 		"walking": "Walking",
 		"powerwalking": "Power Walking",
 		"motorcycle": "Motorcycle",
+		"plane": "Plane",
+		"train": "Train",
+		"publictransport": "Public Transport",
 		"maxSpeed": "Max Speed",
 		"maxAltitude": "Highest Altitude",
 		"climbAltitude": "Climb Altitude",
@@ -64,11 +67,23 @@
 		"tripDataCanBeCorrected": "Trip data can be corrected",
 
 		"tripsCount": "{{num}} trips",
-		"durationText": "{{num}} h"
+		"durationText": "{{num}} h",
+
+		"tripMark": "Trip Mark",
+
+		"fastestAverageSpeed": "Fastest Average Speed",
+		"maxClimbAltitude": "Max Climb Altitude",
+		"maxDescendAltitude": "Max Descend Altitude",
+		"maxDistance": "Longest distance",
+		"statistics": "Statistics",
+
+		"averagePace": "Pace"
 	},
 	"trackRoutePage": {
 		"pageTitle": "Historical trip track",
-		"subtitle": "All tracks and routes of recorded trips will be drawn"
+		"subtitle": "All tracks and routes of recorded trips will be drawn",
+		"startDate": "Start Date",
+		"endDate": "End Date"
 	},
 	"tripHistoryPage": {
 		"pageTitle": "Trip History"
@@ -119,6 +134,8 @@
 		"GeoQGrey": "GeoQ Grey",
 		"GeoQWarm": "GeoQ Warm",
 		"GeoQStreet": "GeoQ Street",
+		"TianDiTuSatellite": "TianDiTu Satellite",
+
 		"speedColor": "Speed Color",
 		"RedGreen": "Red Green",
 		"PinkBlue": "Pink Blue",
@@ -126,6 +143,7 @@
 		"width": "Width",
 		"realtimeTravelTrackWidth": "Real-time travel track width",
 		"historyTravelTrackWidth": "Historical travel track width",
+		"historyTravelDetailedDataTrackWidth": "History travel detailed data track width",
 
 		"cache": "Cache",
 		"clearCache": "Clear Cache ({{size}})",
@@ -135,7 +153,13 @@
 		"trackRouteColor": "Historical Track Route Color",
 		"blue": "Blue",
 		"pink": "Pink",
-		"red": "Red"
+		"red": "Red",
+
+		"maskLayer": "Mask Layer",
+		"grayMask": "Gray Mask",
+
+		"trackRouteDetailedData": "Historical Track Route Detail Data",
+		"trackRouteDetailedDataContent": "Only when filtering multiple itineraries, data such as speed, color, altitude, etc. can be displayed."
 	},
 	"prompt": {
 		"next": "Next",

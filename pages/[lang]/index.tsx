@@ -46,6 +46,8 @@ import {
 	languages,
 } from '../../plugins/i18n/i18n'
 
+let tempTimer: any
+
 const TripPage = () => {
 	const { t, i18n } = useTranslation('tripPage')
 	const [mounted, setMounted] = useState(false)
@@ -67,6 +69,7 @@ const TripPage = () => {
 	const map = useRef<Leaflet.Map>()
 	const loadedMap = useRef(false)
 	const polyline = useRef<any>()
+	const layer = useRef<any>()
 
 	const heading = useRef(0)
 
@@ -84,11 +87,14 @@ const TripPage = () => {
 		}[]
 	>([])
 
-	const latLngs = useRef<number[][]>([])
-	const colors = useRef<string[]>([])
+	const [tripMarks, setTripMarks] = useState<
+		{
+			timestamp: number
+		}[]
+	>([])
 
 	const [gpsSignalStatus, setGpsSignalStatus] = useState(-1)
-	const [type, setType] = useState<TripType>('Running')
+	const [type, setType] = useState<TripType | ''>('')
 
 	const [startTrip, setStartTrip] = useState(false)
 	const [startCountdown, setStartCountdown] = useState(-1)
@@ -176,7 +182,8 @@ const TripPage = () => {
 	}, [])
 
 	useEffect(() => {
-		if (testData) {
+		if (!startTrip) return clearInterval(tempTimer)
+		if (testData && startTrip) {
 			setTimeout(() => {
 				setStartCountdown(0)
 
@@ -190,10 +197,10 @@ const TripPage = () => {
 				// 	)
 				// })
 
-				let timer = setInterval(() => {
+				tempTimer = setInterval(() => {
 					if (!testData?.positions) return
-					if (i > testData.positions?.length - 1 || i > 50) {
-						clearInterval(timer)
+					if (i > testData.positions?.length - 1 || i > 500) {
+						clearInterval(tempTimer)
 						return
 					}
 
@@ -208,8 +215,11 @@ const TripPage = () => {
 
 					dispatch(
 						geoSlice.actions.setPosition({
-							timestamp: testData.positions[i]?.timestamp as any,
-							coords: testData.positions[i] as any,
+							// timestamp: testData.positions[i]?.timestamp as any,
+							timestamp: new Date().getTime(),
+							coords: {
+								...(testData.positions[i] as any),
+							},
 						} as any)
 					)
 					// panToMap(
@@ -220,13 +230,17 @@ const TripPage = () => {
 					// )
 					i++
 				}, 100)
-			}, 3000)
+			}, 1000)
 		}
-	}, [testData])
+	}, [testData, startTrip])
 
 	useEffect(() => {
 		dispatch(layoutSlice.actions.setLayoutHeaderLogoText(t('pageTitle')))
 	}, [i18n.language])
+
+	useEffect(() => {
+		layer.current?.setGrayscale?.(config.isGrayscale)
+	}, [config.isGrayscale])
 
 	useEffect(() => {
 		if (startCountdown === 0) {
@@ -256,15 +270,20 @@ const TripPage = () => {
 			loadedMap.current = false
 			initMap()
 
+			polyline.current = undefined
 			tDistance.current = 0
 			climbAltitude.current = 0
 			descendAltitude.current = 0
 			updatedPositionIndex.current = 0
+			tempPositions.current = []
+			setTripMarks([])
 
 			dispatch(layoutSlice.actions.setLayoutHeader(false))
 			dispatch(layoutSlice.actions.setBottomNavigator(false))
 
 			console.log(map, marker, map)
+			!trip && addTrip()
+
 			// map.current && marker.current && marker.current.removeFrom(map.current)
 			// if (navigator.geolocation) {
 
@@ -332,8 +351,6 @@ const TripPage = () => {
 				// })
 				// testDataIndex.current++
 			}, 1000)
-
-			!trip && addTrip()
 
 			// return
 			// }
@@ -451,7 +468,7 @@ const TripPage = () => {
 							// console.log('distance1', distance, geo.position.coords, lv)
 						}
 						// 在这里绘制新的图
-						// console.log('gss', gss)
+						console.log('gss', gss)
 						if (gss) {
 							const L: typeof Leaflet = (window as any).L
 							if (map.current && L) {
@@ -505,13 +522,25 @@ const TripPage = () => {
 										;(
 											polyline.current as ReturnType<typeof L.polyline>
 										).addLatLng(
-											getLatLng(v.latitude || 0, v.longitude || 0) as any
+											getLatLng(
+												config.mapUrl,
+												v.latitude || 0,
+												v.longitude || 0
+											) as any
 										)
 									} else {
 										const pl = L.polyline(
 											[
-												getLatLng(lv.latitude || 0, lv.longitude || 0) as any,
-												getLatLng(v.latitude || 0, v.longitude || 0) as any,
+												getLatLng(
+													config.mapUrl,
+													lv.latitude || 0,
+													lv.longitude || 0
+												) as any,
+												getLatLng(
+													config.mapUrl,
+													v.latitude || 0,
+													v.longitude || 0
+												) as any,
 											],
 											{
 												// smoothFactor:10,
@@ -641,11 +670,12 @@ const TripPage = () => {
 	useEffect(() => {
 		geo.position && map && panToMap(geo.position)
 	}, [map])
+	// console.log('router', router.pathname)
 
 	useEffect(() => {
-		// console.log('tyupe', type, user.isLogin)
-		getTripStatistics(type)
-	}, [user.isLogin])
+		console.log('tyupe', router.pathname, type, user.isLogin)
+		type && getTripStatistics(type)
+	}, [user.isLogin, type])
 
 	const requestWakeLock = async () => {
 		try {
@@ -700,6 +730,7 @@ const TripPage = () => {
 					zoomControl: false,
 					minZoom: 3,
 					maxZoom: 18,
+					zoomSnap: 0.5,
 
 					attributionControl: false,
 					// center: [Number(res?.data?.lat), Number(res?.data?.lon)],
@@ -728,10 +759,14 @@ const TripPage = () => {
 				// 	(L as any).tileLayer.chinaProvider('GaoDe.Normal.Map')
 				// } else {
 				// console.log("config.mapUrl",config.mapUrl)
-				const layer = L.tileLayer(config.mapUrl, {
-					// errorTileUrl: osmMap,
-					// attribution: `&copy;`,
-				}).addTo(map.current)
+				layer.current = (L.tileLayer as any)
+					.grayscale(config.mapUrl, {
+						// className:""
+						// errorTileUrl: osmMap,
+						// attribution: `&copy;`,
+					})
+					.addTo(map.current)
+				layer.current.setGrayscale(config.isGrayscale)
 
 				console.log('layer', layer)
 				// }
@@ -783,6 +818,7 @@ const TripPage = () => {
 		// console.log('panToMap', position, map.current, L, marker.current)
 		if (map.current && L) {
 			const [lat, lon] = getLatLng(
+				config.mapUrl,
 				position?.coords.latitude || 0,
 				position?.coords.longitude || 0
 			)
@@ -853,20 +889,38 @@ const TripPage = () => {
 	}
 
 	const addTrip = async () => {
-		if (!user.isLogin) {
-			const id = 'IDB_' + md5(String(startTime))
-			const v = {
-				id,
+		let id = 'IDB_' + md5(String(new Date().getTime()))
+
+		const v = {
+			id,
+			type,
+			positions: [],
+			statistics: {},
+			permissions: {},
+			status: 0,
+			createTime: Math.floor(new Date().getTime() / 1000),
+			startTime: Math.floor(new Date().getTime() / 1000),
+		}
+		setTrip(v)
+		await storage.trips.set(id, v)
+
+		if (user.isLogin) {
+			const params: protoRoot.trip.AddTrip.IRequest = {
 				type,
-				positions: [],
-				statistics: {},
-				permissions: {},
-				status: 0,
-				createTime: Math.floor(new Date().getTime() / 1000),
-				startTime: Math.floor(new Date().getTime() / 1000),
+				// startTime: Math.floor(startTime / 1000),
 			}
-			setTrip(v)
-			await storage.trips.set(id, v)
+			console.log(params)
+			const res = await httpApi.v1.AddTrip(params)
+			console.log('addTrip', res)
+			if (res.code === 200 && res?.data?.trip?.id) {
+				await storage.trips.delete(id)
+
+				console.log(res?.data?.trip)
+				id = res?.data?.trip?.id
+				setTrip(res?.data?.trip)
+				await storage.trips.set(id, res?.data?.trip)
+			}
+		} else {
 			snackbar({
 				message: t('noLoginSaveTrip', {
 					ns: 'prompt',
@@ -877,18 +931,6 @@ const TripPage = () => {
 				backgroundColor: 'var(--saki-default-color)',
 				color: '#fff',
 			}).open()
-			return
-		}
-		const params: protoRoot.trip.AddTrip.IRequest = {
-			type,
-			// startTime: Math.floor(startTime / 1000),
-		}
-		console.log(params)
-		const res = await httpApi.v1.AddTrip(params)
-		console.log('addTrip', res)
-		if (res.code === 200) {
-			console.log(res?.data?.trip)
-			res?.data?.trip && setTrip(res?.data?.trip)
 		}
 	}
 
@@ -896,42 +938,86 @@ const TripPage = () => {
 		const pl = tempPositions.current.filter((_, i) => {
 			return i > updatedPositionIndex.current
 		})
-		console.log('updatePosition', trip, pl)
+		// console.log('updatePosition', trip, pl, updatedPositionIndex.current)
 		if (!trip?.id || !pl.length) return
-		const params: protoRoot.trip.UpdateTripPosition.IRequest = {
-			id: trip?.id || '',
-			distance: statistics.distance,
-			positions: pl.map((v): protoRoot.trip.ITripPosition => {
-				return {
-					latitude: v.latitude,
-					longitude: v.longitude,
-					altitude: v.altitude,
-					altitudeAccuracy: v.altitudeAccuracy,
-					accuracy: v.accuracy,
-					heading: v.heading,
-					speed: v.speed,
-					timestamp: v.timestamp,
-				}
-			}),
-		}
-		console.log(params)
+		// console.log('updatePositionparams', params)
 		const pLength = tempPositions.current.length
-		if (!trip?.authorId) {
-			setTrip({
-				...trip,
-				...params,
-			})
-			await storage.trips.set(trip.id, {
-				...trip,
-				...params,
-			})
+
+		// 本地
+		// setTrip({
+		// 	...trip,
+		// 	...params,
+		// 	positions: localTempPositions,
+		// })
+		await storage.trips.set(trip.id, {
+			...trip,
+			positions: tempPositions.current.map(
+				(v): protoRoot.trip.ITripPosition => {
+					return {
+						latitude: v.latitude,
+						longitude: v.longitude,
+						altitude: v.altitude,
+						altitudeAccuracy: v.altitudeAccuracy,
+						accuracy: v.accuracy,
+						heading: v.heading,
+						speed: v.speed,
+						timestamp: v.timestamp,
+					}
+				}
+			),
+		})
+		if (trip.id.indexOf('IDB') < 0) {
+			const params: protoRoot.trip.UpdateTripPosition.IRequest = {
+				id: trip?.id || '',
+				distance: statistics.distance,
+				positions: pl.map((v): protoRoot.trip.ITripPosition => {
+					return {
+						latitude: v.latitude,
+						longitude: v.longitude,
+						altitude: v.altitude,
+						altitudeAccuracy: v.altitudeAccuracy,
+						accuracy: v.accuracy,
+						heading: v.heading,
+						speed: v.speed,
+						timestamp: v.timestamp,
+					}
+				}),
+			}
+			const res = await httpApi.v1.UpdateTripPosition(params)
+			console.log('updateTripPosition', res)
+			if (res.code === 200) {
+				updatedPositionIndex.current = pLength - 1
+			}
+		} else {
 			updatedPositionIndex.current = pLength - 1
-			return
 		}
-		const res = await httpApi.v1.UpdateTripPosition(params)
-		console.log('updateTripPosition', res)
-		if (res.code === 200) {
-			updatedPositionIndex.current = pLength - 1
+	}
+
+	const addMark = async () => {
+		if (!trip?.id) return
+		const t = Math.floor(new Date().getTime() / 1000)
+		const tMarks = [
+			...tripMarks,
+			{
+				timestamp: t,
+			},
+		]
+		setTripMarks(tMarks)
+
+		await storage.trips.set(trip.id, {
+			...trip,
+			marks: tMarks,
+		})
+		if (trip.id.indexOf('IDB') < 0) {
+			const res = await httpApi.v1.AddTripMark({
+				id: trip?.id,
+				mark: {
+					timestamp: t,
+				},
+			})
+			if (res.code !== 200) {
+				return
+			}
 		}
 	}
 
@@ -939,70 +1025,78 @@ const TripPage = () => {
 		if (!trip?.id) return
 		await updatePosition()
 
-		if (!trip?.authorId) {
-			if (statistics.distance < 50) {
+		// if (statistics.distance >= 50) {
+		const tempTrip = {
+			...trip,
+			marks: tripMarks,
+			positions: tempPositions.current.map(
+				(v): protoRoot.trip.ITripPosition => {
+					return {
+						latitude: v.latitude,
+						longitude: v.longitude,
+						altitude: v.altitude,
+						altitudeAccuracy: v.altitudeAccuracy,
+						accuracy: v.accuracy,
+						heading: v.heading,
+						speed: v.speed,
+						timestamp: v.timestamp,
+					}
+				}
+			),
+			statistics: {
+				distance: Math.round(statistics.distance * 10000) / 10000,
+				maxSpeed: statistics.maxSpeed,
+				averageSpeed: statistics.averageSpeed,
+				maxAltitude: statistics.maxAltitude,
+				climbAltitude: statistics.climbAltitude,
+				descendAltitude: statistics.descendAltitude,
+			},
+			status: 1,
+			endTime: Math.floor(new Date().getTime() / 1000),
+		}
+		await storage.trips.set(trip.id, tempTrip)
+		console.log('tempTrip getLocalTrips', tempTrip)
+		// }
+		if (trip.id.indexOf('IDB') < 0) {
+			const res = await httpApi.v1.FinishTrip({
+				id: trip.id,
+			})
+			console.log('FinishTrip', res)
+			if (res.code === 200) {
+				if (res?.data?.deleted) {
+					snackbar({
+						message: '距离过短, 距离需过50m才会记录',
+						autoHideDuration: 2000,
+						vertical: 'top',
+						horizontal: 'center',
+					}).open()
+				}
+				await storage.trips.delete(trip.id)
+				// await storage.trips.set(trip.id, tempTrip)
+			}
+		} else {
+			if (statistics.distance >= 50) {
+				snackbar({
+					message: t('tripSavedLocally', {
+						ns: 'prompt',
+					}),
+					autoHideDuration: 2000,
+					vertical: 'top',
+					horizontal: 'center',
+					backgroundColor: 'var(--saki-default-color)',
+					color: '#fff',
+				}).open()
+			} else {
+				await storage.trips.delete(trip.id)
 				snackbar({
 					message: '距离过短, 距离需过50m才会记录',
 					autoHideDuration: 2000,
 					vertical: 'top',
 					horizontal: 'center',
 				}).open()
-				return
-			}
-			setTrip({
-				...trip,
-				statistics: {
-					distance: Math.round(statistics.distance * 10000) / 10000,
-					maxSpeed: statistics.maxSpeed,
-					averageSpeed: statistics.averageSpeed,
-					maxAltitude: statistics.maxAltitude,
-					climbAltitude: statistics.climbAltitude,
-					descendAltitude: statistics.descendAltitude,
-				},
-				status: 1,
-				endTime: Math.floor(new Date().getTime() / 1000),
-			})
-			await storage.trips.set(trip.id, {
-				...trip,
-				statistics: {
-					distance: Math.round(statistics.distance * 10000) / 10000,
-					maxSpeed: statistics.maxSpeed,
-					averageSpeed: statistics.averageSpeed,
-					maxAltitude: statistics.maxAltitude,
-					climbAltitude: statistics.climbAltitude,
-					descendAltitude: statistics.descendAltitude,
-				},
-				status: 1,
-				endTime: Math.floor(new Date().getTime() / 1000),
-			})
-			snackbar({
-				message: t('tripSavedLocally', {
-					ns: 'prompt',
-				}),
-				autoHideDuration: 2000,
-				vertical: 'top',
-				horizontal: 'center',
-				backgroundColor: 'var(--saki-default-color)',
-				color: '#fff',
-			}).open()
-			return
-		}
-		const res = await httpApi.v1.FinishTrip({
-			id: trip.id,
-		})
-		console.log('FinishTrip', res)
-		if (res.code === 200) {
-			setTrip(undefined)
-			if (res?.data?.deleted) {
-				snackbar({
-					message: '距离过短, 距离需过50m才会记录',
-					autoHideDuration: 2000,
-					vertical: 'top',
-					horizontal: 'center',
-				}).open()
-				return
 			}
 		}
+		setTrip(undefined)
 		getTripStatistics(type)
 	}
 
@@ -1325,6 +1419,15 @@ const TripPage = () => {
 										'/' +
 										tempPositions.current.length}
 								</span>
+								{(trip?.id || '').indexOf('IDB') >= 0 ? (
+									<>
+										<span> - </span>
+										<span>{t('local')}</span>
+									</>
+								) : (
+									''
+								)}
+
 								{/* <span> - </span>
 								<span>
 									{t('averageSpeed', {
@@ -1357,16 +1460,18 @@ const TripPage = () => {
 									// header-max-width='740px'
 									// header-border-bottom='none'
 									header-padding='0 10px'
-									// header-item-min-width='80px'
+									// header-item-min-width='40px'
+									header-item-padding={
+										config.lang === 'en-US' ? '0 4px' : '0 14px'
+									}
 									more-content-width-difference={
-										config.lang === 'en-US' ? -80 : -40
+										config.lang === 'en-US' ? -80 : -80
 									}
 									active-tab-label={type}
 									// disable-more-button
 									ref={bindEvent({
 										tap: async (e) => {
 											console.log('tap', e)
-											await getTripStatistics(e.detail.label)
 
 											await storage.global.set(
 												'selectedIndexPageType',
@@ -1506,6 +1611,30 @@ const TripPage = () => {
 											ns: 'tripPage',
 									  })
 								: startCountdown}
+						</div>
+					</div>
+					<div
+						className={
+							'tp-m-trip-right-buttons ' + (startTrip ? 'starting' : '')
+						}
+					>
+						<div
+							onClick={async () => {
+								await addMark()
+							}}
+							className={'tp-b-item mark addMark'}
+						>
+							<saki-icon
+								width='28px'
+								height='28px'
+								color='#fff'
+								type='Flag'
+							></saki-icon>
+							{tripMarks.length ? (
+								<span className='tp-b-i-marklength'>{tripMarks.length}</span>
+							) : (
+								''
+							)}
 						</div>
 					</div>
 					{!(

@@ -11,7 +11,6 @@ import (
 	"github.com/ShiinaAiiko/nyanya-trip-route-track/server/protos"
 	"github.com/ShiinaAiiko/nyanya-trip-route-track/server/services/middleware"
 	"github.com/ShiinaAiiko/nyanya-trip-route-track/server/services/response"
-	"github.com/cherrai/nyanyago-utils/narrays"
 	"github.com/cherrai/nyanyago-utils/nint"
 	"github.com/cherrai/nyanyago-utils/nlog"
 	"github.com/cherrai/nyanyago-utils/nstrings"
@@ -33,6 +32,7 @@ type TripController struct {
 
 func formartTrip(v *models.Trip) *protos.Trip {
 	postions := []*protos.TripPosition{}
+	marks := []*protos.TripMark{}
 
 	for _, v := range v.Positions {
 		postions = append(postions, formartPosition(&protos.TripPosition{
@@ -46,19 +46,26 @@ func formartTrip(v *models.Trip) *protos.Trip {
 			Timestamp:        v.Timestamp,
 		}))
 	}
+	for _, v := range v.Marks {
+		marks = append(marks, &protos.TripMark{
+			Timestamp: v.Timestamp,
+		})
+	}
 
-	// log.Info(len(v.Positions), len(postions))
+	// log.Info(len( v.Positions), len(postions))
 
 	trip := &protos.Trip{
 		Id:        v.Id,
 		Name:      v.Name,
 		Positions: postions,
+		Marks:     marks,
 		Type:      v.Type,
 		AuthorId:  v.AuthorId,
 		Statistics: &protos.TripStatistics{
 			Distance:        v.Statistics.Distance,
 			MaxSpeed:        v.Statistics.MaxSpeed,
 			MaxAltitude:     v.Statistics.MaxAltitude,
+			MinAltitude:     v.Statistics.MinAltitude,
 			AverageSpeed:    v.Statistics.AverageSpeed,
 			ClimbAltitude:   v.Statistics.ClimbAltitude,
 			DescendAltitude: v.Statistics.DescendAltitude,
@@ -138,7 +145,10 @@ func (fc *TripController) AddTrip(c *gin.Context) {
 			"Drive",
 			"Motorcycle",
 			"Walking",
-			"PowerWalking"})),
+			"PowerWalking",
+			"Train",
+			"PublicTransport",
+			"Plane"})),
 		// validation.Parameter(&data.StartTime, validation.Required()),
 	); err != nil {
 		res.Errors(err)
@@ -192,6 +202,73 @@ func (fc *TripController) AddTrip(c *gin.Context) {
 	res.Call(c)
 }
 
+func (fc *TripController) AddTripMark(c *gin.Context) {
+	// 1、请求体
+	var res response.ResponseProtobufType
+	res.Code = 200
+
+	// 2、获取参数
+	data := new(protos.AddTripMark_Request)
+	var err error
+	if err = protos.DecodeBase64(c.GetString("data"), data); err != nil {
+		res.Error = err.Error()
+		res.Code = 10002
+		res.Call(c)
+		return
+	}
+
+	// log.Info("data", data)
+
+	// 3、验证参数
+	if err = validation.ValidateStruct(
+		data,
+		validation.Parameter(&data.Id, validation.Type("string"), validation.Required()),
+	); err != nil {
+		res.Errors(err)
+		res.Code = 10002
+		res.Call(c)
+		return
+	}
+	if err = validation.ValidateStruct(
+		data.Mark,
+		validation.Parameter(&data.Mark.Timestamp, validation.Type("int64"), validation.Required()),
+	); err != nil {
+		res.Errors(err)
+		res.Code = 10002
+		res.Call(c)
+		return
+	}
+
+	userInfoAny, exists := c.Get("userInfo")
+	if !exists {
+		res.Errors(err)
+		res.Code = 10004
+		res.Call(c)
+		return
+	}
+	userInfo := userInfoAny.(*sso.UserInfo)
+
+	// log.Info("userInfo", userInfo)
+
+	err = tripDbx.AddTripMark(
+		data.Id, userInfo.Uid, &models.TripMark{
+			Timestamp: data.Mark.Timestamp,
+		},
+	)
+	if err != nil {
+		res.Errors(err)
+		res.Code = 10016
+		res.Call(c)
+		return
+	}
+
+	protoData := &protos.AddTripMark_Response{}
+
+	res.Data = protos.Encode(protoData)
+
+	res.Call(c)
+}
+
 func (fc *TripController) AddTripToOnline(c *gin.Context) {
 	// 1、请求体
 	var res response.ResponseProtobufType
@@ -219,6 +296,9 @@ func (fc *TripController) AddTripToOnline(c *gin.Context) {
 			"Motorcycle",
 			"Walking",
 			"PowerWalking",
+			"Train",
+			"PublicTransport",
+			"Plane",
 		})),
 		validation.Parameter(&data.Positions, validation.Length(1, 100000000), validation.Required()),
 		validation.Parameter(&data.StartTime, validation.Greater(int64(0)), validation.Required()),
@@ -241,6 +321,7 @@ func (fc *TripController) AddTripToOnline(c *gin.Context) {
 	userInfo := userInfoAny.(*sso.UserInfo)
 
 	postions := []*models.TripPosition{}
+	marks := []*models.TripMark{}
 
 	for _, v := range data.Positions {
 		postions = append(postions, &models.TripPosition{
@@ -254,17 +335,24 @@ func (fc *TripController) AddTripToOnline(c *gin.Context) {
 			Timestamp:        v.Timestamp,
 		})
 	}
+	for _, v := range data.Marks {
+		marks = append(marks, &models.TripMark{
+			Timestamp: v.Timestamp,
+		})
+	}
 	// log.Info("userInfo", userInfo)
 
 	addTrip, err := tripDbx.AddTrip(&models.Trip{
 		Type:       data.Type,
 		Positions:  postions,
+		Marks:      marks,
 		AuthorId:   userInfo.Uid,
 		Status:     1,
 		CreateTime: data.CreateTime,
 		StartTime:  data.StartTime,
 		EndTime:    data.EndTime,
 	})
+	log.Info("addTrip", addTrip, err)
 	if err != nil {
 		res.Errors(err)
 		res.Code = 10016
@@ -272,17 +360,17 @@ func (fc *TripController) AddTripToOnline(c *gin.Context) {
 		return
 	}
 
-	s, err := tripDbx.GetTripStatistics(addTrip.Id, addTrip.EndTime)
+	s, deleteStatus, err := tripDbx.GetTripStatistics(addTrip.Id, addTrip.EndTime, true)
+
+	log.Info("GetTripStatistics", s, deleteStatus, err)
 	if err != nil {
 		res.Errors(err)
 		res.Code = 10011
 		res.Call(c)
 		return
 	}
-	if s.Distance < 50 {
-		if err = tripDbx.DeleteTrip(
-			"", addTrip.Id,
-		); err != nil {
+	if deleteStatus != 0 {
+		if deleteStatus == -1 && err != nil {
 			res.Errors(err)
 			res.Code = 10017
 			res.Call(c)
@@ -423,13 +511,44 @@ func (fc *TripController) FinishTrip(c *gin.Context) {
 	}
 	userInfo := userInfoAny.(*sso.UserInfo)
 
-	endTime := time.Now().Unix()
+	endTime := data.EndTime
+	log.Info("endTime", endTime)
 
-	if data.EndTime > 0 {
-		endTime = data.EndTime
+	if endTime <= 0 {
+		tripPositions, err := tripDbx.GetTripPositions(data.Id, userInfo.Uid, "")
+		log.Info("getTrip, err ", tripPositions, err)
+
+		if err != nil || tripPositions == nil {
+			res.Errors(err)
+			res.Code = 10011
+			res.Call(c)
+			return
+		}
+		if len(tripPositions.Positions) <= 0 {
+			if err = tripDbx.DeleteTrip(
+				"", data.Id,
+			); err != nil {
+				res.Errors(err)
+				res.Code = 10017
+				res.Call(c)
+				return
+			}
+			protoData := &protos.FinishTrip_Response{
+				Deleted: true,
+			}
+			res.Code = 200
+			res.Data = protos.Encode(protoData)
+
+			res.Call(c)
+			return
+		}
+
+		endTime = tripPositions.Positions[len(tripPositions.Positions)-1].Timestamp / 1000
 	}
+	log.Info("endTime", endTime)
 
-	s, err := tripDbx.GetTripStatistics(data.Id, endTime)
+	s, _, err := tripDbx.GetTripStatistics(data.Id, endTime, false)
+	log.Info("GetTripStatistics", s.Distance, data.Id)
 	if err != nil {
 		res.Errors(err)
 		res.Code = 10011
@@ -512,29 +631,16 @@ func (fc *TripController) CorrectedTripData(c *gin.Context) {
 		return
 	}
 
-	userInfoAny, exists := c.Get("userInfo")
-	if !exists {
-		res.Errors(err)
-		res.Code = 10004
-		res.Call(c)
-		return
-	}
-	userInfo := userInfoAny.(*sso.UserInfo)
+	// userInfoAny, exists := c.Get("userInfo")
+	// if !exists {
+	// 	res.Errors(err)
+	// 	res.Code = 10004
+	// 	res.Call(c)
+	// 	return
+	// }
+	// userInfo := userInfoAny.(*sso.UserInfo)
 
-	s, err := tripDbx.GetTripStatistics(data.Id, 0)
-	if err != nil {
-		res.Errors(err)
-		res.Code = 10011
-		res.Call(c)
-		return
-	}
-	log.Info(s.Distance)
-	log.Info(userInfo.Uid, data.Id,
-		s)
-	err = tripDbx.CorrectedTripData(
-		userInfo.Uid, data.Id,
-		s,
-	)
+	_, _, err = tripDbx.GetTripStatistics(data.Id, 0, true)
 	if err != nil {
 		res.Errors(err)
 		res.Code = 10011
@@ -585,7 +691,10 @@ func (fc *TripController) UpdateTrip(c *gin.Context) {
 				"Drive",
 				"Motorcycle",
 				"Walking",
-				"PowerWalking"})),
+				"PowerWalking",
+				"Train",
+				"PublicTransport",
+				"Plane"})),
 		); err != nil {
 			res.Errors(err)
 			res.Code = 10002
@@ -757,7 +866,7 @@ func (fc *TripController) GetTrip(c *gin.Context) {
 
 	// log.Info(data.Id, authorId, data.ShareKey)
 	getTrip, err := tripDbx.GetTrip(data.Id, authorId, data.ShareKey)
-	// log.Info("getTrip, err ", getTrip, err)
+	// log.Info("getTrip, err ", getTrip.Status, err)
 	if err != nil || getTrip == nil {
 		res.Errors(err)
 		res.Code = 10006
@@ -767,6 +876,7 @@ func (fc *TripController) GetTrip(c *gin.Context) {
 	// log.Info(data.Id, authorId, data.ShareKey)
 
 	pTrip := formartTrip(getTrip)
+	// log.Info("pTrip", pTrip.Status)
 	pTrip.Positions = []*protos.TripPosition{}
 
 	protoData := &protos.GetTrip_Response{
@@ -823,9 +933,9 @@ func (fc *TripController) GetTripPositions(c *gin.Context) {
 	}
 
 	// log.Info(data.Id, authorId, data.ShareKey)
-	getTrip, err := tripDbx.GetTrip(data.Id, authorId, data.ShareKey)
-	// log.Info("getTrip, err ", getTrip, err)
-	if err != nil || getTrip == nil {
+	tripPositions, err := tripDbx.GetTripPositions(data.Id, authorId, data.ShareKey)
+	// log.Info("tripPositions, err ", len(tripPositions.Positions), err)
+	if err != nil || tripPositions == nil {
 		res.Errors(err)
 		res.Code = 10006
 		res.Call(c)
@@ -834,11 +944,21 @@ func (fc *TripController) GetTripPositions(c *gin.Context) {
 	// log.Info(data.Id, authorId, data.ShareKey)
 
 	positions := []string{}
+	// mapKeys := map[string]int{}
+	// keyIndex := int(0)
 
 	vPositions, existsTimestamp := tripDbx.FilterPositions(
-		getTrip.Positions, getTrip.CreateTime, getTrip.EndTime)
+		tripPositions.Positions,
+		tripPositions.StartTime,
+		tripPositions.EndTime)
 
-	for _, v := range vPositions {
+	// log.Info("vPositions", vPositions, existsTimestamp,
+	// 	len(tripPositions.Positions), tripPositions.CreateTime, tripPositions.EndTime)
+
+	startLat := int64(0)
+	startLon := int64(0)
+
+	for i, v := range vPositions {
 		// if end {
 		// 	continue
 		// }
@@ -848,54 +968,69 @@ func (fc *TripController) GetTripPositions(c *gin.Context) {
 
 		pv = formartPosition(pv)
 
+		lat := nstrings.ToString(pv.Latitude)
+		lon := nstrings.ToString(pv.Longitude)
+		if i != 0 {
+			lat = nstrings.ToString(startLat - nint.ToInt64(pv.Latitude*100000000))
+			lon = nstrings.ToString(startLon - nint.ToInt64(pv.Longitude*100000000))
+
+		}
+		startLat = nint.ToInt64(pv.Latitude * 100000000)
+		startLon = nint.ToInt64(pv.Longitude * 100000000)
+		// lat = methods.GetGeoKey(&mapKeys, lat, &keyIndex)
+		// lon = methods.GetGeoKey(&mapKeys, lon, &keyIndex)
+
 		// log.Info("pv.Latitude", pv.Latitude)
 		// log.Info("pv.Heading", pv.Heading)
 		positions = append(positions,
-			nstrings.ToString(pv.Latitude)+"-"+
-				nstrings.ToString(pv.Longitude)+"-"+
-				nstrings.ToString(pv.Altitude)+"-"+
-				nstrings.ToString("")+"-"+
-				// nstrings.ToString(pv.AltitudeAccuracy)+"-"+
-				nstrings.ToString("")+"-"+
-				// nstrings.ToString(pv.Accuracy)+"-"+
-				nstrings.ToString("")+"-"+
-				// nstrings.ToString(pv.Heading)+"-"+
-				nstrings.ToString(pv.Speed)+"-"+
-				nstrings.ToString((pv.Timestamp/1000)-getTrip.StartTime))
+			lat+"_"+
+				lon+"_"+
+				nstrings.ToString(pv.Altitude)+"_"+
+				nstrings.ToString(pv.Speed)+"_"+
+				nstrings.ToString((pv.Timestamp/1000)-tripPositions.StartTime))
+		// nstrings.ToString("")+"_"+
+		// // nstrings.ToString(pv.AltitudeAccuracy)+"_"+
+		// nstrings.ToString("")+"_"+
+		// // nstrings.ToString(pv.Accuracy)+"_"+
+		// nstrings.ToString("")+"_"+
+		// nstrings.ToString(pv.Heading)+"_"+
 	}
 
-	log.Error("newPositions", len(existsTimestamp), len(getTrip.Positions))
-	if len(existsTimestamp) != len(getTrip.Positions) {
-		existsTimestamp = []int64{}
-		newPositions := []*models.TripPosition{}
-		for _, v := range getTrip.Positions {
-			if narrays.Includes(existsTimestamp, v.Timestamp) {
-				continue
-			}
-			existsTimestamp = append(existsTimestamp, v.Timestamp)
-			newPositions = append(newPositions, v)
-		}
-		log.Error("newPositions", len(existsTimestamp), len(getTrip.Positions), len(newPositions))
-		getTrip.Status = 0
-		if err = tripDbx.UpdateTripAllPositions(getTrip.AuthorId, getTrip.Id, newPositions); err != nil {
+	// log.Info("tripPositions.Status", tripPositions.Status)
+	// log.Error("newPositions", len(existsTimestamp), len(vPositions), len(tripPositions.Positions))
+	if len(existsTimestamp) != len(tripPositions.Positions) {
+		if err = tripDbx.CheckPositions(tripPositions); err != nil {
 			res.Errors(err)
 			res.Code = 10001
 			res.Call(c)
 			return
 		}
 	}
+	// log.Info("tripPositions.Status", tripPositions.Status)
 
-	tripPositions := protos.TripPositions{
-		StartTime: getTrip.StartTime,
+	// keys := []string{}
+	// for i := 0; i < keyIndex; i++ {
+	// 	keys = append(keys, "")
+	// }
+	// for k, v := range mapKeys {
+	// 	log.Info(k, v)
+	// 	keys[v-1] = k
+	// 	// keys = append(keys, k)
+	// }
+
+	tripPositionsProto := protos.TripPositions{
+		StartTime: tripPositions.StartTime,
 		Positions: positions,
-		Total:     nint.ToInt64(len(getTrip.Positions)),
-		Id:        getTrip.Id,
-		Type:      getTrip.Type,
-		Status:    getTrip.Status,
+		// Keys:      keys,
+		Total:    nint.ToInt64(len(tripPositions.Positions)),
+		Id:       tripPositions.Id,
+		Type:     tripPositions.Type,
+		AuthorId: tripPositions.AuthorId,
+		Status:   tripPositions.Status,
 	}
 
 	protoData := &protos.GetTripPositions_Response{
-		TripPositions: &tripPositions,
+		TripPositions: &tripPositionsProto,
 	}
 
 	res.Data = protos.Encode(protoData)
@@ -927,7 +1062,10 @@ func (fc *TripController) GetTripHistoryPositions(c *gin.Context) {
 			"Drive",
 			"Motorcycle",
 			"Walking",
-			"PowerWalking"})),
+			"PowerWalking",
+			"Train",
+			"PublicTransport",
+			"Plane"})),
 		validation.Parameter(&data.PageNum, validation.GreaterEqual(int64(1)), validation.Required()),
 		validation.Parameter(&data.PageSize, validation.NumRange(int64(1), int64(50)), validation.Required()),
 	); err != nil {
@@ -964,78 +1102,111 @@ func (fc *TripController) GetTripHistoryPositions(c *gin.Context) {
 		res.Call(c)
 		return
 	}
+
+	// if int64(len(trips) ) == data.PageSize {
+	// 	go tripDbx.GetTripAllPositions(authorId, data.Type, data.PageNum+1, data.PageSize, data.Ids)
+	// }
 	// log.Info(data.Id, authorId, data.ShareKey)
 
 	protoData := &protos.GetTripHistoryPositions_Response{}
 	for _, v := range trips {
 
-		s, err := tripDbx.GetTripStatistics(v.Id, 0)
-		if err != nil {
-			res.Errors(err)
-			res.Code = 10011
-			res.Call(c)
-			return
-		}
-		log.Info(s.Distance)
-		err = tripDbx.CorrectedTripData(
-			authorId, v.Id,
-			s,
-		)
-		log.Error(err)
+		// s, err := tripDbx.GetTripStatistics(v.Id, 0)
+		// if err != nil {
+		// 	res.Errors(err)
+		// 	res.Code = 10011
+		// 	res.Call(c)
+		// 	return
+		// }
+		// log.Info(s.Distance)
+		// err = tripDbx.CorrectedTripData(
+		// 	authorId, v.Id,
+		// 	s,
+		// )
+		// log.Error(err)
 
 		tripPositions := new(protos.TripPositions)
 		positions := []string{}
+		// mapKeys := []string{}
+		// mapKeys := map[string]int{}
+		// alphabet := strings.Split("abcdefghijklmnopqrstuvwxyz", "")
+		// keyIndex := int(0)
 
 		vPositions, existsTimestamp := tripDbx.FilterPositions(
 			v.Positions, v.StartTime, v.EndTime)
 
-		for _, sv := range vPositions {
+		// var startPositions *models.TripPosition
+
+		startLat := int64(0)
+		startLon := int64(0)
+
+		for si, sv := range vPositions {
 
 			pv := new(protos.TripPosition)
 			copier.Copy(pv, sv)
 
 			pv = formartPosition(pv)
+			lat := nstrings.ToString(pv.Latitude)
+			lon := nstrings.ToString(pv.Longitude)
+
+			if si != 0 {
+				lat = nstrings.ToString(startLat - nint.ToInt64(pv.Latitude*100000000))
+				lon = nstrings.ToString(startLon - nint.ToInt64(pv.Longitude*100000000))
+
+			}
+			startLat = nint.ToInt64(pv.Latitude * 100000000)
+			startLon = nint.ToInt64(pv.Longitude * 100000000)
+			// lat = methods.GetGeoKey(&mapKeys, lat, &keyIndex)
+			// lon = methods.GetGeoKey(&mapKeys, lon, &keyIndex)
+
+			// lats := strings.Split(lat, ".")
+			// key := lats[0] + "." + lats[1][0:2]
+			// if mapKeys[key] == "" {
+			// 	mapKeys[key] = alphabet[alphabetIndex]
+			// }
 
 			positions = append(positions,
-				nstrings.ToString(pv.Latitude)+"-"+
-					nstrings.ToString(pv.Longitude),
-				// nstrings.ToString("")+"-"+
-				// // nstrings.ToString(pv.Altitude)+"-"+
-				// nstrings.ToString("")+"-"+
-				// // nstrings.ToString(pv.AltitudeAccuracy)+"-"+
-				// nstrings.ToString("")+"-"+
-				// // nstrings.ToString(pv.Accuracy)+"-"+
-				// nstrings.ToString("")+"-"+
-				// // nstrings.ToString(pv.Heading)+"-"+
-				// nstrings.ToString("")+"-"+
-				// // nstrings.ToString(pv.Speed)+"-"+
-				// nstrings.ToString("")+"-",
+				lat+"_"+
+					lon,
+				// nstrings.ToString("")+"_"+
+				// // nstrings.ToString(pv.Altitude)+"_"+
+				// nstrings.ToString("")+"_"+
+				// // nstrings.ToString(pv.AltitudeAccuracy)+"_"+
+				// nstrings.ToString("")+"_"+
+				// // nstrings.ToString(pv.Accuracy)+"_"+
+				// nstrings.ToString("")+"_"+
+				// // nstrings.ToString(pv.Heading)+"_"+
+				// nstrings.ToString("")+"_"+
+				// // nstrings.ToString(pv.Speed)+"_"+
+				// nstrings.ToString("")+"_",
 				// nstrings.ToString((pv.Timestamp/1000)-v.StartTime)
 			)
 		}
+
+		// keys := []string{}
+		// for i := 0; i < keyIndex; i++ {
+		// 	keys = append(keys, "")
+		// }
+		// for k, v := range mapKeys {
+		// 	log.Info(k, v)
+		// 	keys[v-1] = k
+		// 	// keys = append(keys, k)
+		// }
 
 		tripPositions.StartTime = v.StartTime
 		tripPositions.Id = v.Id
 		tripPositions.Type = v.Type
 		tripPositions.Positions = positions
+		tripPositions.AuthorId = v.AuthorId
+		// tripPositions.Keys = keys
 		tripPositions.Status = v.Status
 		tripPositions.Total = nint.ToInt64(len(positions))
 
 		protoData.List = append(protoData.List, tripPositions)
 
 		if len(existsTimestamp) != len(v.Positions) {
-			existsTimestamp = []int64{}
-			newPositions := []*models.TripPosition{}
-			for _, sv := range v.Positions {
-				if narrays.Includes(existsTimestamp, sv.Timestamp) {
-					continue
-				}
-				existsTimestamp = append(existsTimestamp, sv.Timestamp)
-				newPositions = append(newPositions, sv)
-			}
 			tripPositions.Status = 0
-			log.Error("newPositions", len(newPositions))
-			if err = tripDbx.UpdateTripAllPositions(v.AuthorId, v.Id, newPositions); err != nil {
+			if err = tripDbx.CheckPositions(v); err != nil {
 				res.Errors(err)
 				res.Code = 10001
 				res.Call(c)
@@ -1046,7 +1217,7 @@ func (fc *TripController) GetTripHistoryPositions(c *gin.Context) {
 
 	protoData.Total = nint.ToInt64(len(protoData.List))
 
-	log.Info(protoData.Total)
+	// log.Info(protoData.Total)
 	res.Data = protoData
 
 	res.Call(c)
@@ -1077,7 +1248,10 @@ func (fc *TripController) GetTrips(c *gin.Context) {
 			"Drive",
 			"Motorcycle",
 			"Walking",
-			"PowerWalking"})),
+			"PowerWalking",
+			"Train",
+			"PublicTransport",
+			"Plane"})),
 		validation.Parameter(&data.TimeLimit, validation.Length(2, 2), validation.Required()),
 		validation.Parameter(&data.PageNum, validation.GreaterEqual(int64(1)), validation.Required()),
 		validation.Parameter(&data.PageSize, validation.NumRange(int64(1), int64(50)), validation.Required()),
@@ -1117,6 +1291,7 @@ func (fc *TripController) GetTrips(c *gin.Context) {
 	// // authorId := c.MustGet("userInfo").(*sso.UserInfo).Uid
 	trips := []*protos.Trip{}
 	for _, v := range getTrips {
+		v = tripDbx.CheckEndTime(v)
 
 		trips = append(trips, formartTrip(v))
 	}
@@ -1155,7 +1330,10 @@ func (fc *TripController) GetTripStatistics(c *gin.Context) {
 			"Drive",
 			"Motorcycle",
 			"Walking",
-			"PowerWalking"})),
+			"PowerWalking",
+			"Train",
+			"PublicTransport",
+			"Plane"})),
 		validation.Parameter(&data.TimeLimit, validation.Length(2, 2), validation.Required()),
 	); err != nil {
 		res.Errors(err)
@@ -1208,6 +1386,102 @@ func (fc *TripController) GetTripStatistics(c *gin.Context) {
 		UselessData: uselessData,
 		Time:        time,
 		List:        trips,
+	}
+
+	res.Data = protos.Encode(protoData)
+
+	res.Call(c)
+}
+
+func (fc *TripController) GetHistoricalStatistics(c *gin.Context) {
+	// 1、请求体
+	var res response.ResponseProtobufType
+	res.Code = 200
+
+	// 2、获取参数
+	data := new(protos.GetHistoricalStatistics_Request)
+	var err error
+	if err = protos.DecodeBase64(c.GetString("data"), data); err != nil {
+		res.Error = err.Error()
+		res.Code = 10002
+		res.Call(c)
+		return
+	}
+
+	log.Info("data", data)
+
+	// 3、验证参数
+	if err = validation.ValidateStruct(
+		data,
+		validation.Parameter(&data.Type, validation.Required(), validation.Enum([]string{"All", "Running",
+			"Bike",
+			"Drive",
+			"Motorcycle",
+			"Walking",
+			"PowerWalking",
+			"Train",
+			"PublicTransport",
+			"Plane"})),
+	); err != nil {
+		res.Errors(err)
+		res.Code = 10002
+		res.Call(c)
+		return
+	}
+
+	userInfoAny, exists := c.Get("userInfo")
+	if !exists {
+		res.Errors(err)
+		res.Code = 10004
+		res.Call(c)
+		return
+	}
+	userInfo := userInfoAny.(*sso.UserInfo)
+
+	protoData := &protos.GetHistoricalStatistics_Response{}
+	for _, v := range []string{
+		"maxDistance",
+		"maxSpeed",
+		"averageSpeed",
+		"maxAltitude",
+		"minAltitude",
+		"climbAltitude",
+		"descendAltitude",
+	} {
+		numItem := &protos.GetHistoricalStatistics_Response_NumItem{
+			Num: 0,
+			Id:  "",
+		}
+
+		vTrip, err := tripDbx.GetHistoricalStatisticsData(userInfo.Uid, data.Type, v)
+
+		if vTrip != nil && err == nil {
+			numItem.Id = vTrip.Id
+			switch v {
+			case "maxDistance":
+				numItem.Num = vTrip.Statistics.Distance
+				protoData.MaxDistance = numItem
+			case "maxSpeed":
+				numItem.Num = vTrip.Statistics.MaxSpeed
+				protoData.MaxSpeed = numItem
+			case "averageSpeed":
+				numItem.Num = vTrip.Statistics.AverageSpeed
+				protoData.FastestAverageSpeed = numItem
+			case "maxAltitude":
+				numItem.Num = vTrip.Statistics.MaxAltitude
+				protoData.MaxAltitude = numItem
+			case "minAltitude":
+				numItem.Num = vTrip.Statistics.MinAltitude
+				protoData.MinAltitude = numItem
+			case "climbAltitude":
+				numItem.Num = vTrip.Statistics.ClimbAltitude
+				protoData.MaxClimbAltitude = numItem
+			case "descendAltitude":
+				numItem.Num = vTrip.Statistics.DescendAltitude
+				protoData.MaxDescendAltitude = numItem
+
+			}
+		}
 	}
 
 	res.Data = protos.Encode(protoData)

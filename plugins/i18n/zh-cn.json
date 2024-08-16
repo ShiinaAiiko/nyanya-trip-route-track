@@ -26,6 +26,9 @@
 		"walking": "步行",
 		"powerwalking": "健走",
 		"motorcycle": "摩托车",
+		"plane": "飞机",
+		"train": "火车",
+		"publictransport": "公共交通",
 		"totalDistance": "总距离",
 		"maxSpeed": "最高速度",
 		"maxAltitude": "最高海拔",
@@ -65,11 +68,23 @@
 		"tripDataCanBeCorrected": "行程数据可修正",
 
 		"tripsCount": "{{num}}次行程",
-		"durationText": "{{num}}小时"
+		"durationText": "{{num}}小时",
+
+		"tripMark": "行程标记",
+
+		"fastestAverageSpeed": "最快均速",
+		"maxClimbAltitude": "最大爬升海拔",
+		"maxDescendAltitude": "最大下降海拔",
+		"maxDistance": "最远距离",
+		"statistics": "统计",
+
+		"averagePace": "配速"
 	},
 	"trackRoutePage": {
 		"pageTitle": "历史行程轨迹",
-		"subtitle": "已记录过的行程所有轨迹路线均会被绘制"
+		"subtitle": "已记录过的行程所有轨迹路线均会被绘制",
+		"startDate": "开始日期",
+		"endDate": "结束日期"
 	},
 	"tripHistoryPage": {
 		"pageTitle": "行程历史"
@@ -120,6 +135,7 @@
 		"GeoQGrey": "GeoQ 灰色",
 		"GeoQWarm": "GeoQ 暖色",
 		"GeoQStreet": "GeoQ 街道",
+		"TianDiTuSatellite": "天地图卫星图",
 
 		"speedColor": "速度颜色",
 		"RedGreen": "红绿",
@@ -128,6 +144,7 @@
 		"width": "宽度",
 		"realtimeTravelTrackWidth": "实时行程轨迹宽度",
 		"historyTravelTrackWidth": "历史行程轨迹宽度",
+		"historyTravelDetailedDataTrackWidth": "历史行程详细数据轨迹宽度",
 
 		"cache": "缓存",
 		"clearCache": "清除缓存 ({{size}})",
@@ -137,7 +154,13 @@
 		"trackRouteColor": "历史轨迹路线颜色",
 		"blue": "蓝色",
 		"pink": "粉色",
-		"red": "红色"
+		"red": "红色",
+
+		"maskLayer": "蒙层",
+		"grayMask": "灰色蒙层",
+
+		"trackRouteDetailedData": "历史行程轨迹详细数据",
+		"trackRouteDetailedDataContent": "仅筛选多个行程时可显示速度颜色、海拔等数据"
 	},
 	"prompt": {
 		"next": "下一步",

@@ -5,6 +5,7 @@ import {
 	configureStore,
 } from '@reduxjs/toolkit'
 import { protoRoot } from '../protos'
+import { TabsTripType } from './config'
 
 export const layoutMethods = {}
 export const layoutSlice = createSlice({
@@ -18,21 +19,22 @@ export const layoutSlice = createSlice({
 		openSettingsModal: false,
 		openLoginModal: false,
 		openTripHistoryModal: false,
+		openHistoricalTripsDetailedDataModal: false,
+		openStatisticsModal: {
+			visible: false,
+			type: '' as TabsTripType,
+		},
+		openTripItemModal: {
+			visible: false,
+			id: '',
+		},
 		openMapLayerModal: false,
 		openTripTrackRoute: false,
 		openTripTrackFilterModal: false,
 		editTripModal: false,
 		editTripData: undefined as protoRoot.trip.ITrip | undefined,
 		settingType: '',
-		tripHistoryType: 'All' as
-			| 'All'
-			| 'Running'
-			| 'Bike'
-			| 'Drive'
-			| 'Motorcycle'
-			| 'Walking'
-			| 'PowerWalking'
-			| 'Local',
+		tripHistoryType: 'All' as TabsTripType,
 	},
 	reducers: {
 		setLayoutHeader: (
@@ -148,6 +150,24 @@ export const layoutSlice = createSlice({
 			console.log(params.payload, 'setOpenTripHistoryModal')
 			state.openTripHistoryModal = params.payload
 		},
+		setOpenStatisticsModal: (
+			state,
+			params: {
+				payload: (typeof state)['openStatisticsModal']
+				type: string
+			}
+		) => {
+			state.openStatisticsModal = params.payload
+		},
+		setOpenTripItemModal: (
+			state,
+			params: {
+				payload: (typeof state)['openTripItemModal']
+				type: string
+			}
+		) => {
+			state.openTripItemModal = params.payload
+		},
 		setSettingType: (
 			state,
 			params: {
@@ -165,6 +185,15 @@ export const layoutSlice = createSlice({
 			}
 		) => {
 			state.tripHistoryType = params.payload
+		},
+		setOpenHistoricalTripsDetailedDataModal: (
+			state,
+			params: {
+				payload: (typeof state)['openHistoricalTripsDetailedDataModal']
+				type: string
+			}
+		) => {
+			state.openHistoricalTripsDetailedDataModal = params.payload
 		},
 	},
 })

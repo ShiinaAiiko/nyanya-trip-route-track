@@ -127,6 +127,10 @@
 	}
 }
 
+.custom_tile_grayscale.tile_grayscale {
+	filter: grayscale(1);
+}
+
 // .model-content {
 // 	z-index: 1003 !important;
 // }

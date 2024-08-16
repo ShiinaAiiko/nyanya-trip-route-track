@@ -110,7 +110,7 @@ protos() {
 }
 
 logs() {
-  docker logs -f $name
+  docker logs -f $runName
 }
 
 main() {

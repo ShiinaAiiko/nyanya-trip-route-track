@@ -24,6 +24,7 @@ import { httpApi } from '../plugins/http/api'
 import { protoRoot } from '../protos'
 import { Chart } from 'chart.js/auto'
 import {
+	formatAvgPace,
 	formatDistance,
 	formatPositionsStr,
 	formatTime,
@@ -44,6 +45,7 @@ import {
 } from '../store/config'
 import NoSSR from './NoSSR'
 import { useRouter } from 'next/router'
+import { Debounce } from '@nyanyajs/utils'
 
 const TripItemComponent = memo(
 	({
@@ -72,6 +74,10 @@ const TripItemComponent = memo(
 
 		const speedChart = useRef<Chart<'line', any[], unknown>>()
 		const map = useRef<Leaflet.Map>()
+		const getTripDebounce = useRef(new Debounce())
+		const outSpeedLineChartDebounce = useRef(new Debounce())
+		const loadedMap = useRef(false)
+		const layer = useRef<any>()
 
 		const router = useRouter()
 
@@ -83,6 +89,7 @@ const TripItemComponent = memo(
 		const [startScroll, setStartScroll] = useState(false)
 		const [mounted, setMounted] = useState(false)
 
+		const [currentMapUrl, setCurrentMapUrl] = useState('')
 		const [openMoreDropDownMenu, setOpenMoreDropDownMenu] = useState(false)
 
 		const [shareImageDataBase, setShareImageDataBase] = useState<string>('')
@@ -147,6 +154,7 @@ const TripItemComponent = memo(
 			speedChart.current = undefined
 			map.current?.remove()
 			map.current = undefined
+			loadedMap.current = false
 			setShareImageDataBase('')
 			// setTrip(undefined)
 		}, [tripId, shareKey, user])
@@ -156,18 +164,39 @@ const TripItemComponent = memo(
 		}, [isShare, map])
 
 		useEffect(() => {
-			if (!map.current && config.country && tripId && trip?.id) {
+			if (tripId && trip?.id && map.current && !speedChart.current) {
 				outSpeedLineChart()
+			}
+		}, [trip?.id, map.current, speedChart.current])
+
+		useEffect(() => {
+			if (
+				config.mapUrl &&
+				config.country &&
+				tripId &&
+				trip?.id &&
+				!loadedMap.current
+			) {
 				initMap()
 			}
-		}, [trip?.id, config.country])
+		}, [trip?.id, config.country, config.mapUrl])
+		useEffect(() => {
+			if (config.mapUrl && currentMapUrl && config.mapUrl !== currentMapUrl) {
+				loadedMap.current = false
+				initMap()
+			}
+		}, [config.mapUrl])
+
+		useEffect(() => {
+			layer.current?.setGrayscale?.(config.isGrayscale)
+		}, [config.isGrayscale])
 
 		const initMap = () => {
 			const { config } = store.getState()
 
 			console.log('---initMap---')
 			const L: typeof Leaflet = (window as any).L
-			if (L) {
+			if (L && !loadedMap.current) {
 				console.log(geo.position)
 				let lat = geo.position?.coords?.latitude || 0
 				let lon = geo.position?.coords?.longitude || 0
@@ -192,19 +221,12 @@ const TripItemComponent = memo(
 				let positions = trip?.positions || []
 
 				positions = positions.filter((v, i) => {
-					const gss = !(
-						(v.speed === null || v.altitude === null)
-						// ||
-						// v.accuracy === null ||
-						// (v.accuracy || 0) > 20
-					)
+					const gss = !(v.speed === null || v.altitude === null)
 
 					if (v.speed && v.speed > 45) {
 						console.log(v.speed, v.timestamp)
 					}
 					return gss
-
-					return !(Number(v.speed || 0) < 0 || Number(v.altitude || 0) < 0)
 				})
 				if (positions.length) {
 					const startPosition = positions[0]
@@ -224,7 +246,7 @@ const TripItemComponent = memo(
 					)
 				}
 
-				const latlng = getLatLng(lat, lon)
+				const latlng = getLatLng(config.mapUrl, lat, lon)
 
 				console.log('latlng', latlng, [lat, lon])
 				lat = latlng[0]
@@ -234,31 +256,39 @@ const TripItemComponent = memo(
 					map.current?.remove()
 					map.current = undefined
 				}
-				if (!map.current && L) {
+				if (!map.current && L?.map) {
 					map.current = L.map('ti-map', {
 						zoomControl: false,
+						zoomSnap: 0.5,
 						renderer: L.canvas(),
 						attributionControl: false,
 						// center: [Number(res?.data?.lat), Number(res?.data?.lon)],
 					})
 					// 检测地址如果在中国就用高德地图
 
+					// console.log('config.mapUrl v?.url', config.mapUrl)
 					map.current.setView(
 						[lat, lon],
 						// [
 						//   120.3814, -1.09],
 						zoom
 					)
-					L.tileLayer(
-						config.mapUrl,
-						// maps.filter((v) => v.key === 'GeoQNight')?.[0]?.url ||
-						// 	config.mapUrl,
-						{
-							// errorTileUrl: osmMap,
-							maxZoom: 18,
-							// attribution: `&copy;`,
-						}
-					).addTo(map.current)
+
+					setCurrentMapUrl(config.mapUrl)
+					layer.current = (L.tileLayer as any)
+						.grayscale(
+							config.mapUrl,
+							// maps.filter((v) => v.key === 'GeoQNight')?.[0]?.url ||
+							// 	config.mapUrl,
+							{
+								// errorTileUrl: osmMap,
+								maxZoom: 18,
+								// attribution: `&copy;`,
+							}
+						)
+						.addTo(map.current)
+					layer.current.setGrayscale(config.isGrayscale)
+
 					//定义一个地图缩放控件
 					// var zoomControl = L.control.zoom({ position: 'topleft' })
 					// //将地图缩放控件加载到地图
@@ -329,7 +359,11 @@ const TripItemComponent = memo(
 								// lon = latlng[1]
 
 								latLngs.push(
-									getLatLng(v.latitude || 0, v.longitude || 0) as any
+									getLatLng(
+										config.mapUrl,
+										v.latitude || 0,
+										v.longitude || 0
+									) as any
 								)
 								colors.push(
 									getSpeedColor(
@@ -360,13 +394,18 @@ const TripItemComponent = memo(
 							})
 
 						// console.log('LLLL', L)
-						const playline = (L as any)
+						const polycolor = (L as any)
 							.polycolor(latLngs, {
 								colors: colors,
 								useGradient: true,
 								weight: config.mapPolyline.realtimeTravelTrackWidth,
 							})
 							.addTo(map.current)
+						console.log(
+							'fTripPositions polyline',
+							polycolor?.addTo,
+							map.current
+						)
 						// console.log('LLLLplayline', playline)
 						// console.log('LLLLplayline', playline, playline.setLatLngs(latLngs))
 
@@ -384,6 +423,7 @@ const TripItemComponent = memo(
 							})
 							L.marker(
 								getLatLng(
+									config.mapUrl,
 									positions[0]?.latitude || 0,
 									positions[0]?.longitude || 0
 								) as any,
@@ -412,6 +452,7 @@ const TripItemComponent = memo(
 							})
 							L.marker(
 								getLatLng(
+									config.mapUrl,
 									positions[positions.length - 1]?.latitude || 0,
 									positions[positions.length - 1]?.longitude || 0
 								) as any,
@@ -438,6 +479,7 @@ const TripItemComponent = memo(
 
 				// console.log('map', map)
 			}
+			loadedMap.current = true
 
 			// setTimeout(() => {
 			//   outShareImage()
@@ -446,15 +488,15 @@ const TripItemComponent = memo(
 
 		const outSpeedLineChart = () => {
 			try {
-				const startTime = Number(trip?.startTime)
-				const endTime = Number(trip?.endTime)
-				console.log(
-					'outSpeedLineChart',
-					startTime,
-					endTime,
-					endTime - startTime,
-					trip?.positions
-				)
+				// const startTime = Number(trip?.startTime)
+				// const endTime = Number(trip?.endTime)
+				// console.log(
+				// 	'outSpeedLineChart',
+				// 	startTime,
+				// 	endTime,
+				// 	endTime - startTime,
+				// 	trip?.positions
+				// )
 				if (speedChart.current) return
 				const el = document.getElementById('speed-chart')
 
@@ -519,7 +561,21 @@ const TripItemComponent = memo(
 						data: data as any,
 
 						options: {
+							aspectRatio: 2,
 							responsive: true,
+							onResize(chart, size) {
+								// console.log('onresize', chart, chart.aspectRatio, size)
+								if (size.width <= 730) {
+									chart.options.aspectRatio = 1.5
+								} else {
+									if (size.width <= 1024) {
+										chart.options.aspectRatio = 2
+									} else {
+										chart.options.aspectRatio = 2.5
+									}
+								}
+								chart.update()
+							},
 							plugins: {
 								title: {
 									display: true,
@@ -649,129 +705,134 @@ const TripItemComponent = memo(
 		}
 
 		const getTrip = async () => {
-			if (loadStatus === 'loading') return
-			setLoadStatus('loading')
+			getTripDebounce.current.increase(async () => {
+				if (loadStatus === 'loading') return
+				setLoadStatus('loading')
 
-			console.log('getTrip', tripId)
+				console.log('getTrip', tripId)
 
-			if (tripId.indexOf('IDB_') >= 0) {
-				const v = await storage.trips.get(tripId)
-				console.log('getTrip', v)
-				if (v) {
-					// setTrip(res?.data?.trip)
-					if (v.statistics && v?.positions?.length) {
-						v.statistics.minAltitude = Math.min(
-							...(v.positions?.map((v) => v.altitude || 0) || [0])
-						)
+				if (tripId.indexOf('IDB_') >= 0) {
+					const v = await storage.trips.get(tripId)
+					console.log('getTrip', v)
+					if (v) {
+						// setTrip(res?.data?.trip)
+						if (v.statistics && v?.positions?.length) {
+							v.statistics.minAltitude = Math.min(
+								...(v.positions?.map((v) => v.altitude || 0) || [0])
+							)
+						}
+						onTrip(v || undefined)
+						setLoadStatus('noMore')
+						dispatch(tripSlice.actions.setTripForDetailPage(v))
 					}
-					onTrip(v || undefined)
-					setLoadStatus('noMore')
-					dispatch(tripSlice.actions.setTripForDetailPage(v))
+					return
 				}
-				return
-			}
-			const res = await httpApi.v1.GetTrip({
-				id: tripId,
-				shareKey: shareKey,
-			})
-			console.log('getTrip', res)
-			let tripPositions = await storage.tripPositions.get(tripId)
-
-			console.log(
-				'storage tripPositions',
-				(tripPositions?.positions?.[0]?.split('-') || [])?.length <= 2,
-				tripPositions,
-				!tripPositions
-			)
-			if (
-				!tripPositions ||
-				(tripPositions?.positions?.[0]?.split('-') || [])?.length <= 2 ||
-				!tripPositions?.status
-			) {
-				const posRes = await httpApi.v1.GetTripPositions({
+				const res = await httpApi.v1.GetTrip({
 					id: tripId,
 					shareKey: shareKey,
 				})
+				console.log('getTrip', res.data)
+				let tripPositions = await storage.tripPositions.get(tripId)
 
-				if (posRes.code === 200 && posRes.data?.tripPositions?.positions) {
-					res.data.trip &&
-						(res.data.trip.status =
-							Number(posRes.data?.tripPositions.status) || 0)
-					tripPositions = posRes.data.tripPositions
-					if (posRes.data?.tripPositions.status) {
-						await storage.tripPositions.set(tripId, posRes.data.tripPositions)
-					}
-				}
-			}
-
-			console.log('GetTripPositions pospos', tripPositions)
-			if (res.code === 200 && res?.data?.trip && tripPositions) {
-				res.data.trip.positions = formatPositionsStr(
-					Number(tripPositions.startTime),
-					tripPositions.positions || []
+				console.log(
+					'storage tripPositions',
+					(tripPositions?.positions?.[0]?.split('_') || [])?.length <= 2,
+					tripPositions,
+					!tripPositions
 				)
-				console.log('pospos', res.data.trip.positions)
-				// if (pos) {
-				// 	console.log('getTrip', pos[0].timestamp)
-				// 	console.log('getTrip', pos[pos.length - 1].timestamp)
-				// }
-				// setTrip(res?.data?.trip)
-				if (res.data.trip?.statistics) {
-					res.data.trip.statistics.minAltitude = Math.min(
-						...(res?.data?.trip?.positions?.map((v) => v.altitude || 0) || [0])
-					)
-
-					// console.log(
-					// 	'res.data.trip.statistics?.climbAltitude',
-					// 	res.data.trip.statistics?.climbAltitude,
-					// 	res.data.trip?.positions
-					// )
-					if (
-						!res.data.trip.statistics?.climbAltitude ||
-						!res.data.trip.statistics?.descendAltitude
-					) {
-						let climbAltitude = 0
-						let descendAltitude = 0
-						res.data.trip?.positions?.forEach((v, i) => {
-							if (i === 0) return
-							let lv = res.data.trip?.positions?.[i - 1]
-							if (lv?.altitude && Number(v.altitude) > lv.altitude) {
-								climbAltitude =
-									Math.floor(
-										(climbAltitude +
-											(Number(v.altitude) - Number(lv.altitude))) *
-											1000
-									) / 1000
-							}
-							if (lv?.altitude && Number(v.altitude) < lv.altitude) {
-								descendAltitude =
-									Math.floor(
-										(descendAltitude +
-											(Number(lv.altitude) - Number(v.altitude))) *
-											1000
-									) / 1000
-							}
-						})
-
-						res.data.trip.statistics.climbAltitude = climbAltitude
-						res.data.trip.statistics.descendAltitude = descendAltitude
+				if (
+					// true ||
+					!tripPositions ||
+					(tripPositions?.positions?.[0]?.split('_') || [])?.length <= 2 ||
+					!tripPositions?.status
+				) {
+					const posRes = await httpApi.v1.GetTripPositions({
+						id: tripId,
+						shareKey: shareKey,
+					})
+					console.log('GetTripPositions posRes', posRes)
+					if (posRes.code === 200 && posRes.data?.tripPositions?.positions) {
+						// res.data.trip &&
+						// 	(res.data.trip.status =
+						// 		Number(posRes.data?.tripPositions.status) || 0)
+						tripPositions = posRes.data.tripPositions
+						if (posRes.data?.tripPositions.status) {
+							await storage.tripPositions.set(tripId, posRes.data.tripPositions)
+						}
 					}
 				}
 
-				dispatch(tripSlice.actions.setTripForDetailPage(res?.data?.trip))
+				console.log('GetTripPositions pospos', tripPositions)
+				if (res.code === 200 && res?.data?.trip && tripPositions) {
+					res.data.trip.positions = formatPositionsStr(
+						Number(tripPositions.startTime),
+						tripPositions.positions || []
+					)
+					console.log('pospos1', res.data.trip.positions)
+					// if (pos) {
+					// 	console.log('getTrip', pos[0].timestamp)
+					// 	console.log('getTrip', pos[pos.length - 1].timestamp)
+					// }
+					// setTrip(res?.data?.trip)
+					if (res.data.trip?.statistics) {
+						res.data.trip.statistics.minAltitude = Math.min(
+							...(res?.data?.trip?.positions?.map((v) => v.altitude || 0) || [
+								0,
+							])
+						)
 
-				// dispatch(
-				// 	layoutSlice.actions.setEditTripModal({
-				// 		visible: true,
-				// 		trip: res.data.trip,
-				// 	})
-				// )
-			}
-			onTrip(res?.data?.trip || undefined)
-			setLoadStatus('noMore')
+						// console.log(
+						// 	'res.data.trip.statistics?.climbAltitude',
+						// 	res.data.trip.statistics?.climbAltitude,
+						// 	res.data.trip?.positions
+						// )
+						if (
+							!res.data.trip.statistics?.climbAltitude ||
+							!res.data.trip.statistics?.descendAltitude
+						) {
+							let climbAltitude = 0
+							let descendAltitude = 0
+							res.data.trip?.positions?.forEach((v, i) => {
+								if (i === 0) return
+								let lv = res.data.trip?.positions?.[i - 1]
+								if (lv?.altitude && Number(v.altitude) > lv.altitude) {
+									climbAltitude =
+										Math.floor(
+											(climbAltitude +
+												(Number(v.altitude) - Number(lv.altitude))) *
+												1000
+										) / 1000
+								}
+								if (lv?.altitude && Number(v.altitude) < lv.altitude) {
+									descendAltitude =
+										Math.floor(
+											(descendAltitude +
+												(Number(lv.altitude) - Number(v.altitude))) *
+												1000
+										) / 1000
+								}
+							})
+
+							res.data.trip.statistics.climbAltitude = climbAltitude
+							res.data.trip.statistics.descendAltitude = descendAltitude
+						}
+					}
+
+					dispatch(tripSlice.actions.setTripForDetailPage(res?.data?.trip))
+
+					// dispatch(
+					// 	layoutSlice.actions.setEditTripModal({
+					// 		visible: true,
+					// 		trip: res.data.trip,
+					// 	})
+					// )
+				}
+				onTrip(res?.data?.trip || undefined)
+				setLoadStatus('noMore')
+			}, 300)
 		}
 
-		const copyUrl = () => {
+		const copyUrl = (shareKey: string) => {
 			snackbar({
 				message: t('copySuccessfully', {
 					ns: 'prompt',
@@ -790,7 +851,7 @@ const TripItemComponent = memo(
 					'?id=' +
 					tripId +
 					'&sk=' +
-					(trip?.permissions?.shareKey || '')
+					(shareKey || '')
 			)
 		}
 
@@ -831,8 +892,8 @@ const TripItemComponent = memo(
 					})
 					console.log('res', res, !!trip?.permissions?.shareKey)
 					if (res.code === 200) {
-						if (trip?.permissions?.shareKey) {
-						}
+						// if (trip?.permissions?.shareKey) {
+						// }
 						dispatch(
 							tripSlice.actions.setTripForDetailPage({
 								...trip,
@@ -852,7 +913,7 @@ const TripItemComponent = memo(
 							autoHideDuration: 2000,
 						}).open()
 						if (res?.data?.shareKey && copy) {
-							copyUrl()
+							copyUrl(res?.data?.shareKey)
 						}
 						return
 					}
@@ -871,11 +932,12 @@ const TripItemComponent = memo(
 		const finishTrip = async (correctedData: boolean) => {
 			if (!trip?.id) return
 
-			let endTime = 0
-			if (trip?.positions?.length && trip?.positions?.length >= 10) {
-				endTime =
-					Number(trip?.positions[trip?.positions.length - 1].timestamp) || 0
-			}
+			// 需要获取trip
+			// let endTime = 0
+			// if (trip?.positions?.length && trip?.positions?.length >= 10) {
+			// 	endTime =
+			// 		Number(trip?.positions[trip?.positions.length - 1].timestamp) || 0
+			// }
 			// if ((trip?.statistics?.distance || tDistance || 0) < 50) {
 			// 	deleteTrip()
 			// 	return
@@ -884,11 +946,11 @@ const TripItemComponent = memo(
 				id: trip?.id || '',
 			}
 
-			if (!trip.endTime) {
-				params.endTime = endTime
-			}
+			// if (Number(trip.endTime) < 1) {
+			// 	params.endTime = endTime
+			// }
 
-			console.log('params', params, trip)
+			console.log('params', params, trip?.positions, trip)
 			if (correctedData) {
 				const res = await httpApi.v1.CorrectedTripData(params as any)
 				console.log('FinishTrip', res)
@@ -918,6 +980,7 @@ const TripItemComponent = memo(
 					}).open()
 					return
 				}
+				loadedMap.current = false
 				getTrip()
 				return
 			}
@@ -1011,6 +1074,7 @@ const TripItemComponent = memo(
 						timestamp: v.timestamp,
 					}
 				}),
+				marks: trip?.marks || [],
 				createTime: trip?.createTime,
 				startTime: trip?.startTime,
 				endTime: trip?.endTime,
@@ -1059,6 +1123,7 @@ const TripItemComponent = memo(
 				dispatch(tripSlice.actions.setTripForDetailPage(res?.data?.trip))
 			}
 		}
+
 		return (
 			<div className='trip-item-component'>
 				{trip?.id ? (
@@ -1177,7 +1242,7 @@ const TripItemComponent = memo(
 																		</span>
 																	</div>
 																</saki-menu-item>
-																{trip?.statistics?.distance !==
+																{/* {trip?.statistics?.distance !==
 																	trip?.positions?.[trip?.positions.length - 1]
 																		?.distance || 0 ? (
 																	<saki-menu-item
@@ -1194,7 +1259,7 @@ const TripItemComponent = memo(
 																	</saki-menu-item>
 																) : (
 																	''
-																)}
+																)} */}
 																{user.isLogin ? (
 																	<saki-menu-item
 																		padding='10px 18px'
@@ -1377,6 +1442,27 @@ const TripItemComponent = memo(
 											</div>
 										</div>
 										<div className={'ti-d-bottom ' + config.deviceType}>
+											{trip.type === 'Walking' ||
+											trip.type === 'PowerWalking' ||
+											trip.type === 'Running' ? (
+												<span className='ti-d-b-item'>
+													<span>
+														{t('averagePace', {
+															ns: 'tripPage',
+														}) + ' '}
+													</span>
+													<span>
+														{formatAvgPace(
+															trip?.statistics?.distance || 0,
+															Number(trip.startTime) || 0,
+															Number(trip.endTime) || 0
+														)}
+													</span>
+												</span>
+											) : (
+												''
+											)}
+
 											<span className='ti-d-b-item'>
 												<span>
 													{t('averageSpeed', {
@@ -1464,6 +1550,15 @@ const TripItemComponent = memo(
 													m
 												</span>
 											</span>
+
+											<span className='ti-d-b-item'>
+												<span>
+													{t('tripMark', {
+														ns: 'tripPage',
+													}) + ' '}
+												</span>
+												<span>{trip.marks?.length}</span>
+											</span>
 										</div>
 									</div>
 									{/* {trip?.type === 'Running' ? (
@@ -1476,8 +1571,54 @@ const TripItemComponent = memo(
   ''
 )} */}
 
-									<canvas id='speed-chart' width='400' height='200'></canvas>
+									<canvas
+										id='speed-chart'
+										// width={
+										// 	300
+										// 	// config.deviceType === 'Mobile'
+										// 	// 	? h * 1.5
+										// 	// 	: config.deviceType === 'Pad'
+										// 	// 	? h * 2
+										// 	// 	: h * 2.5
+										// 	// config.deviceType === 'Mobile'
+										// 	// 	? 300
+										// 	// 	: config.deviceType === 'Pad'
+										// 	// 	? 400
+										// 	// 	: 500
+										// }
+										// height='200'
+									></canvas>
 								</div>
+
+								{trip?.marks?.length ? (
+									<div className='ti-marks'>
+										<div className='ti-m-title'>
+											{t('tripMark', {
+												ns: 'tripPage',
+											})}
+										</div>
+
+										<div className='ti-m-list'>
+											{trip?.marks?.map((v, i, arr) => {
+												return (
+													<div className='ti-m-l-item'>
+														<div className='ti-m-l-i-index'>
+															<span># {arr.length - i}</span>
+														</div>
+														<div className='ti-m-l-i-createtime text-elipsis'>
+															{moment(Number(v.timestamp) * 1000).format(
+																'YYYY-MM-DD HH:mm:ss'
+															)}
+														</div>
+													</div>
+												)
+											})}
+										</div>
+									</div>
+								) : (
+									''
+								)}
+
 								<div className='ti-buttons'>
 									<saki-button
 										ref={bindEvent({
@@ -1585,7 +1726,7 @@ const TripItemComponent = memo(
 														ref={bindEvent({
 															tap: () => {
 																if (trip?.permissions?.shareKey) {
-																	copyUrl()
+																	copyUrl(trip?.permissions?.shareKey)
 																	return
 																}
 																switchShareKey(true)
@@ -1617,7 +1758,11 @@ const TripItemComponent = memo(
 						</NoSSR>
 					</>
 				) : (
-					''
+					<span className='ti-loading'>
+						{t('loadingData', {
+							ns: 'prompt',
+						})}
+					</span>
 				)}
 			</div>
 		)

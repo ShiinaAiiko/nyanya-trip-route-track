@@ -14,7 +14,7 @@ import store, {
 	geoSlice,
 } from '../store'
 import { useTranslation } from 'react-i18next'
-// import { userAgent } from './userAgent'
+// import { userAgent } from './usergAgent'
 import { userAgent, CipherSignature, NyaNyaWasm } from '@nyanyajs/utils'
 import debounce, { Debounce } from '@nyanyajs/utils/dist/debounce'
 import * as nyanyalog from 'nyanyajs-log'
@@ -22,10 +22,10 @@ import HeaderComponent from '../components/Header'
 import SettingsComponent from '../components/Settings'
 import LoginComponent from '../components/Login'
 import TripHistoryComponent from '../components/TripHistory'
+import StatisticsComponent from '../components/Statistics'
 import NoSSR from '../components/NoSSR'
 import { bindEvent, snackbar } from '@saki-ui/core'
 import axios from 'axios'
-import { position } from 'html2canvas/dist/types/css/property-descriptors/position'
 import TripEditComponent from '../components/TripEdit'
 import {
 	defaultLanguage,
@@ -33,6 +33,8 @@ import {
 	changeLanguage,
 } from '../plugins/i18n/i18n'
 import Leaflet from 'leaflet'
+import { useRouter } from 'next/router'
+import { storage } from '../store/storage'
 // import { testGpsData } from '../plugins/methods'
 // import parserFunc from 'ua-parser-js'
 
@@ -72,6 +74,8 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
 	const [watchPosDeb] = useState(new Debounce())
 
 	const watchId = useRef(-1)
+
+	const router = useRouter()
 
 	// console.log('Index Layout')
 
@@ -211,6 +215,32 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
 	}, [loadProgressBar, sakiuiInit, mounted])
 
 	useEffect(() => {
+		checkMapUrl(config.mapUrl, 'BaseMap')
+	}, [config.mapUrl])
+
+	useEffect(() => {
+		checkMapUrl(config.trackRouteMapUrl, 'TrackRoute')
+	}, [config.trackRouteMapUrl])
+
+	const checkMapUrl = async (mapUrl: string, type: string) => {
+		if (!mapUrl) return
+		let url = ''
+		// try {
+		// 	url = mapUrl
+		// 		.split('/')
+		// 		.filter((_, i) => {
+		// 			return i === 0 || i === 2
+		// 		})
+		// 		.join('//')
+		// 	console.log('checkMapUrl', url, type)
+		// 	const res = await (await fetch(url)).json()
+		// 	console.log('checkMapUrl res', res, type)
+		// } catch (error) {
+		// 	console.log('checkMapUrl error', error, type)
+		// }
+	}
+
+	useEffect(() => {
 		try {
 			if (navigator.geolocation) {
 				navigator.geolocation.clearWatch(watchId.current)
@@ -287,6 +317,7 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
 				<link rel='stylesheet' href='/css/leaflet.css' crossOrigin='' />
 				<script src='/js/leaflet.js' crossOrigin=''></script>
 				<script src='/js/leaflet-polycolor.min.js'></script>
+				<script src='/js/TileLayer.Grayscale.js' crossOrigin=''></script>
 			</Head>
 			<div className='trip-layout saki-loading'>
 				<NoSSR>
@@ -419,6 +450,7 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
 						/>
 						<LoginComponent />
 						<TripHistoryComponent />
+						{/* <StatisticsComponent /> */}
 					</>
 				) : (
 					''

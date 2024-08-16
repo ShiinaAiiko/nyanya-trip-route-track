@@ -22,10 +22,11 @@ import { storage } from '../store/storage'
 import { useTranslation } from 'react-i18next'
 import { httpApi } from '../plugins/http/api'
 import { protoRoot } from '../protos'
-import { formatDistance, formatTime } from '../plugins/methods'
+import { formatAvgPace, formatDistance, formatTime } from '../plugins/methods'
 import TripItemComponent from './TripItem'
 import { Chart } from 'chart.js'
 import { deepCopy } from '@nyanyajs/utils'
+import StatisticsComponent from './Statistics'
 // import { isCorrectedData } from '../store/trip'
 
 const getMonth = () => {
@@ -103,7 +104,14 @@ const TripHistoryComponent = () => {
 	// const [menuType, setMenuType] = useState('Appearance')
 	// const [menuType, setMenuType] = useState(type || 'Account')
 	const [closeIcon, setCloseIcon] = useState(true)
+	const [enlarge, setEnlarge] = useState(false)
 	const [uselessData, setUselessData] = useState([] as string[])
+
+	useEffect(() => {
+		setCloseIcon(
+			!(layout.openStatisticsModal.visible || layout.openTripItemModal.visible)
+		)
+	}, [layout.openStatisticsModal.visible, layout.openTripItemModal.visible])
 
 	// const [trip, setTrip] = useState<protoRoot.trip.ITrip>()
 
@@ -122,8 +130,20 @@ const TripHistoryComponent = () => {
 			})}
 			width='100%'
 			height='100%'
-			max-width={config.deviceType === 'Mobile' ? '100%' : '620px'}
-			max-height={config.deviceType === 'Mobile' ? '100%' : '600px'}
+			max-width={
+				config.deviceType === 'Mobile'
+					? '100%'
+					: enlarge && !closeIcon
+					? '100%'
+					: '780px'
+			}
+			max-height={
+				config.deviceType === 'Mobile'
+					? '100%'
+					: enlarge && !closeIcon
+					? '100%'
+					: '780px'
+			}
 			mask
 			border-radius={config.deviceType === 'Mobile' ? '0px' : ''}
 			border={config.deviceType === 'Mobile' ? 'none' : ''}
@@ -131,7 +151,18 @@ const TripHistoryComponent = () => {
 			background-color='#fff'
 			visible={layout.openTripHistoryModal}
 		>
-			<div className={'trip-history-component ' + config.deviceType}>
+			<div
+				style={
+					{
+						'--window-h': config.deviceWH.h + 'px',
+					} as any
+				}
+				className={
+					'trip-history-component ' +
+					config.deviceType +
+					(enlarge ? ' enlarge ' : '')
+				}
+			>
 				<div className='th-header'>
 					<saki-modal-header
 						// border
@@ -147,24 +178,54 @@ const TripHistoryComponent = () => {
 								// dispatch(tripSlice.actions.setTripForDetailPage(undefined))
 
 								console.log('back')
-								setCloseIcon(true)
+								// setCloseIcon(true)
+
+								if (
+									!layout.openTripItemModal.visible &&
+									layout.openStatisticsModal.visible
+								) {
+									dispatch(
+										layoutSlice.actions.setOpenStatisticsModal({
+											visible: false,
+											type: layout.openStatisticsModal.type,
+										})
+									)
+								}
+
+								dispatch(
+									layoutSlice.actions.setOpenTripItemModal({
+										visible: false,
+										id: '',
+									})
+								)
 							},
 						})}
 						title={
 							!closeIcon
-								? t((trip.detailPage.trip?.type || '')?.toLowerCase(), {
-										ns: 'tripPage',
-								  }) +
-								  ' · ' +
-								  (trip.detailPage.trip?.status === 1
-										? Math.round(
-												(trip.detailPage.trip?.statistics?.distance || 0) / 10
-										  ) /
-												100 +
-										  'km'
-										: t('unfinished', {
-												ns: 'tripPage',
-										  }))
+								? layout.openStatisticsModal.visible &&
+								  !layout.openTripItemModal.visible
+									? `${t('statistics', {
+											ns: 'tripPage',
+									  })} [${t(layout.openStatisticsModal.type.toLowerCase(), {
+											ns: 'tripPage',
+									  })}]`
+									: !trip.detailPage.trip?.authorId
+									? t('loadingData', {
+											ns: 'prompt',
+									  })
+									: trip.detailPage.trip?.status === 1
+									? t((trip.detailPage.trip?.type || '')?.toLowerCase(), {
+											ns: 'tripPage',
+									  }) +
+									  ' · ' +
+									  Math.round(
+											(trip.detailPage.trip?.statistics?.distance || 0) / 10
+									  ) /
+											100 +
+									  'km'
+									: t('unfinished', {
+											ns: 'tripPage',
+									  })
 								: t('pageTitle')
 						}
 					>
@@ -174,79 +235,101 @@ const TripHistoryComponent = () => {
 							}}
 							slot='right'
 						>
-							<saki-button
-								ref={bindEvent({
-									tap: () => {
-										// const tripStatistic = tripStatistics.filter(v=>v.)
+							{!closeIcon && config.deviceType !== 'Mobile' ? (
+								<saki-button
+									ref={bindEvent({
+										tap: () => {
+											setEnlarge(!enlarge)
+										},
+									})}
+									type='CircleIconGrayHover'
+								>
+									{!enlarge ? (
+										<saki-icon
+											color='#666'
+											width='18px'
+											height='18px'
+											type='ZoomIn'
+										></saki-icon>
+									) : (
+										<saki-icon
+											color='#666'
+											width='18px'
+											height='18px'
+											type='ZoomOut'
+										></saki-icon>
+									)}
+								</saki-button>
+							) : (
+								''
+							)}
+							{closeIcon ? (
+								<saki-button
+									ref={bindEvent({
+										tap: () => {
+											// const tripStatistic = tripStatistics.filter(v=>v.)
 
-										alert({
-											title: t('deleteInvalidTrip', {
-												ns: 'prompt',
-											}),
-											content: t('deleteAllTrip50m', {
-												ns: 'prompt',
-												uselessDataCount: uselessData.length,
-											}),
-											cancelText: t('cancel', {
-												ns: 'prompt',
-											}),
-											confirmText: t('delete', {
-												ns: 'prompt',
-											}),
-											onCancel() {},
-											async onConfirm() {
-												const nPromise: any[] = []
-												uselessData.forEach((v) => {
-													nPromise.push(
-														httpApi.v1.DeleteTrip({
-															id: v,
-														})
-													)
-												})
-
-												Promise.all(nPromise).then(() => {
-													dispatch(
-														configSlice.actions.setUpdateTimeForTripHistoryList(
-															new Date().getTime()
+											alert({
+												title: t('deleteInvalidTrip', {
+													ns: 'prompt',
+												}),
+												content: t('deleteAllTrip50m', {
+													ns: 'prompt',
+													uselessDataCount: uselessData.length,
+												}),
+												cancelText: t('cancel', {
+													ns: 'prompt',
+												}),
+												confirmText: t('delete', {
+													ns: 'prompt',
+												}),
+												onCancel() {},
+												async onConfirm() {
+													const nPromise: any[] = []
+													uselessData.forEach((v) => {
+														nPromise.push(
+															httpApi.v1.DeleteTrip({
+																id: v,
+															})
 														)
-													)
-													snackbar({
-														message: t('deletedSuccessfully', {
-															ns: 'prompt',
-														}),
-														vertical: 'top',
-														horizontal: 'center',
-														backgroundColor: 'var(--saki-default-color)',
-														color: '#fff',
-														autoHideDuration: 2000,
-													}).open()
-												})
-											},
-										}).open()
-									},
-								})}
-								type='CircleIconGrayHover'
-							>
-								<saki-icon color='#666' type='ClearFill'></saki-icon>
-							</saki-button>
+													})
+
+													Promise.all(nPromise).then(() => {
+														dispatch(
+															configSlice.actions.setUpdateTimeForTripHistoryList(
+																new Date().getTime()
+															)
+														)
+														snackbar({
+															message: t('deletedSuccessfully', {
+																ns: 'prompt',
+															}),
+															vertical: 'top',
+															horizontal: 'center',
+															backgroundColor: 'var(--saki-default-color)',
+															color: '#fff',
+															autoHideDuration: 2000,
+														}).open()
+													})
+												},
+											}).open()
+										},
+									})}
+									type='CircleIconGrayHover'
+								>
+									<saki-icon color='#666' type='ClearFill'></saki-icon>
+								</saki-button>
+							) : (
+								''
+							)}
 						</div>
 					</saki-modal-header>
 				</div>
 				<div className='th-main'>
 					<TripHistoryPage
-						showTripItemPage={!closeIcon}
 						onUselessData={(count) => {
 							console.log('onUselessDataCount', count)
 							setUselessData(count)
-						}}
-						onTripItemPage={(type, trip) => {
-							// setTrip(trip)
-							if (type === 'Show') {
-								setCloseIcon(false)
-								return
-							}
-
-							setCloseIcon(true)
 						}}
 					/>
 				</div>
@@ -256,14 +339,9 @@ const TripHistoryComponent = () => {
 }
 
 const TripHistoryPage = ({
-	onTripItemPage,
-	showTripItemPage,
 	onUselessData,
 }: {
-	onTripItemPage: (type: 'Show' | 'Back', trip?: protoRoot.trip.ITrip) => void
-
 	onUselessData: (uselessData: string[]) => void
-	showTripItemPage: boolean
 }) => {
 	const { t, i18n } = useTranslation('tripHistoryPage')
 	// const [type, setType] = useState<'All' | 'Running' | 'Bike' | 'Drive'>('All')
@@ -284,7 +362,7 @@ const TripHistoryPage = ({
 	)
 	const [trips, setTrips] = useState<protoRoot.trip.ITrip[]>([])
 	const [localTrips, setLocalTrips] = useState<protoRoot.trip.ITrip[]>([])
-	const [tripId, setTripId] = useState<string>('')
+
 	const [isLoadLocal, setIsLoadLocal] = useState(false)
 
 	const dispatch = useDispatch<AppDispatch>()
@@ -299,6 +377,9 @@ const TripHistoryPage = ({
 				| 'Motorcycle'
 				| 'Walking'
 				| 'PowerWalking'
+				| 'Train'
+				| 'Plane'
+				| 'PublicTransport'
 				| 'Local'
 			count: number
 			distance: number
@@ -309,12 +390,17 @@ const TripHistoryPage = ({
 		}[]
 	>([])
 
-	useEffect(() => {
-		console.log('showTripItemPage', showTripItemPage)
-		if (!showTripItemPage) {
-			setTripId('')
-		}
-	}, [showTripItemPage])
+	// useEffect(() => {
+	// 	console.log('showTripItemPage', showTripItemPage)
+	// 	if (!showTripItemPage) {
+	// 		dispatch(
+	// 			layoutSlice.actions.setOpenTripItemModal({
+	// 				visible: false,
+	// 				id: '',
+	// 			})
+	// 		)
+	// 	}
+	// }, [showTripItemPage])
 
 	useEffect(() => {
 		setTripStatistics(
@@ -693,6 +779,9 @@ const TripHistoryPage = ({
 		let distance = 0
 		let time = 0
 		let uselessDataCount = 0
+		trips.sort((a, b) => {
+			return Number(b.value.createTime) - Number(a.value.createTime)
+		})
 		const list = trips
 			// .filter((v) => {
 			// 	return type === 'Local' ? true : v.value.type === type
@@ -756,8 +845,12 @@ const TripHistoryPage = ({
 	}
 
 	const onBackTripItemComponent = useCallback(() => {
-		setTripId('')
-		onTripItemPage('Back')
+		dispatch(
+			layoutSlice.actions.setOpenTripItemModal({
+				visible: false,
+				id: '',
+			})
+		)
 	}, [])
 
 	const onDeleteTripItemComponent = useCallback((tripId: string) => {
@@ -765,7 +858,12 @@ const TripHistoryPage = ({
 		setTrips([])
 		setPageNum(1)
 		setLoadStatus('loaded')
-		onTripItemPage('Back')
+		dispatch(
+			layoutSlice.actions.setOpenTripItemModal({
+				visible: false,
+				id: '',
+			})
+		)
 	}, [])
 
 	return (
@@ -794,6 +892,7 @@ const TripHistoryPage = ({
 
 							header-border-bottom='none'
 							header-padding='0 10px'
+							header-item-padding={config.lang === 'en-US' ? '0 4px' : '0 14px'}
 							more-content-width-difference={-80}
 							// header-item-min-width='80px'
 							// disable-more-button
@@ -889,7 +988,6 @@ const TripHistoryPage = ({
 														<div className='bi-count'>
 															<span className='value'>{v.count || 0}</span>
 															<span className='name'>
-																{' '}
 																{t('trips', {
 																	ns: 'tripPage',
 																})}
@@ -899,6 +997,27 @@ const TripHistoryPage = ({
 												</div>
 												<div className='si-chart'>
 													<canvas className={'si-c-cvs-' + v.type}></canvas>
+												</div>
+												{/* <div className='si-statistics-button'></div> */}
+												<div className='si-buttons'>
+													<saki-button
+														ref={bindEvent({
+															tap: () => {
+																dispatch(
+																	layoutSlice.actions.setOpenStatisticsModal({
+																		visible: true,
+																		type: v.type,
+																	})
+																)
+															},
+														})}
+														padding='8px 10px'
+														type='Primary'
+													>
+														{t('statistics', {
+															ns: 'tripPage',
+														})}
+													</saki-button>
 												</div>
 											</div>
 										</saki-tabs-item>
@@ -940,8 +1059,12 @@ const TripHistoryPage = ({
 														// alert
 													}
 
-													setTripId(v.id || '')
-													onTripItemPage('Show', v)
+													dispatch(
+														layoutSlice.actions.setOpenTripItemModal({
+															visible: true,
+															id: v.id || '',
+														})
+													)
 												})
 										}}
 										className='th-l-item'
@@ -995,17 +1118,68 @@ const TripHistoryPage = ({
 														  })}
 												</div>
 												{/* <div className='info-item'>配速 10'05</div> */}
-												<div className='info-item'>
-													{t('maxSpeed', {
-														ns: 'tripPage',
-													})}{' '}
-													{(v?.statistics?.maxSpeed || 0) <= 0
-														? 0
-														: Math.round(
-																((v?.statistics?.maxSpeed || 0) * 3600) / 100
-														  ) / 10}{' '}
-													km/h
-												</div>
+
+												{
+													type === 'Walking' ||
+													type === 'PowerWalking' ||
+													type === 'Running' ? (
+														<div className='info-item'>
+															{t('averagePace', {
+																ns: 'tripPage',
+															})}{' '}
+															{formatAvgPace(
+																v.statistics?.distance || 0,
+																Number(v.startTime) || 0,
+																Number(v.endTime) || 0
+															)}
+														</div>
+													) : (
+														<div className='info-item'>
+															{t('averageSpeed', {
+																ns: 'tripPage',
+															})}{' '}
+															{(v?.statistics?.averageSpeed || 0) <= 0
+																? 0
+																: Math.round(
+																		((v?.statistics?.averageSpeed || 0) * 3600) /
+																			100
+																  ) / 10}{' '}
+															km/h
+														</div>
+													)
+													// config.deviceType !== 'Mobile' ? (
+													// <div className='info-item'>
+													// 	{t('averageSpeed', {
+													// 		ns: 'tripPage',
+													// 	})}{' '}
+													// 	{(v?.statistics?.maxSpeed || 0) <= 0
+													// 		? 0
+													// 		: Math.round(
+													// 				((v?.statistics?.maxSpeed || 0) * 3600) / 100
+													// 		  ) / 10}{' '}
+													// 	km/h
+													// </div>
+													// ) : (
+													// 	''
+													// )
+												}
+
+												{config.deviceType !== 'Mobile' ? (
+													<div className='info-item'>
+														{t('maxSpeed', {
+															ns: 'tripPage',
+														})}{' '}
+														{(v?.statistics?.maxSpeed || 0) <= 0
+															? 0
+															: Math.round(
+																	((v?.statistics?.maxSpeed || 0) * 3600) / 100
+															  ) / 10}{' '}
+														km/h
+													</div>
+												) : (
+													''
+												)}
+
 												{/* <div className='info-item'>平均时速 10'05</div> */}
 											</div>
 										</div>
@@ -1046,15 +1220,35 @@ const TripHistoryPage = ({
 					</div>
 				</div>
 			</saki-scroll-view>
-			<div className={'th-item-page ' + (tripId ? 'visivle' : '')}>
+			<div
+				className={
+					'th-item-page ' + (layout.openTripItemModal.visible ? 'visivle' : '')
+				}
+			>
 				<TripItemComponent
+					onBack={onBackTripItemComponent}
+					onTrip={() => {}}
+					onDelete={onDeleteTripItemComponent}
+					isShare={false}
+					tripId={layout.openTripItemModal.id}
+					shareKey=''
+				/>
+			</div>
+			<div
+				className={
+					'th-statistics-page ' +
+					(layout.openStatisticsModal.visible ? 'visivle' : '')
+				}
+			>
+				<StatisticsComponent />
+				{/* <TripItemComponent
 					onBack={onBackTripItemComponent}
 					onTrip={() => {}}
 					onDelete={onDeleteTripItemComponent}
 					isShare={false}
 					tripId={tripId}
 					shareKey=''
-				/>
+				/> */}
 			</div>
 		</div>
 	)

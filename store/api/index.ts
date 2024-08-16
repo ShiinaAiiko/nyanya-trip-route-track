@@ -11,6 +11,7 @@ export const apiSlice = createSlice({
 			v1: {
 				baseUrl: '/api/v1',
 				addTrip: '/trip/add',
+				addTripMark: '/trip/mark/add',
 				addTripToOnline: '/trip/addTripToOnline',
 				updateTripPosition: '/trip/position/update',
 				finishTrip: '/trip/finish',
@@ -20,6 +21,7 @@ export const apiSlice = createSlice({
 				getTrip: '/trip/get',
 				getTripPositions: '/trip/positions/get',
 				getTripHistoryPositions: '/trip/history/positions/get',
+				getHistoricalStatistics: '/trip/historicalStatistics/get',
 				getTripList: '/trip/list/get',
 				getTripStatistics: '/trip/statistics/get',
 			},

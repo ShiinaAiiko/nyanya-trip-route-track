@@ -72,7 +72,7 @@ const SettingsComponent = ({
 						border
 						back-icon={!closeIcon}
 						close-icon={closeIcon}
-            right-width={'56px'}
+						right-width={'56px'}
 						ref={bindEvent({
 							close() {
 								onClose?.()
@@ -921,6 +921,45 @@ const Maps = ({ show }: { show: boolean }) => {
 				)}
 			></SettingsItem>
 			<SettingsItem
+				subtitle={() => <div>{t('trackRouteDetailedData')}</div>}
+				main={() => (
+					<div className='sm-basemap'>
+						<span>{t('trackRouteDetailedDataContent')}</span>
+						<saki-switch
+							ref={bindEvent({
+								change: (e) => {
+									store.dispatch(
+										configSlice.actions.setShowDetailedDataForMultipleHistoricalTrips(
+											e.detail
+										)
+									)
+								},
+							})}
+							height='24px'
+							value={config.showDetailedDataForMultipleHistoricalTrips}
+						></saki-switch>
+					</div>
+				)}
+			></SettingsItem>
+
+			<SettingsItem
+				subtitle={() => <div>{t('maskLayer')}</div>}
+				main={() => (
+					<div className='sm-basemap'>
+						<span>{t('grayMask')}</span>
+						<saki-switch
+							ref={bindEvent({
+								change: (e) => {
+									store.dispatch(configSlice.actions.setIsGrayscale(e.detail))
+								},
+							})}
+							height='24px'
+							value={config.isGrayscale}
+						></saki-switch>
+					</div>
+				)}
+			></SettingsItem>
+			<SettingsItem
 				subtitle={() => <div>{t('trackLine')}</div>}
 				main={() => (
 					<>
@@ -1004,6 +1043,48 @@ const Maps = ({ show }: { show: boolean }) => {
 								}}
 							>
 								{config.mapPolyline.historyTravelTrackWidth}px
+							</span>
+						</div>
+						<div
+							style={{
+								display: 'flex',
+								alignItems: 'center',
+								margin: '16px 0',
+							}}
+						>
+							<span
+								style={{
+									paddingRight: '6px',
+									fontSize: '12px',
+								}}
+							>
+								{t('historyTravelDetailedDataTrackWidth')}
+							</span>
+							<saki-input
+								ref={bindEvent({
+									changevalue: (v) => {
+										dispatch(
+											configSlice.actions.setHistoryTravelDetailedDataTrackWidth(
+												Number(v.detail) || 8
+											)
+										)
+									},
+								})}
+								style={{
+									flex: '1',
+								}}
+								width='100%'
+								type='Range'
+								value={config.mapPolyline.historyTravelDetailedDataTrackWidth}
+								min='1'
+								max='10'
+							></saki-input>
+							<span
+								style={{
+									paddingLeft: '6px',
+								}}
+							>
+								{config.mapPolyline.historyTravelDetailedDataTrackWidth}px
 							</span>
 						</div>
 					</>

@@ -44,6 +44,10 @@ type TripPermissions struct {
 	// Share bool `bson:"share" json:"share,omitempty"`
 }
 
+type TripMark struct {
+	Timestamp int64 `bson:"timestamp" json:"timestamp,omitempty"`
+}
+
 type Trip struct {
 	// 使用短ID
 	Id string `bson:"_id" json:"id,omitempty"`
@@ -52,6 +56,7 @@ type Trip struct {
 	// Running、Bike、Drive、Motorcycle、Walking、PowerWalking
 	Type        string           `bson:"type" json:"type,omitempty"`
 	Positions   []*TripPosition  `bson:"positions" json:"positions,omitempty"`
+	Marks       []*TripMark      `bson:"marks" json:"marks,omitempty"`
 	Statistics  *TripStatistics  `bson:"statistics" json:"statistics,omitempty"`
 	Permissions *TripPermissions `bson:"permissions" json:"permissions,omitempty"`
 	AuthorId    string           `bson:"authorId" json:"authorId,omitempty"`
@@ -76,6 +81,9 @@ func (s *Trip) Default() error {
 
 	if s.Positions == nil {
 		s.Positions = []*TripPosition{}
+	}
+	if s.Marks == nil {
+		s.Marks = []*TripMark{}
 	}
 	if s.Statistics == nil {
 		s.Statistics = &TripStatistics{}
@@ -118,7 +126,10 @@ func (s *Trip) Validate() error {
 			"Drive",
 			"Motorcycle",
 			"Walking",
-			"PowerWalking"})),
+			"PowerWalking",
+			"Train",
+			"PublicTransport",
+			"Plane"})),
 		validation.Parameter(&s.AuthorId, validation.Required()),
 		validation.Parameter(&s.Status, validation.Required(), validation.Enum([]int64{1, 0, -1})),
 		validation.Parameter(&s.CreateTime, validation.Required()),

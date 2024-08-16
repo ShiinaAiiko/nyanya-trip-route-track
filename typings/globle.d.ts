@@ -46,6 +46,7 @@ declare global {
 			'saki-scroll-loading': any
 			'saki-linear-progress-bar': any
 			'saki-row': any
+			'saki-date-picker': any
 		}
 	}
 	namespace Window {

@@ -32,6 +32,8 @@ message TripStatistics {
 
 message TripPermissions { string shareKey = 1; }
 
+message TripMark { int64 timestamp = 1; }
+
 message Trip {
   string id = 1;
   // 非必填
@@ -50,6 +52,16 @@ message Trip {
 
   // web专属
   int64 correctedData = 12;
+
+  repeated TripMark marks = 13;
+}
+
+message AddTripMark {
+  message Request {
+    string id = 1;
+    TripMark mark = 2;
+  }
+  message Response {}
 }
 
 message AddTrip {
@@ -68,6 +80,9 @@ message AddTripToOnline {
     // Running、Bike、Drive
     string type = 1;
     repeated TripPosition positions = 2;
+
+    repeated TripMark marks = 8;
+
     // TripStatistics statistics = 3;
     // int64 status = 4;
     int64 createTime = 7;
@@ -163,6 +178,7 @@ message TripPositions {
   int64 startTime = 1;
   // 禁止输出了一些数据，具体的看代码
   repeated string positions = 2;
+  // repeated string keys = 8;
   int64 total = 3;
   string id = 4;
   string type = 5;
@@ -171,6 +187,8 @@ message TripPositions {
 
   // web专属
   int64 correctedData = 7;
+
+  string authorId = 8;
 }
 
 message GetTripHistoryPositions {
@@ -226,5 +244,25 @@ message GetTripStatistics {
 
     repeated Trip list = 4;
     repeated string uselessData = 5;
+  }
+}
+
+message GetHistoricalStatistics {
+  message Request {
+    // 必选 Running、Bike、Drive
+    string type = 1;
+  }
+  message Response {
+    message NumItem {
+      double num = 1;
+      string id = 2;
+    }
+    NumItem maxDistance = 1;
+    NumItem maxSpeed = 2;
+    NumItem fastestAverageSpeed = 3;
+    NumItem maxAltitude = 4;
+    NumItem minAltitude = 5;
+    NumItem maxClimbAltitude = 6;
+    NumItem maxDescendAltitude = 7;
   }
 }

@@ -2,8 +2,10 @@ package methods
 
 import (
 	"math"
+	"strings"
 
 	"github.com/ShiinaAiiko/nyanya-trip-route-track/server/models"
+	"github.com/cherrai/nyanyago-utils/nstrings"
 )
 
 // Return unit is meters
@@ -30,8 +32,20 @@ func GetGeoDistance(
 	return dist * 1000
 }
 
-func GSS(v *models.TripPosition, createTime, endTime int64) bool {
+func GSS(v *models.TripPosition, startTime, endTime int64) bool {
+	// log.Info("gss", v.Timestamp/1000, startTime, v.Timestamp/1000, endTime)
 	return v.Speed != -1 && v.Speed >= 0 &&
 		v.Altitude != -1 && v.Altitude >= 0 &&
-		v.Accuracy != -1 && v.Accuracy <= 20 && v.Timestamp/1000 >= createTime && v.Timestamp/1000 <= endTime
+		v.Accuracy != -1 && v.Accuracy <= 20 && v.Timestamp/1000 >= startTime && v.Timestamp/1000 <= endTime
+}
+
+func GetGeoKey(mapKeys *(map[string]int), latlon string, keyIndex *int) string {
+	latlons := strings.Split(latlon, ".")
+	k := latlons[0] + "." + latlons[1][0:2]
+
+	if (*mapKeys)[k] == 0 {
+		*keyIndex++
+		(*mapKeys)[k] = *keyIndex
+	}
+	return nstrings.ToString((*mapKeys)[k]) + "." + latlons[1][2:len(latlons[1])-1]
 }

@@ -20,6 +20,21 @@ export const v1 = {
 			protoRoot.trip.AddTrip.Response
 		)
 	},
+	async AddTripMark(params: protoRoot.trip.AddTripMark.IRequest) {
+		const { apiUrls } = store.getState().api
+
+		return await Request<protoRoot.trip.AddTripMark.IResponse>(
+			{
+				method: 'POST',
+				data: PARAMS<protoRoot.trip.AddTripMark.IRequest>(
+					params,
+					protoRoot.trip.AddTripMark.Request
+				),
+				url: getUrl(apiUrls.v1.baseUrl, apiUrls.v1.addTripMark),
+			},
+			protoRoot.trip.AddTripMark.Response
+		)
+	},
 	async AddTripToOnline(params: protoRoot.trip.AddTripToOnline.IRequest) {
 		const { apiUrls } = store.getState().api
 
@@ -175,7 +190,7 @@ export const v1 = {
 	) {
 		const { apiUrls } = store.getState().api
 
-    // console.log('GetTripHistoryPositions',params)
+		// console.log('GetTripHistoryPositions',params)
 		// return await R.request({
 		// 	method: 'GET',
 		// 	data: params,
@@ -192,6 +207,24 @@ export const v1 = {
 				url: getUrl(apiUrls.v1.baseUrl, apiUrls.v1.getTripHistoryPositions),
 			},
 			protoRoot.trip.GetTripHistoryPositions.Response
+		)
+  },
+  
+	async GetHistoricalStatistics(
+		params: protoRoot.trip.GetHistoricalStatistics.IRequest
+	) {
+		const { apiUrls } = store.getState().api
+
+		return await Request<protoRoot.trip.GetHistoricalStatistics.IResponse>(
+			{
+				method: 'GET',
+				data: PARAMS<protoRoot.trip.GetHistoricalStatistics.IRequest>(
+					params,
+					protoRoot.trip.GetHistoricalStatistics.Request
+				),
+				url: getUrl(apiUrls.v1.baseUrl, apiUrls.v1.getHistoricalStatistics),
+			},
+			protoRoot.trip.GetHistoricalStatistics.Response
 		)
 	},
 }

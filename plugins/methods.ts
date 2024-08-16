@@ -106,13 +106,26 @@ export const getDistance = (
 	return s
 }
 
-export const formatTime = (startTime: number, endTime: number) => {
-	const timestamp = Math.floor(endTime) - Math.floor(startTime)
-
+export const formatTimestamp = (timestamp: number) => {
 	const h = Math.floor(timestamp / 3600)
 	const m = Math.floor(timestamp / 60) % 60
 	const s = Math.floor(timestamp % 60)
 	return h + 'h ' + m + 'm ' + s + 's'
+}
+
+export const formatTime = (startTime: number, endTime: number) => {
+	const timestamp = Math.floor(endTime) - Math.floor(startTime)
+	return formatTimestamp(timestamp)
+}
+
+export const formatAvgPace = (
+	distance: number,
+	startTime: number,
+	endTime: number
+) => {
+	const pace = (Number(endTime) - Number(startTime)) / ((distance || 0) / 1000)
+
+	return `${Math.floor(pace / 60) % 60}'${Math.floor(pace % 60)}"`
 }
 
 export const formatDistance = (distance: number) => {
@@ -168,44 +181,89 @@ const latlngCache: {
 		[latlng: string]: number[]
 	}
 } = {}
-export const getLatLng = (lat: number, lng: number) => {
+
+// 转换坐标系
+export const getLatLng = (mapUrl: string, lat: number, lng: number) => {
 	let key = String(lat) + String(lng)
-	const { config } = store.getState()
 
-	if (latlngCache[config.mapUrl]?.[key]) return latlngCache[config.mapUrl][key]
+	if (latlngCache[mapUrl]?.[key]) return latlngCache[mapUrl][key]
 
-	// console.log('getLatLnggetLatLng')
-
-	if (config.mapUrl.indexOf('openstreetmap') < 0) {
+	if (
+		mapUrl.indexOf('google.com') >= 0 ||
+		mapUrl.indexOf('autonavi.com') >= 0 ||
+		mapUrl.indexOf('geoq.cn') >= 0
+	) {
 		const gcj02towgs84 = coordtransform.wgs84togcj02(lng, lat)
 		// console.log('gcj02towgs84', gcj02towgs84)
 
 		lng = gcj02towgs84[0]
 		lat = gcj02towgs84[1]
 	}
-	!latlngCache[config.mapUrl] && (latlngCache[config.mapUrl] = {})
-	latlngCache[config.mapUrl][key] = [lat, lng]
+	// if (
+	// 	location.pathname.indexOf('trackRoute') >= 0
+	// 		? config.trackRouteMapKey.indexOf('TianDiTu') >= 0 ||
+	// 		  config.trackRouteMapKey.indexOf('OpenStreetMap') >= 0
+	// 		: config.mapKey.indexOf('TianDiTu') >= 0 ||
+	// 		  config.mapKey.indexOf('OpenStreetMap') >= 0
+	// ) {
+	// 	const gcj02towgs84 = coordtransform.gcj02towgs84(lng, lat)
+	// 	// console.log('gcj02towgs84', gcj02towgs84)
+
+	// 	lng = gcj02towgs84[0]
+	// 	lat = gcj02towgs84[1]
+	// }
+	!latlngCache[mapUrl] && (latlngCache[mapUrl] = {})
+	latlngCache[mapUrl][key] = [lat, lng]
 
 	return [lat, lng]
+}
+
+const FormatGeoKey = (keys: string[], latlon: string) => {
+	const latlons = latlon.split('.')
+
+	return keys[Number(latlons[0])] + latlons[1]
 }
 
 export const formatPositionsStr = (
 	startTime: number,
 	positions: string[]
 ): protoRoot.trip.ITripPosition[] => {
+	let startLat = 0
+	let startLon = 0
 	return positions
-		.map((v): protoRoot.trip.ITripPosition => {
-			const vArr = v.split('-')
+		.map((v, i): protoRoot.trip.ITripPosition => {
+			const vArr = v.split('_')
 			// console.log('vArr', v, vArr)
+			// let lat = Number(FormatGeoKey(keys, vArr[0]))
+			// let lon = Number(FormatGeoKey(keys, vArr[1]))
+			let lat = Number(vArr[0])
+			let lon = Number(vArr[1])
+			if (i !== 0) {
+				lat = Math.floor(startLat - lat) / 100000000
+				lon = Math.floor(startLon - lon) / 100000000
+			}
+			startLat = lat * 100000000
+			startLon = lon * 100000000
+			// if (i < 100) {
+			// 	console.log(
+			// 		'latlon pospos1',
+			// 		lat,
+			// 		lon,
+			// 		Number(vArr[0]),
+			// 		Number(vArr[1]),
+			// 		vArr
+			// 	)
+			// }
+
 			return {
-				latitude: Number(vArr[0]),
-				longitude: Number(vArr[1]),
+				latitude: lat,
+				longitude: lon,
 				altitude: Number(vArr[2]),
-				altitudeAccuracy: Number(vArr[3]),
-				accuracy: Number(vArr[4]),
-				heading: Number(vArr[5]),
-				speed: Number(vArr[6]),
-				timestamp: Number(startTime) + Number(vArr[7]),
+				speed: Number(vArr[3]),
+				timestamp: Number(startTime) + Number(vArr[4]),
+				altitudeAccuracy: Number(vArr[5]),
+				accuracy: Number(vArr[6]),
+				heading: Number(vArr[7]),
 			}
 		})
 		.filter((v, i) => {

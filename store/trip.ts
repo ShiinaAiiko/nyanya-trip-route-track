@@ -7,22 +7,16 @@ import {
 import { storage } from './storage'
 import { protoRoot } from '../protos'
 import { formatPositionsStr, getDistance } from '../plugins/methods'
+import { TabsTripType } from './config'
 
 const modelName = 'trip'
-const state = {
+
+export const state = {
 	detailPage: {
 		trip: undefined as protoRoot.trip.ITrip | null | undefined,
 	},
 	tripStatistics: [] as {
-		type:
-			| 'All'
-			| 'Running'
-			| 'Bike'
-			| 'Drive'
-			| 'Motorcycle'
-			| 'Walking'
-			| 'PowerWalking'
-			| 'Local'
+		type: TabsTripType
 		count: number
 		distance: number
 		uselessData: string[]
@@ -127,15 +121,15 @@ export const tripSlice = createSlice({
 					if (i > 0 && params.payload) {
 						const lv = params.payload.positions?.[i - 1]
 						if (lv) {
-							console.log(
-								'distance',
-								getDistance(
-									v.latitude || 0,
-									v.longitude || 0,
-									lv.latitude || 0,
-									lv.longitude || 0
-								),
-							)
+							// console.log(
+							// 	'distance',
+							// 	getDistance(
+							// 		v.latitude || 0,
+							// 		v.longitude || 0,
+							// 		lv.latitude || 0,
+							// 		lv.longitude || 0
+							// 	),
+							// )
 							tDistance += getDistance(
 								v.latitude || 0,
 								v.longitude || 0,

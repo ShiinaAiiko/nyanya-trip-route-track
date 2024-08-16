@@ -15,6 +15,7 @@ import '../components/TripItem.scss'
 import '../components/TripEdit.scss'
 import '../components/MapTrackRoute.scss'
 import '../components/Buttons.scss'
+import '../components/Statistics.scss'
 
 import { useRouter } from 'next/router'
 import { Provider } from 'react-redux'

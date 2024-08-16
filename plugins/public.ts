@@ -150,9 +150,8 @@ R.interceptors.response.use(async (response) => {
 			snackbar({
 				message: data.msg + (data.error ? ',' + data.error : ''),
 				autoHideDuration: 2000,
-				vertical: 'top',
-        horizontal: 'left',
-        
+				vertical: 'bottom',
+				horizontal: 'center',
 			}).open()
 		}
 		// 	}

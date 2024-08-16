@@ -96,7 +96,7 @@ const HeaderComponent = ({
 									width='34px'
 									height='34px'
 									border-radius='50%'
-                  default-icon={'UserLine'}
+									default-icon={'UserLine'}
 									nickname={user.userInfo.nickname}
 									src={user.userInfo.avatar}
 									alt=''
@@ -171,7 +171,7 @@ const HeaderComponent = ({
 														height='20px'
 														margin='0 10px 0 0'
 														border-radius='50%'
-                            default-icon={'UserLine'}
+														default-icon={'UserLine'}
 														nickname={user.userInfo.nickname}
 														src={user.userInfo.avatar}
 														alt=''
@@ -191,6 +191,16 @@ const HeaderComponent = ({
 													</span>
 												</div>
 											</saki-menu-item>
+											{/* <saki-menu-item padding='10px 18px' value={'MergeTrip'}>
+												<div className='tb-h-r-user-item'>
+													<saki-icon color='#666' type='TripRoute'></saki-icon>
+													<span className='text-elipsis'>
+														{t('mergeTrip', {
+															ns: 'settings',
+														})}
+													</span>
+												</div>
+											</saki-menu-item> */}
 										</>
 									) : (
 										''

@@ -21,7 +21,24 @@ export type TripType =
 	| 'Motorcycle'
 	| 'Walking'
 	| 'PowerWalking'
+	| 'Train'
+	| 'Plane'
+	| 'PublicTransport'
 	| 'Local'
+
+export type TabsTripType =
+	| 'All'
+	| 'Running'
+	| 'Bike'
+	| 'Drive'
+	| 'Motorcycle'
+	| 'Walking'
+	| 'PowerWalking'
+	| 'Train'
+	| 'Plane'
+	| 'PublicTransport'
+	| 'Local'
+
 export type DeviceType = 'Mobile' | 'Pad' | 'PC'
 export type LanguageType = Languages | 'system'
 export let deviceType: DeviceType | undefined
@@ -35,12 +52,16 @@ cnMap =
 export let maps = [
 	{
 		key: 'AutoSelect',
-		url: 'AutoSelect',
+		url: '',
 	},
 	{
 		key: 'OpenStreetMap',
 		url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
 	},
+	// {
+	// 	key: 'OpenStreetMapHumanitarian',
+	// 	url: 'https://tile-c.openstreetmap.fr/hot/{z}/{x}/{y}.png',
+	// },
 	{
 		key: 'Google',
 		url: 'https://www.google.com/maps/vt?lyrs=m@189&gl=cn&x={x}&y={y}&z={z}',
@@ -51,7 +72,7 @@ export let maps = [
 	},
 	{
 		key: 'Amap',
-		url: 'https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}',
+		url: 'https://webrd02.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}',
 	},
 	{
 		key: 'AmapSatellite',
@@ -74,8 +95,8 @@ export let maps = [
 		url: 'https://map.geoq.cn/arcgis/rest/services/ChinaOnlineStreetWarm/MapServer/tile/{z}/{y}/{x}',
 	},
 	{
-		key: 'GeoQStreet',
-		url: 'https://map.geoq.cn/arcgis/rest/services/ChinaOnlineStreetWarm/MapServer/tile/{z}/{y}/{x}',
+		key: 'TianDiTuSatellite',
+		url: 'https://t0.tianditu.gov.cn/DataServer?T=img_w&X={x}&Y={y}&L={z}&tk=174705aebfe31b79b3587279e211cb9a',
 	},
 ]
 
@@ -121,37 +142,50 @@ export const getSpeedColors = (type: 'RedGreen' | 'PinkBlue') => {
 	}
 }
 
-export const getTrackRouteColor = (type: 'Blue' | 'Pink' | 'Red') => {
+export const getTrackRouteColor = (
+	type: 'Blue' | 'Pink' | 'Red',
+	lightColor: boolean
+) => {
 	if (type === 'Blue') {
+		if (lightColor) {
+			return '#6a8b8e'
+		}
 		return '#4af0fe'
 	}
 	if (type === 'Pink') {
+		if (lightColor) {
+			return '#836d72'
+		}
 		return '#f29cb2'
+	}
+	if (lightColor) {
+		// return '#e66e4680'
+		return '#866c64'
 	}
 	return '#e66e46'
 }
 
-const getMapUrlAuto = () => {
+const getMapUrlAuto = (type: string, mapKey: string) => {
 	setTimeout(() => {
 		const { config } = store.getState()
 
 		let key = ''
-		if (config.mapKey === 'AutoSelect') {
+		if (mapKey === 'AutoSelect') {
 			if (config.country && config.connectionOSM !== 0) {
 				if (config.country === 'China') {
-					key = 'Amap'
+					key = 'GeoQGrey'
 				} else {
 					if (config.connectionOSM === 1) {
 						key = 'OpenStreetMap'
 					} else {
-						key = 'Amap'
+						key = 'GeoQGrey'
 					}
 				}
 			} else {
 				return
 			}
 		} else {
-			key = config.mapKey
+			key = mapKey
 		}
 		// console.log(
 		// 	'getMapUrlAuto',
@@ -163,42 +197,18 @@ const getMapUrlAuto = () => {
 		const v = maps.filter((v) => {
 			return v.key === key
 		})[0]
-		console.log(v?.url)
-		store.dispatch(configSlice.actions.setMapUrl(v?.url))
-	}, 0)
-}
-
-const getTrackRouteMapUrlAuto = () => {
-	setTimeout(() => {
-		const { config } = store.getState()
-
-		let key = ''
-		if (config.trackRouteMapKey === 'AutoSelect') {
-			if (config.country && config.connectionOSM !== 0) {
-				if (config.country === 'China') {
-					key = 'GeoQNight'
-				} else {
-					if (config.connectionOSM === 1) {
-						key = 'OpenStreetMap'
-					} else {
-						key = 'GeoQNight'
-					}
-				}
-			} else {
-				return
-			}
-		} else {
-			key = config.trackRouteMapKey
+		// console.log('v?.url', v?.url)
+		if (type === 'TrackRoute') {
+			store.dispatch(configSlice.actions.setTrackRouteMapUrl(v?.url))
+			return
 		}
-		const v = maps.filter((v) => {
-			return v.key === key
-		})[0]
-		store.dispatch(configSlice.actions.setTrackRouteMapUrl(v?.url))
+		store.dispatch(configSlice.actions.setMapUrl(v?.url))
 	}, 0)
 }
 
 const tempRealtimeTravelTrackWidth = 4
 const tempHistoryTravelTrackWidth = 1
+const tempHistoryTravelDetailedDataTrackWidth = 2
 
 export const configSlice = createSlice({
 	name: 'config',
@@ -207,16 +217,22 @@ export const configSlice = createSlice({
 		lang: '',
 		languages: ['system', ...languages],
 		deviceType,
+		deviceWH: {
+			w: 0,
+			h: 0,
+		},
 		country: '',
 		connectionOSM: 0,
 		mapPolyline: {
 			realtimeTravelTrackWidth: tempRealtimeTravelTrackWidth,
 			historyTravelTrackWidth: tempHistoryTravelTrackWidth,
+			historyTravelDetailedDataTrackWidth:
+				tempHistoryTravelDetailedDataTrackWidth,
 		},
 		mapKey: 'AutoSelect',
-		mapUrl: 'AutoSelect',
+		mapUrl: '',
 		trackRouteMapKey: 'AutoSelect',
-		trackRouteMapUrl: 'AutoSelect',
+		trackRouteMapUrl: '',
 		// map: {
 		// 	key: 'AutoSelect',
 		// 	url: '',
@@ -246,6 +262,18 @@ export const configSlice = createSlice({
 				minSpeed: 1.38,
 				maxSpeed: 2.77,
 			},
+			plane: {
+				maxSpeed: 22.22,
+				minSpeed: 100,
+			},
+			train: {
+				minSpeed: 22.22,
+				maxSpeed: 70,
+			},
+			publictransport: {
+				minSpeed: 8.33,
+				maxSpeed: 22.22,
+			},
 		} as {
 			[type: string]: {
 				minSpeed: number
@@ -254,7 +282,7 @@ export const configSlice = createSlice({
 		},
 
 		speedColorType: 'RedGreen' as 'RedGreen' | 'PinkBlue',
-		trackRouteColor: 'Blue' as 'Blue' | 'Pink' | 'Red',
+		trackRouteColor: 'Red' as 'Blue' | 'Pink' | 'Red',
 		tripTypes: [
 			'Running',
 			'Bike',
@@ -262,13 +290,26 @@ export const configSlice = createSlice({
 			'Walking',
 			'PowerWalking',
 			'Motorcycle',
+			'Train',
+			'PublicTransport',
+			'Plane',
 			'Local',
 		] as TripType[],
 
-		selectedTripTypes: [] as string[],
-		selectedTripIds: [] as string[],
+		trackRoute: {
+			selectedTripTypes: [] as string[],
+			selectedTripIds: [] as string[],
+			selectedDate: {
+				startDate: '',
+				endDate: '',
+			},
+		},
 
 		updateTimeForTripHistoryList: 0,
+
+		isGrayscale: false,
+
+		showDetailedDataForMultipleHistoricalTrips: true,
 	},
 	reducers: {
 		setTrackRouteColor: (
@@ -280,23 +321,64 @@ export const configSlice = createSlice({
 		) => {
 			state.trackRouteColor = params.payload
 		},
-		setSelectedTripTypes: (
+		setIsGrayscale: (
 			state,
 			params: {
-				payload: string[]
+				payload: boolean
 				type: string
 			}
 		) => {
-			state.selectedTripTypes = params.payload
+			state.isGrayscale = params.payload
+			storage.global.setSync('isGrayscale', params.payload)
 		},
-		setSelectedTripIds: (
+		setShowDetailedDataForMultipleHistoricalTrips: (
+			state,
+			params: {
+				payload: boolean
+				type: string
+			}
+		) => {
+			state.showDetailedDataForMultipleHistoricalTrips = params.payload
+			storage.global.setSync(
+				'showDetailedDataForMultipleHistoricalTrips',
+				params.payload
+			)
+		},
+		setTrackRouteSelectedTripTypes: (
 			state,
 			params: {
 				payload: string[]
 				type: string
 			}
 		) => {
-			state.selectedTripIds = params.payload
+			state.trackRoute.selectedTripTypes = params.payload
+		},
+		setTrackRouteSelectedTripIds: (
+			state,
+			params: {
+				payload: string[]
+				type: string
+			}
+		) => {
+			state.trackRoute.selectedTripIds = params.payload
+		},
+		setTrackRouteSelectedStartDate: (
+			state,
+			params: {
+				payload: string
+				type: string
+			}
+		) => {
+			state.trackRoute.selectedDate.startDate = params.payload
+		},
+		setTrackRouteSelectedEndDate: (
+			state,
+			params: {
+				payload: string
+				type: string
+			}
+		) => {
+			state.trackRoute.selectedDate.endDate = params.payload
 		},
 		setUpdateTimeForTripHistoryList: (
 			state,
@@ -337,18 +419,24 @@ export const configSlice = createSlice({
 		setDeviceType: (state, params: ActionParams<DeviceType>) => {
 			state.deviceType = params.payload
 		},
+		setDeviceWH: (state, params: ActionParams<void>) => {
+			state.deviceWH = {
+				w: window.innerWidth,
+				h: window.innerHeight,
+			}
+		},
 		setCountry: (state, params: ActionParams<string>) => {
 			state.country = params.payload
 			country = state.country
 
-			getMapUrlAuto()
-			getTrackRouteMapUrlAuto()
+			getMapUrlAuto('', state.mapKey)
+			getMapUrlAuto('TrackRoute', state.trackRouteMapKey)
 		},
 		setConnectionOSM: (state, params: ActionParams<number>) => {
 			state.connectionOSM = params.payload
 
-			getMapUrlAuto()
-			getTrackRouteMapUrlAuto()
+			getMapUrlAuto('', state.mapKey)
+			getMapUrlAuto('TrackRoute', state.trackRouteMapKey)
 		},
 		setMapUrl: (
 			state,
@@ -357,6 +445,7 @@ export const configSlice = createSlice({
 				type: string
 			}
 		) => {
+			// console.log('v?.url initMap params.payload', params.payload)
 			state.mapUrl = params.payload
 		},
 		setMapKey: (
@@ -370,6 +459,7 @@ export const configSlice = createSlice({
 				return v.key === params.payload
 			})[0]
 			state.mapKey = v.key
+			// console.log('v?.url initMap params.payload', v, v.url)
 			state.mapUrl = v.url
 		},
 		setTrackRouteMapUrl: (
@@ -420,6 +510,19 @@ export const configSlice = createSlice({
 				params.payload
 			)
 		},
+		setHistoryTravelDetailedDataTrackWidth: (
+			state,
+			params: {
+				payload: number
+				type: string
+			}
+		) => {
+			state.mapPolyline.historyTravelDetailedDataTrackWidth = params.payload
+			storage.global.setSync(
+				'mapPolylineHistoryTravelDetailedDataTrackWidth',
+				params.payload
+			)
+		},
 	},
 })
 export const configMethods = {
@@ -450,6 +553,26 @@ export const configMethods = {
 			configSlice.actions.setHistoryTravelTrackWidth(
 				(await storage.global.get('mapPolylineHistoryTravelTrackWidth')) ||
 					tempHistoryTravelTrackWidth
+			)
+		)
+		thunkAPI.dispatch(
+			configSlice.actions.setHistoryTravelDetailedDataTrackWidth(
+				(await storage.global.get(
+					'mapPolylineHistoryTravelDetailedDataTrackWidth'
+				)) || tempHistoryTravelDetailedDataTrackWidth
+			)
+		)
+
+		const isGrayscale = (await storage.global.get('isGrayscale')) || false
+		thunkAPI.dispatch(configSlice.actions.setIsGrayscale(isGrayscale))
+
+		const showDetailedDataForMultipleHistoricalTrips =
+			(await storage.global.get(
+				'showDetailedDataForMultipleHistoricalTrips'
+			)) || false
+		thunkAPI.dispatch(
+			configSlice.actions.setShowDetailedDataForMultipleHistoricalTrips(
+				showDetailedDataForMultipleHistoricalTrips
 			)
 		)
 	}),
@@ -489,6 +612,7 @@ export const configMethods = {
 	getDeviceType: createAsyncThunk('config/getDeviceType', (_, thunkAPI) => {
 		console.log('getDeviceType', document.body.offsetWidth)
 
+		thunkAPI.dispatch(configSlice.actions.setDeviceWH())
 		if (document.body.offsetWidth <= 768) {
 			thunkAPI.dispatch(configSlice.actions.setDeviceType('Mobile'))
 			return
@@ -504,7 +628,9 @@ export const configMethods = {
 		async (mapKey: string, thunkAPI) => {
 			thunkAPI.dispatch(configSlice.actions.setMapKey(mapKey))
 			await storage.global.set('map', mapKey)
-			getMapUrlAuto()
+
+			const { config } = store.getState()
+			getMapUrlAuto('', mapKey)
 		}
 	),
 	setTrackRouteMapKey: createAsyncThunk(
@@ -512,7 +638,9 @@ export const configMethods = {
 		async (mapKey: string, thunkAPI) => {
 			thunkAPI.dispatch(configSlice.actions.setTrackRouteMapKey(mapKey))
 			await storage.global.set('trackRouteMap', mapKey)
-			getTrackRouteMapUrlAuto()
+
+			const { config } = store.getState()
+			getMapUrlAuto('TrackRoute', mapKey)
 		}
 	),
 	setSpeedColorType: createAsyncThunk(
