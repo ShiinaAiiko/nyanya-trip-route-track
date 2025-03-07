@@ -12,6 +12,7 @@ import (
 
 	"github.com/cherrai/nyanyago-utils/nlog"
 	"github.com/cherrai/nyanyago-utils/nredis"
+	"github.com/cherrai/nyanyago-utils/ntimer"
 	sso "github.com/cherrai/saki-sso-go"
 
 	// sfu "github.com/pion/ion-sfu/pkg/sfu"
@@ -22,12 +23,13 @@ import (
 var (
 	log     = nlog.New()
 	tripDbx = dbxv1.TripDbx{}
+	cityDbx = dbxv1.CityDbx{}
 )
 
 // 文件到期后根据时间进行删除 未做
 func main() {
 	nlog.SetPrefixTemplate("[{{Timer}}] [{{Type}}] [{{Date}}] [{{File}}]@{{Name}}")
-	nlog.SetName("SAaSS")
+	nlog.SetName("TRIP")
 
 	conf.G.Go(func() error {
 		configPath := ""
@@ -52,6 +54,7 @@ func main() {
 			Password: conf.Config.Redis.Password, // no password set
 			DB:       conf.Config.Redis.DB,       // use default DB
 		})
+		log.Info(conf.Config.Redis.Addr)
 		conf.Redisdb = nredis.New(context.Background(), &redis.Options{
 			Addr:     conf.Config.Redis.Addr,
 			Password: conf.Config.Redis.Password, // no password set
@@ -67,6 +70,63 @@ func main() {
 		})
 		mongodb.ConnectMongoDB(conf.Config.Mongodb.Currentdb.Uri, conf.Config.Mongodb.Currentdb.Name)
 
+		ntimer.SetTimeout(func() {
+			// methods.GetCityBoundaries(conf.Config.CityVersion)
+			// tripDbx.TempDownloadTripPositionsToLocal(1, 5)
+			// tripDbx.TempRemoveTripPositions(1, 5)
+			// tripDbx.TempUpdateTripPositions(1, 3)
+			// MMxpBaSrt
+
+			// log.Info(cityDbx.AddAndGetFullCity("中国·贵州省·毕节市·黔西市·花溪彝族苗族乡"))
+
+			// log.Info(cityDbx.AddAndGetFullCity("北碚区·澄江镇"))
+			// log.Info(cityDbx.AddAndGetFullCity("中国·重庆市·北碚区·澄江镇"))
+			// log.Info(cityDbx.InitTripPositionCity("fnh3rVBYC"))
+			// log.Info(cityDbx.NGetAllCitiesVisitedByUser("78L2tkleM"))
+
+			// log.Info(narrays.StructDeduplication(
+			// 	[]string{"Mt0nsFQ8F", "SLmSOPHKt", "NGrfTTGCT", "UjbD6RNF7", "Mt0nsFQ8F", "SLmSOPHKt", "NGrfTTGCT", "UjbD6RNF7"},
+			// 	func(a string, b string) bool {
+			// 		return a == b
+			// 	}))
+
+			// result, err := cityDbx.GetCities([]string{"Mt0nsFQ8F", "SLmSOPHKt", "NGrfTTGCT", "UjbD6RNF7", "Mt0nsFQ8F", "SLmSOPHKt", "NGrfTTGCT", "UjbD6RNF7"}, []string{})
+			// log.Error(result, err)
+			// for _, v := range result {
+			// 	log.Info(v.Name.ZhCN)
+			// }
+
+			// cityDbx.InitCityes()
+			// cityDbx.SetSubCityLevel("vKimRCBTU", 4)
+			// type AAA struct {
+			// 	A string `bson:"a" json:"a,omitempty"`
+			// }
+
+			// key := conf.Redisdb.GetKey("Test")
+
+			// val1 := &AAA{
+			// 	A: "aaaaaaaaaaa",
+			// }
+			// val2 := &AAA{
+			// 	A: "bbbbbbbbbbbbbb",
+			// }
+
+			// err := conf.Redisdb.MSetStruct(map[string]any{
+			// 	"val3": val1,
+			// 	"val4": val2,
+			// }, key.GetExpiration())
+
+			// log.Info(err, val1)
+
+			// ntimer.SetTimeout(func() {
+			// 	cmds, err := conf.Redisdb.MGet([]string{"val3", "val4"})
+			// 	log.Info("val4", err)
+
+			// 	log.Info("val4", cmds)
+			// }, 500)
+
+			log.Info("Done.")
+		}, 1500)
 		// ntimer.SetTimeout(func() {
 		// 	// 2代表精度，这种方式会有小数点后无效的0的情况
 		// 	a := 9.286157608032227
@@ -177,7 +237,7 @@ func main() {
 	})
 
 	conf.G.Error(func(err error) {
-		log.Error(err)
+		log.FullCallChain(err.Error(), "Error")
 	})
 	conf.G.Wait()
 }

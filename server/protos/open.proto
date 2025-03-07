@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+option go_package = "./;protos";
+package open;
+import "city.proto";
+import "trip.proto";
+
+message GetBaseTripsByOpenAPI {
+  message Request {}
+  message Response {
+    repeated trip.Trip list = 1;
+    int32 total = 2;
+  }
+}
+
+message GetCitiesByOpenAPI {
+  message Request {}
+  message Response {
+    repeated city.CityItem cities = 1;
+    int32 total = 2;
+  }
+}

@@ -31,6 +31,7 @@
 		"publictransport": "公共交通",
 		"totalDistance": "总距离",
 		"maxSpeed": "最高速度",
+		"minSpeed": "最低速度",
 		"maxAltitude": "最高海拔",
 		"climbAltitude": "爬升海拔",
 		"descendAltitude": "下降海拔",
@@ -78,16 +79,76 @@
 		"maxDistance": "最远距离",
 		"statistics": "统计",
 
-		"averagePace": "配速"
+		"averagePace": "配速",
+
+		"parkingLongTimeSkip": "停车{{parkingTime}}，跳过",
+		"goThroughTunnelSkip": "{{parkingTime}}后穿越隧道，跳过",
+
+		"speedColorLimit": "速度颜色限制",
+
+		"numCities": "已走{{num}}城"
 	},
 	"trackRoutePage": {
 		"pageTitle": "历史行程轨迹",
 		"subtitle": "已记录过的行程所有轨迹路线均会被绘制",
 		"startDate": "开始日期",
-		"endDate": "结束日期"
+		"endDate": "结束日期",
+		"now": "现在",
+		"selectAll": "全选",
+		"uncheck": "取消选中",
+
+		"viewDetails": "查看详情",
+
+		"showCustomTrip": "显示自定义行程",
+		"hideCustomTrip": "隐藏自定义行程"
 	},
 	"tripHistoryPage": {
 		"pageTitle": "行程历史"
+	},
+	"vehicleModal": {
+		"pageTitle": "我的载具",
+		"addVehicle": "新增载具",
+		"editVehicle": "编辑载具",
+		"vehicle": "载具",
+		"currentVehicle": "当前载具",
+		"selectVehicle": "选择载具",
+		"defaultVehicle": "默认",
+
+		"setDefault": "设为默认",
+		"neverTraveled": "从未旅行过",
+		"lastTravelTime": "上次旅行时间",
+
+		"vehicleNamePlaceholder": "载具名称",
+		"licensePlatePlaceholder": "牌照 (选填)",
+		"vehicleType": "载具类型",
+		"id": "Id",
+
+		"bike": "自行车",
+		"motorcycle": "摩托车",
+		"car": "汽车",
+		"truck": "卡车",
+		"publictransport": "公共交通",
+		"airplane": "飞机",
+
+		"cancelVehicle": "取消载具",
+
+		"positionShare": "位置共享",
+
+		"carModelPlaceholder": "车型 (选填)",
+
+		"all": "所有人",
+		"onlyMyself": "仅自己",
+		"notShared": "禁止分享",
+
+		"cancelDefault": "取消默认",
+
+		"deselectVehicle": "取消选择载具",
+		"noVehicleSelected": "未选择载具",
+
+		"traveledTimes": "已旅行{{times}}次",
+		"addTripHere": "添加行程至",
+		"setTripsInBatchesTo": "批量设置行程至",
+		"findLocation": "查看位置"
 	},
 	"settings": {
 		"title": "设置",
@@ -137,14 +198,16 @@
 		"GeoQStreet": "GeoQ 街道",
 		"TianDiTuSatellite": "天地图卫星图",
 
-		"speedColor": "速度颜色",
+		"trackSpeed​Color": "轨迹速度颜色",
 		"RedGreen": "红绿",
 		"PinkBlue": "蓝粉",
-		"trackLine": "轨迹线",
+		"tripTrackWidth": "行程轨迹宽度",
 		"width": "宽度",
-		"realtimeTravelTrackWidth": "实时行程轨迹宽度",
-		"historyTravelTrackWidth": "历史行程轨迹宽度",
-		"historyTravelDetailedDataTrackWidth": "历史行程详细数据轨迹宽度",
+
+		"ongoingTrip": "实时行程轨迹",
+		"historyTripTrack": "历史行程轨迹",
+		"historyTripTrackSelectedTrip": "历史行程轨迹已选中的行程",
+		"reviewTrip": "回顾行程",
 
 		"cache": "缓存",
 		"clearCache": "清除缓存 ({{size}})",
@@ -156,11 +219,28 @@
 		"pink": "粉色",
 		"red": "红色",
 
-		"maskLayer": "蒙层",
-		"grayMask": "灰色蒙层",
-
 		"trackRouteDetailedData": "历史行程轨迹详细数据",
-		"trackRouteDetailedDataContent": "仅筛选多个行程时可显示速度颜色、海拔等数据"
+		"trackRouteDetailedDataContent": "仅筛选多个行程时可显示速度颜色、海拔等数据",
+
+		"currentPosition": "当前位置",
+		"showAvatarAtCurrentPosition": "在当前位置显示头像",
+
+		"selectedTripIdsTip": "列表中被选择的行程将会依据行程明细的速度展示对应的轨迹颜色",
+		"normalMode": "默认",
+		"grayMode": "灰色",
+		"darkMode": "暗黑",
+		"blackMode": "黑色",
+		"AmapFull": "高德地图",
+		"AmapArea": "高德区域地图",
+		"AmapAreaMark": "高德区域标记地图",
+		"AmapAreaRoad": "高德区域道路地图",
+		"speedAnimation": "速度动画",
+		"speedAnimationTip": "在旅行和预览时开启速度动画",
+
+		"syncLocationWhileTraveling": "旅行时可同步位置",
+
+		"roadColorFade": "道路颜色淡化",
+		"roadColorFadeTip": "仅 {{maps}} 等将进行道路淡化"
 	},
 	"prompt": {
 		"next": "下一步",
@@ -198,6 +278,74 @@
 		"disableShareContent": "您确定要禁用分享吗？",
 
 		"saveImage": "保存图片",
-		"copyLink": "复制链接"
+		"copyLink": "复制链接",
+
+		"cannotBeEmpty": "不能为空",
+		"filter": "过滤",
+		"clear": "清除",
+
+		"select": "选择",
+
+		"createdSuccessfully": "创建成功!",
+
+		"defaultVehicleHasBeenSet": "已设置默认载具",
+
+		"defaultVehicleHasBeenCanceled": "已取消默认载具",
+
+		"updatedSuccessfully": "更新成功!",
+		"editedSuccessfully": "编辑成功!",
+		"loadBaseData": "正在加载基础数据",
+
+		"enable": "启用",
+		"disable": "禁用",
+
+		"unableLoadMap": "无法加载地图，切换新的底图"
+	},
+	"weather": {
+		"weather0": "晴",
+		"weather1": "晴",
+		"weather2": "多云",
+		"weather3": "阴",
+		"weather45": "雾",
+		"weather48": "雾霾",
+		"weather51": "小雨",
+		"weather53": "中雨",
+		"weather55": "大雨",
+		"weather56": "小冻雨",
+		"weather57": "大冻雨",
+		"weather61": "小雨",
+		"weather63": "中雨",
+		"weather65": "大雨",
+		"weather66": "小冻雨",
+		"weather67": "大冻雨",
+		"weather71": "小雪",
+		"weather73": "中雪",
+		"weather75": "大雪",
+		"weather77": "霰",
+		"weather80": "小阵雨",
+		"weather81": "中阵雨",
+		"weather82": "大阵雨",
+		"weather85": "小阵雪",
+		"weather86": "大阵雪",
+		"weather95": "雷阵雨",
+		"weather96": "小冰雹",
+		"weather99": "大冰雹",
+
+		"windDirection1": "北风",
+		"windDirection2": "东北风",
+		"windDirection3": "东风",
+		"windDirection4": "东南风",
+		"windDirection5": "南风",
+		"windDirection6": "西南风",
+		"windDirection7": "西风",
+		"windDirection8": "西北风",
+		"windDirection9": "旋转风",
+		"windDirection10": "无持续风向",
+
+		"visibility": "能见度",
+		"humidity": "湿度",
+		"temperature": "空气温度",
+		"apparentTemperature": "体感温度",
+		"daysTemperature": "今日温度"
 	}
 }

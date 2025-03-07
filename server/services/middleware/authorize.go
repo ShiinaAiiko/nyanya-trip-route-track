@@ -62,8 +62,9 @@ func Authorize() gin.HandlerFunc {
 		if roles.Authorize {
 			res := response.ResponseProtobufType{}
 			res.Code = 10004
-
-			if code := CheckAuthorize(c); code == 10004 {
+			code := CheckAuthorize(c)
+			// log.Info("cccc", code)
+			if code == 10004 {
 				res.Code = 10004
 				res.Call(c)
 				c.Abort()

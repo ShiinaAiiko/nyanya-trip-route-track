@@ -2,6 +2,30 @@ syntax = "proto3";
 
 option go_package = "./;protos";
 package trip;
+import "city.proto";
+
+message VehicleItem {
+  string id = 1;
+  string name = 3;
+  // Bike、Car、Truck、Public、Transportation、Airplane、Other
+  string type = 2;
+  string logo = 8;
+  string licensePlate = 9;
+  string authorId = 10;
+  TripPosition position = 4;
+  // 通过链表获取
+  int64 tripCount = 11;
+
+  string carModel = 13;
+
+  // 1、-1
+  int64 status = 5;
+  int64 createTime = 6;
+  int64 lastUpdateTime = 7;
+
+  // 位置共享类型 5 所有人 0 仅本人可看 -1 禁止共享
+  int64 positionShare = 12;
+}
 
 // 位置精度和海拔精度可以不输出，速度精确到小数点后2位即可，
 // 也就是cm单位就行了，时间戳使用秒级单位数据，
@@ -30,9 +54,23 @@ message TripStatistics {
   double descendAltitude = 8;
 }
 
-message TripPermissions { string shareKey = 1; }
+message TripPermissions {
+  string shareKey = 1;
+  bool customTrip = 2;
+}
 
 message TripMark { int64 timestamp = 1; }
+
+message TripCity {
+  string cityId = 1;
+  //  完整名，·间隔
+  string city = 2;
+
+  message EntryTimeItem { int64 timestamp = 1; }
+  repeated EntryTimeItem entryTimes = 3;
+  // 仅输出
+  repeated city.CityItem cityDetails = 4;
+}
 
 message Trip {
   string id = 1;
@@ -41,6 +79,8 @@ message Trip {
   // Running、Bike、Drive
   string type = 3;
   string authorId = 9;
+  trip.VehicleItem vehicle = 14;
+  // string vehicleId = 15;
   repeated TripPosition positions = 4;
   TripStatistics statistics = 5;
   TripPermissions permissions = 11;
@@ -54,6 +94,8 @@ message Trip {
   int64 correctedData = 12;
 
   repeated TripMark marks = 13;
+
+  repeated TripCity cities = 15;
 }
 
 message AddTripMark {
@@ -71,6 +113,14 @@ message AddTrip {
     // repeated TripPosition positions = 2;
     // int64 status = 4;
     // int64 startTime = 5;
+
+    // 选填
+    string vehicleId = 2;
+
+    // 选填（自定义行程才填充
+    bool customTrip = 3;
+    int64 startTime = 4;
+    int64 endTime = 5;
   }
   message Response { Trip trip = 1; }
 }
@@ -88,6 +138,7 @@ message AddTripToOnline {
     int64 createTime = 7;
     int64 startTime = 5;
     int64 endTime = 6;
+    bool customTrip = 9;
   }
   message Response { Trip trip = 1; }
 }
@@ -100,7 +151,13 @@ message UpdateTripPosition {
     // 这段时间内的
     repeated TripPosition positions = 2;
     double distance = 3;
+    string vehicleId = 4;
   }
+  message Response {}
+}
+
+message ResumeTrip {
+  message Request { string id = 1; }
   message Response {}
 }
 
@@ -133,6 +190,8 @@ message UpdateTrip {
     string name = 3;
     // 可填，Running、Bike、Drive
     string type = 4;
+    // 选填
+    string vehicleId = 5;
   }
   message Response {
     // 可填
@@ -140,6 +199,16 @@ message UpdateTrip {
     // 可填
     string name = 2;
   }
+}
+
+message UpdateTrips {
+  message Request {
+    // 必填
+    repeated string ids = 1;
+    // 选填
+    string vehicleId = 5;
+  }
+  message Response {}
 }
 
 message DeleteTrip {
@@ -181,6 +250,7 @@ message TripPositions {
   // repeated string keys = 8;
   int64 total = 3;
   string id = 4;
+  string vehicleId = 9;
   string type = 5;
   // 详情页专属
   int64 status = 6;
@@ -196,9 +266,16 @@ message GetTripHistoryPositions {
     string shareKey = 1;
     // 必选 All、Running、Bike、Drive
     string type = 2;
+    // 包括筛选，每次不能传入超过20个数据
     repeated string ids = 3;
     int64 pageNum = 4;
     int64 pageSize = 5;
+
+    // 可选 [createTime,endTime]
+    repeated int64 timeLimit = 6;
+    repeated string vehicleLimit = 8;
+
+    bool fullData = 7;
   }
   message Response {
     repeated TripPositions list = 1;
@@ -218,6 +295,10 @@ message GetTrips {
     string sort = 4;
     int64 pageNum = 5;
     int64 pageSize = 6;
+    repeated string vehicleLimit = 7;
+    repeated int64 distanceLimit = 8;
+
+    // repeated int64 distanceLimit = 7;
   }
   message Response {
     repeated Trip list = 1;
@@ -233,7 +314,14 @@ message GetTripStatistics {
     string type = 2;
     // 可选 [createTime,endTime]
     repeated int64 timeLimit = 3;
+    repeated string vehicleLimit = 4;
+    repeated int64 distanceLimit = 5;
+    // int64 pageNum = 6;
+    // int64 pageSize = 7;
+
     // 可选 CreateTime / TotalDistance，默认 CreateTime
+
+    // repeated int64 distanceLimit = 4;
   }
   message Response {
     int64 count = 1;
@@ -242,7 +330,7 @@ message GetTripStatistics {
     // m
     double distance = 3;
 
-    repeated Trip list = 4;
+    // repeated Trip list = 4;
     repeated string uselessData = 5;
   }
 }
@@ -251,6 +339,10 @@ message GetHistoricalStatistics {
   message Request {
     // 必选 Running、Bike、Drive
     string type = 1;
+    // 可选 [createTime,endTime]
+    repeated int64 timeLimit = 2;
+
+    // repeated int64 distanceLimit = 3;
   }
   message Response {
     message NumItem {

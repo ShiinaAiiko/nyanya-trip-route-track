@@ -40,6 +40,7 @@ func InitRouter() {
 	Router.Use(middleware.RequestTime())
 	// // 处理解密加密
 	// Router.Use(middleware.Encryption())
+	Router.Use(middleware.Open())
 	Router.Use(middleware.Authorize())
 	Router.Use(gzip.Gzip(gzip.DefaultCompression, gzip.WithExcludedPaths([]string{"/api/"})))
 

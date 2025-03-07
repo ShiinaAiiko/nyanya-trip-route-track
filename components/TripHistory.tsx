@@ -1,4 +1,4 @@
-import React, { use, useCallback, useEffect, useState } from 'react'
+import React, { use, useCallback, useEffect, useRef, useState } from 'react'
 
 import { useSelector, useDispatch } from 'react-redux'
 import store, {
@@ -22,11 +22,19 @@ import { storage } from '../store/storage'
 import { useTranslation } from 'react-i18next'
 import { httpApi } from '../plugins/http/api'
 import { protoRoot } from '../protos'
-import { formatAvgPace, formatDistance, formatTime } from '../plugins/methods'
+import {
+	formatAvgPace,
+	formatDistance,
+	formatTime,
+	getTimeLimit,
+	isResumeTrip,
+} from '../plugins/methods'
 import TripItemComponent from './TripItem'
 import { Chart } from 'chart.js'
 import { deepCopy } from '@nyanyajs/utils'
 import StatisticsComponent from './Statistics'
+import FilterComponent from './Filter'
+import { getTrips } from '../store/trip'
 // import { isCorrectedData } from '../store/trip'
 
 const getMonth = () => {
@@ -89,7 +97,15 @@ const getDays = () => {
 		date.setDate(date.getDate() - 1)
 
 		let d: any = date.getDate()
-		dataArr.push(date.getMonth() + 1 + '/' + (d < 10 ? '0' + d : d))
+		dataArr.push({
+			showText: date.getMonth() + 1 + '/' + (d < 10 ? '0' + d : d),
+			val:
+				date.getFullYear() +
+				'-' +
+				(date.getMonth() + 1) +
+				'-' +
+				(d < 10 ? '0' + d : d),
+		})
 	}
 	return dataArr.reverse()
 }
@@ -352,6 +368,7 @@ const TripHistoryPage = ({
 	const user = useSelector((state: RootState) => state.user)
 	const layout = useSelector((state: RootState) => state.layout)
 	const type = useSelector((state: RootState) => state.layout.tripHistoryType)
+	const trip = useSelector((state: RootState) => state.trip)
 
 	const [pageHeight, setPageHeight] = useState(0)
 	const [contentHeight, setContentHeight] = useState(0)
@@ -365,7 +382,26 @@ const TripHistoryPage = ({
 
 	const [isLoadLocal, setIsLoadLocal] = useState(false)
 
+	// 筛选
+	const [openFilterDropdown, setOpenFilterDropdown] = useState(false)
+	const [startDate, setStartDate] = useState('')
+	const [endDate, setEndDate] = useState('')
+
+	const [distanceRange, setDistanceRange] = useState({
+		minDistance: 0,
+		maxDistance: 500,
+	})
+
+	const [selectVehicleIds, setSelectVehicleIds] = useState([] as string[])
+	const [showCustomTrip, setShowCustomTrip] = useState(false)
+	const [openStartDateDatePicker, setOpenStartDateDatePicker] = useState(false)
+	const [openEndDateDatePicker, setOpenEndDateDatePicker] = useState(false)
+
 	const dispatch = useDispatch<AppDispatch>()
+
+	const speedChart = useRef<{
+		[t: string]: Chart<'line', any[], unknown> | undefined
+	}>({})
 
 	const [tripStatistics, setTripStatistics] = useState<
 		{
@@ -386,7 +422,7 @@ const TripHistoryPage = ({
 			uselessData: string[]
 			time: number
 			list: protoRoot.trip.ITrip[]
-			speedChart?: Chart<'line', any[], unknown>
+			// speedChart?: Chart<'line', any[], unknown>
 		}[]
 	>([])
 
@@ -418,12 +454,56 @@ const TripHistoryPage = ({
 	}, [])
 
 	useEffect(() => {
-		if (user.isLogin && layout.openTripHistoryModal) {
-			setTrips([])
-			setPageNum(1)
-			setLoadStatus('loaded')
+		// console.log(
+		// 	'openTripHistoryModal loadNewData',
+		// 	user.isLogin,
+		// 	layout.openTripHistoryModal,
+		// 	layout.openTripHistoryModal && !layout.openTripItemModal
+		// )
+		if (!user.isInit) {
+			return
+		}
+		if (layout.openTripHistoryModal) {
+			if (!user.isLogin) {
+				dispatch(layoutSlice.actions.setTripHistoryType('Local'))
+				return
+			}
+			const init = async () => {
+				const { trip } = store.getState()
+				// console.log(' t1rip.tripStatistics', trip.tripStatistics)
+
+				if (!trip.tripStatistics?.filter((v) => v.type === 'All')?.[0]) {
+					await dispatch(
+						methods.trip.GetTripStatistics({
+							loadCloudData: false,
+							alert: false,
+						})
+					).unwrap()
+				}
+
+				loadNewData()
+			}
+
+			init()
 		}
 	}, [user, layout.openTripHistoryModal])
+
+	const clearFilterData = () => {
+		setStartDate('')
+		setEndDate('')
+		setSelectVehicleIds([])
+		setDistanceRange({
+			minDistance: 0,
+			maxDistance: 500,
+		})
+	}
+
+	const loadNewData = () => {
+		// console.log('loadNewData', loadNewData)
+		setTrips([])
+		setPageNum(1)
+		setLoadStatus('loaded')
+	}
 
 	useEffect(() => {
 		if (
@@ -443,6 +523,13 @@ const TripHistoryPage = ({
 
 	useEffect(() => {
 		const init = async () => {
+			// console.log(
+			// 	'openTripHistoryModal loadNewData',
+			// 	user.isLogin,
+			// 	layout.openTripHistoryModal,
+			// 	layout.openTripItemModal?.visible,
+			// 	layout.openTripHistoryModal && !layout.openTripItemModal?.visible
+			// )
 			if (
 				layout.openTripHistoryModal &&
 				tripStatistics.length &&
@@ -465,11 +552,9 @@ const TripHistoryPage = ({
 	useEffect(() => {
 		const init = async () => {
 			dispatch(layoutSlice.actions.setTripHistoryType(type))
-			setTrips([])
-			setPageNum(1)
-			setLoadStatus('loaded')
+			loadNewData()
 		}
-		init()
+		config.updateTimeForTripHistoryList && init()
 	}, [config.updateTimeForTripHistoryList])
 
 	// useEffect(() => {
@@ -478,47 +563,37 @@ const TripHistoryPage = ({
 
 	useEffect(() => {
 		// mergeTripStatistics()
+		console.log('listlist', tripStatistics)
 		outSpeedLineChart()
 	}, [tripStatistics])
 
-	const getTimeLimit = () => {
-		let startTime = 1540915200
-		switch (time) {
-			// 所有时间从2018年开始
-			case 'All':
-				break
-			// 最近10年
-			case 'Year':
-				startTime =
-					Math.floor(new Date().getTime() / 1000) - 365 * 10 * 24 * 3600
-				break
-			// 最近12个月
-			case 'Month':
-				startTime = Math.floor(new Date().getTime() / 1000) - 365 * 24 * 3600
-				break
-			// 最近12个周
-			case 'Week':
-				startTime =
-					Math.floor(new Date().getTime() / 1000) -
-					(11 * 7 + new Date().getDay()) * 24 * 3600
-				break
-			// 最近30天
-			case 'Day':
-				startTime = Math.floor(new Date().getTime() / 1000) - 30 * 24 * 3600
-				break
-
-			default:
-				break
-		}
-		return startTime
-	}
 	const getTripStatistics = async () => {
+		let sd = getTimeLimit(time)
+		let ed = Math.floor(new Date().getTime() / 1000)
+		if (startDate) {
+			sd = Math.floor(new Date(startDate).getTime() / 1000)
+		}
+		if (endDate) {
+			ed = Math.floor(new Date(endDate + ' 23:59:59').getTime() / 1000)
+		}
 		const res = await httpApi.v1.GetTripStatistics({
 			type: type,
-			timeLimit: [getTimeLimit(), Math.floor(new Date().getTime() / 1000)],
+			timeLimit: [sd, ed],
+			vehicleLimit: selectVehicleIds,
+			distanceLimit: [distanceRange.minDistance, distanceRange.maxDistance],
 		})
-		console.log('getTripStatistics', res, type)
+		console.log(
+			'getTripStatistics listlist',
+			{
+				type: type,
+				timeLimit: [getTimeLimit(time), Math.floor(new Date().getTime() / 1000)],
+			},
+			res,
+			type,
+			trip.tripStatistics.filter((v) => v.type === type)?.[0]?.list || []
+		)
 		if (res.code === 200 && res?.data?.count) {
+			// console.log('getTripsCloud', trips)
 			// const data: {
 			// 	type: 'Year'
 			// 	key: Number.
@@ -528,6 +603,7 @@ const TripHistoryPage = ({
 
 			onUselessData(res.data.uselessData || [])
 
+			const { trip } = store.getState()
 			setTripStatistics(
 				tripStatistics.map((v) => {
 					if (v.type === String(type)) {
@@ -537,7 +613,9 @@ const TripHistoryPage = ({
 							distance: Number(res?.data?.distance),
 							uselessDataCount: Number(res?.data?.uselessData),
 							time: Number(res?.data?.time),
-							list: res?.data?.list || [],
+							list:
+								trip.tripStatistics.filter((v) => v.type === type)?.[0]?.list ||
+								[],
 						}
 					}
 					return v
@@ -554,6 +632,7 @@ const TripHistoryPage = ({
 					return v.type === type
 				})?.[0]?.list || []
 
+			console.log('listlist', time, list, tripStatistics)
 			const tripData: {
 				[key: string]: number
 			} = {}
@@ -578,22 +657,35 @@ const TripHistoryPage = ({
 						tripData[String(y - i)] = 0
 					}
 					list.forEach((v) => {
-						let t = moment(Number(v.createTime) * 1000).format('YYYY')
-						!tripData[t] && (tripData[t] = 0)
+						if (
+							Number(v.createTime || 0) >=
+							Math.floor(new Date(String(y - 9) + '-1-1').getTime() / 1000)
+						) {
+							let t = moment(Number(v.createTime) * 1000).format('YYYY')
+							!tripData[t] && (tripData[t] = 0)
 
-						tripData[t] += Math.round((v.statistics?.distance || 0) / 100) / 10
+							tripData[t] +=
+								Math.round((v.statistics?.distance || 0) / 100) / 10
+						}
 					})
 					break
 				// 最近12个月
 				case 'Month':
-					getMonth().forEach((v) => {
+					const m = getMonth()
+					m.forEach((v) => {
 						tripData[v] = 0
 					})
 					list.forEach((v) => {
-						let t = moment(Number(v.createTime) * 1000).format('YYYY-MM')
-						!tripData[t] && (tripData[t] = 0)
+						if (
+							Number(v.createTime || 0) >=
+							Math.floor(new Date(m[0]).getTime() / 1000)
+						) {
+							let t = moment(Number(v.createTime) * 1000).format('YYYY-MM')
+							!tripData[t] && (tripData[t] = 0)
 
-						tripData[t] += Math.round((v.statistics?.distance || 0) / 100) / 10
+							tripData[t] +=
+								Math.round((v.statistics?.distance || 0) / 100) / 10
+						}
 					})
 					break
 				// 最近12个周
@@ -615,14 +707,26 @@ const TripHistoryPage = ({
 					break
 				// 最近30天
 				case 'Day':
-					getDays().forEach((v) => {
-						tripData[v] = 0
+					const d = getDays()
+					d.forEach((v) => {
+						tripData[v.showText] = 0
 					})
+					// console.log(
+					// 	'new Date(d[0]).getTime() / 1000',
+					// 	d,
+					// 	new Date(d[0].val).getTime() / 1000
+					// )
 					list.forEach((v) => {
-						let t = moment(Number(v.createTime) * 1000).format('M/DD')
-						!tripData[t] && (tripData[t] = 0)
+						if (
+							Number(v.createTime || 0) >=
+							Math.floor(new Date(d[0].val).getTime() / 1000)
+						) {
+							let t = moment(Number(v.createTime) * 1000).format('M/DD')
+							!tripData[t] && (tripData[t] = 0)
 
-						tripData[t] += Math.round((v.statistics?.distance || 0) / 100) / 10
+							tripData[t] +=
+								Math.round((v.statistics?.distance || 0) / 100) / 10
+						}
 					})
 					break
 
@@ -636,18 +740,16 @@ const TripHistoryPage = ({
 				'outSpeedLineChart',
 				tripStatistics,
 				list,
-				tsItem?.speedChart,
+				// tsItem?.speedChart,
 				time,
 				tripData
 			)
-			if (tsItem?.speedChart) {
-				tsItem.speedChart.destroy()
-				tsItem.speedChart = undefined
+
+			if (speedChart.current[type]) {
+				speedChart.current[type]?.destroy()
+				speedChart.current[type] = undefined
 				// return
 			}
-			const el = document.querySelector('.si-c-cvs-' + type) as HTMLElement
-
-			console.log('elelelel', el)
 			let labels: any[] = []
 			let distanceData: number[] = []
 			Object.keys(tripData).forEach((k, i) => {
@@ -675,61 +777,69 @@ const TripHistoryPage = ({
 				],
 			}
 
-			if (el) {
-				const chart = new Chart(el as any, {
-					type: 'line',
+			const el = document.querySelector('.si-c-cvs-' + type) as HTMLElement
 
-					data: data as any,
-					options: {
-						responsive: true,
-						plugins: {
-							title: {
-								display: true,
-								text: '',
-							},
-							legend: {
-								display: false,
-							},
-						},
-						interaction: {
-							intersect: false,
-						},
-						maintainAspectRatio: false,
-						scales: {
-							y: {
-								display: true,
-								title: {
-									display: true,
-									text:
-										t('distance', {
-											ns: 'tripPage',
-										}) + ' (km)',
-								},
-								suggestedMin: 0,
-								// suggestedMax: 200,
-								grid: {
-									color: '#f29cb2',
-									lineWidth: 1,
-									drawOnChartArea: false, // only want the grid lines for one axis to show up
-								},
-							},
-						},
-					},
-				})
-				// el.onclick = (e) => {
-				// 	// getSegmentsAtEvent(e)
-				// 	const activePoints = chart.getElementsAtEventForMode(
-				// 		e,
-				// 		'nearest',
-				// 		{ intersect: true },
-				// 		true
-				// 	)
+			console.log('elelelel', el)
+			el &&
+				setTimeout(() => {
+					try {
+						const chart = new Chart(el as any, {
+							type: 'line',
 
-				// 	console.log(activePoints)
-				// }
-				tsItem.speedChart = chart
-				// setTripStatistics(tripStatistics)
-			}
+							data: data as any,
+							options: {
+								responsive: true,
+								plugins: {
+									title: {
+										display: true,
+										text: '',
+									},
+									legend: {
+										display: false,
+									},
+								},
+								interaction: {
+									intersect: false,
+								},
+								maintainAspectRatio: false,
+								scales: {
+									y: {
+										display: true,
+										title: {
+											display: true,
+											text:
+												t('distance', {
+													ns: 'tripPage',
+												}) + ' (km)',
+										},
+										suggestedMin: 0,
+										// suggestedMax: 200,
+										grid: {
+											color: '#f29cb2',
+											lineWidth: 1,
+											drawOnChartArea: false, // only want the grid lines for one axis to show up
+										},
+									},
+								},
+							},
+						})
+						// el.onclick = (e) => {
+						// 	// getSegmentsAtEvent(e)
+						// 	const activePoints = chart.getElementsAtEventForMode(
+						// 		e,
+						// 		'nearest',
+						// 		{ intersect: true },
+						// 		true
+						// 	)
+
+						// 	console.log(activePoints)
+						// }
+						speedChart.current[type] = chart
+						// setTripStatistics(tripStatistics)
+					} catch (error) {
+						console.error(error)
+					}
+				}, 50)
 		} catch (error) {
 			console.error(error)
 		}
@@ -738,11 +848,22 @@ const TripHistoryPage = ({
 	const getTripHistory = async () => {
 		if (loadStatus === 'loading' || loadStatus == 'noMore') return
 		setLoadStatus('loading')
+
+		let sd = getTimeLimit(time)
+		let ed = Math.floor(new Date().getTime() / 1000)
+		if (startDate) {
+			sd = Math.floor(new Date(startDate).getTime() / 1000)
+		}
+		if (endDate) {
+			ed = Math.floor(new Date(endDate + ' 23:59:59').getTime() / 1000)
+		}
 		const res = await httpApi.v1.GetTrips({
 			type: type,
 			pageSize,
 			pageNum,
-			timeLimit: [getTimeLimit(), Math.floor(new Date().getTime() / 1000)],
+			timeLimit: [sd, ed],
+			vehicleLimit: selectVehicleIds,
+			distanceLimit: [distanceRange.minDistance, distanceRange.maxDistance],
 		})
 		console.log('getTripHistory', res, pageNum)
 		if (res.code === 200) {
@@ -855,9 +976,8 @@ const TripHistoryPage = ({
 
 	const onDeleteTripItemComponent = useCallback((tripId: string) => {
 		// setTrips(trips.filter((v) => v.id !== tripId))
-		setTrips([])
-		setPageNum(1)
-		setLoadStatus('loaded')
+
+		loadNewData()
 		dispatch(
 			layoutSlice.actions.setOpenTripItemModal({
 				visible: false,
@@ -901,12 +1021,11 @@ const TripHistoryPage = ({
 								tap: (e) => {
 									console.log('tap', e)
 
+									clearFilterData()
 									dispatch(
 										layoutSlice.actions.setTripHistoryType(e.detail.label)
 									)
-									setTrips([])
-									setPageNum(1)
-									setLoadStatus('loaded')
+									loadNewData()
 								},
 							})}
 						>
@@ -931,31 +1050,68 @@ const TripHistoryPage = ({
 										>
 											<div className='statistics-item'>
 												<div className='si-time'>
-													{['Day', 'Week', 'Month', 'Year', 'All'].map(
-														(v, i) => {
-															return (
-																<div
-																	ref={(e) => {
-																		e &&
-																			(e.onclick = () => {
-																				setTime(v as any)
-																				setTrips([])
-																				setPageNum(1)
-																				setLoadStatus('loaded')
-																			})
-																	}}
-																	className={
-																		'si-t-item ' + (time === v ? 'active' : '')
+													<div className='si-t-left'></div>
+													<div className='si-t-center'>
+														{['Day', 'Week', 'Month', 'Year', 'All'].map(
+															(v, i) => {
+																return (
+																	<div
+																		ref={(e) => {
+																			e &&
+																				(e.onclick = () => {
+																					setTime(v as any)
+																					loadNewData()
+																				})
+																		}}
+																		className={
+																			'si-t-item ' +
+																			(time === v ? 'active' : '')
+																		}
+																		key={i}
+																	>
+																		{t(v.toLowerCase(), {
+																			ns: 'tripPage',
+																		})}
+																	</div>
+																)
+															}
+														)}
+													</div>
+													<div className='si-t-right'>
+														<saki-button
+															ref={bindEvent({
+																tap: () => {
+																	setOpenFilterDropdown(true)
+																},
+															})}
+															type='CircleIconGrayHover'
+														>
+															<div
+																className={
+																	'si-t-r-icon ' +
+																	(startDate ||
+																	endDate ||
+																	selectVehicleIds.length ||
+																	distanceRange.minDistance ||
+																	distanceRange.maxDistance !== 500
+																		? 'active'
+																		: '')
+																}
+															>
+																<div className='si-t-r-i-dot'></div>
+																<saki-icon
+																	color={
+																		startDate || endDate
+																			? 'var(--saki-default-color)'
+																			: '#666'
 																	}
-																	key={i}
-																>
-																	{t(v.toLowerCase(), {
-																		ns: 'tripPage',
-																	})}
-																</div>
-															)
-														}
-													)}
+																	width='18px'
+																	height='18px'
+																	type='Filter'
+																></saki-icon>
+															</div>
+														</saki-button>
+													</div>
 												</div>
 
 												<div className='si-data'>
@@ -1080,6 +1236,24 @@ const TripHistoryPage = ({
 													{formatDistance(v.statistics?.distance || 0)}
 												</span>
 
+												{isResumeTrip(v) ? (
+													<div className='th-l-i-l-t-local'>
+														{t('resumeTrip', {
+															ns: 'tripPage',
+														})}
+													</div>
+												) : (
+													''
+												)}
+												{v.permissions?.customTrip ? (
+													<div className='th-l-i-l-t-customTrip'>
+														{t('customTrip', {
+															ns: 'tripPage',
+														})}
+													</div>
+												) : (
+													''
+												)}
 												{(v.id || '').indexOf('IDB_') >= 0 ? (
 													<div className='th-l-i-l-t-local'>
 														{t('local', {
@@ -1141,7 +1315,8 @@ const TripHistoryPage = ({
 															{(v?.statistics?.averageSpeed || 0) <= 0
 																? 0
 																: Math.round(
-																		((v?.statistics?.averageSpeed || 0) * 3600) /
+																		((v?.statistics?.averageSpeed || 0) *
+																			3600) /
 																			100
 																  ) / 10}{' '}
 															km/h
@@ -1220,6 +1395,273 @@ const TripHistoryPage = ({
 					</div>
 				</div>
 			</saki-scroll-view>
+
+			<FilterComponent
+				visible={openFilterDropdown}
+				date
+				startDate={startDate}
+				endDate={endDate}
+				selectStartDate={(date) => {
+					console.log(date)
+					setStartDate(date)
+				}}
+				selectEndDate={(date) => {
+					setEndDate(date)
+				}}
+				selectVehicle
+				selectVehicleIds={selectVehicleIds}
+				onSelectVehicleIds={(ids) => {
+					setSelectVehicleIds(ids)
+				}}
+				distanceRange={distanceRange}
+				onSelectDistance={(e) => {
+					console.log('onSelectDistance', e)
+					setDistanceRange(e)
+				}}
+				buttons={[
+					{
+						text: t('clear', {
+							ns: 'prompt',
+						}),
+						type: 'Normal',
+						onTap() {
+							clearFilterData()
+							loadNewData()
+							setOpenFilterDropdown(false)
+						},
+					},
+					{
+						text: t('filter', {
+							ns: 'prompt',
+						}),
+						type: 'Primary',
+						onTap() {
+							loadNewData()
+							setOpenFilterDropdown(false)
+						},
+					},
+				]}
+				onclose={() => {
+					setOpenFilterDropdown(false)
+				}}
+				// customTripSwitch
+				// showCustomTrip={showCustomTrip}
+				// onShowCustomTrip={(showCustomTrip) => {
+				// 	setShowCustomTrip(showCustomTrip)
+				// }}
+			/>
+			{/*       
+			<saki-aside-modal
+				ref={bindEvent({
+					close: (e) => {
+						console.log('setOpenFilterDropdown', e)
+						setOpenFilterDropdown(false)
+					},
+				})}
+				visible={openFilterDropdown}
+				vertical='Center'
+				horizontal='Right'
+				mask
+				mask-closable
+				// height='86%'
+				padding='0 0 0px 0'
+				margin='0 50px 0 0'
+				background-color='#fff'
+				border-radius='10px'
+				z-index='1010'
+			>
+				<div>
+					<div className='str-main-dropdown' slot='main'>
+						<div className='str-date'>
+							<div className='str-d-content'>
+								<saki-input
+									ref={bindEvent({
+										changevalue: (e: any) => {
+											// console.log("Dom发生了变化", e)
+											if (!e.detail) {
+												dispatch(
+													configSlice.actions.setTrackRouteSelectedStartDate('')
+												)
+												return
+											}
+											const dateArr = e.detail.split('-')
+											const y = Number(dateArr[0])
+											const m = Number(dateArr[1])
+											const d = Number(dateArr[2])
+											const date = new Date(y + '-' + m + '-' + d)
+											const t = date.getTime()
+											if (
+												!!t &&
+												y > 1000 &&
+												m >= 0 &&
+												m <= 11 &&
+												d >= 0 &&
+												d <= 31
+											) {
+												dispatch(
+													configSlice.actions.setTrackRouteSelectedStartDate(
+														moment(e.detail).format('YYYY-MM-DD')
+													)
+												)
+											}
+										},
+										focusfunc: () => {
+											console.log('focus')
+											setOpenStartDateDatePicker(true)
+										},
+									})}
+									width='100px'
+									padding='6px 0'
+									value={
+										startDate ? moment(startDate).format('YYYY-MM-DD') : ''
+									}
+									border-radius='10px'
+									font-size='14px'
+									margin='0 0'
+									placeholder={t('startDate', {
+										ns: 'trackRoutePage',
+									})}
+									color='#999'
+									border='1px solid var(--defaul-color)'
+								></saki-input>
+								<span>-</span>
+								<saki-input
+									ref={bindEvent({
+										changevalue: (e: any) => {
+											console.log(e)
+											if (!e.detail) {
+												dispatch(
+													configSlice.actions.setTrackRouteSelectedEndDate('')
+												)
+												return
+											}
+											const dateArr = e.detail.split('-')
+											const y = Number(dateArr[0])
+											const m = Number(dateArr[1])
+											const d = Number(dateArr[2])
+											const date = new Date(y + '-' + m + '-' + d)
+											const t = date.getTime()
+											if (
+												!!t &&
+												y > 1000 &&
+												m >= 0 &&
+												m <= 11 &&
+												d >= 0 &&
+												d <= 31
+											) {
+												dispatch(
+													configSlice.actions.setTrackRouteSelectedEndDate(
+														moment(e.detail).format('YYYY-MM-DD')
+													)
+												)
+											}
+										},
+										focusfunc: () => {
+											console.log('focus')
+											setOpenEndDateDatePicker(true)
+										},
+									})}
+									width='100px'
+									padding='6px 0'
+									value={endDate ? moment(endDate).format('YYYY-MM-DD') : ''}
+									border-radius='10px'
+									font-size='14px'
+									margin='0 0'
+									placeholder={t('now', {
+										ns: 'trackRoutePage',
+									})}
+									color='#999'
+									border='1px solid var(--defaul-color)'
+									text-align='right'
+								></saki-input>
+							</div>
+						</div>
+
+						<saki-date-picker
+							ref={bindEvent({
+								close: () => {
+									console.log('setOpenStartDateDatePicker')
+									setOpenStartDateDatePicker(false)
+								},
+								selectdate: (e) => {
+									// console.log("Dom发生了变化`1111111", e)
+									setOpenStartDateDatePicker(false)
+
+									if (!e.detail.date) {
+										setStartDate('')
+										return
+									}
+									setStartDate(moment(e.detail.date).format('YYYY-MM-DD'))
+								},
+							})}
+							date={startDate}
+							visible={openStartDateDatePicker}
+							cancel-button
+							// time-picker
+							mask
+							z-index={1300}
+						></saki-date-picker>
+						<saki-date-picker
+							ref={bindEvent({
+								close: () => {
+									setOpenEndDateDatePicker(false)
+								},
+								selectdate: (e) => {
+									setOpenEndDateDatePicker(false)
+									if (!e.detail.date) {
+										setEndDate('')
+										return
+									}
+									setEndDate(moment(e.detail.date).format('YYYY-MM-DD'))
+								},
+							})}
+							date={endDate}
+							visible={openEndDateDatePicker}
+							cancel-button
+							// time-picker
+							mask
+							z-index={1300}
+						></saki-date-picker>
+						<div className='str-buttons'>
+							<saki-button
+								ref={bindEvent({
+									tap: () => {
+										clearFilterData()
+										loadNewData()
+										setOpenFilterDropdown(false)
+									},
+								})}
+								padding='8px 10px'
+								margin='0 6px 0 0'
+								border='none'
+							>
+								<span>
+									{t('clear', {
+										ns: 'prompt',
+									})}
+								</span>
+							</saki-button>
+							<saki-button
+								ref={bindEvent({
+									tap: () => {
+										loadNewData()
+										setOpenFilterDropdown(false)
+									},
+								})}
+								padding='8px 10px'
+								type='Primary'
+							>
+								<span>
+									{t('filter', {
+										ns: 'prompt',
+									})}
+								</span>
+							</saki-button>
+						</div>
+					</div>
+				</div>
+			</saki-aside-modal> */}
+
 			<div
 				className={
 					'th-item-page ' + (layout.openTripItemModal.visible ? 'visivle' : '')
@@ -1240,7 +1682,7 @@ const TripHistoryPage = ({
 					(layout.openStatisticsModal.visible ? 'visivle' : '')
 				}
 			>
-				<StatisticsComponent />
+				<StatisticsComponent startDate={startDate} endDate={endDate} />
 				{/* <TripItemComponent
 					onBack={onBackTripItemComponent}
 					onTrip={() => {}}

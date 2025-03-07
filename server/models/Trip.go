@@ -41,11 +41,21 @@ type TripPermissions struct {
 	// 传了则视为分享权限，可无视用户校验
 	ShareKey string `bson:"shareKey" json:"shareKey,omitempty"`
 
+	CustomTrip bool `bson:"customTrip" json:"customTrip,omitempty"`
 	// Share bool `bson:"share" json:"share,omitempty"`
 }
 
 type TripMark struct {
 	Timestamp int64 `bson:"timestamp" json:"timestamp,omitempty"`
+}
+
+type TripCityEntryTimeItem struct {
+	Timestamp int64 `bson:"timestamp" json:"timestamp,omitempty"`
+}
+type TripCity struct {
+	// Id         string                   `bson:"_id" json:"id,omitempty"`
+	CityId     string                   `bson:"cityId" json:"cityId,omitempty"`
+	EntryTimes []*TripCityEntryTimeItem `bson:"entryTimes" json:"entryTimes,omitempty"`
 }
 
 type Trip struct {
@@ -57,13 +67,18 @@ type Trip struct {
 	Type        string           `bson:"type" json:"type,omitempty"`
 	Positions   []*TripPosition  `bson:"positions" json:"positions,omitempty"`
 	Marks       []*TripMark      `bson:"marks" json:"marks,omitempty"`
+	Cities      []*TripCity      `bson:"cities" json:"cities,omitempty"`
 	Statistics  *TripStatistics  `bson:"statistics" json:"statistics,omitempty"`
 	Permissions *TripPermissions `bson:"permissions" json:"permissions,omitempty"`
 	AuthorId    string           `bson:"authorId" json:"authorId,omitempty"`
+	VehicleId   string           `bson:"vehicleId" json:"vehicleId,omitempty"`
+
 	// 1 normal 0 ing -1 delete
 	Status int64 `bson:"status" json:"status,omitempty"`
 	// CreateTime Unix timestamp
 	CreateTime int64 `bson:"createTime" json:"createTime,omitempty"`
+	// LastUpdateTime Unix timestamp
+	LastUpdateTime int64 `bson:"lastUpdateTime" json:"lastUpdateTime,omitempty"`
 	// StartTime Unix timestamp
 	StartTime int64 `bson:"startTime" json:"startTime,omitempty"`
 	// EndTime Unix timestamp
@@ -85,15 +100,20 @@ func (s *Trip) Default() error {
 	if s.Marks == nil {
 		s.Marks = []*TripMark{}
 	}
+	if s.Cities == nil {
+		s.Cities = []*TripCity{}
+	}
 	if s.Statistics == nil {
 		s.Statistics = &TripStatistics{}
 	}
 	if s.Permissions == nil {
 		s.Permissions = &TripPermissions{}
 	}
-
 	if s.CreateTime == 0 {
 		s.CreateTime = unixTimeStamp
+	}
+	if s.LastUpdateTime == 0 {
+		s.LastUpdateTime = -1
 	}
 	if s.EndTime == 0 {
 		s.EndTime = -1
@@ -131,8 +151,9 @@ func (s *Trip) Validate() error {
 			"PublicTransport",
 			"Plane"})),
 		validation.Parameter(&s.AuthorId, validation.Required()),
-		validation.Parameter(&s.Status, validation.Required(), validation.Enum([]int64{1, 0, -1})),
+		validation.Parameter(&s.Status, validation.Enum([]int64{1, 0, -1})),
 		validation.Parameter(&s.CreateTime, validation.Required()),
+		validation.Parameter(&s.LastUpdateTime, validation.Required()),
 		validation.Parameter(&s.StartTime, validation.Required()),
 		validation.Parameter(&s.DeleteTime, validation.Required()),
 	)

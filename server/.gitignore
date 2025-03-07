@@ -44,3 +44,5 @@ go.work*
 nyanya-toolbox
 ssh*
 data
+
+appList.json

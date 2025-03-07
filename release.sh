@@ -33,8 +33,8 @@ gitpull() {
 
 dockerremove() {
   echo "-> 删除无用镜像"
-  docker rm $(docker ps -q -f status=exited)
-  docker rmi -f $(docker images | grep '<none>' | awk '{print $3}')
+  docker rm $(docker ps -q -f status=exited) 2 &>/dev/null
+  docker rmi -f $(docker images | grep '<none>' | awk '{print $3}') 2 &>/dev/null
 }
 
 start() {
@@ -85,14 +85,14 @@ start() {
 
   ./ssh.sh run
 
-  # rm $DIR/build.tgz
+  rm $DIR/build.tgz
 }
 
 unzip() {
   rm -rf ./out
   mkdir -p ./out
   tar -zxvf ./build.tgz -C ./out/
-  rm -rf build.tgz
+  rm build.tgz
 }
 
 zip() {

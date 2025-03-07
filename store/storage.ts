@@ -1,8 +1,8 @@
 import {
-	createSlice,
-	createAsyncThunk,
-	combineReducers,
-	configureStore,
+  createSlice,
+  createAsyncThunk,
+  combineReducers,
+  configureStore,
 } from '@reduxjs/toolkit'
 import md5 from 'blueimp-md5'
 import store, { ActionParams } from '.'
@@ -12,42 +12,46 @@ import { protoRoot } from '../protos'
 // import { WebStorage } from '@nyanyajs/utils'
 
 export let storage = {
-	global: new WebStorage({
-		storage: 'IndexedDB',
-		baseLabel: 'global',
-	}),
-	// token: new WebStorage<string, string>({
-	// 	storage: 'IndexedDB',
-	// 	baseLabel: 'token',
-	// }),
-	trips: new WebStorage<string, protoRoot.trip.ITrip>({
-		storage: 'IndexedDB',
-		baseLabel: 'trips',
-	}),
-	tripPositions: new WebStorage<string, protoRoot.trip.ITripPositions>({
-		storage: 'IndexedDB',
-		baseLabel: 'tripPositions',
-	}),
+  global: new WebStorage({
+    storage: 'IndexedDB',
+    baseLabel: 'global',
+  }),
+  // token: new WebStorage<string, string>({
+  // 	storage: 'IndexedDB',
+  // 	baseLabel: 'token',
+  // }),
+  trips: new WebStorage<string, protoRoot.trip.ITrip>({
+    storage: 'IndexedDB',
+    baseLabel: 'trips',
+  }),
+  tripPositions: new WebStorage<string, protoRoot.trip.ITripPositions>({
+    storage: 'IndexedDB',
+    baseLabel: 'tripPositions',
+  }),
+  cityDetails: new WebStorage<string, protoRoot.trip.ITripCity>({
+    storage: 'IndexedDB',
+    baseLabel: 'cityDetails',
+  }),
 }
 
 export const storageSlice = createSlice({
-	name: 'storage',
-	initialState: {
-		// 未来改nodefs
-	},
-	reducers: {
-		init: (state) => {
-			let uid = 0
-		},
-	},
+  name: 'storage',
+  initialState: {
+    // 未来改nodefs
+  },
+  reducers: {
+    init: (state) => {
+      let uid = 0
+    },
+  },
 })
 
 export const storageMethods = {
-	init: createAsyncThunk('storage/init', async ({}, thunkAPI) => {
-		return
-	}),
-	clearCache: createAsyncThunk('storage/clearCache', async ({}, thunkAPI) => {
-		console.log('storageMethods ')
-		// storage.tripPositions.deleteAll()
-	}),
+  init: createAsyncThunk('storage/init', async ({ }, thunkAPI) => {
+    return
+  }),
+  clearCache: createAsyncThunk('storage/clearCache', async ({ }, thunkAPI) => {
+    console.log('storageMethods ')
+    // storage.tripPositions.deleteAll()
+  }),
 }

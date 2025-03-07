@@ -63,7 +63,7 @@ const LoginComponent = () => {
 							dispatch(layoutSlice.actions.setOpenLoginModal(false))
 						},
 					})}
-          right-width={'56px'}
+					right-width={'56px'}
 					closeIcon
 					title={t('login', {
 						ns: 'common',
@@ -81,6 +81,7 @@ const LoginComponent = () => {
 											userInfo: e.detail.userInfo,
 										})
 									)
+									dispatch(userSlice.actions.setIsLogin(true))
 
 									dispatch(layoutSlice.actions.setOpenLoginModal(false))
 								}, 100)

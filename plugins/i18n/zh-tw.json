@@ -6,7 +6,6 @@
 		"aiikoBlog": "愛喵博客",
 		"login": "登錄",
 		"logout": "登出",
-
 		"edit": "編輯",
 		"save": "儲存"
 	},
@@ -31,6 +30,7 @@
 		"publictransport": "大眾運輸",
 		"totalDistance": "總距離",
 		"maxSpeed": "最高速度",
+		"minSpeed": "最低速度",
 		"maxAltitude": "最高海拔",
 		"climbAltitude": "爬升海拔",
 		"descendAltitude": "下降海拔",
@@ -47,53 +47,100 @@
 		"slowest": "最慢",
 		"start": "開始",
 		"stop": "停止",
-
 		"unfinished": "未完成",
-
 		"averageSpeed": "平均速度",
 		"averageAltitude": "平均海拔",
 		"minAltitude": "最低海拔",
-
 		"editTrip": "編輯行程",
 		"type": "出行類型",
 		"currentType": "目前出行類型",
-
 		"local": "本地",
-
 		"addTripToOnline": "將行程儲存到線上",
-
 		"finishTrip": "結束行程",
-
 		"correctedData": "修復行程數據",
 		"tripDataCanBeCorrected": "行程數據可修正",
-
 		"tripsCount": "{{num}}次行程",
 		"durationText": "{{num}}小時",
-
 		"tripMark": "行程標記",
-
 		"fastestAverageSpeed": "最快均速",
 		"maxClimbAltitude": "最大爬升海拔",
 		"maxDescendAltitude": "最大下降海拔",
 		"maxDistance": "最遠距離",
 		"statistics": "統計",
+		"averagePace": "配速",
 
-		"averagePace": "配速"
+		"parkingLongTimeSkip": "停車{{parkingTime}}，跳過",
+		"goThroughTunnelSkip": "{{parkingTime}}後穿越隧道，跳過",
+
+		"speedColorLimit": "速度顏色限制",
+
+		"numCities": "已走{{num}}城"
 	},
 	"trackRoutePage": {
 		"pageTitle": "歷史行程軌跡",
 		"subtitle": "已記錄的行程所有軌跡路線會被繪製",
 		"startDate": "開始日期",
-		"endDate": "結束日期"
+		"endDate": "結束日期",
+		"now": "現在",
+		"selectAll": "全選",
+		"uncheck": "取消選取",
+
+		"viewDetails": "查看詳情",
+
+		"showCustomTrip": "顯示自訂行程",
+		"hideCustomTrip": "隱藏自訂行程"
 	},
 	"tripHistoryPage": {
 		"pageTitle": "行程歷史"
 	},
+	"vehicleModal": {
+		"pageTitle": "我的載具",
+		"addVehicle": "新增載具",
+		"editVehicle": "編輯載具",
+		"vehicle": "載具",
+		"currentVehicle": "目前載具",
+		"selectVehicle": "選擇載具",
+		"defaultVehicle": "預設",
+
+		"setDefault": "設為預設",
+		"neverTraveled": "從未旅行過",
+		"lastTravelTime": "上次旅行時間",
+
+		"vehicleNamePlaceholder": "載具名稱",
+		"licensePlatePlaceholder": "牌照 (選填)",
+		"vehicleType": "載具類型",
+		"id": "Id",
+
+		"bike": "自行車",
+		"motorcycle": "摩托車",
+		"car": "汽車",
+		"truck": "卡車",
+		"publictransport": "大眾運輸",
+		"airplane": "飛機",
+
+		"cancelVehicle": "取消載具",
+
+		"positionShare": "位置共享",
+
+		"carModelPlaceholder": "車型 (選填)",
+
+		"all": "所有人",
+		"onlyMyself": "僅自己",
+		"notShared": "禁止分享",
+
+		"cancelDefault": "取消預設",
+
+		"deselectVehicle": "取消選取載具",
+		"noVehicleSelected": "未選擇載具",
+
+		"traveledTimes": "已旅行{{times}}次",
+		"addTripHere": "新增行程至",
+		"setTripsInBatchesTo": "批次設定行程至",
+		"findLocation": "查看位置"
+	},
 	"settings": {
 		"title": "設置",
-
 		"tripHistory": "行程歷史",
-
 		"account": "帳戶",
 		"general": "一般",
 		"language": "多語言",
@@ -105,23 +152,18 @@
 		"syncingTo": "正在同步至",
 		"syncPromptForNotLoggedIn": "啟用同步功能前需要先登陸帳號",
 		"modes": "模式",
-
 		"addAccount": "添加賬號",
 		"editProfile": "編輯資料",
 		"profile": "資料",
 		"nickname": "暱稱",
 		"username": "用戶名",
 		"bio": "介紹",
-
 		"light": "淺色模式",
 		"dark": "暗黑模式",
 		"black": "黑色模式",
 		"system": "隨系統變化",
-
 		"switchSuccessfully": "已切換為 ",
-
 		"about": "關於",
-
 		"basemap": "基礎地圖",
 		"maps": "地圖",
 		"AutoSelect": "自動選擇",
@@ -136,31 +178,47 @@
 		"GeoQWarm": "GeoQ 暖色",
 		"GeoQStreet": "GeoQ 街道",
 		"TianDiTuSatellite": "天地圖衛星圖",
-
-		"speedColor": "速度顏色",
+		"trackSpeed​Color": "軌跡速度顏色",
 		"RedGreen": "紅綠",
 		"PinkBlue": "藍粉",
-		"trackLine": "軌跡線",
+		"tripTrackWidth": "行程軌跡寬度",
 		"width": "寬度",
-		"realtimeTravelTrackWidth": "即時行程軌跡寬度",
-		"historyTravelTrackWidth": "歷史行程軌跡寬度",
-		"historyTravelDetailedDataTrackWidth": "歷史行程詳細資料軌跡寬度",
+
+		"ongoingTrip": "即時行程軌跡",
+		"historyTripTrack": "歷史行程軌跡",
+		"historyTripTrackSelectedTrip": "歷史行程軌跡已選取的行程",
+		"reviewTrip": "回顧行程",
 
 		"cache": "快取",
 		"clearCache": "清除快取 ({{size}})",
-
 		"trackRouteBaseMap": "歷史軌跡路線底圖",
-
 		"trackRouteColor": "歷史軌跡路線顏色",
 		"blue": "藍色",
 		"pink": "粉紅色",
 		"red": "紅色",
 
-		"maskLayer": "蒙層",
-		"grayMask": "灰色遮罩",
-
 		"trackRouteDetailedData": "歷史行程軌跡詳細資料",
-		"trackRouteDetailedDataContent": "僅篩選多個行程時可顯示速度顏色、海拔等數據"
+		"trackRouteDetailedDataContent": "僅篩選多個行程時可顯示速度顏色、海拔等數據",
+
+		"currentPosition": "目前位置",
+		"showAvatarAtCurrentPosition": "在目前位置顯示頭像",
+
+		"selectedTripIdsTip": "清單中被選取的行程將會依據行程明細的速度展示對應的軌跡顏色",
+		"normalMode": "預設",
+		"grayMode": "灰色",
+		"darkMode": "黑暗",
+		"blackMode": "黑色",
+		"AmapFull": "高德地圖",
+		"AmapArea": "高德區域地圖",
+		"AmapAreaMark": "高德區域標記地圖",
+		"AmapAreaRoad": "高德區域道路地圖",
+		"speedAnimation": "速度動畫",
+		"speedAnimationTip": "在旅行和預覽時開啟速度動畫",
+
+		"syncLocationWhileTraveling": "旅行時可同步位置",
+
+		"roadColorFade": "道路顏色淡化",
+		"roadColorFadeTip": "僅 {{maps}} 等將進行道路淡化"
 	},
 	"prompt": {
 		"next": "繼續",
@@ -169,26 +227,20 @@
 		"cancel": "取消",
 		"confirm": "確認",
 		"copySuccessfully": "複製成功！",
-
 		"deleteThisTrip": "刪除此行程？",
 		"deletedSuccessfully": "刪除成功!",
 		"deleteThisTrip50m": "距離需要大於50公尺才能儲存。是否刪除此行程？",
 		"noLoginSaveTrip": "如果您未登入您的帳戶，您的行程記錄將儲存在本機。",
 		"tripSavedLocally": "已將此行程儲存到了本地",
 		"deleteLocalTrip": "同時刪除本地資料？",
-
 		"logout": "登出",
 		"logoutContent": "你確定要退出嗎？",
 		"logoutSuccessfully": "成功退出賬戶",
-
 		"deleteInvalidTrip": "刪除無效行程",
 		"deleteAllTrip50m": "有{{uselessDataCount}}個行程是無效數據，您確定要刪除這些行程嗎？",
-
 		"loadingData": "正在載入數據",
 		"loadedData": "已載入 {{percentage}} 的行程資料",
-
 		"noLoginTrip": "您需要登入您的帳戶才能繼續訪問",
-
 		"share": "分享",
 		"unshare": "取消分享",
 		"generatingSharingContent": "正在產生分享內容...",
@@ -196,8 +248,75 @@
 		"disableShare": "停用分享",
 		"enableShareContent": "您確定要啟用分享嗎？",
 		"disableShareContent": "您確定要停用分享嗎？",
-
 		"saveImage": "儲存圖片",
-		"copyLink": "複製連結"
+		"copyLink": "複製連結",
+
+		"cannotBeEmpty": "不能為空",
+		"filter": "過濾",
+		"clear": "清除",
+
+		"select": "選擇",
+
+		"createdSuccessfully": "創建成功!",
+
+		"defaultVehicleHasBeenSet": "已設定預設載具",
+
+		"defaultVehicleHasBeenCanceled": "已取消預設載具",
+
+		"updatedSuccessfully": "更新成功!",
+		"editedSuccessfully": "編輯成功!",
+		"loadBaseData": "正在載入基礎資料",
+
+		"enable": "啟用",
+		"disable": "停用",
+
+		"unableLoadMap": "無法載入地圖，切換新的底圖"
+	},
+	"weather": {
+		"weather0": "晴",
+		"weather1": "晴",
+		"weather2": "多雲",
+		"weather3": "陰",
+		"weather45": "霧",
+		"weather48": "霧霾",
+		"weather51": "小雨",
+		"weather53": "中雨",
+		"weather55": "大雨",
+		"weather56": "小凍雨",
+		"weather57": "大凍雨",
+		"weather61": "小雨",
+		"weather63": "中雨",
+		"weather65": "大雨",
+		"weather66": "小凍雨",
+		"weather67": "大凍雨",
+		"weather71": "小雪",
+		"weather73": "中雪",
+		"weather75": "大雪",
+		"weather77": "霰",
+		"weather80": "小陣雨",
+		"weather81": "中陣雨",
+		"weather82": "大陣雨",
+		"weather85": "小陣雪",
+		"weather86": "大陣雪",
+		"weather95": "雷陣雨",
+		"weather96": "小冰雹",
+		"weather99": "大冰雹",
+
+		"windDirection1": "北風",
+		"windDirection2": "東北風",
+		"windDirection3": "東風",
+		"windDirection4": "東南風",
+		"windDirection5": "南風",
+		"windDirection6": "西南風",
+		"windDirection7": "西風",
+		"windDirection8": "西北風",
+		"windDirection9": "旋轉風",
+		"windDirection10": "無持續風向",
+
+		"visibility": "能見度",
+		"humidity": "濕度",
+		"temperature": "空氣溫度",
+		"apparentTemperature": "體感溫度",
+		"daysTemperature": "今日溫度"
 	}
 }

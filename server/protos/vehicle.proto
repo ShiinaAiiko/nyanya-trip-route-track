@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+option go_package = "./;protos";
+package vehicle;
+import "trip.proto";
+
+message AddVehicle {
+  message Request {
+    string type = 1;
+    string name = 2;
+    string logo = 3;
+    string licensePlate = 4;
+    string carModel = 5;
+  }
+  message Response { trip.VehicleItem vehicle = 1; }
+}
+
+message UpdateVehicle {
+  message Request {
+    string id = 5;
+    string type = 1;
+    string name = 2;
+    string logo = 3;
+    string licensePlate = 4;
+    int64 positionShare = 6;
+    string carModel = 7;
+  }
+  message Response { trip.VehicleItem vehicle = 1; }
+}
+
+message DeleteVehicle {
+  message Request { string id = 1; }
+  message Response {}
+}
+
+message GetVehicles {
+  message Request {
+    // All 或其他
+    string type = 3;
+    int64 pageNum = 1;
+    int64 pageSize = 2;
+  }
+  message Response {
+    repeated trip.VehicleItem list = 1;
+    int64 total = 2;
+  }
+}

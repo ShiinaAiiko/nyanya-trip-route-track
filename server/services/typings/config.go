@@ -1,12 +1,15 @@
 package typings
 
 type Config struct {
+	Version string
 	Server  Server
 	SSO     Sso
 	BaseUrl string
 	Redis   Redis
 	// StaticPathDomain string
-	Mongodb Mongodb
+	Mongodb     Mongodb
+	OpenApp     []*OpenApp
+	CityVersion string
 }
 
 type Server struct {
@@ -32,4 +35,8 @@ type Mongodb struct {
 		Name string
 		Uri  string
 	}
+}
+type OpenApp struct {
+	AppName string
+	AppKey  string
 }

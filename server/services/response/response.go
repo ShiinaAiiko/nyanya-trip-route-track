@@ -6,17 +6,20 @@ import (
 
 	"github.com/ShiinaAiiko/nyanya-trip-route-track/server/protos"
 	"github.com/cherrai/nyanyago-utils/cipher"
+	"github.com/cherrai/nyanyago-utils/nlog"
 	"github.com/cherrai/nyanyago-utils/nrand"
 	"github.com/cherrai/nyanyago-utils/nsocketio"
 	"github.com/cherrai/nyanyago-utils/nstrings"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 	anypb "google.golang.org/protobuf/types/known/anypb"
 )
 
-// var (
-// 	log = nlog.New()
-// )
+var (
+	log = nlog.New()
+)
 
 type ResponseProtobufType struct {
 	protos.ResponseType
@@ -33,6 +36,47 @@ func (res *ResponseProtobufType) Call(c *gin.Context) {
 	r.RequestTime = res.RequestTime
 	r.Platform = res.Platform
 	c.Set("protobuf", r.GetResponse())
+}
+
+func (res *ResponseProtobufType) ProtoToJson(data proto.Message) []byte {
+	jsonData, err := protojson.Marshal(data)
+	if err == nil {
+		return jsonData
+	}
+	return nil
+}
+
+func (res *ResponseProtobufType) ProtoToMap(data proto.Message) map[string]any {
+	jsonData := res.ProtoToJson(data)
+	var result map[string]any
+
+	// 将 JSON 字符串解析为 map
+
+	if err := json.Unmarshal(jsonData, &result); err != nil {
+		log.Error(err)
+	}
+	return result
+}
+
+func (res *ResponseProtobufType) JSON(c *gin.Context, data any) {
+	var r ResponseType
+	r.Code = res.Code
+
+	// log.Info(data)
+	r.Data = data
+
+	// jsonData, err := protojson.Marshal(json)
+	// if err == nil {
+	// 	r.Data = string(jsonData)
+	// }
+	// r.Data = fmt.Sprintf("%+v", json)
+	r.Msg = res.Msg
+	r.CnMsg = res.CnMsg
+	r.Error = res.Error
+	r.RequestId = res.RequestId
+	r.RequestTime = res.RequestTime
+	r.Platform = res.Platform
+	c.Set("json", r.GetResponse())
 }
 
 func (res *ResponseProtobufType) Errors(err error) {
@@ -181,6 +225,14 @@ func (res *ResponseType) GetResponse() *ResponseType {
 
 	switch res.Code {
 	case 200:
+
+	case 10019:
+		res.Msg = "The time limit has exceeded 4 hours and the trip cannot be continued."
+		res.CnMsg = "已超时4小时，不可继续行程"
+
+	case 10018:
+		res.Msg = "Vehicle does not exist."
+		res.CnMsg = "载具不存在"
 
 	case 10017:
 		res.Msg = "Delete failed."

@@ -35,72 +35,51 @@ func Response() gin.HandlerFunc {
 				roles := c.MustGet("roles").(*RoleOptionsType)
 				// Log.Info("Response middleware", roles.ResponseEncryption)
 				if roles.isHttpServer {
+
+					var r *response.ResponseType
+					getProtobufDataResponse, _ := c.Get("protobuf")
+					if getProtobufDataResponse != nil {
+						r = getProtobufDataResponse.(*response.ResponseType)
+
+					} else {
+						getBodyDataResponse, _ := c.Get("json")
+
+						// log.Info("getBodyDataResponse", getBodyDataResponse)
+						r = getBodyDataResponse.(*response.ResponseType)
+
+					}
+
+					if roles.ResponseEncryption {
+						// if getBodyDataResponse == nil {
+						// 	res.Code = 10001
+						// 	c.JSON(http.StatusOK, res.Encryption(userAesKey, res))
+						// } else {
+						// 	// 当需要加密的时候
+						// 	c.JSON(http.StatusOK, res.Encryption(userAesKey, getProtobufDataResponse))
+						// }
+					}
+
 					switch roles.ResponseDataType {
 					case "protobuf":
-						getProtobufDataResponse, _ := c.Get("protobuf")
-						// log.Info("getProtobufDataResponse", getProtobufDataResponse, roles)
-						if getProtobufDataResponse == nil {
-							getBodyDataResponse, _ := c.Get("body")
-							if roles.ResponseEncryption == true {
-								// if getBodyDataResponse == nil {
-								// 	res.Code = 10001
-								// 	c.JSON(http.StatusOK, res.Encryption(userAesKey, res))
-								// } else {
-								// 	// 当需要加密的时候
-								// 	c.JSON(http.StatusOK, res.Encryption(userAesKey, getProtobufDataResponse))
-								// }
-							} else {
-								if getBodyDataResponse == nil {
-									var res response.ResponseProtobufType
-									res.Code = 10001
-									c.JSON(http.StatusOK, res.GetResponse())
-
-								} else {
-									c.JSON(http.StatusOK, getBodyDataResponse)
-								}
-							}
-						} else {
-							// fmt.Println("输出protobuf Res")
-							// if roles.ResponseEncryption == true {
-							// 	c.Writer.Header().Set("Content-Type", "application/x-protobuf")
-							// 	c.String(http.StatusOK, res.Encryption(userAesKey, getProtobufDataResponse))
-							// 	// fmt.Println("Response解析成功！！！！！！！！！！")
-							// } else {
-							r := getProtobufDataResponse.(*response.ResponseType)
-
-							protoData := protos.Encode(
-								&protos.ResponseType{
-									Code:        r.Code,
-									Data:        r.Data.(string),
-									Msg:         r.Msg,
-									CnMsg:       r.CnMsg,
-									Error:       r.Error,
-									RequestId:   r.RequestId,
-									RequestTime: r.RequestTime,
-									Platform:    r.Platform,
-									Author:      r.Author,
-								},
-							)
-
-							// dataProto := new(protos.RequestType)
-							// protos.DecodeBase64(protoData, dataProto)
-
-							// log.Info("protoData", protoData)
-							// log.Info("dataProto", dataProto)
-
-							c.Writer.Header().Set("Content-Type", "application/x-protobuf")
-							c.String(http.StatusOK,
-								protoData)
-							// }
+						res := &protos.ResponseType{
+							Code:        r.Code,
+							Data:        r.Data.(string),
+							Msg:         r.Msg,
+							CnMsg:       r.CnMsg,
+							Error:       r.Error,
+							RequestId:   r.RequestId,
+							RequestTime: r.RequestTime,
+							Platform:    r.Platform,
+							Author:      r.Author,
 						}
 
-					default:
-						if roles.ResponseEncryption {
-							// 当需要加密的时候
-						} else {
-							getResponse, _ := c.Get("body")
-							c.JSON(http.StatusOK, getResponse)
-						}
+						protoData := protos.Encode(res)
+						c.Writer.Header().Set("Content-Type", "application/x-protobuf")
+						c.String(http.StatusOK,
+							protoData)
+
+					case "json":
+						c.JSON(http.StatusOK, r)
 					}
 				}
 			}()

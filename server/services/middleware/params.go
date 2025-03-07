@@ -10,6 +10,7 @@ import (
 
 func Params() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// log.Info("21231321")
 		if _, isHttpServer := c.Get("isHttpServer"); !isHttpServer {
 			c.Next()
 			return
@@ -21,9 +22,10 @@ func Params() gin.HandlerFunc {
 			roles = getRoles.(*RoleOptionsType)
 		}
 
+		res := response.ResponseProtobufType{}
+		res.Code = 10015
+
 		if roles.ResponseDataType == "protobuf" {
-			res := response.ResponseProtobufType{}
-			res.Code = 10015
 			data := ""
 			switch c.Request.Method {
 			case "GET":
@@ -56,9 +58,44 @@ func Params() gin.HandlerFunc {
 			copier.Copy(ua, dataProto.UserAgent)
 			c.Set("userAgent", ua)
 
+			c.Set("openAppKey", dataProto.Open.AppKey)
+			c.Set("openUserId", dataProto.Open.UserId)
+
 			c.Next()
 			return
 		}
+
+		if roles.ResponseDataType == "json" {
+			appKey := ""
+			userId := ""
+			token := ""
+			deviceId := ""
+			switch c.Request.Method {
+			case "GET":
+				appKey = c.Query("appKey")
+				userId = c.Query("userId")
+				token = c.Query("token")
+				deviceId = c.Query("deviceId")
+
+			case "POST":
+				appKey = c.PostForm("appKey")
+				userId = c.PostForm("userId")
+				token = c.PostForm("token")
+				deviceId = c.PostForm("deviceId")
+			default:
+				break
+			}
+
+			c.Set("openAppKey", appKey)
+			c.Set("openUserId", userId)
+			c.Set("token", token)
+			c.Set("deviceId", deviceId)
+
+			c.Next()
+			return
+		}
+
+		log.Info(roles.ResponseDataType)
 
 		c.Next()
 	}

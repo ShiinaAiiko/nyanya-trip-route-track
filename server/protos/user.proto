@@ -3,6 +3,7 @@ syntax = "proto3";
 option go_package = "./;protos";
 package user;
 
+
 message UserAgent {
   message Browser {
     string name = 1;

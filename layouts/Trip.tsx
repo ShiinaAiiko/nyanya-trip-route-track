@@ -22,11 +22,14 @@ import HeaderComponent from '../components/Header'
 import SettingsComponent from '../components/Settings'
 import LoginComponent from '../components/Login'
 import TripHistoryComponent from '../components/TripHistory'
+import AddVehicleComponent from '../components/Vehicle'
 import StatisticsComponent from '../components/Statistics'
 import NoSSR from '../components/NoSSR'
 import { bindEvent, snackbar } from '@saki-ui/core'
 import axios from 'axios'
 import TripEditComponent from '../components/TripEdit'
+import ReplayTripComponent from '../components/ReplayTrip'
+
 import {
 	defaultLanguage,
 	detectionLanguage,
@@ -35,6 +38,14 @@ import {
 import Leaflet from 'leaflet'
 import { useRouter } from 'next/router'
 import { storage } from '../store/storage'
+import { isFullScreen } from '../plugins/methods'
+import { eventListener } from '../store/config'
+import FindLocationComponent from '../components/FindLocation'
+import screenfull from 'screenfull'
+import Script from 'next/script'
+import CreateCustomTripComponent from '../components/CreateCustomTrip'
+import VisitedCitiesModal from '../components/VisitedCities'
+
 // import { testGpsData } from '../plugins/methods'
 // import parserFunc from 'ua-parser-js'
 
@@ -77,21 +88,63 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
 
 	const router = useRouter()
 
+	const { debug } = router.query
+
 	// console.log('Index Layout')
 
 	// const cccc = useSelector((state: RootState) => state.)
 	const dispatch = useDispatch<AppDispatch>()
 	const layout = useSelector((state: RootState) => state.layout)
 	const config = useSelector((state: RootState) => state.config)
+	const user = useSelector((state: RootState) => state.user)
 	const geoWatchUpdateTime = useSelector(
 		(state: RootState) => state.geo.watchUpdateTime
 	)
 	const [showLanguageDropdown, setShowLanguageDropdown] = useState(false)
 
-	const [hideLoading, setHideLoading] = useState(false)
 	const [sakiuiInit, setSakiuiInit] = useState(false)
 	const [loadProgressBar, setLoadProgressBar] = useState(false)
 	const [progressBar, setProgressBar] = useState(0.01)
+
+	useEffect(() => {
+		console.log('debug', debug, router.query)
+
+		const lf = console.log
+		const wf = console.warn
+		const ef = console.error
+		const tf = console.time
+		const tef = console.timeEnd
+
+		if (process.env.CLIENT_ENV === 'production' && debug !== 'true') {
+			console.log = () => {}
+			console.warn = () => {}
+			console.error = () => {}
+			console.time = () => {}
+			console.timeEnd = () => {}
+		}
+
+		let vConsole: any
+		if (debug === 'true') {
+			const sc = document.createElement('script')
+			sc.src = 'https://unpkg.com/vconsole@latest/dist/vconsole.min.js'
+
+			sc.onload = () => {
+				vConsole = new (window as any).VConsole({ theme: 'dark' })
+			}
+
+			document.body.appendChild(sc)
+		}
+
+		return () => {
+			console.log = lf
+			console.warn = wf
+			console.error = ef
+			console.time = tf
+			console.timeEnd = tef
+
+			vConsole?.destroy()
+		}
+	}, [router])
 
 	useEffect(() => {
 		const L: typeof Leaflet = (window as any).L
@@ -112,7 +165,32 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
 
 		dispatch(methods.config.getDeviceType())
 
+		dispatch(configSlice.actions.setFullScreen(screenfull.isFullscreen))
+
+		window.addEventListener('keydown', function (e) {
+			e = e || window.event
+			eventListener.dispatch('replay-trip-keydown', e)
+			if (e.keyCode === 122) {
+				e.preventDefault()
+
+				dispatch(methods.config.fullScreen(!config.fullScreen))
+			}
+		})
+
+		// screenfull.onchange((e) => {
+		// dispatch(configSlice.actions.setFullScreen(screenfull.isFullscreen))
+		// })
+
 		window.addEventListener('resize', () => {
+			// setTimeout(() => {
+			// 	console.log(
+			// 		'screenfull.isFullscreen',
+			// 		screenfull.isFullscreen,
+			// 		isFullScreen(document.body)
+			// 	)
+			// 	dispatch(configSlice.actions.setFullScreen(screenfull.isFullscreen))
+			// }, 700)
+
 			dispatch(methods.config.getDeviceType())
 		})
 		window.addEventListener('load', () => {
@@ -215,29 +293,60 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
 	}, [loadProgressBar, sakiuiInit, mounted])
 
 	useEffect(() => {
-		checkMapUrl(config.mapUrl, 'BaseMap')
+		const init = async () => {
+			if (user.isInit) {
+				if (user.isLogin) {
+					console.log('GetVehicles', user)
+					await dispatch(methods.vehicle.Init())
+					await dispatch(methods.config.getUserPositionShare())
+
+					await dispatch(methods.config.GetConfigure())
+				}
+				dispatch(configSlice.actions.setInitConfigure(true))
+			}
+		}
+		init()
+
+		dispatch(configSlice.actions.setUserPositionShare(-1))
+	}, [user])
+
+	useEffect(() => {
+		router.pathname.indexOf('trackRoute') < 0 &&
+			checkMapUrl(config.mapUrl, 'BaseMap')
 	}, [config.mapUrl])
 
 	useEffect(() => {
-		checkMapUrl(config.trackRouteMapUrl, 'TrackRoute')
+		router.pathname.indexOf('trackRoute') >= 0 &&
+			checkMapUrl(config.trackRouteMapUrl, 'TrackRoute')
 	}, [config.trackRouteMapUrl])
 
 	const checkMapUrl = async (mapUrl: string, type: string) => {
 		if (!mapUrl) return
-		let url = ''
-		// try {
-		// 	url = mapUrl
-		// 		.split('/')
-		// 		.filter((_, i) => {
-		// 			return i === 0 || i === 2
-		// 		})
-		// 		.join('//')
-		// 	console.log('checkMapUrl', url, type)
-		// 	const res = await (await fetch(url)).json()
-		// 	console.log('checkMapUrl res', res, type)
-		// } catch (error) {
-		// 	console.log('checkMapUrl error', error, type)
-		// }
+
+		// console.log('checkMapUrl', mapUrl)
+		const xyz = [3260, 1695, 12]
+
+		let url = mapUrl
+			.replace('{x}', String(xyz[0]))
+			.replace('{y}', String(xyz[1]))
+			.replace('{z}', String(xyz[2]))
+		try {
+			const res = await fetch(url)
+			// console.log('checkMapUrl res', res, type)
+			console.log('checkMapUrl', mapUrl, url, type, router, res)
+			if (type === 'BaseMap') {
+				dispatch(configSlice.actions.setConnectionBaseMapUrl(res.ok))
+				return
+			}
+			dispatch(configSlice.actions.setConnectionTrackRouteMapUrl(res.ok))
+		} catch (error) {
+			console.log('checkMapUrl error', error, type)
+			if (type === 'BaseMap') {
+				dispatch(configSlice.actions.setConnectionBaseMapUrl(false))
+				return
+			}
+			dispatch(configSlice.actions.setConnectionTrackRouteMapUrl(false))
+		}
 	}
 
 	useEffect(() => {
@@ -317,7 +426,22 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
 				<link rel='stylesheet' href='/css/leaflet.css' crossOrigin='' />
 				<script src='/js/leaflet.js' crossOrigin=''></script>
 				<script src='/js/leaflet-polycolor.min.js'></script>
-				<script src='/js/TileLayer.Grayscale.js' crossOrigin=''></script>
+				<script src='/js/TileLayer.ColorScale.js' crossOrigin=''></script>
+
+				{/* {debug === 'true' ? (
+					<script src='https://unpkg.com/vconsole@latest/dist/vconsole.min.js'></script>
+				) : (
+					''
+				)} */}
+
+				{/* <Script
+					src={'https://unpkg.com/vconsole@latest/dist/vconsole.min.js'}
+					onLoad={() => {
+						new (window as any).VConsole({ theme: 'dark' })
+					}}
+				></Script> */}
+				<script src='/js/responsivevoice.js'></script>
+				{/* <script src='https://code.responsivevoice.org/responsivevoice.js?key=qH3G8T7O'></script> */}
 			</Head>
 			<div className='trip-layout saki-loading'>
 				<NoSSR>
@@ -341,7 +465,6 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
 						></saki-init>
 					</>
 				</NoSSR>
-
 				<div
 					onTransitionEnd={() => {
 						console.log('onTransitionEnd')
@@ -352,7 +475,7 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
 						// (!(appStatus.noteInitStatus && appStatus.sakiUIInitStatus)
 						// 	? 'active '
 						// 	: '') +
-						(hideLoading ? 'hide' : '')
+						(config.hideLoading ? 'hide' : '')
 					}
 				>
 					{/* <div className='loading-animation'></div>
@@ -411,7 +534,8 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
 												)
 												animation.onfinish = () => {
 													el.style.display = 'none'
-													setHideLoading(true)
+													// setHideLoading(true)
+													dispatch(configSlice.actions.setHideLoading(true))
 												}
 											}
 										}
@@ -438,7 +562,6 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
 						{children}
 					</div>
 				</div>
-
 				{mounted ? (
 					<>
 						<SettingsComponent
@@ -450,12 +573,58 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
 						/>
 						<LoginComponent />
 						<TripHistoryComponent />
+						<ReplayTripComponent />
+						<AddVehicleComponent />
+						<FindLocationComponent />
+						<CreateCustomTripComponent />
+						<VisitedCitiesModal />
 						{/* <StatisticsComponent /> */}
+
+						<saki-aside-modal
+							ref={bindEvent({
+								close: (e) => {},
+							})}
+							visible={
+								!config.connectionBaseMapUrl ||
+								!config.connectionTrackRouteMapUrl
+							}
+							vertical='Top'
+							horizontal='Center'
+							// height='86%'
+							padding='0 0 0px 0'
+							margin='10px 0 0 0'
+							border-radius='10px'
+						>
+							<saki-button
+								ref={bindEvent({
+									tap: () => {
+										dispatch(layoutSlice.actions.setSettingType('Maps'))
+										dispatch(layoutSlice.actions.setOpenSettingsModal(true))
+									},
+								})}
+								color='var(--saki-default-color)'
+								type='Normal'
+								padding='0px'
+								border-radius='8px'
+								border='none'
+							>
+								<div
+									style={{
+										padding: '8px 10px',
+										border: '2px solid var(--saki-default-color)',
+										borderRadius: '10px',
+									}}
+								>
+									{t('unableLoadMap', {
+										ns: 'prompt',
+									})}
+								</div>
+							</saki-button>
+						</saki-aside-modal>
 					</>
 				) : (
 					''
 				)}
-
 				<TripEditComponent />
 			</div>
 		</>

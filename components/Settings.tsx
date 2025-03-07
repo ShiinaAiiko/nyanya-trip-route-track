@@ -9,10 +9,21 @@ import { sakisso, version } from '../config'
 import { bindEvent } from '@saki-ui/core'
 // console.log(sakiui.bindEvent)
 import { useTranslation } from 'react-i18next'
-import { configMethods, configSlice, maps } from '../store/config'
+import {
+	configMethods,
+	configSlice,
+	getSpeedColorSliderRange,
+	maps,
+	getTrackSpeedColors,
+	defaultSpeedColorLimit,
+	getTrackRouteColor,
+} from '../store/config'
 import { Query } from '../plugins/methods'
 import { storage, storageMethods } from '../store/storage'
 import { byteConvert } from '@nyanyajs/utils'
+import { getPositionShareText } from './Vehicle'
+import { getSpeed } from 'geolib'
+import { protoRoot } from '../protos'
 
 const SettingsComponent = ({
 	visible,
@@ -665,12 +676,16 @@ const Language = ({ show }: { show: boolean }) => {
 						flex-direction='Column'
 						type='Radio'
 					>
-						<saki-checkbox-item padding='14px 0' value='system'>
+						<saki-checkbox-item margin='14px 8px 14px 0' value='system'>
 							{t('system')}
 						</saki-checkbox-item>
 						{languages.map((v, i) => {
 							return (
-								<saki-checkbox-item key={i} padding='14px 0' value={v.value}>
+								<saki-checkbox-item
+									margin='14px 8px 14px 0'
+									key={i}
+									value={v.value}
+								>
 									{v.content}
 								</saki-checkbox-item>
 							)
@@ -685,15 +700,35 @@ const Language = ({ show }: { show: boolean }) => {
 const Maps = ({ show }: { show: boolean }) => {
 	const { t, i18n } = useTranslation('settings')
 	const config = useSelector((state: RootState) => state.config)
+	const layout = useSelector((state: RootState) => state.layout)
 
 	const dispatch = useDispatch<AppDispatch>()
 
 	const [openMapUrlDowndrop, setOpenMapUrlDowndrop] = useState(false)
+	const [speedColorType, setSpeedColorType] = useState(
+		Object.keys(config.configure?.speedColorLimit || {})?.[0]
+	)
+	const [speedColorLimit, setSpeedColorLimit] = useState(
+		(config.configure as any)?.speedColorLimit?.[
+			speedColorType
+		] as protoRoot.configure.Configure.SpeedColorLimit.ISpeedColorLimitItem
+	)
+
+	const [openSpeedColorTypeDropdown, setOpenSpeedColorTypeDropdown] =
+		useState(false)
+
 	const [openTrackRouteMapUrlDowndrop, setOpenTrackRouteMapUrlDowndrop] =
 		useState(false)
-	// useEffect(() => {
-	// 	setMode(appearance.mode)
-	// }, [appearance.mode])
+
+	useEffect(() => {
+		setSpeedColorLimit(
+			(config.configure as any)?.speedColorLimit?.[
+				speedColorType
+			] as protoRoot.configure.Configure.SpeedColorLimit.ISpeedColorLimitItem
+		)
+	}, [speedColorType, layout.openSettingsModal])
+
+	const sliderRange = getSpeedColorSliderRange(speedColorType)
 
 	return (
 		<div
@@ -719,7 +754,7 @@ const Maps = ({ show }: { show: boolean }) => {
 					// >
 					// 	{maps.map((v, i) => {
 					// 		return (
-					// 			<saki-checkbox-item key={i} padding='14px 0' value={v.key}>
+					// 			<saki-checkbox-item key={i} margin='14px 8px 14px 0' value={v.key}>
 					// 				{t(v.key)}
 					// 			</saki-checkbox-item>
 					// 		)
@@ -757,7 +792,7 @@ const Maps = ({ show }: { show: boolean }) => {
 									>
 										{t(
 											maps.filter((v) => {
-												return v.key === config.mapKey
+												return v.key === config.configure.baseMap?.mapKey
 											})?.[0]?.key
 										)}
 									</span>
@@ -774,7 +809,17 @@ const Maps = ({ show }: { show: boolean }) => {
 										ref={bindEvent({
 											selectvalue: async (e) => {
 												console.log(e.detail.value)
-												dispatch(methods.config.setMapKey(e.detail.value))
+
+												dispatch(
+													methods.config.SetConfigure({
+														...config.configure,
+														baseMap: {
+															...config.configure['baseMap'],
+															mapKey: e.detail.value,
+														},
+													})
+												)
+
 												setOpenMapUrlDowndrop(false)
 											},
 										})}
@@ -796,6 +841,69 @@ const Maps = ({ show }: { show: boolean }) => {
 									</saki-menu>
 								</div>
 							</saki-dropdown>
+						</div>
+						<saki-segmented
+							ref={bindEvent({
+								changevalue: (e) => {
+									console.log('SetConfigure segmented', e)
+									dispatch(
+										methods.config.SetConfigure({
+											...config.configure,
+											baseMap: {
+												...config.configure['baseMap'],
+												mapMode: e.detail,
+											},
+										})
+									)
+								},
+							})}
+							width='100%'
+							height='36px'
+							border-radius='18px'
+							margin='12px 0 0'
+							value={config.configure.baseMap?.mapMode || 'Normal'}
+							// value={config.configure.baseMap?.mapMode || 'Normal'}
+						>
+							{['Normal', 'Gray', 'Dark', 'Black'].map((v, i) => {
+								return (
+									<saki-segmented-item value={v} key={i}>
+										<span>{t(v.toLowerCase() + 'Mode')}</span>
+									</saki-segmented-item>
+								)
+							})}
+						</saki-segmented>
+
+						<div className='sm-bm-recommend'>
+							{config.mapRecommend.baseMap.map((v, i) => {
+								return (
+									<div
+										ref={
+											bindEvent({
+												click: () => {
+													dispatch(
+														methods.config.SetConfigure({
+															...config.configure,
+															baseMap: {
+																mapKey: v.mapKey,
+																mapMode: v.mapMode,
+															},
+														})
+													)
+												},
+											}) as any
+										}
+										key={i}
+										className='sm-r-item'
+									>
+										<span>
+											{t(v.mapKey)}
+											{v.mapMode !== 'Normal'
+												? '-' + t(v.mapMode.toLowerCase() + 'Mode')
+												: ''}
+										</span>
+									</div>
+								)
+							})}
 						</div>
 
 						<div className='sm-basemap'>
@@ -829,7 +937,7 @@ const Maps = ({ show }: { show: boolean }) => {
 									>
 										{t(
 											maps.filter((v) => {
-												return v.key === config.trackRouteMapKey
+												return v.key === config.configure.trackRouteMap?.mapKey
 											})?.[0]?.key
 										)}
 									</span>
@@ -846,8 +954,15 @@ const Maps = ({ show }: { show: boolean }) => {
 										ref={bindEvent({
 											selectvalue: async (e) => {
 												console.log(e.detail.value)
+
 												dispatch(
-													methods.config.setTrackRouteMapKey(e.detail.value)
+													methods.config.SetConfigure({
+														...config.configure,
+														trackRouteMap: {
+															...config.configure['trackRouteMap'],
+															mapKey: e.detail.value,
+														},
+													})
 												)
 												setOpenTrackRouteMapUrlDowndrop(false)
 											},
@@ -871,30 +986,426 @@ const Maps = ({ show }: { show: boolean }) => {
 								</div>
 							</saki-dropdown>
 						</div>
+						<saki-segmented
+							ref={bindEvent({
+                changevalue: (e) => {
+                  console.log(e)
+									dispatch(
+										methods.config.SetConfigure({
+											...config.configure,
+											trackRouteMap: {
+												...config.configure['trackRouteMap'],
+												mapMode: e.detail,
+											},
+										})
+									)
+								},
+							})}
+							width='100%'
+							height='36px'
+							border-radius='18px'
+							margin='12px 0 0'
+							value={config.configure.trackRouteMap?.mapMode || 'Normal'}
+							// value={config.configure.baseMap?.mapMode || 'Normal'}
+						>
+							{['Normal', 'Gray', 'Dark', 'Black'].map((v, i) => {
+								return (
+									<saki-segmented-item value={v} key={i}>
+										<span>{t(v.toLowerCase() + 'Mode')}</span>
+									</saki-segmented-item>
+								)
+							})}
+						</saki-segmented>
+
+						<div className='sm-bm-recommend'>
+							{config.mapRecommend.trackRouteMap.map((v, i) => {
+								return (
+									<div
+										ref={
+											bindEvent({
+												click: () => {
+													dispatch(
+														methods.config.SetConfigure({
+															...config.configure,
+															trackRouteMap: {
+																mapKey: v.mapKey,
+																mapMode: v.mapMode,
+															},
+														})
+													)
+												},
+											}) as any
+										}
+										key={i}
+										className='sm-r-item'
+									>
+										<span>
+											{t(v.mapKey)}
+											{v.mapMode !== 'Normal'
+												? '-' + t(v.mapMode.toLowerCase() + 'Mode')
+												: ''}
+										</span>
+									</div>
+								)
+							})}
+						</div>
 					</>
 				)}
 			></SettingsItem>
 			<SettingsItem
-				subtitle={() => <div>{t('speedColor')}</div>}
+				subtitle={() => (
+					<div>
+						{t('roadColorFade', {
+							ns: 'settings',
+						})}
+					</div>
+				)}
 				main={() => (
-					<saki-checkbox
-						ref={bindEvent({
-							async selectvalue(e) {
-								dispatch(methods.config.setSpeedColorType(e.detail.value))
-							},
+					<div className='sm-basemap'>
+						<span>
+							{t('roadColorFadeTip', {
+								ns: 'settings',
+								maps: config.mapRecommend.roadColorFadeMap
+									.map((v, i) => {
+										return (
+											t(v.mapKey, {
+												ns: 'settings',
+											}) +
+											(i === config.mapRecommend.roadColorFadeMap.length - 1
+												? config.lang === 'en-US'
+													? ','
+													: ''
+												: ',')
+										)
+									})
+									.join(' '),
+							})}
+						</span>
+						<saki-switch
+							ref={bindEvent({
+								change: (e) => {
+									dispatch(
+										methods.config.SetConfigure({
+											...config.configure,
+											roadColorFade: Boolean(e.detail),
+										})
+									)
+								},
+							})}
+							height='24px'
+							value={config.configure.roadColorFade}
+						></saki-switch>
+					</div>
+				)}
+			></SettingsItem>
+
+			<SettingsItem
+				subtitle={() => (
+					<div>
+						<span>{t('trackSpeed​Color')}</span>
+					</div>
+				)}
+				main={() => (
+					<>
+						<saki-checkbox
+							ref={bindEvent({
+								async selectvalue(e) {
+									dispatch(
+										methods.config.SetConfigure({
+											...config.configure,
+											trackSpeedColor: e.detail.value,
+										})
+									)
+								},
+							})}
+							value={config.configure?.trackSpeedColor || 'RedGreen'}
+							flex-direction='Column'
+							type='Radio'
+						>
+							{['RedGreen', 'PinkBlue'].map((v, i) => {
+								const rgbs = getTrackSpeedColors(v as any)
+								return (
+									<saki-checkbox-item
+										key={i}
+										margin='14px 8px 14px 0'
+										value={v}
+									>
+										<saki-row
+											justify-content='space-between'
+											align-items='center'
+											margin='0 0 0 2px'
+										>
+											<span>{t(v)}</span>
+											<div
+												style={{
+													flex: 1,
+													margin: '0 0 0 8px',
+												}}
+												className='sm-sc-color'
+											>
+												<div
+													style={{
+														background: `linear-gradient(45deg, ${rgbs[0]},${
+															rgbs[rgbs.length - 1]
+														})`,
+													}}
+													className='sm-sc-line'
+												></div>
+											</div>
+										</saki-row>
+									</saki-checkbox-item>
+								)
+							})}
+						</saki-checkbox>
+					</>
+				)}
+			></SettingsItem>
+
+			<SettingsItem
+				subtitle={() => (
+					<div>
+						{t('speedColorLimit', {
+							ns: 'tripPage',
 						})}
-						value={config.speedColorType}
-						flex-direction='Column'
-						type='Radio'
-					>
-						{['RedGreen', 'PinkBlue'].map((v, i) => {
-							return (
-								<saki-checkbox-item key={i} padding='10px 0' value={v}>
-									{t(v)}
-								</saki-checkbox-item>
-							)
-						})}
-					</saki-checkbox>
+					</div>
+				)}
+				main={() => (
+					<>
+						<div className='sm-speed-color-range'>
+							<div className='sm-sc-type'>
+								<span
+									style={{
+										color: '#000',
+									}}
+								>
+									{t('type', {
+										ns: 'tripPage',
+									})}
+								</span>
+								<saki-dropdown
+									visible={openSpeedColorTypeDropdown}
+									floating-direction='Left'
+									z-index='1000'
+									ref={bindEvent({
+										close: () => {
+											setOpenSpeedColorTypeDropdown(false)
+										},
+									})}
+								>
+									<saki-button
+										border='none'
+										bg-hover-color='transparent'
+										bg-active-color='transparent'
+										padding='0px'
+										ref={bindEvent({
+											tap: () => {
+												setOpenSpeedColorTypeDropdown(true)
+											},
+										})}
+									>
+										<span
+											style={{
+												color: '#666',
+											}}
+											className='name'
+										>
+											{t(speedColorType, {
+												ns: 'tripPage',
+											})}
+										</span>
+										<saki-icon
+											width='12px'
+											height='12px'
+											color='#999'
+											margin='0 0 0 6px'
+											type='Bottom'
+										></saki-icon>
+									</saki-button>
+									<div slot='main'>
+										<saki-menu
+											ref={bindEvent({
+												selectvalue: async (e) => {
+													setSpeedColorType(e.detail.value)
+													setOpenSpeedColorTypeDropdown(false)
+												},
+											})}
+										>
+											{Object.keys(config.configure.speedColorLimit || {}).map(
+												(v, i) => {
+													return (
+														<saki-menu-item
+															key={i}
+															padding='10px 18px'
+															value={v}
+															active={speedColorType === v}
+														>
+															<div className='note-item'>
+																<span className='text-elipsis'>
+																	{t(v, {
+																		ns: 'tripPage',
+																	})}
+																</span>
+															</div>
+														</saki-menu-item>
+													)
+												}
+											)}
+										</saki-menu>
+									</div>
+								</saki-dropdown>
+							</div>
+
+							<div className='sm-sc-speed'>
+								<span>
+									{t('minSpeed', {
+										ns: 'tripPage',
+									}) +
+										' ' +
+										Math.round(
+											(config.configure.speedColorLimit as any)[speedColorType]
+												.minSpeed * 3.6
+										)}
+									km/h
+								</span>
+								<span>
+									{t('maxSpeed', {
+										ns: 'tripPage',
+									}) +
+										' ' +
+										Math.round(
+											(config.configure.speedColorLimit as any)[speedColorType]
+												.maxSpeed * 3.6
+										)}
+									km/h
+								</span>
+							</div>
+
+							<div className='sm-sc-range'>
+								<saki-slider
+									ref={bindEvent({
+										changevalue(e) {
+											// console.log('onChangevalue', e)
+
+											if (e.detail?.length === 2) {
+												const obj: any = {
+													...config.configure.speedColorLimit,
+												}
+												obj[speedColorType] = {
+													minSpeed:
+														e.detail?.[0] / 3.6 || speedColorLimit.minSpeed,
+													maxSpeed:
+														e.detail?.[1] / 3.6 || speedColorLimit.maxSpeed,
+												}
+
+												console.log('SetConfigure slider', e)
+
+												dispatch(
+													methods.config.SetConfigure({
+														...config.configure,
+														speedColorLimit: obj,
+													})
+												)
+											}
+										},
+									})}
+									min={sliderRange[0]}
+									max={sliderRange[1]}
+									value={[
+										Math.round((speedColorLimit.minSpeed || 0) * 3.6 * 100) /
+											100,
+										Math.round((speedColorLimit.maxSpeed || 0) * 3.6 * 100) /
+											100,
+									].join(';')}
+									bg-color='rgb(243,243,243)'
+									bg-hover-color='#eee'
+									track-color={[
+										`linear-gradient(45deg, ${config.speedColorRGBs[0]},${
+											config.speedColorRGBs[config.speedColorRGBs.length - 1]
+										})`,
+									].join(';')}
+									marks={[
+										{
+											val: sliderRange[0],
+											text: sliderRange[0] + 'km/h',
+											style: {
+												color: 'var(--saki-default-color)',
+												// fontWeight: 700,
+											},
+										},
+										{
+											val:
+												Math.round(
+													defaultSpeedColorLimit[speedColorType].minSpeed *
+														3.6 *
+														100
+												) / 100,
+											// text: speedColorLimit.minSpeed * 3.6 + 'km/h',
+											style: {
+												color: 'var(--saki-default-color)',
+												// fontWeight: 700,
+											},
+										},
+										{
+											val:
+												Math.round(
+													defaultSpeedColorLimit[speedColorType].maxSpeed *
+														3.6 *
+														100
+												) / 100,
+											// text: speedColorLimit.maxSpeed * 3.6 + 'km/h',
+											style: {
+												color: 'var(--saki-default-color)',
+												// fontWeight: 700,
+											},
+										},
+										{
+											val: sliderRange[1],
+											text: sliderRange[1] + 'm/h',
+											style: {
+												color: 'var(--saki-default-color)',
+												// fontWeight: 700,
+											},
+										},
+									]
+										.map((v) => JSON.stringify(v))
+										.join(';')}
+									tool-tip={true}
+									disabled={false}
+									width={'100%'}
+									max-width={'100%'}
+									height={'12px'}
+									margin='10px 0 16px'
+									border-radius='6px'
+								></saki-slider>
+							</div>
+						</div>
+					</>
+				)}
+			></SettingsItem>
+			<SettingsItem
+				subtitle={() => <div>{t('speedAnimation')}</div>}
+				main={() => (
+					<div className='sm-basemap'>
+						<span>
+							{t('speedAnimationTip', {
+								ns: 'settings',
+							})}
+						</span>
+						<saki-switch
+							ref={bindEvent({
+								change: (e) => {
+									dispatch(
+										methods.config.SetConfigure({
+											...config.configure,
+											speedAnimation: Boolean(e.detail),
+										})
+									)
+								},
+							})}
+							height='24px'
+							value={config.configure.speedAnimation}
+						></saki-switch>
+					</div>
 				)}
 			></SettingsItem>
 			<SettingsItem
@@ -903,24 +1414,37 @@ const Maps = ({ show }: { show: boolean }) => {
 					<saki-checkbox
 						ref={bindEvent({
 							async selectvalue(e) {
-								dispatch(methods.config.setTrackRouteColor(e.detail.value))
+								dispatch(
+									methods.config.SetConfigure({
+										...config.configure,
+										trackRouteColor: e.detail.value,
+									})
+								)
 							},
 						})}
-						value={config.trackRouteColor}
+						value={config.configure.trackRouteColor || 'Red'}
 						flex-direction='Column'
 						type='Radio'
 					>
-						{['Blue', 'Pink', 'Red'].map((v, i) => {
+						{['Red', 'Blue', 'Pink'].map((v, i) => {
 							return (
-								<saki-checkbox-item key={i} padding='10px 0' value={v}>
-									{t(v.toLowerCase())}
+								<saki-checkbox-item key={i} margin='14px 8px 14px 0' value={v}>
+									<div className='sm-trc-item'>
+										<span>{t(v.toLowerCase())}</span>
+										<div
+											className='sm-trc-i-color'
+											style={{
+												backgroundColor: getTrackRouteColor(v as any, false),
+											}}
+										></div>
+									</div>
 								</saki-checkbox-item>
 							)
 						})}
 					</saki-checkbox>
 				)}
 			></SettingsItem>
-			<SettingsItem
+			{/* <SettingsItem
 				subtitle={() => <div>{t('trackRouteDetailedData')}</div>}
 				main={() => (
 					<div className='sm-basemap'>
@@ -940,27 +1464,35 @@ const Maps = ({ show }: { show: boolean }) => {
 						></saki-switch>
 					</div>
 				)}
-			></SettingsItem>
-
+			></SettingsItem> */}
 			<SettingsItem
-				subtitle={() => <div>{t('maskLayer')}</div>}
+				subtitle={() => <div>{t('currentPosition')}</div>}
 				main={() => (
 					<div className='sm-basemap'>
-						<span>{t('grayMask')}</span>
+						<span>
+							{t('showAvatarAtCurrentPosition', {
+								ns: 'settings',
+							})}
+						</span>
 						<saki-switch
 							ref={bindEvent({
 								change: (e) => {
-									store.dispatch(configSlice.actions.setIsGrayscale(e.detail))
+									dispatch(
+										methods.config.SetConfigure({
+											...config.configure,
+											showAvatarAtCurrentPosition: Boolean(e.detail),
+										})
+									)
 								},
 							})}
 							height='24px'
-							value={config.isGrayscale}
+							value={config.configure.showAvatarAtCurrentPosition}
 						></saki-switch>
 					</div>
 				)}
 			></SettingsItem>
 			<SettingsItem
-				subtitle={() => <div>{t('trackLine')}</div>}
+				subtitle={() => <div>{t('tripTrackWidth')}</div>}
 				main={() => (
 					<>
 						<div
@@ -975,15 +1507,19 @@ const Maps = ({ show }: { show: boolean }) => {
 									paddingRight: '6px',
 								}}
 							>
-								{t('realtimeTravelTrackWidth')}
+								{t('ongoingTrip')}
 							</span>
 							<saki-input
 								ref={bindEvent({
 									changevalue: (v) => {
 										dispatch(
-											configSlice.actions.setRealtimeTravelTrackWidth(
-												Number(v.detail) || 8
-											)
+											methods.config.SetConfigure({
+												...config.configure,
+												polylineWidth: {
+													...config.configure.polylineWidth,
+													ongoingTrip: Number(v.detail) || 4,
+												},
+											})
 										)
 									},
 								})}
@@ -992,7 +1528,7 @@ const Maps = ({ show }: { show: boolean }) => {
 								}}
 								width='100%'
 								type='Range'
-								value={config.mapPolyline.realtimeTravelTrackWidth}
+								value={config.configure.polylineWidth?.ongoingTrip}
 								min='1'
 								max='10'
 							></saki-input>
@@ -1001,9 +1537,10 @@ const Maps = ({ show }: { show: boolean }) => {
 									paddingLeft: '6px',
 								}}
 							>
-								{config.mapPolyline.realtimeTravelTrackWidth}px
+								{Number(config.configure.polylineWidth?.ongoingTrip) || 0}px
 							</span>
 						</div>
+
 						<div
 							style={{
 								display: 'flex',
@@ -1016,15 +1553,19 @@ const Maps = ({ show }: { show: boolean }) => {
 									paddingRight: '6px',
 								}}
 							>
-								{t('historyTravelTrackWidth')}
+								{t('historyTripTrack')}
 							</span>
 							<saki-input
 								ref={bindEvent({
 									changevalue: (v) => {
 										dispatch(
-											configSlice.actions.setHistoryTravelTrackWidth(
-												Number(v.detail) || 8
-											)
+											methods.config.SetConfigure({
+												...config.configure,
+												polylineWidth: {
+													...config.configure.polylineWidth,
+													historyTripTrack: Number(v.detail) || 1,
+												},
+											})
 										)
 									},
 								})}
@@ -1033,7 +1574,7 @@ const Maps = ({ show }: { show: boolean }) => {
 								}}
 								width='100%'
 								type='Range'
-								value={config.mapPolyline.historyTravelTrackWidth}
+								value={config.configure.polylineWidth?.historyTripTrack}
 								min='1'
 								max='10'
 							></saki-input>
@@ -1042,9 +1583,11 @@ const Maps = ({ show }: { show: boolean }) => {
 									paddingLeft: '6px',
 								}}
 							>
-								{config.mapPolyline.historyTravelTrackWidth}px
+								{Number(config.configure.polylineWidth?.historyTripTrack) || 0}
+								px
 							</span>
 						</div>
+
 						<div
 							style={{
 								display: 'flex',
@@ -1055,18 +1598,21 @@ const Maps = ({ show }: { show: boolean }) => {
 							<span
 								style={{
 									paddingRight: '6px',
-									fontSize: '12px',
 								}}
 							>
-								{t('historyTravelDetailedDataTrackWidth')}
+								{t('historyTripTrackSelectedTrip')}
 							</span>
 							<saki-input
 								ref={bindEvent({
 									changevalue: (v) => {
 										dispatch(
-											configSlice.actions.setHistoryTravelDetailedDataTrackWidth(
-												Number(v.detail) || 8
-											)
+											methods.config.SetConfigure({
+												...config.configure,
+												polylineWidth: {
+													...config.configure.polylineWidth,
+													historyTripTrackSelectedTrip: Number(v.detail) || 2,
+												},
+											})
 										)
 									},
 								})}
@@ -1075,7 +1621,9 @@ const Maps = ({ show }: { show: boolean }) => {
 								}}
 								width='100%'
 								type='Range'
-								value={config.mapPolyline.historyTravelDetailedDataTrackWidth}
+								value={
+									config.configure.polylineWidth?.historyTripTrackSelectedTrip
+								}
 								min='1'
 								max='10'
 							></saki-input>
@@ -1084,7 +1632,56 @@ const Maps = ({ show }: { show: boolean }) => {
 									paddingLeft: '6px',
 								}}
 							>
-								{config.mapPolyline.historyTravelDetailedDataTrackWidth}px
+								{Number(
+									config.configure.polylineWidth?.historyTripTrackSelectedTrip
+								) || 0}
+								px
+							</span>
+						</div>
+
+						<div
+							style={{
+								display: 'flex',
+								alignItems: 'center',
+								margin: '16px 0',
+							}}
+						>
+							<span
+								style={{
+									paddingRight: '6px',
+								}}
+							>
+								{t('reviewTrip')}
+							</span>
+							<saki-input
+								ref={bindEvent({
+									changevalue: (v) => {
+										dispatch(
+											methods.config.SetConfigure({
+												...config.configure,
+												polylineWidth: {
+													...config.configure.polylineWidth,
+													reviewTrip: Number(v.detail) || 6,
+												},
+											})
+										)
+									},
+								})}
+								style={{
+									flex: '1',
+								}}
+								width='100%'
+								type='Range'
+								value={config.configure.polylineWidth?.reviewTrip}
+								min='1'
+								max='10'
+							></saki-input>
+							<span
+								style={{
+									paddingLeft: '6px',
+								}}
+							>
+								{Number(config.configure.polylineWidth?.reviewTrip) || 0}px
 							</span>
 						</div>
 					</>
@@ -1139,16 +1736,16 @@ const Maps = ({ show }: { show: boolean }) => {
 // 						flex-direction='Column'
 // 						type='Radio'
 // 					>
-// 						<saki-checkbox-item padding='14px 0' value='light'>
+// 						<saki-checkbox-item margin='14px 8px 14px 0'  value='light'>
 // 							{t('light')}
 // 						</saki-checkbox-item>
-// 						<saki-checkbox-item padding='14px 0' value='dark'>
+// 						<saki-checkbox-item margin='14px 8px 14px 0'  value='dark'>
 // 							{t('dark')}
 // 						</saki-checkbox-item>
-// 						<saki-checkbox-item padding='14px 0' value='black'>
+// 						<saki-checkbox-item margin='14px 8px 14px 0'  value='black'>
 // 							{t('black')}
 // 						</saki-checkbox-item>
-// 						<saki-checkbox-item padding='14px 0' value='system'>
+// 						<saki-checkbox-item margin='14px 8px 14px 0'  value='system'>
 // 							{t('system')}
 // 						</saki-checkbox-item>
 // 					</saki-checkbox>
@@ -1174,9 +1771,11 @@ const Cache = ({ show }: { show: boolean }) => {
 
 	const getSize = async () => {
 		const tripPositions = await storage.tripPositions.getAll()
+		const trips = await storage.trips.getAll()
 
 		// console.log(tripPositions, JSON.stringify(tripPositions).length)
-		const s = JSON.stringify(tripPositions).length - 2
+		const s =
+			JSON.stringify(tripPositions).length + JSON.stringify(trips).length - 4
 		setSize(s <= 0 ? 0 : s)
 	}
 
@@ -1190,6 +1789,7 @@ const Cache = ({ show }: { show: boolean }) => {
 				<saki-button
 					ref={bindEvent({
 						tap: () => {
+							storage.trips.deleteAll()
 							storage.tripPositions.deleteAll()
 							setTimeout(() => {
 								getSize()

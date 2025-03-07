@@ -1,4 +1,4 @@
-FROM node:18.19.1 as BUILD_IMAGE
+FROM node:18.19.1 as build_image
 
 WORKDIR /app
 
@@ -23,7 +23,7 @@ ENV CLIENT_ENV=production
 
 WORKDIR /
 
-COPY --from=BUILD_IMAGE \
+COPY --from=build_image \
   /app/out \
   /dist
 

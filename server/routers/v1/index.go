@@ -18,4 +18,9 @@ type Routerv1 struct {
 func (r *Routerv1) Init() {
 	r.Group = r.Engine.Group(r.BaseUrl)
 	r.InitTrip()
+	r.InitVehicle()
+	r.InitPosition()
+	r.InitConfigure()
+	r.InitOpen()
+	r.InitCity()
 }

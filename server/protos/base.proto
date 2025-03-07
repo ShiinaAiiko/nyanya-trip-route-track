@@ -9,6 +9,11 @@ message RequestType {
   string token = 2;
   string deviceId = 3;
   user.UserAgent userAgent = 4;
+  message OpenData {
+    string appKey = 1;
+    string userId = 2;
+  }
+  OpenData open = 5;
 }
 
 message ResponseType {

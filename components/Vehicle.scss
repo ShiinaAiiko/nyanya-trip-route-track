@@ -1,0 +1,330 @@
+.vehicle-component {
+  display: flex;
+  justify-content: flex-start;
+  flex-direction: column;
+  height: 100%;
+  user-select: none;
+  position: relative;
+
+  .vc-header {
+    .vc-h-right {
+      display: flex;
+      align-items: center;
+    }
+  }
+
+  .vc-page {
+    display: flex;
+    justify-content: space-between;
+    height: calc(100% - 56px);
+    padding: 0 20px 10px;
+
+    // border-top: 1px solid #eee;
+    saki-scroll-view {
+      width: 100%;
+
+    }
+
+    .vc-list {
+      width: 100%;
+
+      saki-card-item {
+
+        // border: 1px solid #eee;
+        .vc-name {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+
+          .name {
+            font-size: 15px;
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            // word-break: break-all;
+
+            .device-icon {
+              margin-right: 4px;
+            }
+
+            .default {
+              color: #58c8f2;
+              font-style: italic;
+              font-weight: 700;
+              margin: 1px 0 0 8px;
+              font-size: 12px;
+              padding: 2px 4px;
+              border-radius: 6px;
+              border: 1px solid #58c8f2;
+            }
+
+            .positionShare {
+              color: var(--saki-default-color);
+              font-style: italic;
+              font-weight: 700;
+              margin: 1px 0 0 8px;
+              font-size: 12px;
+              padding: 2px 4px;
+              border-radius: 6px;
+              border: 1px solid var(--saki-default-color);
+            }
+
+            .current-device {
+              color: #666;
+              margin-left: 4px;
+            }
+          }
+
+          .status {
+            margin-top: 2px;
+            font-size: 12px;
+            color: #666;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            word-break: break-all;
+
+            span {
+              margin-right: 4px;
+            }
+          }
+
+          .desc {
+            font-style: italic;
+            margin: 1px 6px 0 0px;
+            font-size: 12px;
+
+            span {
+              margin-right: 4px;
+
+              &.licensePlate {
+                color: var(--saki-default-color);
+                font-weight: 700;
+              }
+            }
+          }
+
+          .info {
+            margin-top: 2px;
+            font-size: 12px;
+            color: #666;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            word-break: break-all;
+
+            span {
+              margin-right: 4px;
+            }
+
+
+            span {
+              margin-right: 4px;
+            }
+          }
+        }
+
+      }
+
+    }
+
+  }
+
+  .add-vehicle-page,
+  .add-trip-here-page {
+    background-color: #fff;
+
+    position: absolute;
+    left: 0;
+    top: 50px;
+    width: 100%;
+    height: calc(100% - 56px);
+    transition: opacity .3s, transform .3s;
+
+    &.avp-enter {
+      opacity: 0;
+      transform: translateX(100%);
+    }
+
+    &.avp-leave,
+    &.avp-enter-active {
+      opacity: 1;
+      transform: translateX(0%);
+    }
+
+    &.avp-leave-active {
+      opacity: 0;
+      transform: translateX(100%);
+    }
+
+    &.avp-leave-done {
+      display: none;
+    }
+  }
+
+  .add-vehicle-page {
+    display: flex;
+    justify-content: center;
+
+
+    .av-main {
+      width: 100%;
+      max-width: 500px;
+      padding: 0 20px;
+      display: flex;
+      flex-direction: column;
+
+      .av-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin: 30px 0 0;
+
+        &>span:nth-child(1) {
+          color: var(--saki-default-color);
+        }
+
+        &.av-buttons {
+          margin: 20px 0 0;
+          justify-content: flex-end;
+        }
+      }
+    }
+  }
+
+  .add-trip-here-page {
+    display: flex;
+    justify-content: center;
+
+    .ath-main {
+      width: 100%;
+      // max-width: 400px;
+      padding: 10px 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: center;
+
+      .ath-m-header {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0 10px 10px;
+
+        .ath-m-h-left {
+          display: flex;
+          justify-content: flex-start;
+          align-items: center;
+        }
+      }
+
+      .ath-m-list {
+        width: 100%;
+        border: 1px dashed var(--saki-default-color);
+        border-radius: 10px;
+        padding: 10px 4px;
+        height: calc(100% - 40px);
+        overflow: hidden;
+
+
+
+        .ftd-l-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 6px 6px;
+          width: 100%;
+          background-color: #fff;
+          z-index: 1000;
+
+          .ftd-l-h-left {
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            font-style: italic;
+            color: #999;
+
+            .ftd-l-h-l-count {
+              margin: 3px 0 0 6px;
+              font-size: 12px;
+            }
+          }
+
+          .ftd-l-h-right {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+
+            .si-t-r-icon {
+              position: relative;
+
+              &.active {
+                .si-t-r-i-dot {
+                  opacity: 1;
+                }
+              }
+
+              .si-t-r-i-dot {
+                position: absolute;
+                right: -4px;
+                top: -4px;
+                width: 8px;
+                height: 8px;
+                background-color: rgb(255, 0, 0);
+                border-radius: 50%;
+                opacity: 0;
+              }
+            }
+          }
+        }
+
+        .ftd-list {
+          height: calc(100% - 30px);
+
+          .ftd-l-item {
+            padding: 0 0 0 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+
+            &.PublicTransport.en-US {
+              .name {
+                font-size: 10px;
+              }
+            }
+
+            span {
+              font-size: 14px;
+            }
+
+            .name {
+              // width: 130px;
+              flex: 1;
+              word-wrap: break-word;
+              word-break: break-all;
+            }
+
+            .date {
+              color: #999;
+              font-size: 12px;
+              margin-top: 4px;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+
+.vehicle-logo-component {
+  background-color: var(--saki-default-color);
+  padding: 6px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}

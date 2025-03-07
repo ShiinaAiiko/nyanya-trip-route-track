@@ -48,7 +48,12 @@ const HeaderComponent = ({
 			}
 		>
 			<div className='tb-h-bg'></div>
-			<div className='tb-h-left'>
+			<div
+				style={{
+					display: config.showIndexPageButton ? 'block' : 'none',
+				}}
+				className='tb-h-left'
+			>
 				<div className='logo-text'>
 					{/* {layout.headerLogoText} */}
 					{/* {t('appTitle', {
@@ -63,7 +68,10 @@ const HeaderComponent = ({
 				{mounted && (
 					<>
 						<meow-apps-dropdown
-							bg-color='rgba(0,0,0,0)'
+							style={{
+								display: config.showIndexPageButton ? 'block' : 'none',
+							}}
+							bg-color='rgba(255,255,255,0.7)'
 							language={config.lang}
 							z-index='1001'
 						></meow-apps-dropdown>
@@ -125,12 +133,55 @@ const HeaderComponent = ({
 														layoutSlice.actions.setOpenTripHistoryModal(true)
 													)
 													break
+												case 'Vehicle':
+													if (!user.isLogin) {
+														dispatch(methods.user.loginAlert())
+														return
+													}
+													dispatch(
+														layoutSlice.actions.setOpenVehicleModal(true)
+													)
+													break
+												case 'CreateCustomTrip':
+													if (!user.isLogin) {
+														dispatch(methods.user.loginAlert())
+														return
+													}
+													dispatch(
+														layoutSlice.actions.setOpenCreateCustomTripModal(
+															true
+														)
+													)
+													break
+												case 'VisitedCities':
+													if (!user.isLogin) {
+														dispatch(methods.user.loginAlert())
+														return
+													}
+													dispatch(
+														layoutSlice.actions.setOpenVisitedCitiesModal(true)
+													)
+													break
 												case 'Account':
 													dispatch(
 														layoutSlice.actions.setSettingType('Account')
 													)
 													dispatch(
 														layoutSlice.actions.setOpenSettingsModal(true)
+													)
+													break
+												case 'Route':
+													location.replace(
+														(router.query.lang
+															? '/' + (router.query.lang || '')
+															: '') + '/trackRoute'
+													)
+													break
+												case 'IndexPage':
+													location.replace(
+														(router.query.lang
+															? '/' + (router.query.lang || '')
+															: '') + '/'
 													)
 													break
 
@@ -202,6 +253,71 @@ const HeaderComponent = ({
 												</div>
 											</saki-menu-item> */}
 										</>
+									) : (
+										''
+									)}
+
+									<saki-menu-item padding='10px 18px' value={'Vehicle'}>
+										<div className='tb-h-r-user-item'>
+											<saki-icon color='#666' type='Drive'></saki-icon>
+											<span>
+												{t('pageTitle', {
+													ns: 'vehicleModal',
+												})}
+											</span>
+										</div>
+									</saki-menu-item>
+									{router.pathname.indexOf('trackRoute') < 0 ? (
+										<saki-menu-item padding='10px 18px' value={'Route'}>
+											<div className='tb-h-r-user-item'>
+												<saki-icon color='#666' type='Route'></saki-icon>
+												<span>
+													{t('pageTitle', {
+														ns: 'trackRoutePage',
+													})}
+												</span>
+											</div>
+										</saki-menu-item>
+									) : (
+										<saki-menu-item padding='10px 18px' value={'IndexPage'}>
+											<div className='tb-h-r-user-item'>
+												<saki-icon color='#666' type='TripRoute'></saki-icon>
+												<span className='text-elipsis'>
+													{t('pageTitle', {
+														ns: 'tripPage',
+													})}
+												</span>
+											</div>
+										</saki-menu-item>
+									)}
+									{user.isLogin ? (
+										<saki-menu-item
+											padding='10px 18px'
+											value={'CreateCustomTrip'}
+										>
+											<div className='tb-h-r-user-item'>
+												<saki-icon color='#666' type='Add'></saki-icon>
+												<span>
+													{t('title', {
+														ns: 'createCustomTripModal',
+													})}
+												</span>
+											</div>
+										</saki-menu-item>
+									) : (
+										''
+									)}
+									{user.isLogin ? (
+										<saki-menu-item padding='10px 18px' value={'VisitedCities'}>
+											<div className='tb-h-r-user-item'>
+												<saki-icon color='#666' type='Add'></saki-icon>
+												<span>
+													{t('visitedCities', {
+														ns: 'VisitedCitiesModal',
+													})}
+												</span>
+											</div>
+										</saki-menu-item>
 									) : (
 										''
 									)}

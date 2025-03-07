@@ -1,0 +1,79 @@
+syntax = "proto3";
+
+option go_package = "./;protos";
+package city;
+
+message CityItem {
+  string id = 1;
+  message CityName { string zhCN = 1; }
+  CityName name = 2;
+  string parentCityId = 3;
+
+  message CityCoords {
+    double latitude = 1;
+    double longitude = 2;
+  }
+  CityCoords coords = 4;
+
+  int32 level = 5;
+  // 1、-1
+  int32 status = 6;
+  int64 createTime = 7;
+  int64 lastUpdateTime = 8;
+
+  // 输出用
+  string fullName = 9;
+  int64 firstEntryTime = 10;
+  int64 lastEntryTime = 11;
+  int32 entryCount = 12;
+  // 子城市列表，
+  repeated CityItem cities = 13;
+}
+
+// 行程开始后，当检测到此城市不在tripcities列表时发送
+// 没开始行程时则直接发送
+message UpdateCity {
+  message Request {
+    //  选填（如填写则更新至Trip，没有则仅添加城市数据库
+    string tripId = 1;
+    // 完整名，country·state·region·city·town，五级
+    message City {
+      string country = 1;
+      string state = 2;
+      string region = 3;
+      string city = 4;
+      string town = 5;
+      string address = 6;
+    }
+    City city = 2;
+    int64 entryTime = 3;
+  }
+  message Response {
+    string id = 1;
+    int64 entryTime = 2;
+  }
+}
+
+message GetCityDetails {
+  message Request { repeated string ids = 1; }
+  message Response {
+    repeated city.CityItem cities = 1;
+    int32 total = 2;
+  }
+}
+
+// 获取用户走过的所有城市列表
+message GetAllCitiesVisitedByUser {
+  message Request {
+    // int64 pageNum = 1;
+    // int64 pageSize = 2;
+
+    // 可选 [createTime,endTime]
+    // repeated int64 timeLimit = 3;
+  }
+  message Response {
+    // 城市树、从国家开始
+    repeated city.CityItem cities = 1;
+    int32 total = 2;
+  }
+}

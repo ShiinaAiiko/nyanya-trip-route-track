@@ -6,7 +6,7 @@ import {
 } from '@nyanyajs/utils/dist/nrequest'
 import { Buffer } from 'buffer'
 // import { ResponseData, Response, requestConfig,request } from '../modules/request'
-import { FoeEachLongToNumber } from '.'
+import { ForEachLongToNumber } from '.'
 import store from '../store'
 import protoRoot from './proto'
 import { R } from '../store/config'
@@ -27,7 +27,7 @@ export const ResponseDecode = <T = any>(
 				new Uint8Array(Buffer.from(response.data.data, 'base64'))
 			)
 		}
-		response.data = FoeEachLongToNumber(response.data)
+		response.data = ForEachLongToNumber(response.data)
 		// console.log(response.data)
 		switch (response.data.code) {
 			case 10004:

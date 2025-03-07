@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title></title>
+		<meta charset="utf-8" />
+		<style type="text/css">
+			body {
+				padding: 0;
+				margin: 0;
+			}
+			html,
+			body,
+			#map {
+				height: 100%;
+			}
+			#param-test {
+				position: absolute;
+				z-index: 999;
+				left: 10px;
+				top: 10px;
+				background: white;
+				padding: 0 3px;
+				line-height: 28px;
+				font-size: 14px;
+			}
+			#url-input {
+				width: 450px;
+				height: 18px;
+				margin-bottom: 3px;
+			}
+		</style>
+		<link
+			rel="stylesheet"
+			href="https://unpkg.com/leaflet@1.9.2/dist/leaflet.css"
+		/>
+		<script src="https://unpkg.com/leaflet@1.9.2/dist/leaflet.js"></script>
+		<script src="https://unpkg.com/gcoord@0.3.2/dist/gcoord.js"></script>
+	</head>
+	<body>
+		<div id="param-test">
+			测试参数：<input
+				id="url-input"
+				type="text"
+				placeholder="输入地址参数, 例：style=6&lang=zh_cn&ltype=0&scl=0&size=0, 并回车"
+				onkeydown="loadTile(this.value)"
+			/>
+		</div>
+		<div id="map" />
+	</body>
+	<script type="text/javascript">
+		L.TileLayer.GaoDeTileLayer = L.TileLayer.extend({
+			initialize: function (param, options) {
+				var templateUrl =
+					'//wprd0{s}.is.autonavi.com/appmaptile?x={x}&y={y}&z={z}&{p}'
+				// var templateUrl = "//webst{s}.is.autonavi.com/appmaptile?x={x}&y={y}&z={z}&{p}"
+				options = L.extend(
+					{
+						p: param,
+						subdomains: '1234',
+						minZoom: 0,
+						maxZoom: 23,
+						minNativeZoom: 1,
+						maxNativeZoom: 18,
+					},
+					options
+				)
+				L.TileLayer.prototype.initialize.call(this, templateUrl, options)
+			},
+			_setZoomTransform: function (level, center, zoom) {
+				center = L.latLng(
+					gcoord
+						.transform([center.lng, center.lat], gcoord.WGS84, gcoord.GCJ02)
+						.reverse()
+				) // 采用 gcoord 库进行纠偏
+				L.TileLayer.prototype._setZoomTransform.call(this, level, center, zoom)
+			},
+			_getTiledPixelBounds: function (center) {
+				center = L.latLng(
+					gcoord
+						.transform([center.lng, center.lat], gcoord.WGS84, gcoord.GCJ02)
+						.reverse()
+				) // 采用 gcoord 库进行纠偏
+				return L.TileLayer.prototype._getTiledPixelBounds.call(this, center)
+			},
+		})
+		L.tileLayer.gaoDeTileLayer = function (param, options) {
+			return new L.TileLayer.GaoDeTileLayer(param, options)
+		}
+
+		var c6000_Layer = L.tileLayer.gaoDeTileLayer(
+				'lang=zh_cn&style=6&ltype=0&scl=0&size=0'
+			), // 影像底图
+			c8000_Layer = L.tileLayer.gaoDeTileLayer(
+				'lang=zh_cn&style=8&ltype=0&scl=0&size=0'
+			), // 影像标注，路网 + 注记
+			c8200_Layer = L.tileLayer.gaoDeTileLayer(
+				'lang=zh_cn&style=8&ltype=2&scl=0&size=0'
+			), // 影像标注，路网
+			c8400_Layer = L.tileLayer.gaoDeTileLayer(
+				'lang=zh_cn&style=8&ltype=4&scl=0&size=0'
+			), // 影像标注，注记
+			c7000_Layer = L.tileLayer.gaoDeTileLayer(
+				'lang=zh_cn&style=7&ltype=0&scl=0&size=0'
+			), // 电子地图，区域面 + 路网 + 注记 + 楼块
+			c7100_Layer = L.tileLayer.gaoDeTileLayer(
+				'lang=zh_cn&style=7&ltype=1&scl=0&size=0'
+			), // 电子底图，区域面
+			c7200_Layer = L.tileLayer.gaoDeTileLayer(
+				'lang=zh_cn&style=7&ltype=2&scl=0&size=0'
+			), // 电子标注，路网
+			c7300_Layer = L.tileLayer.gaoDeTileLayer(
+				'lang=zh_cn&style=7&ltype=3&scl=0&size=0'
+			), // 电子底图，区域面 + 路网
+			c7400_Layer = L.tileLayer.gaoDeTileLayer(
+				'lang=zh_cn&style=7&ltype=4&scl=0&size=0'
+			), // 电子标注，注记
+			c7500_Layer = L.tileLayer.gaoDeTileLayer(
+				'lang=zh_cn&style=7&ltype=5&scl=0&size=0'
+			), // 电子底图，区域面 + 注记
+			c7600_Layer = L.tileLayer.gaoDeTileLayer(
+				'lang=zh_cn&style=7&ltype=6&scl=0&size=0'
+			), // 电子标注，路网 + 注记
+			c7700_Layer = L.tileLayer.gaoDeTileLayer(
+				'lang=zh_cn&style=7&ltype=7&scl=0&size=0'
+			), // 电子底图，区域面 + 路网 + 注记
+			c7800_Layer = L.tileLayer.gaoDeTileLayer(
+				'lang=zh_cn&style=7&ltype=8&scl=0&size=0'
+			), // 电子底图，楼块
+			c7020_Layer = L.tileLayer.gaoDeTileLayer(
+				'lang=zh_cn&style=7&ltype=0&scl=2&size=0'
+			) // 电子底图，区域面 + 路网 + 楼块
+		var n7000_Layer = L.tileLayer.gaoDeTileLayer(
+				'style=7&ltype=0&scl=0&size=0'
+			), // 旧版电子地图，中文标注
+			e0000_Layer = L.tileLayer.gaoDeTileLayer(
+				'lang=zh_en&style=7&ltype=0&scl=0&size=0'
+			) // 旧版电子地图，英文标注
+
+		var map = L.map('map', {
+			center: [29.70805, 118.321499],
+			zoom: 15,
+			zoomControl: false,
+			attributionControl: false,
+			doubleClickZoom: false,
+		})
+		var overlayLayers = {
+			影像底图: c6000_Layer,
+			'影像标注，路网 + 注记': c8000_Layer,
+			'影像标注，路网': c8200_Layer,
+			'影像标注，注记': c8400_Layer,
+			'电子地图，区域面 + 路网 + 注记 + 楼块': c7000_Layer,
+			'电子底图，区域面': c7100_Layer,
+			'电子标注，路网': c7200_Layer,
+			'电子底图，区域面 + 路网': c7300_Layer,
+			'电子标注，注记': c7400_Layer,
+			'电子底图，区域面 + 注记': c7500_Layer,
+			'电子标注，路网 + 注记': c7600_Layer,
+			'电子底图，区域面 + 路网 + 注记': c7700_Layer,
+			'电子底图，楼块': c7800_Layer,
+			'电子底图，区域面 + 路网 + 楼块': c7020_Layer,
+			'旧版电子地图，中文标注': n7000_Layer,
+			'旧版电子地图，英文标注': e0000_Layer,
+		}
+		L.control.layers([], overlayLayers, { autoZIndex: false }).addTo(map)
+		L.marker([29.70805, 118.321499]).addTo(map) // 添加点用于纠偏测试
+		// map.on('dblclick', function (e) { console.dir(e.latlng.lng + "," + e.latlng.lat) })
+
+		var test_Layer = null
+		function loadTile(param) {
+			if (!window.event || window.event.keyCode === 13) {
+				// keyCode ===13 表示按下回车
+				if (test_Layer !== null) {
+					map.removeLayer(test_Layer)
+					test_Layer = null
+				}
+				if (!param) return
+
+				console.log('param', param)
+				test_Layer = L.tileLayer.gaoDeTileLayer(param)
+				map.addLayer(test_Layer)
+			}
+		}
+		var param = 'lang=zh_cn&style=6&ltype=0&scl=0&size=0'
+		document.getElementById('url-input').value = param
+		loadTile(param)
+	</script>
+</html>

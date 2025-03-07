@@ -25,7 +25,13 @@ import { protoRoot } from '../protos'
 import { formatDistance, formatTime } from '../plugins/methods'
 import TripItemComponent from './TripItem'
 
-const StatisticsComponent = ({}: {}) => {
+const StatisticsComponent = ({
+	startDate,
+	endDate,
+}: {
+	startDate: string
+	endDate: string
+}) => {
 	const { t, i18n } = useTranslation('tripHistoryPage')
 	// const [type, setType] = useState<'All' | 'Running' | 'Bike' | 'Drive'>('All')
 	const [time, setTime] = useState<'Day' | 'Week' | 'Month' | 'Year' | 'All'>(
@@ -58,8 +64,18 @@ const StatisticsComponent = ({}: {}) => {
 				maxClimbAltitude: 0,
 			}
 		)
+
+		let sd = 0
+		let ed = Math.floor(new Date().getTime() / 1000)
+		if (startDate) {
+			sd = Math.floor(new Date(startDate).getTime() / 1000)
+		}
+		if (endDate) {
+			ed = Math.floor(new Date(endDate).getTime() / 1000)
+		}
 		const res = await httpApi.v1.GetHistoricalStatistics({
 			type,
+			timeLimit: [sd, ed],
 		})
 		console.log('GetHistoricalStatistics', res, type)
 		if (res.code === 200) {
@@ -136,7 +152,7 @@ const StatisticsComponent = ({}: {}) => {
 								v
 							] as protoRoot.trip.GetHistoricalStatistics.Response.INumItem
 
-							console.log('numItem', numItem)
+							// console.log('numItem', numItem)
 							return (
 								<div
 									ref={

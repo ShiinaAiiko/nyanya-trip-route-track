@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Text-to-Speech Demo</title>
+	</head>
+	<body>
+		<h1>Text-to-Speech Demo</h1>
+		<textarea
+			id="text"
+			rows="5"
+			cols="50"
+			placeholder="Enter text here..."
+		></textarea>
+		<br />
+		<button id="speak">Speak</button>
+
+		<script>
+			document.getElementById('speak').addEventListener('click', () => {
+				const text = document.getElementById('text').value
+
+				if ('speechSynthesis' in window) {
+					const utterance = new SpeechSynthesisUtterance(text)
+					const voices = speechSynthesis.getVoices()
+					console.log('voices', voices)
+					utterance.voice =
+						voices.find((voice) => voice.lang === 'zh-TW') || voices[0]
+					utterance.lang = 'zh-TW'
+					utterance.pitch = 1
+					utterance.rate = 1
+					speechSynthesis.speak(utterance)
+				} else {
+					alert('Sorry, your browser does not support speech synthesis.')
+				}
+			})
+		</script>
+		<script src="https://code.responsivevoice.org/responsivevoice.js"></script>
+		<script>
+			setTimeout(() => {
+				// 播放语音
+				console.log('responsiveVoice', responsiveVoice)
+				responsiveVoice.speak(
+					'你好，欢迎使用 ResponsiveVoice.js！',
+					'Chinese Female', // 中文女声
+					{
+						pitch: 1, // 音调
+						rate: 1, // 语速
+						volume: 1, // 音量
+						onend: () => console.log('播放完成！'),
+					}
+				)
+			}, 1000)
+		</script>
+	</body>
+</html>

@@ -9,6 +9,7 @@ import {
 	useAppDispatch,
 	methods,
 	apiSlice,
+	tripSlice,
 } from '../../../store'
 import { useSelector, useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
@@ -43,8 +44,12 @@ const TripDetailPage = () => {
 	}, [i18n.language])
 
 	const onTrip = useCallback((trip?: protoRoot.trip.ITrip) => {
+		dispatch(tripSlice.actions.setTripForDetailPage(trip))
+
 		setTrip(trip)
 	}, [])
+
+	// console.log('router.query initMap', router.query, id, sk)
 
 	return (
 		<>

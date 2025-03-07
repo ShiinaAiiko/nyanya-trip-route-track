@@ -34,6 +34,10 @@ func GetGeoDistance(
 
 func GSS(v *models.TripPosition, startTime, endTime int64) bool {
 	// log.Info("gss", v.Timestamp/1000, startTime, v.Timestamp/1000, endTime)
+	// log.Info(v)
+	// log.Info(v.Speed != -1 && v.Speed >= 0 &&
+	// 	v.Altitude != -1 && v.Altitude >= 0 &&
+	// 	v.Accuracy != -1 && v.Accuracy <= 20 && v.Timestamp/1000 >= startTime && v.Timestamp/1000 <= endTime)
 	return v.Speed != -1 && v.Speed >= 0 &&
 		v.Altitude != -1 && v.Altitude >= 0 &&
 		v.Accuracy != -1 && v.Accuracy <= 20 && v.Timestamp/1000 >= startTime && v.Timestamp/1000 <= endTime

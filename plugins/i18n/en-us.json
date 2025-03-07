@@ -6,7 +6,6 @@
 		"aiikoBlog": "Aiiko Blog",
 		"login": "Login",
 		"logout": "Logout",
-
 		"edit": "Edit",
 		"save": "Save"
 	},
@@ -30,6 +29,7 @@
 		"train": "Train",
 		"publictransport": "Public Transport",
 		"maxSpeed": "Max Speed",
+		"minSpeed": "Min Speed",
 		"maxAltitude": "Highest Altitude",
 		"climbAltitude": "Climb Altitude",
 		"descendAltitude": "Descend Altitude",
@@ -46,53 +46,110 @@
 		"slowest": "Slowest",
 		"start": "Start",
 		"stop": "Stop",
-
 		"unfinished": "Unfinished",
-
 		"averageSpeed": "Average Speed",
 		"averageAltitude": "Average Altitude",
 		"minAltitude": "Lowest Altitude",
-
 		"editTrip": "Edit Trip",
 		"type": "Trip Type",
 		"currentType": "Current Trip Type",
-
 		"local": "Local",
-
 		"addTripToOnline": "Add Trip to Online",
-
 		"finishTrip": "Finish Trip",
-
 		"correctedData": "Corrected Trip Data",
 		"tripDataCanBeCorrected": "Trip data can be corrected",
-
 		"tripsCount": "{{num}} trips",
 		"durationText": "{{num}} h",
-
 		"tripMark": "Trip Mark",
-
 		"fastestAverageSpeed": "Fastest Average Speed",
 		"maxClimbAltitude": "Max Climb Altitude",
 		"maxDescendAltitude": "Max Descend Altitude",
 		"maxDistance": "Longest distance",
 		"statistics": "Statistics",
+		"averagePace": "Pace",
 
-		"averagePace": "Pace"
+		"parkingLongTimeSkip": "Park for {{parkingTime}}, skip",
+		"goThroughTunnelSkip": "Go through the tunnel after {{parkingTime}}, skip",
+
+		"speedColorLimit": "Speed color limit",
+
+		"numCities": "{{num}} cities",
+
+		"resumeTripDistanceLimit": "The distance from your last location is more than 100 meters. You can start a new trip."
 	},
 	"trackRoutePage": {
 		"pageTitle": "Historical trip track",
 		"subtitle": "All tracks and routes of recorded trips will be drawn",
 		"startDate": "Start Date",
-		"endDate": "End Date"
+		"endDate": "End Date",
+		"now": "Now",
+		"selectAll": "Select All",
+		"uncheck": "Uncheck",
+
+		"viewDetails": "View details",
+
+		"showCustomTrip": "Show custom trip",
+		"hideCustomTrip": "Hide custom trip"
 	},
 	"tripHistoryPage": {
 		"pageTitle": "Trip History"
 	},
+	"vehicleModal": {
+		"pageTitle": "My Vehicles",
+		"addVehicle": "Add Vehicle",
+		"editVehicle": "Edit Vehicle",
+		"vehicle": "Vehicle",
+		"currentVehicle": "Current Vehicle",
+		"selectVehicle": "Select Vehicle",
+		"defaultVehicle": "Default",
+
+		"setDefault": "Set Default",
+		"neverTraveled": "Never traveled",
+		"lastTravelTime": "Last travel time",
+
+		"vehicleNamePlaceholder": "Vehicle Name",
+		"licensePlatePlaceholder": "License Plate (optional)",
+		"vehicleType": "Vehicle Type",
+		"id": "Id",
+
+		"bike": "Bike",
+		"motorcycle": "Motorcycle",
+		"car": "Car",
+		"truck": "Truck",
+		"publictransport": "Public Transport",
+		"airplane": "Airplane",
+
+		"cancelVehicle": "Cancel Vehicle",
+
+		"positionShare": "Position Share",
+
+		"carModelPlaceholder": "Car Model (optional)",
+
+		"all": "All",
+		"onlyMyself": "Only myself",
+		"notShared": "No sharing",
+
+		"cancelDefault": "Cancel Default",
+
+		"deselectVehicle": "Deselect Vehicle",
+		"noVehicleSelected": "No vehicle selected",
+
+		"traveledTimes": "Traveled {{times}} times",
+		"addTripHere": "Add Trip Here",
+		"setTripsInBatchesTo": "Set trips in batches to",
+		"findLocation": "Find Location"
+	},
+	"createCustomTripModal": {
+		"title": "Create a Customized Trip",
+		"tripInfo": "Trip Info",
+		"gpsPoints": "{{length}} GPS points"
+	},
+	"visitedCitiesModal": {
+		"title": "Visited Cities"
+	},
 	"settings": {
 		"title": "Settings",
-
 		"tripHistory": "Trip history",
-
 		"account": "Account",
 		"general": "General",
 		"language": "Language",
@@ -104,23 +161,18 @@
 		"syncingTo": "Syncing to ",
 		"syncPromptForNotLoggedIn": "To enable synchronization, you need to log in to your account.",
 		"modes": "Modes",
-
 		"addAccount": "Add Account",
 		"editProfile": "Edit Profile",
 		"profile": "Profile",
 		"nickname": "Nickname",
 		"username": "Username",
 		"bio": "Bio",
-
 		"light": "Light",
 		"dark": "Dark",
 		"black": "Black",
 		"system": "Use system setting",
-
 		"switchSuccessfully": "Switched to ",
-
 		"about": "About ",
-
 		"basemap": "Base Map",
 		"maps": "Maps",
 		"AutoSelect": "Automatically choose",
@@ -135,31 +187,48 @@
 		"GeoQWarm": "GeoQ Warm",
 		"GeoQStreet": "GeoQ Street",
 		"TianDiTuSatellite": "TianDiTu Satellite",
-
-		"speedColor": "Speed Color",
+		"trackSpeed​Color": "Track Speed Color",
 		"RedGreen": "Red Green",
 		"PinkBlue": "Pink Blue",
-		"trackLine": "Track Line",
+		"tripTrackWidth": "Trip track Line",
+
 		"width": "Width",
-		"realtimeTravelTrackWidth": "Real-time travel track width",
-		"historyTravelTrackWidth": "Historical travel track width",
-		"historyTravelDetailedDataTrackWidth": "History travel detailed data track width",
+		"ongoingTrip": "Real-time travel track",
+		"historyTripTrack": "Historical trip track",
+		"historyTripTrackSelectedTrip": "Historical trip track selected trip",
+		"reviewTrip": "Review trip",
 
 		"cache": "Cache",
 		"clearCache": "Clear Cache ({{size}})",
 
 		"trackRouteBaseMap": "Historical Track Route Base Map",
-
 		"trackRouteColor": "Historical Track Route Color",
 		"blue": "Blue",
 		"pink": "Pink",
 		"red": "Red",
 
-		"maskLayer": "Mask Layer",
-		"grayMask": "Gray Mask",
-
 		"trackRouteDetailedData": "Historical Track Route Detail Data",
-		"trackRouteDetailedDataContent": "Only when filtering multiple itineraries, data such as speed, color, altitude, etc. can be displayed."
+		"trackRouteDetailedDataContent": "Only when filtering multiple itineraries, data such as speed, color, altitude, etc. can be displayed.",
+
+		"currentPosition": "Current Position",
+		"showAvatarAtCurrentPosition": "Show avatar at current position",
+
+		"selectedTripIdsTip": "The selected trip in the list will display the corresponding track color according to the speed of the trip details",
+		"normalMode": "Normal",
+		"grayMode": "Gray",
+		"darkMode": "Dark",
+		"blackMode": "Black",
+		"AmapFull": "Amap Full",
+		"AmapArea": "Amap Area",
+		"AmapAreaMark": "Amap Area Mark",
+		"AmapAreaRoad": "Amap Area Road",
+		"speedAnimation": "Speed Animation",
+		"speedAnimationTip": "Turn on speed animation when traveling and previewing",
+
+		"syncLocationWhileTraveling": "Sync location while traveling",
+
+		"roadColorFade": "Road color fade",
+		"roadColorFadeTip": "Only {{maps}} etc. will perform road fading processing"
 	},
 	"prompt": {
 		"next": "Next",
@@ -174,19 +243,14 @@
 		"noLoginSaveTrip": "If you are not logged in to your account, your trip records will be stored locally.",
 		"tripSavedLocally": "This trip has been saved locally.",
 		"deleteLocalTrip": "Also delete local data?",
-
 		"logout": "Log out",
 		"logoutContent": "Are you sure you want to log out?",
 		"logoutSuccessfully": "Successfully logged out of the account",
-
 		"deleteInvalidTrip": "Delete invalid trip",
 		"deleteAllTrip50m": "There are {{uselessDataCount}} trips with invalid data. Are you sure you want to delete these trips?",
-
 		"loadingData": "Data is loading",
 		"loadedData": "{{percentage}} of trip data loaded",
-
 		"noLoginTrip": "You need to log in to your account to continue accessing",
-
 		"share": "Share",
 		"unshare": "Unshare",
 		"generatingSharingContent": "Generating sharing content...",
@@ -194,8 +258,75 @@
 		"disableShare": "Disable sharing",
 		"enableShareContent": "Are you sure you want to enable sharing?",
 		"disableShareContent": "Are you sure you want to disable sharing?",
-
 		"saveImage": "Save image",
-		"copyLink": "Copy link"
+		"copyLink": "Copy link",
+
+		"cannotBeEmpty": "Cannot be empty",
+		"filter": "Filter",
+		"clear": "Clear",
+
+		"select": "Select",
+
+		"createdSuccessfully": "Created successfully!",
+
+		"defaultVehicleHasBeenSet": "Default vehicle has been set",
+
+		"defaultVehicleHasBeenCanceled": "Default vehicle has been canceled",
+
+		"updatedSuccessfully": "Updated successfully",
+		"editedSuccessfully": "Edited successfully",
+		"loadBaseData": "Loading basic data",
+
+		"enable": "Enable",
+		"disable": "Disable",
+
+		"unableLoadMap": "Unable to load map, switch to new basemap"
+	},
+	"weather": {
+		"weather0": "Sunny",
+		"weather1": "Sunny",
+		"weather2": "Partly cloudy",
+		"weather3": "Overcast",
+		"weather45": "Fog",
+		"weather48": "Haze",
+		"weather51": "Light rain",
+		"weather53": "Moderate rain",
+		"weather55": "Heavy rain",
+		"weather56": "Light freezing rain",
+		"weather57": "Heavy freezing rain",
+		"weather61": "Light rain",
+		"weather63": "Moderate rain",
+		"weather65": "Heavy rain",
+		"weather66": "Light freezing rain",
+		"weather67": "Heavy freezing rain",
+		"weather71": "Light snow",
+		"weather73": "Moderate snow",
+		"weather75": "Heavy snow",
+		"weather77": "Grain snow",
+		"weather80": "Light showers",
+		"weather81": "Moderate showers",
+		"weather82": "Heavy showers",
+		"weather85": "Light snow showers",
+		"weather86": "Heavy snow showers",
+		"weather95": "Thunderstorm",
+		"weather96": "Small hail",
+		"weather99": "Large hail",
+
+		"windDirection1": "North wind",
+		"windDirection2": "Northeast wind",
+		"windDirection3": "East wind",
+		"windDirection4": "Southeast wind",
+		"windDirection5": "South wind",
+		"windDirection6": "Southwest wind",
+		"windDirection7": "West wind",
+		"windDirection8": "Northwest wind",
+		"windDirection9": "Rotating wind",
+		"windDirection10": "No sustained wind direction",
+
+		"visibility": "Visibility",
+		"humidity": "Humidity",
+		"temperature": "Air temperature",
+		"apparentTemperature": "Feeling temperature",
+		"daysTemperature": "Today's temperature"
 	}
 }

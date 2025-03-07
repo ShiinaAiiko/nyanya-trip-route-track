@@ -33,7 +33,7 @@ import {
 } from '../plugins/methods'
 import Leaflet from 'leaflet'
 import html2canvas from 'html2canvas'
-import { cnMap, eventListener, osmMap, speedColorRGBs } from '../store/config'
+import { cnMap, eventListener, osmMap } from '../store/config'
 import NoSSR from './NoSSR'
 
 const TripEditComponent = memo(() => {
@@ -42,6 +42,7 @@ const TripEditComponent = memo(() => {
 	const config = useSelector((state: RootState) => state.config)
 	const user = useSelector((state: RootState) => state.user)
 	const trip = useSelector((state: RootState) => state.trip)
+	const vehicle = useSelector((state: RootState) => state.vehicle)
 
 	const speedChart = useRef<Chart<'line', any[], unknown>>()
 	const map = useRef<Leaflet.Map>()
@@ -59,8 +60,11 @@ const TripEditComponent = memo(() => {
 	const [shareImageDataBase, setShareImageDataBase] = useState<string>('')
 	const [generatingSharedData, setGeneratingSharedData] = useState(false)
 	const [openEditTypeDropdown, setOpenEditTypeDropdown] = useState(false)
+	const [openEditVehicleDropdown, setOpenEditVehicleDropdown] = useState(false)
 
 	const [type, setType] = useState('')
+	const [vehicleId, setVehicleId] = useState('')
+
 	const [changed, setChanged] = useState(false)
 
 	const [loadStatus, setLoadStatus] = useState<'loading' | 'loaded' | 'noMore'>(
@@ -69,6 +73,8 @@ const TripEditComponent = memo(() => {
 
 	useEffect(() => {
 		setType('')
+		setVehicleId('')
+		setChanged(false)
 	}, [layout.editTripData?.id])
 
 	const editTrip = async () => {
@@ -77,7 +83,9 @@ const TripEditComponent = memo(() => {
 		const obj: any = {}
 
 		type && (obj['type'] = type)
-		if (type === '' || !layout.editTripData?.id) return
+		vehicleId &&
+			(obj['vehicle'] = vehicle.vehicles.filter((v) => v.id === vehicleId)?.[0])
+		if ((type === '' && vehicleId === '') || !layout.editTripData?.id) return
 
 		// console.log(type, layout.editTripData?.id)
 
@@ -86,6 +94,15 @@ const TripEditComponent = memo(() => {
 				...layout.editTripData,
 				...obj,
 			})
+			await storage.tripPositions.getAndSet(
+				layout.editTripData?.id || '',
+				async (sv) => {
+					return {
+						...sv,
+						...obj,
+					}
+				}
+			)
 			if (trip.detailPage.trip?.id === layout.editTripData.id) {
 				dispatch(
 					tripSlice.actions.setTripForDetailPage({
@@ -95,7 +112,7 @@ const TripEditComponent = memo(() => {
 				)
 			}
 			snackbar({
-				message: '编辑成功！',
+				message: t('editedSuccessfully'),
 				vertical: 'top',
 				horizontal: 'center',
 				backgroundColor: 'var(--saki-default-color)',
@@ -113,9 +130,31 @@ const TripEditComponent = memo(() => {
 		const res = await httpApi.v1.UpdateTrip({
 			id: layout.editTripData?.id,
 			type,
+			vehicleId,
 		})
 		console.log('res', res)
 		if (res.code === 200) {
+			await storage.trips.getAndSet(
+				layout.editTripData?.id || '',
+				async (sv) => {
+					return {
+						...sv,
+						type,
+						vehicleId,
+					}
+				}
+			)
+			await storage.tripPositions.getAndSet(
+				layout.editTripData?.id || '',
+				async (sv) => {
+					return {
+						...sv,
+						type,
+						vehicleId,
+					}
+				}
+			)
+
 			console.log(trip.detailPage.trip?.id === layout.editTripData.id)
 			if (trip.detailPage.trip?.id === layout.editTripData.id) {
 				dispatch(
@@ -130,7 +169,7 @@ const TripEditComponent = memo(() => {
 			// 	type,
 			// })
 			snackbar({
-				message: '编辑成功！',
+				message: t('editedSuccessfully'),
 				vertical: 'top',
 				horizontal: 'center',
 				backgroundColor: 'var(--saki-default-color)',
@@ -170,7 +209,7 @@ const TripEditComponent = memo(() => {
 				<div className={'trip-edit-component ' + config.deviceType}>
 					<saki-modal-header
 						border
-            right-width={'56px'}
+						right-width={'56px'}
 						close-icon={true}
 						ref={bindEvent({
 							close() {
@@ -271,6 +310,95 @@ const TripEditComponent = memo(() => {
 								</saki-dropdown>
 							</div>
 						</div>
+
+						<div className='tr-m-item'>
+							<saki-title level='4' color='default' margin='0 0 10px 0'>
+								{t('vehicle', {
+									ns: 'vehicleModal',
+								})}
+							</saki-title>
+							<div className='tr-m-i-content'>
+								<span>
+									{t('currentVehicle', {
+										ns: 'vehicleModal',
+									})}
+								</span>
+
+								<saki-dropdown
+									visible={openEditVehicleDropdown}
+									floating-direction='Left'
+									z-index={1100}
+									ref={bindEvent({
+										close: (e) => {
+											setOpenEditVehicleDropdown(false)
+										},
+									})}
+								>
+									<saki-button
+										ref={bindEvent({
+											tap: () => {
+												console.log(1)
+												setOpenEditVehicleDropdown(true)
+											},
+										})}
+										padding='6px 8px'
+										border='none'
+										type='Normal'
+									>
+										<span>
+											{(vehicleId || layout.editTripData?.vehicle?.id
+												? vehicle.vehicles.filter(
+														(v) =>
+															v.id ===
+															(vehicleId || layout.editTripData?.vehicle?.id)
+												  )?.[0]?.name || ''
+												: t('selectVehicle', {
+														ns: 'vehicleModal',
+												  })) ||
+												t('cancelVehicle', {
+													ns: 'vehicleModal',
+												})}
+										</span>
+										<saki-icon
+											width='12px'
+											height='12px'
+											color='#999'
+											margin='2px 0 0 6px'
+											type='Bottom'
+										></saki-icon>
+									</saki-button>
+									<div slot='main'>
+										<saki-menu
+											ref={bindEvent({
+												selectvalue: async (e) => {
+													setVehicleId(e.detail.value)
+													setOpenEditVehicleDropdown(false)
+													setChanged(true)
+												},
+											})}
+										>
+											{vehicle.vehicles.map((v, i) => {
+												return (
+													<saki-menu-item
+														width='150px'
+														padding='10px 18px'
+														value={v.id}
+														key={i}
+														active={
+															v.id ===
+															(vehicleId || layout.editTripData?.vehicle?.id)
+														}
+													>
+														<span>{v.name}</span>
+													</saki-menu-item>
+												)
+											})}
+										</saki-menu>
+									</div>
+								</saki-dropdown>
+							</div>
+						</div>
+
 						<div className='tr-m-buttons'>
 							<saki-button
 								ref={bindEvent({

@@ -1,0 +1,96 @@
+syntax = "proto3";
+
+option go_package = "./;protos";
+package configure;
+
+message Configure {
+  message SpeedColorLimit {
+    message SpeedColorLimitItem {
+      double minSpeed = 1;
+      double maxSpeed = 2;
+    }
+    SpeedColorLimitItem running = 1;
+    SpeedColorLimitItem bike = 2;
+    SpeedColorLimitItem drive = 3;
+    SpeedColorLimitItem motorcycle = 4;
+    SpeedColorLimitItem walking = 5;
+    SpeedColorLimitItem powerwalking = 6;
+    SpeedColorLimitItem plane = 7;
+    SpeedColorLimitItem train = 8;
+    SpeedColorLimitItem publictransport = 9;
+  }
+  // Cloud
+  SpeedColorLimit speedColorLimit = 1;
+
+  message MapKey {
+    string mapKey = 1;
+    // Normal / Gray / Black / Dark
+    string mapMode = 2;
+  }
+  // Local
+  MapKey baseMap = 2;
+  // Local
+  MapKey trackRouteMap = 3;
+
+  // Cloud
+  string trackSpeedColor = 4;
+  // Cloud
+  string trackRouteColor = 5;
+
+  // Cloud
+  bool showAvatarAtCurrentPosition = 6;
+
+  message PolylineWidth {
+    int64 ongoingTrip = 1;
+    int64 historyTripTrack = 2;
+    // 历史行程里选中的行程
+    int64 historyTripTrackSelectedTrip = 3;
+    int64 reviewTrip = 4;
+  }
+
+  // Cloud
+  PolylineWidth polylineWidth = 7;
+
+  //  Local
+  bool speedAnimation = 9;
+
+  // Filter Local
+  message Filter {
+    message FilterItem {
+      string startDate = 1;
+      string endDate = 2;
+      repeated string selectedVehicleIds = 3;
+      // 仅trackRoute
+      repeated string selectedTripTypes = 4;
+      // 仅trackRoute Not stored
+      repeated string selectedTripIds = 5;
+      int64 shortestDistance = 6;
+      // max ~100000km
+      int64 longestDistance = 7;
+
+      bool showCustomTrip = 8;
+    }
+    // Local
+    FilterItem tripHistory = 1;
+    // Cloud
+    FilterItem trackRoute = 2;
+  }
+
+  Filter filter = 10;
+
+  // Local
+  bool roadColorFade = 11;
+
+  // 谁新用谁
+  int64 lastUpdateTime = 8;
+}
+
+message GetConfigure {
+  message Request {}
+  message Response { Configure configure = 1; }
+}
+
+message SyncConfigure {
+  message Request { Configure configure = 1; }
+  message Response {}
+}

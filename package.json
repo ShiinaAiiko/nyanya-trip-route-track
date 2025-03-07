@@ -16,15 +16,17 @@
 		"protos": "npm run protos:build && npm run protos:tsc"
 	},
 	"dependencies": {
-		"@nyanyajs/utils": "^1.0.19",
+		"@akaguny/open-meteo-wmo-to-emoji": "^0.1.0",
+		"@nyanyajs/utils": "^1.0.25",
 		"@reduxjs/toolkit": "^1.7.0",
-		"@saki-ui/core": "^1.0.2",
+		"@saki-ui/core": "1.0.2",
 		"axios": "^0.24.0",
 		"blueimp-md5": "^2.19.0",
 		"chart.js": "^4.4.0",
 		"coordtransform": "^2.1.2",
 		"cross-env": "^7.0.3",
 		"findme-js": "^1.1.0",
+		"geolib": "^3.3.4",
 		"html2canvas": "^1.4.1",
 		"i18next": "^21.8.16",
 		"leaflet.chinatmsproviders": "^3.0.6",
@@ -37,6 +39,7 @@
 		"react-i18next": "^11.18.3",
 		"react-redux": "^8.1.2",
 		"redux": "^4.2.1",
+		"screenfull": "^6.0.2",
 		"socket.io-client": "^4.4.0"
 	},
 	"devDependencies": {

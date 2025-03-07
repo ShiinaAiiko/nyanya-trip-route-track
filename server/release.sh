@@ -6,7 +6,7 @@ branch="main"
 # configFilePath="config.dev.json"
 configFilePath="config.pro.json"
 DIR=$(cd $(dirname $0) && pwd)
-allowMethods=("run stop gitpull protos dockerremove start logs")
+allowMethods=("backup runexec run stop gitpull protos dockerremove start logs")
 
 gitpull() {
   echo "-> 正在拉取远程仓库"
@@ -14,10 +14,14 @@ gitpull() {
   git pull origin $branch
 }
 
+runexec() {
+  docker exec -it $runName /bin/sh
+}
+
 dockerremove() {
   echo "-> 删除无用镜像"
-  docker rm $(docker ps -q -f status=exited)
-  docker rmi -f $(docker images | grep '<none>' | awk '{print $3}')
+  docker rm $(docker ps -q -f status=exited) 2 &>/dev/null
+  docker rmi -f $(docker images | grep '<none>' | awk '{print $3}') 2 &>/dev/null
 }
 
 start() {
@@ -48,7 +52,11 @@ start() {
   stop
   docker run \
     -v $DIR/$configFilePath:/config.json \
+    -v $DIR/appList.json:/appList.json \
     -v $DIR/client:/client \
+    -v $DIR/static:/static \
+    -v /etc/timezone:/etc/timezone:ro \
+    -v /etc/localtime:/etc/localtime:ro \
     --name=$name \
     $(cat /etc/hosts | sed 's/^#.*//g' | grep '[0-9][0-9]' | tr "\t" " " | awk '{print "--add-host="$2":"$1 }' | tr '\n' ' ') \
     -p $port:$port \
@@ -63,6 +71,16 @@ start() {
 
   rm -rf $DIR/nyanya-toolbox
 }
+
+
+backup() {
+  # backupTime=$(date +'%Y-%m-%d_%T')
+  # zip -q -r ./saass_$backupTime.zip ./static
+  tar cvzf $DIR/trip_static.tgz -C $DIR/static .
+
+  # unzip -d ./ build_2023-07-04_21:11:13.zip
+}
+
 
 run() {
   echo "-> 正在启动「${runName}」服务"
@@ -80,7 +98,11 @@ run() {
   stop
   docker run \
     -v $DIR/$configFilePath:/config.json \
+    -v $DIR/appList.json:/appList.json \
     -v $DIR/client:/client \
+    -v $DIR/static:/static \
+    -v /etc/timezone:/etc/timezone:ro \
+    -v /etc/localtime:/etc/localtime:ro \
     --name=$runName \
     -p $port:$port \
     --restart=always \

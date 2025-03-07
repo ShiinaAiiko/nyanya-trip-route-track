@@ -6,29 +6,47 @@ import axios from 'axios'
 import { useRouter } from 'next/router'
 import FooterComponent from '../components/Footer'
 import path from 'path'
-import { AppDispatch, RootState, configSlice, layoutSlice } from '../store'
+import {
+	AppDispatch,
+	RootState,
+	configSlice,
+	layoutSlice,
+	methods,
+} from '../store'
 import { useSelector, useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { bindEvent, snackbar, progressBar } from '@saki-ui/core'
 
 import NoSSR from '../components/NoSSR'
+import FilterComponent from './Filter'
 import { formatDistance } from '../plugins/methods'
 import moment from 'moment'
+import { getPositionShareText } from './Vehicle'
+import { protoRoot } from '../protos'
+import { filterTripsForTrackRoutePage } from '../store/trip'
 
 const ButtonsComponent = ({
 	indexPage = false,
 	trackRoute = false,
 	currentPosition = false,
+	realTimePosition = false,
 	filter = false,
 	layer = false,
+	mark = false,
+	markCount = 0,
 	onCurrentPosition,
+	onMark,
 }: {
 	indexPage?: boolean
 	trackRoute?: boolean
 	currentPosition?: boolean
+	realTimePosition?: boolean
 	filter?: boolean
 	layer?: boolean
+	mark?: boolean
+	markCount?: number
 	onCurrentPosition: () => void
+	onMark?: () => void
 }) => {
 	const { t, i18n } = useTranslation('tripPage')
 	const [mounted, setMounted] = useState(false)
@@ -36,74 +54,46 @@ const ButtonsComponent = ({
 	const trip = useSelector((state: RootState) => state.trip)
 	const layout = useSelector((state: RootState) => state.layout)
 
-	const startDate = useSelector(
-		(state: RootState) => state.config.trackRoute.selectedDate.startDate
-	)
-	const endDate = useSelector(
-		(state: RootState) => state.config.trackRoute.selectedDate.endDate
-	)
-
 	const router = useRouter()
 	const dispatch = useDispatch<AppDispatch>()
 
 	const [openStartDateDatePicker, setOpenStartDateDatePicker] = useState(false)
 	const [openEndDateDatePicker, setOpenEndDateDatePicker] = useState(false)
 
-	const filterList = () => {
-		return (
-			trip.tripStatistics
-				?.filter((v) =>
-					config.trackRoute.selectedTripTypes.length === 0
-						? v.type === 'All'
-						: config.trackRoute.selectedTripTypes.includes(v.type)
-				)?.[0]
-				?.list.filter((v) => {
-					const ct = Number(v.createTime)
-					const st = Math.floor(
-						new Date(
-							(startDate ? startDate + ' 0:0:0' : '') || '2018-10-31'
-						).getTime() / 1000
-					)
-					const et = Math.floor(
-						new Date(
-							(endDate ? endDate + ' 23:59:59' : '') || '5055-5-5'
-						).getTime() / 1000
-					)
-					// console.log('ct,st,et', ct, st, et)
-					return ct >= st && ct <= et
-				}) || []
-		)
-	}
+	const [openUserPositionShareDropdown, setOpenUserPositionShareDropdown] =
+		useState(false)
 
 	return (
 		<div className='map-buttons-component'>
 			<NoSSR>
 				{indexPage && (
-					<saki-button
-						ref={bindEvent({
-							tap: () => {
-								console.log(router, location)
-								router.replace('/' + (router.query.lang || ''))
-							},
-						})}
-						padding='24px'
-						margin='16px 0 0 0'
-						type='CircleIconGrayHover'
-						box-shadow='0 0 10px rgba(0, 0, 0, 0.3)'
-					>
-						<saki-icon
-							color='var(--saki-default-color)'
-							width='22px'
-							height='22px'
-							type='Index'
-						></saki-icon>
-					</saki-button>
+					<>
+						<saki-button
+							ref={bindEvent({
+								tap: () => {
+									console.log(router, location)
+									location.replace('/' + (router.query.lang || ''))
+								},
+							})}
+							padding='24px'
+							margin='16px 0 0 0'
+							type='CircleIconGrayHover'
+							box-shadow='0 0 10px rgba(0, 0, 0, 0.3)'
+						>
+							<saki-icon
+								color='var(--saki-default-color)'
+								width='22px'
+								height='22px'
+								type='Index'
+							></saki-icon>
+						</saki-button>
+					</>
 				)}
 				{trackRoute && (
 					<saki-button
 						ref={bindEvent({
 							tap: () => {
-								router.push(
+								location.replace(
 									(router.query.lang ? '/' + (router.query.lang || '') : '') +
 										'/trackRoute'
 								)
@@ -124,14 +114,136 @@ const ButtonsComponent = ({
 					</saki-button>
 				)}
 
+				{realTimePosition ? (
+					<div
+						className={
+							'realTimePosition-button ' +
+							(config.userPositionShare >= 0 ? 'start' : 'close') +
+							' ' +
+							((trip.startTrip ? config.syncLocationWhileTraveling : true)
+								? 'Enable'
+								: 'Disable')
+						}
+					>
+						<saki-dropdown
+							visible={openUserPositionShareDropdown}
+							floating-direction='Left'
+							z-index='1000'
+							ref={bindEvent({
+								close: () => {
+									setOpenUserPositionShareDropdown(false)
+								},
+							})}
+						>
+							<saki-button
+								ref={bindEvent({
+									tap: () => {
+										setOpenUserPositionShareDropdown(true)
+									},
+								})}
+								width='48px'
+								height='48px'
+								padding='24px'
+								margin='16px 0 0 0'
+								type='CircleIconGrayHover'
+								box-shadow='0 0 10px rgba(0, 0, 0, 0.3)'
+							>
+								<saki-icon
+									color='var(--saki-default-color)'
+									width='22px'
+									height='22px'
+									type='PositionShare'
+								></saki-icon>
+							</saki-button>
+							<div slot='main'>
+								<saki-menu
+									ref={bindEvent({
+										selectvalue: async (e) => {
+											dispatch(
+												methods.config.updateUserPositionShare(
+													Number(e.detail.value)
+												)
+											)
+											setOpenUserPositionShareDropdown(false)
+										},
+									})}
+								>
+									{[5, 1, -1].map((v, i) => {
+										return (
+											<saki-menu-item
+												key={i}
+												padding='10px 18px'
+												value={v}
+												active={v === config.userPositionShare}
+											>
+												<span>
+													{t(getPositionShareText(v), {
+														ns: 'vehicleModal',
+													})}
+												</span>
+											</saki-menu-item>
+										)
+									})}
+								</saki-menu>
+								<saki-menu
+									ref={bindEvent({
+										selectvalue: async (e) => {
+											console.log('e.detail.value', e.detail.value)
+
+											dispatch(
+												configSlice.actions.setSyncLocationWhileTraveling(
+													e.detail.value === 'Enable'
+												)
+											)
+											setOpenUserPositionShareDropdown(false)
+										},
+									})}
+								>
+									{['Enable', 'Disable'].map((v, i) => {
+										return (
+											<saki-menu-item
+												key={i}
+												padding='10px 18px'
+												value={v}
+												margin={i === 0 ? '6px 0 0' : ''}
+												subtitle={
+													i === 0
+														? t('syncLocationWhileTraveling', {
+																ns: 'settings',
+														  })
+														: ''
+												}
+												active={
+													v ===
+													(config.syncLocationWhileTraveling
+														? 'Enable'
+														: 'Disable')
+												}
+											>
+												<span>
+													{t(v.toLowerCase(), {
+														ns: 'prompt',
+													})}
+												</span>
+											</saki-menu-item>
+										)
+									})}
+								</saki-menu>
+							</div>
+						</saki-dropdown>
+					</div>
+				) : (
+					''
+				)}
+
 				{filter && (
 					<>
 						<saki-button
 							ref={bindEvent({
 								tap: () => {
 									dispatch(
-										layoutSlice.actions.setOpenTripTrackFilterModal(
-											!layout.openTripHistoryModal
+										layoutSlice.actions.setOpenTripFilterModal(
+											!layout.openTripFilterModal
 										)
 									)
 								},
@@ -148,360 +260,175 @@ const ButtonsComponent = ({
 								type='FilterFill'
 							></saki-icon>
 						</saki-button>
-						<saki-aside-modal
-							ref={bindEvent({
-								close: (e) => {
-									dispatch(
-										layoutSlice.actions.setOpenTripTrackFilterModal(false)
-									)
-								},
-							})}
-							visible={layout.openTripTrackFilterModal}
-							vertical='Center'
-							horizontal='Right'
-							mask
-							mask-closable
-							// height='86%'
-							padding='0 0 20px 0'
-							margin='0 50px 0 0'
-							background-color='#fff'
-							border-radius='10px'
-						>
-							<div>
-								<div className='md-button'></div>
-								<div className='filter-type-dropdown' slot='main'>
-									<saki-menu
-										ref={bindEvent({
-											selectvalue: async (e) => {
-												console.log(e.detail)
-												const fileterTypes =
-													config.trackRoute.selectedTripTypes.filter(
-														(sv) => sv === e.detail.value
-													)
-												dispatch(
-													configSlice.actions.setTrackRouteSelectedTripTypes(
-														fileterTypes?.length
-															? config.trackRoute.selectedTripTypes.filter(
-																	(sv) => sv !== e.detail.value
-															  )
-															: [
-																	...config.trackRoute.selectedTripTypes,
-																	e.detail.value,
-															  ]
-													)
-												)
-												dispatch(
-													layoutSlice.actions.setOpenTripTrackFilterModal(true)
-												)
-											},
-										})}
-										type='Icons'
-										width='240px'
-										padding='10px'
-									>
-										{config.tripTypes.map((v, i) => {
-											const distance =
-												Math.round(
-													(trip.tripStatistics?.filter(
-														(sv) => sv.type === (v as any)
-													)?.[0]?.distance || 0) / 100
-												) / 10 || 0
 
-											return (
-												<saki-menu-item
-													width='98px'
-													key={i}
-													border-radius='6px'
-													padding='4px 0px'
-													margin='4px 6px'
-													value={v}
-													border={
-														config.trackRoute.selectedTripTypes.filter(
-															(sv) => sv === v
-														)?.length >= 1
-															? '1px solid var(--saki-default-color)'
-															: '1px solid #eee'
-													}
-													background-color={
-														config.trackRoute.selectedTripTypes.filter(
-															(sv) => sv === v
-														)?.length >= 1
-															? '#f7ecef'
-															: '#fff'
-													}
-													active={
-														config.trackRoute.selectedTripTypes.filter(
-															(sv) => sv === v
-														)?.length >= 1
-													}
-												>
-													<div className='ftd-item'>
-														{v === 'Local' ? (
-															<saki-icon
-																width='36px'
-																height='19px'
-																type={'Send'}
-																color='var(--saki-default-color)'
-															></saki-icon>
-														) : v === 'Drive' ? (
-															<saki-icon
-																width='36px'
-																height='25px'
-																type={'Drive'}
-																color='var(--saki-default-color)'
-															></saki-icon>
-														) : v === 'Motorcycle' ? (
-															<saki-icon
-																width='36px'
-																height='18px'
-																type={'Motorcycle'}
-																color='var(--saki-default-color)'
-															></saki-icon>
-														) : v === 'Plane' ? (
-															<saki-icon
-																width='36px'
-																height='19px'
-																type={'Plane'}
-																color='var(--saki-default-color)'
-															></saki-icon>
-														) : v === 'PublicTransport' ? (
-															<saki-icon
-																width='36px'
-																height='19px'
-																type={'PublicTransport'}
-																color='var(--saki-default-color)'
-															></saki-icon>
-														) : v === 'Train' ? (
-															<saki-icon
-																width='36px'
-																height='20px'
-																type={'Train'}
-																color='var(--saki-default-color)'
-															></saki-icon>
-														) : (
-															<saki-icon
-																width='36px'
-																height='24px'
-																type={v}
-																color='var(--saki-default-color)'
-															></saki-icon>
-														)}
-														<div className='ftd-right'>
-															<span className='ftd-r-title '>
-																{t(v.toLowerCase(), {
-																	ns: 'tripPage',
-																})}
-															</span>
-															<span className='ftd-r-distance'>
-																{distance}
-																km
-															</span>
-														</div>
-													</div>
-												</saki-menu-item>
-											)
-										})}
-									</saki-menu>
-									<div className='ftd-l-date'>
-										<div className='ftd-l-d-content'>
-											<saki-input
-												ref={bindEvent({
-													changevalue: (e: any) => {
-														console.log(e)
-														if (!e.detail) {
-															dispatch(
-																configSlice.actions.setTrackRouteSelectedStartDate(
-																	''
-																)
-															)
-															return
-														}
-														const dateArr = e.detail.split('-')
-														const y = Number(dateArr[0])
-														const m = Number(dateArr[1])
-														const d = Number(dateArr[2])
-														const date = new Date(y + '-' + m + '-' + d)
-														const t = date.getTime()
-														if (
-															!!t &&
-															y > 1000 &&
-															m >= 0 &&
-															m <= 11 &&
-															d >= 0 &&
-															d <= 31
-														) {
-															dispatch(
-																configSlice.actions.setTrackRouteSelectedStartDate(
-																	moment(e.detail).format('YYYY-MM-DD')
-																)
-															)
-														}
-													},
-													focusfunc: () => {
-														console.log('focus')
-														setOpenStartDateDatePicker(true)
-													},
-												})}
-												width='100px'
-												padding='6px 0'
-												value={
-													startDate
-														? moment(startDate).format('YYYY-MM-DD')
-														: ''
-												}
-												border-radius='10px'
-												font-size='14px'
-												margin='0 0'
-												placeholder={t('startDate', {
-													ns: 'trackRoutePage',
-												})}
-												color='#999'
-												border='1px solid var(--defaul-color)'
-											></saki-input>
-											<span>-</span>
-											<saki-input
-												ref={bindEvent({
-													changevalue: (e: any) => {
-														console.log(e)
-														if (!e.detail) {
-															dispatch(
-																configSlice.actions.setTrackRouteSelectedEndDate(
-																	''
-																)
-															)
-															return
-														}
-														const dateArr = e.detail.split('-')
-														const y = Number(dateArr[0])
-														const m = Number(dateArr[1])
-														const d = Number(dateArr[2])
-														const date = new Date(y + '-' + m + '-' + d)
-														const t = date.getTime()
-														if (
-															!!t &&
-															y > 1000 &&
-															m >= 0 &&
-															m <= 11 &&
-															d >= 0 &&
-															d <= 31
-														) {
-															dispatch(
-																configSlice.actions.setTrackRouteSelectedEndDate(
-																	moment(e.detail).format('YYYY-MM-DD')
-																)
-															)
-														}
-													},
-													focusfunc: () => {
-														console.log('focus')
-														setOpenEndDateDatePicker(true)
-													},
-												})}
-												width='100px'
-												padding='6px 0'
-												value={
-													endDate ? moment(endDate).format('YYYY-MM-DD') : ''
-												}
-												border-radius='10px'
-												font-size='14px'
-												margin='0 0'
-												placeholder={t('endDate', {
-													ns: 'trackRoutePage',
-												})}
-												color='#999'
-												border='1px solid var(--defaul-color)'
-												text-align='right'
-											></saki-input>
-										</div>
-									</div>
-									<div className='ftd-l-header'>
-										<saki-button
-											ref={bindEvent({
-												tap: () => {
-													dispatch(
-														configSlice.actions.setTrackRouteSelectedTripIds(
-															(filterList().map((v) => v.id) || []) as string[]
-														)
-													)
+						<FilterComponent
+							dataList
+							trips={filterTripsForTrackRoutePage()}
+							selectTripIds={
+								config.configure.filter?.trackRoute?.selectedTripIds || []
+							}
+							onDataList={(ids) => {
+								const f = {
+									...config.configure['filter'],
+								}
+
+								f &&
+									dispatch(
+										methods.config.SetConfigure({
+											...config.configure,
+											filter: {
+												...f,
+												trackRoute: {
+													...f['trackRoute'],
+													selectedTripIds: ids,
 												},
-											})}
-										>
-											全选
-										</saki-button>
-										{config.trackRoute.selectedTripIds.length ? (
-											<saki-button
-												ref={bindEvent({
-													tap: () => {
-														dispatch(
-															configSlice.actions.setTrackRouteSelectedTripIds(
-																[]
-															)
-														)
-													},
-												})}
-											>
-												取消选中
-											</saki-button>
-										) : (
-											''
-										)}
-									</div>
-									<saki-scroll-view height='260px'>
-										<div className='ftd-list'>
-											<saki-checkbox
-												ref={bindEvent({
-													async selectvalue(e) {
-														console.log(e.detail.values)
-														dispatch(
-															configSlice.actions.setTrackRouteSelectedTripIds(
-																e.detail.values
-															)
-														)
-														// store.dispatch(methods.config.setLanguage(e.detail.value))
-													},
-												})}
-												value={config.trackRoute.selectedTripIds.join(',')}
-												flex-direction='Column'
-												type='Checkbox'
-											>
-												{filterList()?.map((v, i) => {
-													return (
-														// <div key={i} className='ftd-l-item'>
-														// 	{v.id}
-														// </div>
-														<saki-checkbox-item
-															key={i}
-															padding='14px 10px'
-															margin='0px'
-															value={v.id}
-														>
-															<div className='ftd-l-item'>
-																<span className='name'>
-																	{t((v.type || '')?.toLowerCase(), {
-																		ns: 'tripPage',
-																	}) +
-																		' · ' +
-																		formatDistance(v.statistics?.distance || 0)}
-																</span>
-																<span className='date'>
-																	{v.status === 1
-																		? moment(
-																				Number(v.createTime) * 1000
-																		  ).format('YYYY.MM.DD')
-																		: t('unfinished', {
-																				ns: 'tripPage',
-																		  })}
-																</span>
-															</div>
-														</saki-checkbox-item>
-													)
-												})}
-											</saki-checkbox>
-										</div>
-									</saki-scroll-view>
-								</div>
-							</div>
-						</saki-aside-modal>
+											},
+										})
+									)
+							}}
+							selectTypes={
+								config.configure.filter?.trackRoute?.selectedTripTypes || []
+							}
+							onSelectTypes={(filterTypes) => {
+								const f = {
+									...config.configure['filter'],
+								}
+
+								f &&
+									dispatch(
+										methods.config.SetConfigure({
+											...config.configure,
+											filter: {
+												...f,
+												trackRoute: {
+													...f['trackRoute'],
+													selectedTripTypes: filterTypes,
+												},
+											},
+										})
+									)
+							}}
+							distanceRange={{
+								minDistance: Number(
+									config.configure.filter?.trackRoute?.shortestDistance
+								),
+								maxDistance: Number(
+									config.configure.filter?.trackRoute?.longestDistance
+								),
+							}}
+							onSelectDistance={(obj) => {
+								console.log('onSelectDistance', obj)
+								const f = {
+									...config.configure['filter'],
+								}
+
+								f &&
+									dispatch(
+										methods.config.SetConfigure({
+											...config.configure,
+											filter: {
+												...f,
+												trackRoute: {
+													...f['trackRoute'],
+													shortestDistance: obj.minDistance,
+													longestDistance: obj.maxDistance,
+												},
+											},
+										})
+									)
+							}}
+							date
+							startDate={config.configure.filter?.trackRoute?.startDate || ''}
+							endDate={config.configure.filter?.trackRoute?.endDate || ''}
+							selectStartDate={(date) => {
+								const f = {
+									...config.configure['filter'],
+								}
+
+								f &&
+									dispatch(
+										methods.config.SetConfigure({
+											...config.configure,
+											filter: {
+												...f,
+												trackRoute: {
+													...f['trackRoute'],
+													startDate: date,
+												},
+											},
+										})
+									)
+							}}
+							selectEndDate={(date) => {
+								const f = {
+									...config.configure['filter'],
+								}
+
+								f &&
+									dispatch(
+										methods.config.SetConfigure({
+											...config.configure,
+											filter: {
+												...f,
+												trackRoute: {
+													...f['trackRoute'],
+													endDate: date,
+												},
+											},
+										})
+									)
+							}}
+							selectVehicle
+							selectVehicleIds={
+								config.configure.filter?.trackRoute?.selectedVehicleIds || []
+							}
+							onSelectVehicleIds={(ids) => {
+								const f = {
+									...config.configure['filter'],
+								}
+
+								f &&
+									dispatch(
+										methods.config.SetConfigure({
+											...config.configure,
+											filter: {
+												...f,
+												trackRoute: {
+													...f['trackRoute'],
+													selectedVehicleIds: ids,
+												},
+											},
+										})
+									)
+							}}
+							visible={layout.openTripFilterModal}
+							onclose={() => {
+								dispatch(layoutSlice.actions.setOpenTripFilterModal(false))
+							}}
+							customTripSwitch
+							showCustomTrip={
+								config.configure.filter?.trackRoute?.showCustomTrip || false
+							}
+							onShowCustomTrip={(showCustomTrip) => {
+								const f = {
+									...config.configure['filter'],
+								}
+
+								f &&
+									dispatch(
+										methods.config.SetConfigure({
+											...config.configure,
+											filter: {
+												...f,
+												trackRoute: {
+													...f['trackRoute'],
+													showCustomTrip: showCustomTrip,
+												},
+											},
+										})
+									)
+							}}
+						/>
 					</>
 				)}
 				{layer && (
@@ -545,49 +472,65 @@ const ButtonsComponent = ({
 						></saki-icon>
 					</saki-button>
 				)}
-
-				<saki-date-picker
-					ref={bindEvent({
-						close: () => {
-							setOpenStartDateDatePicker(false)
-						},
-						selectdate: (e) => {
-							dispatch(
-								configSlice.actions.setTrackRouteSelectedStartDate(
-									moment(e.detail.date).format('YYYY-MM-DD')
-								)
-							)
-
-							setOpenStartDateDatePicker(false)
-						},
-					})}
-					date={startDate}
-					visible={openStartDateDatePicker}
-					// time-picker
-					mask
-					z-index={1300}
-				></saki-date-picker>
-				<saki-date-picker
-					ref={bindEvent({
-						close: () => {
-							setOpenEndDateDatePicker(false)
-						},
-						selectdate: (e) => {
-							dispatch(
-								configSlice.actions.setTrackRouteSelectedEndDate(
-									moment(e.detail.date).format('YYYY-MM-DD')
-								)
-							)
-
-							setOpenEndDateDatePicker(false)
-						},
-					})}
-					date={endDate}
-					visible={openEndDateDatePicker}
-					// time-picker
-					mask
-					z-index={1300}
-				></saki-date-picker>
+				{mark && (
+					<div
+						style={{
+							transform: 'translate(0,20px)',
+						}}
+						className='mark-button'
+					>
+						{/* {realTimePosition ? (
+							<saki-button
+								ref={bindEvent({
+									tap: () => {},
+								})}
+								padding='24px'
+								margin='0 0 20px 0'
+								type='CircleIconGrayHover'
+								box-shadow='0 0 10px rgba(0, 0, 0, 0.3)'
+							>
+								<saki-icon
+									color='var(--saki-default-color)'
+									width='22px'
+									height='22px'
+									type='PositionShare'
+								></saki-icon>
+							</saki-button>
+						) : (
+							''
+						)} */}
+						<saki-button
+							ref={bindEvent({
+								tap: () => {
+									onMark?.()
+								},
+							})}
+							width='80px'
+							height='80px'
+							padding='24px'
+							margin='0px 0 0 0'
+							type='CircleIconGrayHover'
+							bg-color='#58c8f2'
+							bg-hover-color='#4eb2d6'
+							bg-active-color='#4194b2'
+							box-shadow='0 0 10px rgba(0, 0, 0, 0.3)'
+						>
+							<div className='mark-content'>
+								<saki-icon
+									width='30px'
+									height='30px'
+									color='#fff'
+									type='Flag'
+								></saki-icon>
+								{markCount ? (
+									<span className='tp-b-i-marklength'>{markCount}</span>
+								) : (
+									''
+								)}
+							</div>
+						</saki-button>
+					</div>
+				)}
 			</NoSSR>
 		</div>
 	)

@@ -1,0 +1,180 @@
+.filter-type-dropdown {
+  padding: 10px 0 10px 0;
+
+  .ftd-item {
+    width: 118px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 6px;
+
+    .ftd-right {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: center;
+
+      .ftd-r-title {
+        text-align: left;
+        font-size: 12px;
+      }
+
+      .ftd-r-distance {
+        font-size: 10px;
+        color: #666;
+      }
+    }
+  }
+
+  .ftd-l-date {
+    // border-top: 1px solid #eee;
+    display: flex;
+    width: 100%;
+
+    .ftd-l-d-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 16px;
+      width: 100%;
+
+      saki-input {
+        color: #ccc;
+      }
+
+      span {
+        color: #ccc;
+      }
+    }
+  }
+
+  .ftd-l-vehicle {
+    // border-top: 1px solid #eee;
+    display: flex;
+    width: 100%;
+
+    .ftd-v-item {
+      width: 98px;
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+
+      .ftd-v-i-right {
+        display: flex;
+        justify-content: flex-start;
+        flex-direction: column;
+
+        span {
+          font-size: 12px;
+          text-align: left;
+        }
+
+      }
+
+    }
+  }
+
+  .ftd-l-distance {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+
+    .ftd-l-d-speed {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      padding: 0 16px;
+
+      span {
+        font-size: 12px;
+        color: #999;
+      }
+    }
+
+    saki-slider {
+      width: 100%;
+
+    }
+  }
+
+  .ftd-l-customtrip {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    padding: 4px 11px 4px;
+
+    span {
+      margin: 0 4px 0 0;
+      font-size: 12px;
+    }
+
+  }
+
+  .ftd-l-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 6px;
+    width: 100%;
+    background-color: #fff;
+    z-index: 1000;
+
+    .ftd-l-h-left {
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+      font-style: italic;
+      color: #999;
+
+      .ftd-l-h-l-count {
+        margin: 3px 0 0 6px;
+        font-size: 12px;
+      }
+    }
+  }
+
+  .ftd-list {
+    .ftd-l-item {
+      padding: 0 0 0 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+
+      &.PublicTransport.en-US {
+        .name {
+          font-size: 10px;
+        }
+      }
+
+      span {
+        font-size: 14px;
+      }
+
+      .name {
+        width: 130px;
+        word-wrap: break-word;
+        word-break: break-all;
+      }
+
+      .date {
+        color: #999;
+        font-size: 12px;
+        margin-top: 4px;
+      }
+    }
+  }
+
+  .ftd-buttons {
+    display: flex;
+    justify-content: flex-end;
+    padding: 6px 6px;
+
+    span {
+      font-size: 12px;
+    }
+  }
+}

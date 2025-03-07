@@ -32,21 +32,31 @@ import {
 	getLatLng,
 	getSpeedColor,
 	getZoom,
+	isResumeTrip,
+	isRoadColorFade,
+	roadColorFade,
 	// testGpsData,
 } from '../plugins/methods'
 import Leaflet from 'leaflet'
 import html2canvas from 'html2canvas'
-import {
-	cnMap,
-	eventListener,
-	maps,
-	osmMap,
-	speedColorRGBs,
-} from '../store/config'
+import { cnMap, eventListener, maps, osmMap } from '../store/config'
 import NoSSR from './NoSSR'
 import { useRouter } from 'next/router'
-import { Debounce } from '@nyanyajs/utils'
+import { Debounce, deepCopy } from '@nyanyajs/utils'
+import { VehicleLogo } from './Vehicle'
+import { createMaxSpeedMarker } from '../store/position'
+import { initTripCity } from '../store/trip'
+import {
+	createCityBoundaries,
+	createCityMarker,
+	deleteAllCityGeojsonMap,
+	deleteAllCityMarker,
+	deleteCityGeojsonMap,
+	deleteCityMarker,
+	GeoJSON,
+} from '../store/city'
 
+// memo()
 const TripItemComponent = memo(
 	({
 		tripId,
@@ -64,13 +74,39 @@ const TripItemComponent = memo(
 		onDelete: (tripId: string) => void
 		onTrip: (trip?: protoRoot.trip.ITrip) => void
 	}) => {
-		console.log('TripItemComponent', tripId)
+		// console.log('TripItemComponent', tripId)
 		const { t, i18n } = useTranslation('tripItemPage')
 		const layout = useSelector((state: RootState) => state.layout)
 		const config = useSelector((state: RootState) => state.config)
 		const user = useSelector((state: RootState) => state.user)
 		const geo = useSelector((state: RootState) => state.geo)
-		const trip = useSelector((state: RootState) => state.trip.detailPage.trip)
+		const vehicle = useSelector((state: RootState) => state.vehicle)
+		const { trip, cityBoundaries } = useSelector(
+			(state: RootState) => state.trip.detailPage
+		)
+		const citiesTimeline = useSelector((state: RootState) => {
+			const trip = state.trip.detailPage.trip
+
+			const citiles = trip?.cities?.reduce(
+				(val, cv) => {
+					val = val.concat(
+						cv?.entryTimes?.map((v) => {
+							return {
+								entryTime: Number(v.timestamp),
+								city: cv.city || '',
+							}
+						}) || []
+					)
+					return val
+				},
+				[] as {
+					entryTime: number
+					city: string
+				}[]
+			)
+			citiles?.sort((a, b) => a.entryTime - b.entryTime)
+			return citiles
+		})
 
 		const speedChart = useRef<Chart<'line', any[], unknown>>()
 		const map = useRef<Leaflet.Map>()
@@ -78,6 +114,7 @@ const TripItemComponent = memo(
 		const outSpeedLineChartDebounce = useRef(new Debounce())
 		const loadedMap = useRef(false)
 		const layer = useRef<any>()
+		const maxSpeedMarker = useRef<Leaflet.Marker<any>>()
 
 		const router = useRouter()
 
@@ -102,6 +139,13 @@ const TripItemComponent = memo(
 
 		useEffect(() => {
 			setMounted(true)
+
+			const refreshMapSizeDebounce = new Debounce()
+			window.addEventListener('resize', () => {
+				refreshMapSizeDebounce.increase(() => {
+					map.current?.invalidateSize(true)
+				}, 400)
+			})
 
 			// eventListener.on('editTrip', (v) => {
 			// 	console.log(v, trip)
@@ -130,9 +174,10 @@ const TripItemComponent = memo(
 		// }, [tripId])
 
 		useEffect(() => {
-			console.log(tripId, shareKey, user.isLogin)
+			// console.log('replayTripId initMap', tripId, shareKey, user.isLogin)
 
-			console.log('setTripForDetailPage', tripId, map.current)
+			// console.log('setTripForDetailPage initMap', tripId, map.current)
+
 			if (tripId) {
 				if (tripId.indexOf('IDB_') >= 0) {
 					getTrip()
@@ -156,8 +201,9 @@ const TripItemComponent = memo(
 			map.current = undefined
 			loadedMap.current = false
 			setShareImageDataBase('')
+
 			// setTrip(undefined)
-		}, [tripId, shareKey, user])
+		}, [tripId, shareKey, user.isLogin])
 
 		useEffect(() => {
 			isShare && map && outShareImage()
@@ -170,61 +216,80 @@ const TripItemComponent = memo(
 		}, [trip?.id, map.current, speedChart.current])
 
 		useEffect(() => {
-			if (
-				config.mapUrl &&
-				config.country &&
-				tripId &&
-				trip?.id &&
-				!loadedMap.current
-			) {
+			layer.current?.setGrayscale?.(
+				config.configure.baseMap?.mapMode === 'Gray'
+			)
+			layer.current?.setDarkscale?.(
+				config.configure.baseMap?.mapMode === 'Dark'
+			)
+			layer.current?.setBlackscale?.(
+				config.configure.baseMap?.mapMode === 'Black'
+			)
+		}, [config.configure.baseMap?.mapMode])
+
+		useEffect(() => {
+			// console.log('initMap', trip?.id, loadedMap.current)
+			if (trip?.id) {
 				initMap()
 			}
-		}, [trip?.id, config.country, config.mapUrl])
+		}, [tripId, trip?.id])
 		useEffect(() => {
+			// console.log('initMap config.mapUrl', trip?.id, loadedMap.current)
 			if (config.mapUrl && currentMapUrl && config.mapUrl !== currentMapUrl) {
 				loadedMap.current = false
 				initMap()
 			}
-		}, [config.mapUrl])
-
-		useEffect(() => {
-			layer.current?.setGrayscale?.(config.isGrayscale)
-		}, [config.isGrayscale])
+		}, [config.mapUrl, config.configure.roadColorFade])
 
 		const initMap = () => {
-			const { config } = store.getState()
-
-			console.log('---initMap---')
 			const L: typeof Leaflet = (window as any).L
-			if (L && !loadedMap.current) {
+
+			console.log('---initMap---', loadedMap.current, trip?.id)
+
+			if (L && tripId && !loadedMap.current && trip?.id) {
+				loadedMap.current = true
+				console.log(
+					'---initMap--- 里面',
+					document.querySelector('#tic-map'),
+					map.current,
+					loadedMap.current
+				)
+				if (map.current) {
+					map.current?.off()
+					map.current?.remove()
+					map.current = undefined
+
+					maxSpeedMarker.current?.remove()
+					maxSpeedMarker.current = undefined
+				}
+				if (!map.current) {
+					map.current = L.map('tic-map', {
+						renderer: L.canvas(),
+						preferCanvas: true,
+						zoomControl: false,
+						minZoom: 3,
+						maxZoom: 18,
+						trackResize: false,
+						zoomSnap: 0.5,
+
+						zoom: 15,
+						attributionControl: false,
+						// center: [Number(res?.data?.lat), Number(res?.data?.lon)],
+					})
+				}
+
 				console.log(geo.position)
 				let lat = geo.position?.coords?.latitude || 0
 				let lon = geo.position?.coords?.longitude || 0
 				let zoom = 13
 
-				// const positions = testGpsData
-				// const positions =
-				// 	testGpsData.filter((v) => {
-				// 		const gss = !(
-				// 			v.speed === null ||
-				// 			v.altitude === null ||
-				// 			v.accuracy === null ||
-				// 			v.accuracy > 20
-				// 		)
-				// 		// console.log(v)
-
-				// 		console.log('gss', gss)
-				// 		return gss
-
-				// 		return !(Number(v.speed || 0) < 0 || Number(v.altitude || 0) < 0)
-				// 	}) || []
 				let positions = trip?.positions || []
 
 				positions = positions.filter((v, i) => {
 					const gss = !(v.speed === null || v.altitude === null)
 
 					if (v.speed && v.speed > 45) {
-						console.log(v.speed, v.timestamp)
+						// console.log(v.speed, v.timestamp)
 					}
 					return gss
 				})
@@ -253,17 +318,6 @@ const TripItemComponent = memo(
 				lon = latlng[1]
 
 				if (map.current) {
-					map.current?.remove()
-					map.current = undefined
-				}
-				if (!map.current && L?.map) {
-					map.current = L.map('ti-map', {
-						zoomControl: false,
-						zoomSnap: 0.5,
-						renderer: L.canvas(),
-						attributionControl: false,
-						// center: [Number(res?.data?.lat), Number(res?.data?.lon)],
-					})
 					// 检测地址如果在中国就用高德地图
 
 					// console.log('config.mapUrl v?.url', config.mapUrl)
@@ -276,7 +330,7 @@ const TripItemComponent = memo(
 
 					setCurrentMapUrl(config.mapUrl)
 					layer.current = (L.tileLayer as any)
-						.grayscale(
+						.colorScale(
 							config.mapUrl,
 							// maps.filter((v) => v.key === 'GeoQNight')?.[0]?.url ||
 							// 	config.mapUrl,
@@ -287,15 +341,18 @@ const TripItemComponent = memo(
 							}
 						)
 						.addTo(map.current)
-					layer.current.setGrayscale(config.isGrayscale)
+					layer.current?.setGrayscale?.(
+						config.configure.baseMap?.mapMode === 'Gray'
+					)
+					layer.current?.setDarkscale?.(
+						config.configure.baseMap?.mapMode === 'Dark'
+					)
+					layer.current?.setBlackscale?.(
+						config.configure.baseMap?.mapMode === 'Black'
+					)
 
-					//定义一个地图缩放控件
-					// var zoomControl = L.control.zoom({ position: 'topleft' })
-					// //将地图缩放控件加载到地图
-					// m.addControl(zoomControl)
-					// m.removeControl(zoomControl)
-				}
-				if (map.current) {
+					isRoadColorFade() && roadColorFade(layer.current)
+
 					map.current.panTo([lat, lon], {
 						animate: false,
 					})
@@ -320,6 +377,8 @@ const TripItemComponent = memo(
 
 						const latLngs: number[][] = []
 						const colors: string[] = []
+
+						let maxSpeedPosition = positions[0]
 
 						positions
 							.filter((v) => {
@@ -348,10 +407,14 @@ const TripItemComponent = memo(
 								// 	getLatLng(v.latitude || 0, v.longitude || 0) as any
 								// )
 
-								const speedColorLimit =
-									config.speedColorLimit[
-										(trip?.type?.toLowerCase() || 'running') as any
-									]
+								maxSpeedPosition =
+									Number(maxSpeedPosition.speed) < Number(v.speed)
+										? v
+										: maxSpeedPosition
+
+								const speedColorLimit = (
+									config.configure.speedColorLimit as any
+								)[(trip?.type?.toLowerCase() || 'running') as any]
 
 								// const latlng = getLatLng(lat, lon)
 
@@ -369,7 +432,8 @@ const TripItemComponent = memo(
 									getSpeedColor(
 										v.speed || 0,
 										speedColorLimit.minSpeed,
-										speedColorLimit.maxSpeed
+										speedColorLimit.maxSpeed,
+										config.speedColorRGBs
 									)
 								)
 								// map.current &&
@@ -398,7 +462,7 @@ const TripItemComponent = memo(
 							.polycolor(latLngs, {
 								colors: colors,
 								useGradient: true,
-								weight: config.mapPolyline.realtimeTravelTrackWidth,
+								weight: config.configure.polylineWidth?.ongoingTrip,
 							})
 							.addTo(map.current)
 						console.log(
@@ -467,8 +531,50 @@ const TripItemComponent = memo(
 								// )
 								.openPopup()
 						}
+
+						if (maxSpeedPosition) {
+							maxSpeedMarker.current = createMaxSpeedMarker(
+								map.current,
+								maxSpeedPosition?.speed || 0,
+								getLatLng(
+									config.mapUrl,
+									maxSpeedPosition.latitude || 0,
+									maxSpeedPosition.longitude || 0
+								)
+							)
+						}
 						console.timeEnd('getLatLnggetLatLng')
 					}
+
+					// 添加城市marker
+					console.log('citymarker', trip.cities)
+
+					deleteAllCityMarker('tripItem')
+					deleteAllCityGeojsonMap('tripItem')
+					createCityMarkers(map.current, trip?.cities || [], zoom, 'tripItem')
+
+					map.current.on('moveend', (e) => {
+						// console.log('citymarker moveEnd', e)
+						map.current &&
+							createCityMarkers(
+								map.current,
+								trip?.cities || [],
+								e.target._zoom,
+								'tripItem'
+							)
+					})
+					map.current.on('zoom', (e) => {
+						// console.log('zoomEvent', e.target._zoom)
+						map.current &&
+							createCityMarkers(
+								map.current,
+								trip?.cities || [],
+								e.target._zoom,
+								'tripItem'
+							)
+					})
+
+					console.log('cityBoundaries', cityBoundaries)
 				}
 				// L.marker([lat, lon]).addTo(m).openPopup()
 
@@ -479,11 +585,103 @@ const TripItemComponent = memo(
 
 				// console.log('map', map)
 			}
-			loadedMap.current = true
 
 			// setTimeout(() => {
 			//   outShareImage()
 			// }, 500);
+		}
+
+		const createCityMarkers = (
+			map: Leaflet.Map,
+			cities: protoRoot.trip.ITripCity[],
+			zoom: number,
+			key = 'tripItem'
+		) => {
+			console.log('citymarker', cities, zoom)
+			// console.log('citymarker', map.getBounds())
+			if (!cities.length) return
+
+			const bound = map.getBounds()
+
+			let level = 1
+
+			if (zoom >= 4) {
+				level = 1
+			}
+			if (zoom >= 4.5) {
+				level = 2
+			}
+			if (zoom >= 6) {
+				level = 3
+			}
+			if (zoom >= 8) {
+				level = 4
+			}
+			if (zoom >= 10) {
+				level = 5
+			}
+
+			const tempCities = cities.reduce(
+				(cities, v) => {
+					v.cityDetails?.forEach((sv) => {
+						if (!sv?.id) return
+						cities[sv.id] = sv
+					})
+					return cities
+				},
+				{} as {
+					[id: string]: protoRoot.city.ICityItem
+				}
+			)
+			const tempCityBoundaries = cityBoundaries.reduce(
+				(cities, v) => {
+					cities[v.cityId] = v.geojson
+					return cities
+				},
+				{} as {
+					[id: string]: GeoJSON
+				}
+			)
+
+			Object.keys(tempCities).forEach((cityId) => {
+				const city = tempCities[cityId]
+
+				if (
+					!city?.coords ||
+					Number(city.level) > level ||
+					(level !== 1 && Number(city.level) === 1)
+				) {
+					deleteCityMarker(cityId, key)
+					deleteCityGeojsonMap(cityId, key)
+					// console.log('citymarker 缩放范围外', city)
+					return
+				}
+				if (
+					!bound.contains([
+						Number(city.coords.latitude),
+						Number(city.coords.longitude),
+					])
+				) {
+					deleteCityMarker(cityId, key)
+					deleteCityGeojsonMap(cityId, key)
+					// console.log('citymarker 离开范围', city)
+					return
+				}
+				// console.log('citymarker 进入范围', city)
+
+				createCityMarker(
+					map,
+					city.name?.zhCN || '',
+					[Number(city.coords.latitude), Number(city.coords.longitude)],
+					Number(city.level),
+					cityId,
+					key
+				)
+
+				createCityBoundaries(map, tempCityBoundaries[cityId], cityId, key)
+
+				console.log('tempCityBoundaries', tempCityBoundaries[cityId])
+			})
 		}
 
 		const outSpeedLineChart = () => {
@@ -497,6 +695,8 @@ const TripItemComponent = memo(
 				// 	endTime - startTime,
 				// 	trip?.positions
 				// )
+
+				console.log('idddddd', trip)
 				if (speedChart.current) return
 				const el = document.getElementById('speed-chart')
 
@@ -526,13 +726,14 @@ const TripItemComponent = memo(
 						// },
 						{
 							label:
-								t('altitude', {
+								t('speed', {
 									ns: 'tripPage',
-								}) + ' (m)',
-							data: altitudeData,
+								}) + ' (km/h)',
+							data: speedData,
 							pointBorderWidth: 0,
-							borderColor: speedColorRGBs[speedColorRGBs.length - 1],
-							backgroundColor: speedColorRGBs[speedColorRGBs.length - 1],
+							pointRadius: 0,
+							borderColor: config.speedColorRGBs[0],
+							backgroundColor: config.speedColorRGBs[0],
 							fill: false,
 							cubicInterpolationMode: 'monotone',
 							tension: 0.5,
@@ -540,13 +741,16 @@ const TripItemComponent = memo(
 						},
 						{
 							label:
-								t('speed', {
+								t('altitude', {
 									ns: 'tripPage',
-								}) + ' (km/h)',
-							data: speedData,
+								}) + ' (m)',
+							data: altitudeData,
 							pointBorderWidth: 0,
-							borderColor: speedColorRGBs[0],
-							backgroundColor: speedColorRGBs[0],
+							pointRadius: 0,
+							borderColor:
+								config.speedColorRGBs[config.speedColorRGBs.length - 1],
+							backgroundColor:
+								config.speedColorRGBs[config.speedColorRGBs.length - 1],
 							fill: true,
 							cubicInterpolationMode: 'monotone',
 							tension: 0.4,
@@ -597,17 +801,19 @@ const TripItemComponent = memo(
 									title: {
 										display: true,
 										text:
-											t('speed', {
+											t('altitude', {
 												ns: 'tripPage',
-											}) + ' (km/h)',
+											}) + ' (m)',
 									},
 									// suggestedMin: -10,
 									// suggestedMax: 200,
 									grid: {
-										color: speedColorRGBs[0],
+										color: config.speedColorRGBs[0],
 										lineWidth: 1,
 										drawOnChartArea: false, // only want the grid lines for one axis to show up
 									},
+									// min: 30,   // 最小值
+									// max: 80  // 最大值
 								},
 								y1: {
 									// type: 'linear',
@@ -616,14 +822,15 @@ const TripItemComponent = memo(
 									title: {
 										display: true,
 										text:
-											t('altitude', {
+											t('speed', {
 												ns: 'tripPage',
-											}) + ' (m)',
+											}) + ' (km/h)',
 									},
 
 									// grid line settings
 									grid: {
-										color: speedColorRGBs[speedColorRGBs.length - 1],
+										color:
+											config.speedColorRGBs[config.speedColorRGBs.length - 1],
 										lineWidth: 1,
 										drawOnChartArea: false, // only want the grid lines for one axis to show up
 									},
@@ -653,7 +860,7 @@ const TripItemComponent = memo(
 			pb.open()
 			setTimeout(async () => {
 				// 生成地图图片
-				let mapEl: any = document.querySelector('#ti-map')
+				let mapEl: any = document.querySelector('#tic-map')
 				let contentEl: any = document.querySelector('.ti-m-content')
 
 				if (mapEl && contentEl) {
@@ -709,127 +916,48 @@ const TripItemComponent = memo(
 				if (loadStatus === 'loading') return
 				setLoadStatus('loading')
 
-				console.log('getTrip', tripId)
-
-				if (tripId.indexOf('IDB_') >= 0) {
-					const v = await storage.trips.get(tripId)
-					console.log('getTrip', v)
-					if (v) {
-						// setTrip(res?.data?.trip)
-						if (v.statistics && v?.positions?.length) {
-							v.statistics.minAltitude = Math.min(
-								...(v.positions?.map((v) => v.altitude || 0) || [0])
-							)
-						}
-						onTrip(v || undefined)
-						setLoadStatus('noMore')
-						dispatch(tripSlice.actions.setTripForDetailPage(v))
-					}
-					return
-				}
-				const res = await httpApi.v1.GetTrip({
-					id: tripId,
-					shareKey: shareKey,
-				})
-				console.log('getTrip', res.data)
-				let tripPositions = await storage.tripPositions.get(tripId)
-
-				console.log(
-					'storage tripPositions',
-					(tripPositions?.positions?.[0]?.split('_') || [])?.length <= 2,
-					tripPositions,
-					!tripPositions
-				)
-				if (
-					// true ||
-					!tripPositions ||
-					(tripPositions?.positions?.[0]?.split('_') || [])?.length <= 2 ||
-					!tripPositions?.status
-				) {
-					const posRes = await httpApi.v1.GetTripPositions({
-						id: tripId,
-						shareKey: shareKey,
+				const trip = await dispatch(
+					methods.trip.GetTrip({
+						tripId,
+						shareKey,
 					})
-					console.log('GetTripPositions posRes', posRes)
-					if (posRes.code === 200 && posRes.data?.tripPositions?.positions) {
-						// res.data.trip &&
-						// 	(res.data.trip.status =
-						// 		Number(posRes.data?.tripPositions.status) || 0)
-						tripPositions = posRes.data.tripPositions
-						if (posRes.data?.tripPositions.status) {
-							await storage.tripPositions.set(tripId, posRes.data.tripPositions)
-						}
-					}
+				).unwrap()
+
+				if (trip) {
+					console.log('GetTrip', trip)
+					onTrip(trip || undefined)
+					setLoadStatus('noMore')
+
+					// initTripCity(trip)
+
+					// setTimeout(() => {
+					// 	dispatch(
+					// 		tripSlice.actions.setReplayTripId({
+					// 			id: trip?.id || '',
+					// 			shareKey,
+					// 		})
+					// 	)
+					// 	dispatch(layoutSlice.actions.setOpenReplayTripModal(true))
+					// }, 1000)
 				}
-
-				console.log('GetTripPositions pospos', tripPositions)
-				if (res.code === 200 && res?.data?.trip && tripPositions) {
-					res.data.trip.positions = formatPositionsStr(
-						Number(tripPositions.startTime),
-						tripPositions.positions || []
-					)
-					console.log('pospos1', res.data.trip.positions)
-					// if (pos) {
-					// 	console.log('getTrip', pos[0].timestamp)
-					// 	console.log('getTrip', pos[pos.length - 1].timestamp)
-					// }
-					// setTrip(res?.data?.trip)
-					if (res.data.trip?.statistics) {
-						res.data.trip.statistics.minAltitude = Math.min(
-							...(res?.data?.trip?.positions?.map((v) => v.altitude || 0) || [
-								0,
-							])
-						)
-
-						// console.log(
-						// 	'res.data.trip.statistics?.climbAltitude',
-						// 	res.data.trip.statistics?.climbAltitude,
-						// 	res.data.trip?.positions
-						// )
-						if (
-							!res.data.trip.statistics?.climbAltitude ||
-							!res.data.trip.statistics?.descendAltitude
-						) {
-							let climbAltitude = 0
-							let descendAltitude = 0
-							res.data.trip?.positions?.forEach((v, i) => {
-								if (i === 0) return
-								let lv = res.data.trip?.positions?.[i - 1]
-								if (lv?.altitude && Number(v.altitude) > lv.altitude) {
-									climbAltitude =
-										Math.floor(
-											(climbAltitude +
-												(Number(v.altitude) - Number(lv.altitude))) *
-												1000
-										) / 1000
-								}
-								if (lv?.altitude && Number(v.altitude) < lv.altitude) {
-									descendAltitude =
-										Math.floor(
-											(descendAltitude +
-												(Number(lv.altitude) - Number(v.altitude))) *
-												1000
-										) / 1000
-								}
-							})
-
-							res.data.trip.statistics.climbAltitude = climbAltitude
-							res.data.trip.statistics.descendAltitude = descendAltitude
-						}
-					}
-
-					dispatch(tripSlice.actions.setTripForDetailPage(res?.data?.trip))
-
-					// dispatch(
-					// 	layoutSlice.actions.setEditTripModal({
-					// 		visible: true,
-					// 		trip: res.data.trip,
-					// 	})
-					// )
-				}
-				onTrip(res?.data?.trip || undefined)
-				setLoadStatus('noMore')
 			}, 300)
+		}
+
+		const cancelVehicle = async () => {
+			const res = await httpApi.v1.UpdateTrip({
+				id: trip?.id || '',
+				vehicleId: 'CancelVehicle',
+			})
+
+			if (res.code === 200) {
+				const t = {
+					...trip,
+					vehicleId: '',
+					vehicle: undefined,
+				}
+				onTrip(t)
+				dispatch(tripSlice.actions.setTripForDetailPage(t))
+			}
 		}
 
 		const copyUrl = (shareKey: string) => {
@@ -980,7 +1108,6 @@ const TripItemComponent = memo(
 					}).open()
 					return
 				}
-				loadedMap.current = false
 				getTrip()
 				return
 			}
@@ -1020,7 +1147,9 @@ const TripItemComponent = memo(
 					if (!trip?.authorId) {
 						storage.trips.delete(trip?.id || '')
 						snackbar({
-							message: '删除成功！',
+							message: t('deletedSuccessfully', {
+								ns: 'prompt',
+							}),
 							vertical: 'top',
 							horizontal: 'center',
 							backgroundColor: 'var(--saki-default-color)',
@@ -1035,7 +1164,9 @@ const TripItemComponent = memo(
 					})
 					if (res.code === 200) {
 						snackbar({
-							message: '删除成功！',
+							message: t('deletedSuccessfully', {
+								ns: 'prompt',
+							}),
 							vertical: 'top',
 							horizontal: 'center',
 							backgroundColor: 'var(--saki-default-color)',
@@ -1128,7 +1259,41 @@ const TripItemComponent = memo(
 			<div className='trip-item-component'>
 				{trip?.id ? (
 					<>
-						<div id='ti-map'></div>
+						<div className='ti-map-wrap'>
+							<div
+								id={'tic-map'}
+								className={isRoadColorFade() ? 'roadColorFade' : ''}
+							></div>
+							<div className='ti-replay'>
+								<saki-button
+									ref={bindEvent({
+										tap: () => {
+											dispatch(
+												tripSlice.actions.setReplayTripId({
+													id: trip?.id || '',
+													shareKey,
+												})
+											)
+											dispatch(layoutSlice.actions.setOpenReplayTripModal(true))
+										},
+									})}
+									width='50px'
+									height='50px'
+									margin='0px'
+									bg-color='rgba(0,0,0,0.3)'
+									bg-hover-color='rgba(0,0,0,0.4)'
+									bg-active-color='rgba(0,0,0,0.5)'
+									type='CircleIconGrayHover'
+								>
+									<saki-icon
+										width='24px'
+										height='24px'
+										color='#fff'
+										type={'Play'}
+									></saki-icon>
+								</saki-button>
+							</div>
+						</div>
 
 						<saki-scroll-view
 							ref={bindEvent({
@@ -1145,7 +1310,7 @@ const TripItemComponent = memo(
 								<div className='ti-m-content'>
 									<div className='ti-m-c-header'>
 										<div className='ti-title'>
-											{t((trip.type || '')?.toLowerCase(), {
+											{t((trip?.type || '')?.toLowerCase(), {
 												ns: 'tripPage',
 											})}
 											{' · '}
@@ -1159,6 +1324,14 @@ const TripItemComponent = memo(
 														ns: 'tripPage',
 												  })
 												: ''}
+
+											{trip.permissions?.customTrip
+												? ' · ' +
+												  t('customTrip', {
+														ns: 'tripPage',
+												  })
+												: ''}
+
 											{/* {' · ' +
 												(!trip?.permissions?.shareKey
 													? t('enableShare', {
@@ -1206,17 +1379,46 @@ const TripItemComponent = memo(
 																	case 'FinishTrip':
 																		finishTrip(false)
 																		break
+																	case 'ResumeTrip':
+																		trip?.id &&
+																			dispatch(
+																				methods.trip.ResumeTrip({
+																					trip,
+																				})
+																			)
+																		break
+																	case 'initTripCity':
+																		initTripCity(trip)
+																		break
 																	case 'CorrectedData':
 																		finishTrip(true)
 																		break
-																	case 'Edit':
-																		dispatch(
-																			layoutSlice.actions.setEditTripModal({
-																				visible: true,
-																				trip: trip,
-																			})
-																		)
+																	case 'CancelVehicle':
+																		cancelVehicle()
+
 																		break
+																	case 'Edit':
+																		trip &&
+																			dispatch(
+																				layoutSlice.actions.setEditTripModal({
+																					visible: true,
+																					trip: trip,
+																				})
+																			)
+																		break
+																	// case 'Replay':
+																	// 	dispatch(
+																	// 		tripSlice.actions.setReplayTripId({
+																	// 			id: trip?.id || '',
+																	// 			shareKey,
+																	// 		})
+																	// 	)
+																	// 	dispatch(
+																	// 		layoutSlice.actions.setOpenReplayTripModal(
+																	// 			true
+																	// 		)
+																	// 	)
+																	// 	break
 																	case 'Delete':
 																		deleteTrip()
 																		break
@@ -1228,6 +1430,38 @@ const TripItemComponent = memo(
 															},
 														})}
 													>
+														{isResumeTrip(trip) ? (
+															<>
+																<saki-menu-item
+																	padding='10px 18px'
+																	value={'ResumeTrip'}
+																>
+																	<div className='tb-h-r-user-item'>
+																		<span>
+																			{t('resumeTrip', {
+																				ns: 'tripPage',
+																			})}
+																		</span>
+																	</div>
+																</saki-menu-item>
+															</>
+														) : (
+															''
+														)}
+														<>
+															<saki-menu-item
+																padding='10px 18px'
+																value={'initTripCity'}
+															>
+																<div className='tb-h-r-user-item'>
+																	<span>
+																		{t('initTripCity', {
+																			ns: 'tripPage',
+																		})}
+																	</span>
+																</div>
+															</saki-menu-item>
+														</>
 														{trip?.status === 1 ? (
 															<>
 																<saki-menu-item
@@ -1242,6 +1476,34 @@ const TripItemComponent = memo(
 																		</span>
 																	</div>
 																</saki-menu-item>
+																{trip?.vehicle?.id ? (
+																	<saki-menu-item
+																		padding='10px 18px'
+																		value={'CancelVehicle'}
+																	>
+																		<div className='tb-h -r-user-item'>
+																			<span>
+																				{t('cancelVehicle', {
+																					ns: 'vehicleModal',
+																				})}
+																			</span>
+																		</div>
+																	</saki-menu-item>
+																) : (
+																	''
+																)}
+																{/* <saki-menu-item
+																	padding='10px 18px'
+																	value={'Replay'}
+																>
+																	<div className='tb-h -r-user-item'>
+																		<span>
+																			{t('replay', {
+																				ns: 'common',
+																			})}
+																		</span>
+																	</div>
+																</saki-menu-item> */}
 																{/* {trip?.statistics?.distance !==
 																	trip?.positions?.[trip?.positions.length - 1]
 																		?.distance || 0 ? (
@@ -1333,40 +1595,56 @@ const TripItemComponent = memo(
 										</div>
 									</div>
 									<div className='ti-distance'>
-										<div className='ti-d-value'>
-											<span>
-												{Math.round((trip?.statistics?.distance || 0) / 10) /
-													100}
-											</span>
+										<div className='ti-d-left'>
+											<div className='ti-d-value'>
+												<span>
+													{Math.round((trip?.statistics?.distance || 0) / 10) /
+														100}
+												</span>
+											</div>
+											<div className='ti-d-unit'>km</div>
 										</div>
-										<div className='ti-d-unit'>km</div>
-										{/* {trip?.statistics?.distance !==
-											trip?.positions?.[trip?.positions.length - 1]?.distance ||
-										0 ? (
-										) : (
-											''
-										)} */}
+										<div className='ti-d-right'>
+											<div className='ti-d-vehicle'>
+												<saki-button
+													border='none'
+													bg-color='rgba(247,247,247,0)'
+													padding='6px 10px'
+													border-radius='10px'
+													ref={bindEvent({
+														tap: () => {
+															if (!user.isLogin) {
+																dispatch(methods.user.loginAlert())
+																return
+															}
+															dispatch(
+																layoutSlice.actions.setOpenVehicleModal(true)
+															)
+														},
+													})}
+												>
+													<VehicleLogo
+														icon={trip?.vehicle?.type || ''}
+														style={{
+															margin: '0 6px 0 0',
+														}}
+													></VehicleLogo>
 
-										<span
-											style={{
-												display: 'none',
-											}}
-											className='ti-d-tip'
-											data-old-distance={trip?.statistics?.distance}
-											data-new-distance={
-												trip?.positions?.[trip?.positions.length - 1]
-													?.distance || 0
-											}
-										>
-											{t('tripDataCanBeCorrected', {
-												ns: 'tripPage',
-											})}
-										</span>
+													<span
+														style={{
+															color: '#666',
+														}}
+													>
+														{trip?.vehicle?.name || ''}
+													</span>
+												</saki-button>
+											</div>
+										</div>
 									</div>
 									<div className='ti-color'>
 										<div
 											style={{
-												color: speedColorRGBs[0],
+												color: config.speedColorRGBs[0],
 											}}
 											className='ti-c-min'
 										>
@@ -1377,14 +1655,21 @@ const TripItemComponent = memo(
 										<div
 											style={{
 												background: `linear-gradient(45deg, ${
-													speedColorRGBs[0]
-												},${speedColorRGBs[speedColorRGBs.length - 1]})`,
+													config.speedColorRGBs[0]
+												},${
+													config.speedColorRGBs[
+														config.speedColorRGBs.length - 1
+													]
+												})`,
 											}}
 											className='ti-c-line'
 										></div>
 										<div
 											style={{
-												color: speedColorRGBs[speedColorRGBs.length - 1],
+												color:
+													config.speedColorRGBs[
+														config.speedColorRGBs.length - 1
+													],
 											}}
 											className='ti-c-max'
 										>
@@ -1411,10 +1696,10 @@ const TripItemComponent = memo(
 											</div>
 											<div className='ti-d-item time'>
 												<span className='value'>
-													{Number(trip.endTime || 0) > 0
+													{Number(trip?.endTime || 0) > 0
 														? formatTime(
-																Number(trip.startTime),
-																Number(trip.endTime)
+																Number(trip?.startTime),
+																Number(trip?.endTime)
 														  )
 														: t('unfinished', {
 																ns: 'tripPage',
@@ -1442,9 +1727,9 @@ const TripItemComponent = memo(
 											</div>
 										</div>
 										<div className={'ti-d-bottom ' + config.deviceType}>
-											{trip.type === 'Walking' ||
-											trip.type === 'PowerWalking' ||
-											trip.type === 'Running' ? (
+											{trip?.type === 'Walking' ||
+											trip?.type === 'PowerWalking' ||
+											trip?.type === 'Running' ? (
 												<span className='ti-d-b-item'>
 													<span>
 														{t('averagePace', {
@@ -1454,8 +1739,8 @@ const TripItemComponent = memo(
 													<span>
 														{formatAvgPace(
 															trip?.statistics?.distance || 0,
-															Number(trip.startTime) || 0,
-															Number(trip.endTime) || 0
+															Number(trip?.startTime) || 0,
+															Number(trip?.endTime) || 0
 														)}
 													</span>
 												</span>
@@ -1557,7 +1842,7 @@ const TripItemComponent = memo(
 														ns: 'tripPage',
 													}) + ' '}
 												</span>
-												<span>{trip.marks?.length}</span>
+												<span>{trip?.marks?.length}</span>
 											</span>
 										</div>
 									</div>
@@ -1608,6 +1893,35 @@ const TripItemComponent = memo(
 														<div className='ti-m-l-i-createtime text-elipsis'>
 															{moment(Number(v.timestamp) * 1000).format(
 																'YYYY-MM-DD HH:mm:ss'
+															)}
+														</div>
+													</div>
+												)
+											})}
+										</div>
+									</div>
+								) : (
+									''
+								)}
+
+								{citiesTimeline?.length ? (
+									<div className='ti-cities'>
+										<div className='ti-m-title'>
+											{t('tripCityTimeline', {
+												ns: 'tripPage',
+											})}
+										</div>
+
+										<div className='ti-m-list'>
+											{citiesTimeline?.map((v, i, arr) => {
+												return (
+													<div key={i} className='ti-m-l-item'>
+														<div className='ti-m-l-i-index'>
+															<span># {v.city}</span>
+														</div>
+														<div className='ti-m-l-i-createtime text-elipsis'>
+															{moment(Number(v.entryTime) * 1000).format(
+																'YYYY.MM.DD HH:mm'
 															)}
 														</div>
 													</div>
