@@ -26,6 +26,7 @@ export const layoutSlice = createSlice({
     openFindLocationModal: false,
     openCreateCustomTripModal: false,
     openVisitedCitiesModal: false,
+    openJourneyMemoriesModal: false,
     openHistoricalTripsDetailedDataModal: false,
     openStatisticsModal: {
       visible: false,
@@ -44,6 +45,15 @@ export const layoutSlice = createSlice({
     tripHistoryType: 'All' as TabsTripType,
   },
   reducers: {
+    setOpenJourneyMemoriesModal: (
+      state,
+      params: {
+        payload: boolean
+        type: string
+      }
+    ) => {
+      state.openJourneyMemoriesModal = params.payload
+    },
     setOpenVisitedCitiesModal: (
       state,
       params: {

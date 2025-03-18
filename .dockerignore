@@ -30,3 +30,6 @@ package-lock.json
 
 build.tgz
 server
+
+
+/components/saki-ui-react/

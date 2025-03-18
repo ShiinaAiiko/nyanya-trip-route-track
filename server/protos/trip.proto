@@ -324,15 +324,37 @@ message GetTripStatistics {
     // repeated int64 distanceLimit = 4;
   }
   message Response {
-    int64 count = 1;
+    // trip.TripHistoricalStatistics statistics = 1;
+    int32 count = 1;
     // s
     int64 time = 2;
     // m
     double distance = 3;
+    int32 days = 4;
 
     // repeated Trip list = 4;
     repeated string uselessData = 5;
   }
+}
+
+message TripHistoricalStatistics {
+  int32 count = 1;
+  int64 time = 2;
+  double distance = 3;
+  int32 days = 4;
+  repeated string uselessData = 12;
+
+  message NumItem {
+    double num = 1;
+    string id = 2;
+  }
+  NumItem maxDistance = 5;
+  NumItem maxSpeed = 6;
+  NumItem fastestAverageSpeed = 7;
+  NumItem maxAltitude = 8;
+  NumItem minAltitude = 9;
+  NumItem maxClimbAltitude = 10;
+  NumItem maxDescendAltitude = 11;
 }
 
 message GetHistoricalStatistics {
@@ -345,6 +367,7 @@ message GetHistoricalStatistics {
     // repeated int64 distanceLimit = 3;
   }
   message Response {
+    // trip.TripHistoricalStatistics statistics = 1;
     message NumItem {
       double num = 1;
       string id = 2;

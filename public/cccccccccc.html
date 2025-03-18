@@ -1,56 +1,159 @@
 <!DOCTYPE html>
-<html lang="en">
-	<head>
-		<meta charset="UTF-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>Text-to-Speech Demo</title>
-	</head>
-	<body>
-		<h1>Text-to-Speech Demo</h1>
-		<textarea
-			id="text"
-			rows="5"
-			cols="50"
-			placeholder="Enter text here..."
-		></textarea>
-		<br />
-		<button id="speak">Speak</button>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>行程路线缩略图（自定义线条，上千点）</title>
+  <style>
+    canvas {
+      border: 1px solid #ccc;
+      margin: 20px;
+    }
+    button, input, label {
+      margin-left: 20px;
+      margin-bottom: 10px;
+    }
+    #thumbnail {
+      max-width: 300px;
+      margin: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>行程路线缩略图</h1>
+  <div>
+    <label for="bgUrl">背景图 URL：</label>
+    <input type="text" id="bgUrl" placeholder="输入图片 URL" style="width: 300px;" />
+    <button onclick="updateBackground()">更新背景</button>
+  </div>
+  <div>
+    <label for="lineWidth">线条粗细（px）：</label>
+    <input type="number" id="lineWidth" value="2" min="1" max="10" style="width: 60px;" />
+    <label for="lineColor">线条颜色：</label>
+    <input type="color" id="lineColor" value="#007bff" />
+    <button onclick="updateLineStyle()">更新线条</button>
+  </div>
+  <canvas id="routeCanvas" width="300" height="200"></canvas>
+  <button onclick="generateImage()">生成图片</button>
+  <div>
+    <img id="thumbnail" alt="行程缩略图" />
+  </div>
 
-		<script>
-			document.getElementById('speak').addEventListener('click', () => {
-				const text = document.getElementById('text').value
+  <script>
+    // 生成 1000 个 GPS 点（模拟复杂路线）
+    const gpsPoints = [];
+    let lat = 39.9042; // 北京起点纬度
+    let lng = 116.4074; // 北京起点经度
+    for (let i = 0; i < 1000; i++) {
+      // 随机偏移，模拟蜿蜒路径
+      lat -= 0.01 + Math.random() * 0.02; // 南下
+      lng += 0.01 + Math.random() * 0.02; // 东移
+      gpsPoints.push({ lat, lng });
+    }
+    gpsPoints[0] = { lat: 39.9042, lng: 116.4074 }; // 固定起点（北京）
+    gpsPoints[999] = { lat: 31.2304, lng: 121.4737 }; // 固定终点（上海）
 
-				if ('speechSynthesis' in window) {
-					const utterance = new SpeechSynthesisUtterance(text)
-					const voices = speechSynthesis.getVoices()
-					console.log('voices', voices)
-					utterance.voice =
-						voices.find((voice) => voice.lang === 'zh-TW') || voices[0]
-					utterance.lang = 'zh-TW'
-					utterance.pitch = 1
-					utterance.rate = 1
-					speechSynthesis.speak(utterance)
-				} else {
-					alert('Sorry, your browser does not support speech synthesis.')
-				}
-			})
-		</script>
-		<script src="https://code.responsivevoice.org/responsivevoice.js"></script>
-		<script>
-			setTimeout(() => {
-				// 播放语音
-				console.log('responsiveVoice', responsiveVoice)
-				responsiveVoice.speak(
-					'你好，欢迎使用 ResponsiveVoice.js！',
-					'Chinese Female', // 中文女声
-					{
-						pitch: 1, // 音调
-						rate: 1, // 语速
-						volume: 1, // 音量
-						onend: () => console.log('播放完成！'),
-					}
-				)
-			}, 1000)
-		</script>
-	</body>
+    const canvas = document.getElementById('routeCanvas');
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+    const padding = 20; // 边界留白
+
+    // 计算经纬度范围并映射到画布
+    const lats = gpsPoints.map(p => p.lat);
+    const lngs = gpsPoints.map(p => p.lng);
+    const minLat = Math.min(...lats);
+    const maxLat = Math.max(...lats);
+    const minLng = Math.min(...lngs);
+    const maxLng = Math.max(...lngs);
+
+    const latRange = maxLat - minLat || 0.001;
+    const lngRange = maxLng - minLng || 0.001;
+
+    const points = gpsPoints.map(point => ({
+      x: padding + ((point.lng - minLng) / lngRange) * (width - 2 * padding),
+      y: padding + (height - 2 * padding) - ((point.lat - minLat) / latRange) * (height - 2 * padding)
+    }));
+
+    // 绘制函数
+    function drawRoute(bgImageUrl = null, lineWidth = 2, lineColor = '#007bff') {
+      ctx.clearRect(0, 0, width, height);
+
+      // 绘制背景
+      if (bgImageUrl) {
+        const bgImage = new Image();
+        bgImage.crossOrigin = 'Anonymous';
+        bgImage.onload = () => {
+          ctx.drawImage(bgImage, 0, 0, width, height);
+          drawPath(lineWidth, lineColor);
+        };
+        bgImage.onerror = () => {
+          ctx.fillStyle = '#f0f0f0';
+          ctx.fillRect(0, 0, width, height);
+          drawPath(lineWidth, lineColor);
+        };
+        bgImage.src = bgImageUrl;
+      } else {
+        ctx.fillStyle = '#f0f0f0';
+        ctx.fillRect(0, 0, width, height);
+        drawPath(lineWidth, lineColor);
+      }
+    }
+
+    // 绘制路径（仅线条，使用贝塞尔曲线）
+    function drawPath(lineWidth, lineColor) {
+      ctx.beginPath();
+      ctx.strokeStyle = lineColor;
+      ctx.lineWidth = lineWidth;
+
+      for (let i = 0; i < points.length - 1; i++) {
+        const p1 = points[i];
+        const p2 = points[i + 1];
+
+        if (i === 0) {
+          ctx.moveTo(p1.x, p1.y);
+        }
+
+        const midX = (p1.x + p2.x) / 2;
+        const midY = (p1.y + p2.y) / 2;
+        const cp1X = midX + (p1.y - p2.y) * 0.2;
+        const cp1Y = midY + (p2.x - p1.x) * 0.2;
+
+        ctx.quadraticCurveTo(cp1X, cp1Y, p2.x, p2.y);
+      }
+      ctx.stroke();
+    }
+
+    // 初始绘制
+    drawRoute();
+
+    // 更新背景
+    function updateBackground() {
+      const bgUrl = document.getElementById('bgUrl').value;
+      const lineWidth = parseInt(document.getElementById('lineWidth').value) || 2;
+      const lineColor = document.getElementById('lineColor').value;
+      drawRoute(bgUrl, lineWidth, lineColor);
+    }
+
+    // 更新线条样式
+    function updateLineStyle() {
+      const bgUrl = document.getElementById('bgUrl').value;
+      const lineWidth = parseInt(document.getElementById('lineWidth').value) || 2;
+      const lineColor = document.getElementById('lineColor').value;
+      drawRoute(bgUrl, lineWidth, lineColor);
+    }
+
+    // 生成图片
+    function generateImage() {
+      const dataUrl = canvas.toDataURL('image/png');
+      const img = document.getElementById('thumbnail');
+      img.src = dataUrl;
+
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = 'route-thumbnail.png';
+      link.click();
+    }
+  </script>
+</body>
 </html>

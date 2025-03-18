@@ -17,6 +17,7 @@ func (r *Routerv1) InitConfigure() {
 			Authorize:          true,
 			RequestEncryption:  false,
 			ResponseEncryption: false,
+			RequestDataType:    "protobuf",
 			ResponseDataType:   "protobuf",
 		}),
 		pc.SyncConfigure)
@@ -27,6 +28,7 @@ func (r *Routerv1) InitConfigure() {
 			Authorize:          true,
 			RequestEncryption:  false,
 			ResponseEncryption: false,
+			RequestDataType:    "protobuf",
 			ResponseDataType:   "protobuf",
 		}),
 		pc.GetConfigure)

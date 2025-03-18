@@ -24,6 +24,7 @@ import '../components/FindLocation.scss'
 import '../components/FiexdWeather.scss'
 import '../components/CreateCustomTrip.scss'
 import '../components/VisitedCities.scss'
+import '../components/JourneyMemories.scss'
 
 import { useRouter } from 'next/router'
 import { Provider } from 'react-redux'
@@ -31,6 +32,7 @@ import store from '../store'
 import Init from '../plugins/init'
 
 import * as nyanyalog from 'nyanyajs-log'
+import ErrorBoundary from '../components/ErrorBoundary'
 
 nyanyalog.timer()
 nyanyalog.config({
@@ -51,16 +53,18 @@ export default function App({ Component, pageProps }: any) {
 	const ProviderAny = Provider as any
 
 	return (
-		<ProviderAny store={store}>
-			<>
-				<Init />
+		<ErrorBoundary>
+			<ProviderAny store={store}>
+				<>
+					<Init />
 
-				{getLayout() ? (
-					getLayout(<Component router={router} {...pageProps} />, pageProps)
-				) : (
-					<Component router={router} {...pageProps} />
-				)}
-			</>
-		</ProviderAny>
+					{getLayout() ? (
+						getLayout(<Component router={router} {...pageProps} />, pageProps)
+					) : (
+						<Component router={router} {...pageProps} />
+					)}
+				</>
+			</ProviderAny>
+		</ErrorBoundary>
 	)
 }

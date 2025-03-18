@@ -19,6 +19,7 @@ import { storageSlice, storageMethods } from './storage'
 import { vehicleSlice, vehicleMethods } from './vehicle'
 import { positionSlice, positionMethods } from './position'
 import { citySlice, cityMethods } from './city'
+import { journeyMemorySlice, journeyMemoryMethods } from './journeyMemory'
 import { Dispatch } from 'react'
 
 
@@ -66,7 +67,8 @@ const rootReducer = combineReducers({
   storage: storageSlice.reducer,
   vehicle: vehicleSlice.reducer,
   position: positionSlice.reducer,
-  city: citySlice.reducer
+  city: citySlice.reducer,
+  journeyMemory: journeyMemorySlice.reducer
 })
 
 const store = configureStore({
@@ -87,7 +89,7 @@ export {
   layoutSlice,
   storageSlice,
   vehicleSlice,
-  positionSlice, citySlice
+  positionSlice, citySlice, journeyMemorySlice
 }
 export const methods = {
   config: configMethods,
@@ -100,7 +102,8 @@ export const methods = {
   storage: storageMethods,
   vehicle: vehicleMethods,
   position: positionMethods,
-  city: cityMethods
+  city: cityMethods,
+  journeyMemory: journeyMemoryMethods
 }
 
 // console.log(store.getState())

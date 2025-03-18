@@ -78,7 +78,7 @@ export const geoSlice = createSlice({
 export const geoMethods = {
   Init: createAsyncThunk(modelName + '/Init', async (_, thunkAPI) => {
     const cp = await storage.global.get('currentPosition')
-    console.log('currentPosition', cp)
+    console.log('initMap1 currentPosition', cp)
 
     thunkAPI.dispatch(
       geoSlice.actions.setPosition(

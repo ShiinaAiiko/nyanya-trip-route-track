@@ -20,6 +20,7 @@ func (r *Routerv1) InitOpen() {
 			Authorize:          false,
 			RequestEncryption:  false,
 			ResponseEncryption: false,
+			RequestDataType:    "json",
 			ResponseDataType:   "json",
 		}),
 		tc.GetBaseTripsByOpenAPI)
@@ -30,6 +31,7 @@ func (r *Routerv1) InitOpen() {
 			Authorize:          false,
 			RequestEncryption:  false,
 			ResponseEncryption: false,
+			RequestDataType:    "json",
 			ResponseDataType:   "json",
 		}),
 		cc.GetCitiesByOpenAPI)

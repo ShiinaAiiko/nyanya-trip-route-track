@@ -38,7 +38,7 @@
 		"distance": "距离",
 		"speed": "速度",
 		"altitude": "海拔",
-		"duration": "时长",
+		"duration": "耗时",
 		"trips": "次数",
 		"day": "日",
 		"week": "周",
@@ -149,6 +149,57 @@
 		"addTripHere": "添加行程至",
 		"setTripsInBatchesTo": "批量设置行程至",
 		"findLocation": "查看位置"
+	},
+	"visitedCitiesModal": {
+		"title": "城市足迹",
+		"world": "世界",
+		"country": "国家",
+		"state": "省份",
+		"region": "城市",
+		"city": "区县",
+		"town": "城镇",
+
+		"visitedWorldTitle": "已遍访世界",
+		"visitedWorldCount": "个国家",
+		"journeyedCountryTitle": "已旅行{{country}}",
+		"journeyedCountryCount": "座城市",
+		"exploredCityTitle": "已探索{{city}}",
+		"exploredCityCount": "个区县",
+		"exploredTownCount": "个城镇",
+		"travelSummary": "历经 {{days}} 天 · {{hours}} 小时 · {{trips}} 次旅程 · {{distance}} 公里",
+		"footprintCoverage": "足迹覆盖约 {{area}} 平方公里",
+
+		"cityTimeline": "城市探索时间线",
+		"exploredDate": "{{date}} 已探索",
+		"arrivedDate": "{{date}} 驶入"
+	},
+	"journeyMemoriesModal": {
+		"title": "旅途记忆",
+		"createNewJourneyMemory": "创建新的旅途记忆",
+		"selectTrips": "选择行程",
+		"selectedTripsCount": "已选择了{{length}}个行程",
+		"timelineEmpty": "还未添加时间线",
+
+		"timeline": "时间线",
+		"map": "地图",
+
+		"updateMoment": "更新记忆点",
+		"addMoment": "新增记忆点",
+		"deleteMoment": "删除记忆点",
+		"deleteThisMoment": "删除此记忆点?",
+		"viewMoment": "查看记忆点",
+		"moment": "记忆点",
+
+		"updateJourneyMemory": "更新旅途记忆",
+		"addJourneyMemory": "新增旅途记忆",
+		"deleteJourneyMemory": "删除旅途记忆",
+		"confirmDeleteJourneyMemory": "确定删除此旅途记忆吗？",
+
+		"viewMomentMapTrack": "查看记忆点轨迹",
+		"viewAllMomentMapTrack": "查看所有记忆点轨迹",
+
+		"createdAt": "创建于 {{date}} {{time}}",
+    "lastUpdatedAt": "最后更新于 {{date}} {{time}}"
 	},
 	"settings": {
 		"title": "设置",
@@ -299,7 +350,13 @@
 		"enable": "启用",
 		"disable": "禁用",
 
-		"unableLoadMap": "无法加载地图，切换新的底图"
+		"unableLoadMap": "无法加载地图，切换新的底图",
+
+		"deleteImage": "删除此图片",
+
+		"filesUploaded": "已上传 {{count}} 个文件",
+		"uploadCompleted": "上传完毕",
+		"mediaLimitExceeded": "媒体数量不能超过9个"
 	},
 	"weather": {
 		"weather0": "晴",

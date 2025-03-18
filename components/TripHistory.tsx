@@ -35,6 +35,7 @@ import { deepCopy } from '@nyanyajs/utils'
 import StatisticsComponent from './Statistics'
 import FilterComponent from './Filter'
 import { getTrips } from '../store/trip'
+import { TabsTripType } from '../store/config'
 // import { isCorrectedData } from '../store/trip'
 
 const getMonth = () => {
@@ -474,7 +475,7 @@ const TripHistoryPage = ({
 
 				if (!trip.tripStatistics?.filter((v) => v.type === 'All')?.[0]) {
 					await dispatch(
-						methods.trip.GetTripStatistics({
+						methods.trip.GetTripHistoryData({
 							loadCloudData: false,
 							alert: false,
 						})
@@ -586,7 +587,10 @@ const TripHistoryPage = ({
 			'getTripStatistics listlist',
 			{
 				type: type,
-				timeLimit: [getTimeLimit(time), Math.floor(new Date().getTime() / 1000)],
+				timeLimit: [
+					getTimeLimit(time),
+					Math.floor(new Date().getTime() / 1000),
+				],
 			},
 			res,
 			type,
@@ -1207,178 +1211,19 @@ const TripHistoryPage = ({
 									// 	})}
 									// 	key={i}
 									// >
-									<div
-										ref={(e) => {
-											e &&
-												(e.onclick = () => {
-													if (v.status === 0) {
-														// alert
-													}
-
-													dispatch(
-														layoutSlice.actions.setOpenTripItemModal({
-															visible: true,
-															id: v.id || '',
-														})
-													)
+									<TripListItemComponent
+										trip={v}
+										type={type}
+										onTap={(id) => {
+											dispatch(
+												layoutSlice.actions.setOpenTripItemModal({
+													visible: true,
+													id: id || '',
 												})
+											)
 										}}
-										className='th-l-item'
 										key={i}
-									>
-										<div className='th-l-i-left'>
-											<div className='th-l-i-l-title'>
-												<span>
-													{t((v.type || '')?.toLowerCase(), {
-														ns: 'tripPage',
-													})}
-													{' · '}
-													{formatDistance(v.statistics?.distance || 0)}
-												</span>
-
-												{isResumeTrip(v) ? (
-													<div className='th-l-i-l-t-local'>
-														{t('resumeTrip', {
-															ns: 'tripPage',
-														})}
-													</div>
-												) : (
-													''
-												)}
-												{v.permissions?.customTrip ? (
-													<div className='th-l-i-l-t-customTrip'>
-														{t('customTrip', {
-															ns: 'tripPage',
-														})}
-													</div>
-												) : (
-													''
-												)}
-												{(v.id || '').indexOf('IDB_') >= 0 ? (
-													<div className='th-l-i-l-t-local'>
-														{t('local', {
-															ns: 'tripPage',
-														})}
-													</div>
-												) : (
-													''
-												)}
-												{/* 
-												{v.correctedData === 1 ? (
-												) : (
-													''
-												)} */}
-
-												<span
-													style={{
-														display: 'none',
-													}}
-													className='ti-d-tip'
-												>
-													{t('tripDataCanBeCorrected', {
-														ns: 'tripPage',
-													})}
-												</span>
-											</div>
-											<div className='th-l-i-l-info'>
-												<div className='info-item'>
-													{t('duration', {
-														ns: 'tripPage',
-													})}{' '}
-													{Number(v.endTime || 0) > 0
-														? formatTime(Number(v.startTime), Number(v.endTime))
-														: t('unfinished', {
-																ns: 'tripPage',
-														  })}
-												</div>
-												{/* <div className='info-item'>配速 10'05</div> */}
-
-												{
-													type === 'Walking' ||
-													type === 'PowerWalking' ||
-													type === 'Running' ? (
-														<div className='info-item'>
-															{t('averagePace', {
-																ns: 'tripPage',
-															})}{' '}
-															{formatAvgPace(
-																v.statistics?.distance || 0,
-																Number(v.startTime) || 0,
-																Number(v.endTime) || 0
-															)}
-														</div>
-													) : (
-														<div className='info-item'>
-															{t('averageSpeed', {
-																ns: 'tripPage',
-															})}{' '}
-															{(v?.statistics?.averageSpeed || 0) <= 0
-																? 0
-																: Math.round(
-																		((v?.statistics?.averageSpeed || 0) *
-																			3600) /
-																			100
-																  ) / 10}{' '}
-															km/h
-														</div>
-													)
-													// config.deviceType !== 'Mobile' ? (
-													// <div className='info-item'>
-													// 	{t('averageSpeed', {
-													// 		ns: 'tripPage',
-													// 	})}{' '}
-													// 	{(v?.statistics?.maxSpeed || 0) <= 0
-													// 		? 0
-													// 		: Math.round(
-													// 				((v?.statistics?.maxSpeed || 0) * 3600) / 100
-													// 		  ) / 10}{' '}
-													// 	km/h
-													// </div>
-													// ) : (
-													// 	''
-													// )
-												}
-
-												{config.deviceType !== 'Mobile' ? (
-													<div className='info-item'>
-														{t('maxSpeed', {
-															ns: 'tripPage',
-														})}{' '}
-														{(v?.statistics?.maxSpeed || 0) <= 0
-															? 0
-															: Math.round(
-																	((v?.statistics?.maxSpeed || 0) * 3600) / 100
-															  ) / 10}{' '}
-														km/h
-													</div>
-												) : (
-													''
-												)}
-
-												{/* <div className='info-item'>平均时速 10'05</div> */}
-											</div>
-										</div>
-										<div className='th-l-i-right'>
-											<div className='th-l-i-r-date'>
-												{v.status === 1
-													? moment(Number(v.createTime) * 1000).format(
-															'YYYY.MM.DD'
-													  )
-													: t('unfinished', {
-															ns: 'tripPage',
-													  })}
-											</div>
-										</div>
-										{/* <div className='th-i-header'>
-									<div className='th-i-h-icon'></div>
-									<div className='th-i-h-date'>
-										{moment(Number(v.createTime) * 1000).format('YYYY-MM')}
-									</div>
-								</div>
-								<div className='th-i-content'>
-									<div></div>
-								</div> */}
-									</div>
+									/>
 								)
 							})}
 
@@ -1692,6 +1537,189 @@ const TripHistoryPage = ({
 					shareKey=''
 				/> */}
 			</div>
+		</div>
+	)
+}
+
+export const TripListItemComponent = ({
+	trip,
+	type,
+	onTap,
+}: {
+	trip: protoRoot.trip.ITrip
+	type: TabsTripType
+	onTap: (id: string) => void
+}) => {
+	const { t, i18n } = useTranslation('tripPage')
+	const { config } = useSelector((state: RootState) => {
+		const { config } = state
+		return {
+			config: config,
+		}
+	})
+
+	const dispatch = useDispatch<AppDispatch>()
+
+	return (
+		<div
+			ref={(e) => {
+				e &&
+					(e.onclick = () => {
+						if (trip.status === 0) {
+							// alert
+						}
+						onTap?.(trip.id || '')
+					})
+			}}
+			className='trip-list-item-component'
+		>
+			<div className='th-l-i-left'>
+				<div className='th-l-i-l-title'>
+					<span>
+						{t((trip.type || '')?.toLowerCase(), {
+							ns: 'tripPage',
+						})}
+						{' · '}
+						{formatDistance(trip.statistics?.distance || 0)}
+					</span>
+
+					{isResumeTrip(trip) ? (
+						<div className='th-l-i-l-t-local'>
+							{t('resumeTrip', {
+								ns: 'tripPage',
+							})}
+						</div>
+					) : (
+						''
+					)}
+					{trip.permissions?.customTrip ? (
+						<div className='th-l-i-l-t-customTrip'>
+							{t('customTrip', {
+								ns: 'tripPage',
+							})}
+						</div>
+					) : (
+						''
+					)}
+					{(trip.id || '').indexOf('IDB_') >= 0 ? (
+						<div className='th-l-i-l-t-local'>
+							{t('local', {
+								ns: 'tripPage',
+							})}
+						</div>
+					) : (
+						''
+					)}
+					{/* 
+      {v.correctedData === 1 ? (
+      ) : (
+        ''
+      )} */}
+
+					<span
+						style={{
+							display: 'none',
+						}}
+						className='ti-d-tip'
+					>
+						{t('tripDataCanBeCorrected', {
+							ns: 'tripPage',
+						})}
+					</span>
+				</div>
+				<div className='th-l-i-l-info'>
+					<div className='info-item'>
+						{t('duration', {
+							ns: 'tripPage',
+						})}{' '}
+						{Number(trip.endTime || 0) > 0
+							? formatTime(Number(trip.startTime), Number(trip.endTime))
+							: t('unfinished', {
+									ns: 'tripPage',
+							  })}
+					</div>
+					{/* <div className='info-item'>配速 10'05</div> */}
+
+					{
+						type === 'Walking' ||
+						type === 'PowerWalking' ||
+						type === 'Running' ? (
+							<div className='info-item'>
+								{t('averagePace', {
+									ns: 'tripPage',
+								})}{' '}
+								{formatAvgPace(
+									trip.statistics?.distance || 0,
+									Number(trip.startTime) || 0,
+									Number(trip.endTime) || 0
+								)}
+							</div>
+						) : (
+							<div className='info-item'>
+								{t('averageSpeed', {
+									ns: 'tripPage',
+								})}{' '}
+								{(trip?.statistics?.averageSpeed || 0) <= 0
+									? 0
+									: Math.round(
+											((trip?.statistics?.averageSpeed || 0) * 3600) / 100
+									  ) / 10}{' '}
+								km/h
+							</div>
+						)
+						// config.deviceType !== 'Mobile' ? (
+						// <div className='info-item'>
+						// 	{t('averageSpeed', {
+						// 		ns: 'tripPage',
+						// 	})}{' '}
+						// 	{(v?.statistics?.maxSpeed || 0) <= 0
+						// 		? 0
+						// 		: Math.round(
+						// 				((v?.statistics?.maxSpeed || 0) * 3600) / 100
+						// 		  ) / 10}{' '}
+						// 	km/h
+						// </div>
+						// ) : (
+						// 	''
+						// )
+					}
+
+					{config.deviceType !== 'Mobile' ? (
+						<div className='info-item'>
+							{t('maxSpeed', {
+								ns: 'tripPage',
+							})}{' '}
+							{(trip?.statistics?.maxSpeed || 0) <= 0
+								? 0
+								: Math.round(((trip?.statistics?.maxSpeed || 0) * 3600) / 100) /
+								  10}{' '}
+							km/h
+						</div>
+					) : (
+						''
+					)}
+
+					{/* <div className='info-item'>平均时速 10'05</div> */}
+				</div>
+			</div>
+			<div className='th-l-i-right'>
+				<div className='th-l-i-r-date'>
+					{trip.status === 1
+						? moment(Number(trip.createTime) * 1000).format('YYYY.MM.DD')
+						: t('unfinished', {
+								ns: 'tripPage',
+						  })}
+				</div>
+			</div>
+			{/* <div className='th-i-header'>
+<div className='th-i-h-icon'></div>
+<div className='th-i-h-date'>
+  {moment(Number(v.createTime) * 1000).format('YYYY-MM')}
+</div>
+</div>
+<div className='th-i-content'>
+<div></div>
+</div> */}
 		</div>
 	)
 }

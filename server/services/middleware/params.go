@@ -25,7 +25,7 @@ func Params() gin.HandlerFunc {
 		res := response.ResponseProtobufType{}
 		res.Code = 10015
 
-		if roles.ResponseDataType == "protobuf" {
+		if roles.RequestDataType == "protobuf" {
 			data := ""
 			switch c.Request.Method {
 			case "GET":
@@ -65,7 +65,7 @@ func Params() gin.HandlerFunc {
 			return
 		}
 
-		if roles.ResponseDataType == "json" {
+		if roles.RequestDataType == "json" {
 			appKey := ""
 			userId := ""
 			token := ""
@@ -95,7 +95,7 @@ func Params() gin.HandlerFunc {
 			return
 		}
 
-		log.Info(roles.ResponseDataType)
+		log.Info(roles.RequestDataType)
 
 		c.Next()
 	}

@@ -10,8 +10,13 @@ baselog.Info('Env:', process.env.CLIENT_ENV)
 //   console.timeEnd = () => { }
 // }
 
-let toolApiUrl = "https://tools.aiiko.club"
-// toolApiUrl = "http://192.168.204.132:23201"
+let toolApiUrl = ""
+let nominatimUrl = ""
+
+
+if (process.env.CLIENT_ENV === 'development') {
+  toolApiUrl = "http://192.168.204.132:23201"
+}
 
 let version = ''
 let server = {
@@ -40,6 +45,7 @@ interface Config {
   appListUrl: typeof appListUrl
   meowApps: typeof meowApps
   toolApiUrl: typeof toolApiUrl
+  nominatimUrl: typeof nominatimUrl
 }
 
 try {
@@ -53,9 +59,11 @@ try {
     sakiui = configJson.sakiui
     meowApps = configJson.meowApps
     appListUrl = configJson.appListUrl
+    toolApiUrl = configJson.toolApiUrl
+    nominatimUrl = configJson.nominatimUrl
   }
 } catch (error) {
   console.error(error)
 }
-export { version, sakiui, sakisso, appListUrl, meowApps, server, toolApiUrl }
-export default { version, sakiui, sakisso, appListUrl, meowApps, server, toolApiUrl }
+export { version, sakiui, sakisso, appListUrl, meowApps, server, toolApiUrl, nominatimUrl }
+export default { version, sakiui, sakisso, appListUrl, meowApps, server, toolApiUrl, nominatimUrl }

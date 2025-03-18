@@ -1,4 +1,4 @@
-import React, { memo, use, useEffect, useRef, useState } from 'react'
+import React, { memo, use, useEffect, useMemo, useRef, useState } from 'react'
 
 import { useSelector, useDispatch } from 'react-redux'
 import store, {
@@ -45,16 +45,26 @@ import { useRouter } from 'next/router'
 import { Debounce, deepCopy } from '@nyanyajs/utils'
 import { VehicleLogo } from './Vehicle'
 import { createMaxSpeedMarker } from '../store/position'
-import { initTripCity } from '../store/trip'
+import { initTripCity, initTripItemCity } from '../store/trip'
 import {
+	CityInfo,
+	convertCityLevelToTypeString,
 	createCityBoundaries,
 	createCityMarker,
 	deleteAllCityGeojsonMap,
 	deleteAllCityMarker,
 	deleteCityGeojsonMap,
 	deleteCityMarker,
+	formartCities,
 	GeoJSON,
+	getSimpleCityName,
+	updateCityMarkers,
 } from '../store/city'
+import {
+	CityTimeLineComponent,
+	CityTimeLineItem,
+	formatTimeLineCities,
+} from './VisitedCities'
 
 // memo()
 const TripItemComponent = memo(
@@ -84,29 +94,58 @@ const TripItemComponent = memo(
 		const { trip, cityBoundaries } = useSelector(
 			(state: RootState) => state.trip.detailPage
 		)
-		const citiesTimeline = useSelector((state: RootState) => {
-			const trip = state.trip.detailPage.trip
 
-			const citiles = trip?.cities?.reduce(
-				(val, cv) => {
-					val = val.concat(
-						cv?.entryTimes?.map((v) => {
-							return {
-								entryTime: Number(v.timestamp),
-								city: cv.city || '',
-							}
-						}) || []
-					)
-					return val
-				},
-				[] as {
-					entryTime: number
-					city: string
-				}[]
+		const tempCitiesTimeline = useMemo(() => {
+			const citiles = trip?.cities?.reduce((val, cv) => {
+				val =
+					val.concat(
+						cv?.entryTimes
+							?.map((v) => {
+								const cityItem: protoRoot.city.ICityItem = deepCopy(
+									cv.cityDetails?.filter((sv) => sv.id === cv.cityId)?.[0]
+								) as any
+
+								if (cityItem) {
+									cityItem.fullName = cv.cityDetails
+										?.map((v) => v.name?.zhCN)
+										.join(',')
+									cityItem.firstEntryTime = v.timestamp
+								}
+								return cityItem
+							})
+							.filter((v) => v) || []
+					) || []
+				return val
+			}, [] as protoRoot.city.ICityItem[])
+			citiles?.sort(
+				(a, b) => Number(a.firstEntryTime) - Number(b.firstEntryTime)
 			)
-			citiles?.sort((a, b) => a.entryTime - b.entryTime)
-			return citiles
-		})
+
+			const tempCitiesTimeline: CityTimeLineItem[] = []
+
+			citiles?.forEach((v) => {
+				const date =
+					v.fullName
+						?.split(',')
+						.filter((v, i, arr) => {
+							return i < arr.length - 2 && i > 0
+						})
+						.join(' · ') || ''
+
+				const lastItem = tempCitiesTimeline[tempCitiesTimeline.length - 1]
+				if (!lastItem || lastItem.date !== date) {
+					tempCitiesTimeline.push({
+						date,
+						list: [],
+					})
+				}
+
+				tempCitiesTimeline[tempCitiesTimeline.length - 1].list.push(v)
+			})
+
+			console.log('tempCitiesTimeline', tempCitiesTimeline)
+			return tempCitiesTimeline
+		}, [trip])
 
 		const speedChart = useRef<Chart<'line', any[], unknown>>()
 		const map = useRef<Leaflet.Map>()
@@ -228,13 +267,13 @@ const TripItemComponent = memo(
 		}, [config.configure.baseMap?.mapMode])
 
 		useEffect(() => {
-			// console.log('initMap', trip?.id, loadedMap.current)
+			console.log('initMap', trip, loadedMap.current)
 			if (trip?.id) {
 				initMap()
 			}
 		}, [tripId, trip?.id])
 		useEffect(() => {
-			// console.log('initMap config.mapUrl', trip?.id, loadedMap.current)
+			console.log('initMap config.mapUrl', trip, loadedMap.current)
 			if (config.mapUrl && currentMapUrl && config.mapUrl !== currentMapUrl) {
 				loadedMap.current = false
 				initMap()
@@ -551,27 +590,42 @@ const TripItemComponent = memo(
 
 					deleteAllCityMarker('tripItem')
 					deleteAllCityGeojsonMap('tripItem')
-					createCityMarkers(map.current, trip?.cities || [], zoom, 'tripItem')
+					// createCityMarkers(map.current, trip?.cities || [], zoom, 'tripItem')
+					console.log('updateCityMarkers trip?.cities', trip?.cities)
+
+					let cities: {
+						[id: string]: protoRoot.city.ICityItem
+					} = {}
+
+					trip?.cities?.forEach((v) => {
+						v.cityDetails?.forEach((sv) => {
+							if (!cities[sv.id || '']) {
+								cities[sv.id || ''] = sv
+							}
+						})
+					})
+
+					console.log('ucm cities', cities)
+
+					const tempCities = Object.keys(cities).map((k) => cities[k])
+
+					tempCities.forEach((v) => {
+						v.cities = tempCities.filter((sv) => v.id === sv.parentCityId)
+					})
+
+					const citiesArr = formartCities(tempCities)
+
+					updateCityMarkers(map.current, citiesArr, zoom)
 
 					map.current.on('moveend', (e) => {
 						// console.log('citymarker moveEnd', e)
 						map.current &&
-							createCityMarkers(
-								map.current,
-								trip?.cities || [],
-								e.target._zoom,
-								'tripItem'
-							)
+							updateCityMarkers(map.current, citiesArr, e.target._zoom)
 					})
-					map.current.on('zoom', (e) => {
+					map.current.on('zoomend', (e) => {
 						// console.log('zoomEvent', e.target._zoom)
 						map.current &&
-							createCityMarkers(
-								map.current,
-								trip?.cities || [],
-								e.target._zoom,
-								'tripItem'
-							)
+							updateCityMarkers(map.current, citiesArr, e.target._zoom)
 					})
 
 					console.log('cityBoundaries', cityBoundaries)
@@ -678,7 +732,12 @@ const TripItemComponent = memo(
 					key
 				)
 
-				createCityBoundaries(map, tempCityBoundaries[cityId], cityId, key)
+				createCityBoundaries({
+					map,
+					cityGeojson: tempCityBoundaries[cityId],
+					cityId,
+					key,
+				})
 
 				console.log('tempCityBoundaries', tempCityBoundaries[cityId])
 			})
@@ -924,7 +983,7 @@ const TripItemComponent = memo(
 				).unwrap()
 
 				if (trip) {
-					console.log('GetTrip', trip)
+					console.log('initMap GetTrip', trip)
 					onTrip(trip || undefined)
 					setLoadStatus('noMore')
 
@@ -1388,7 +1447,7 @@ const TripItemComponent = memo(
 																			)
 																		break
 																	case 'initTripCity':
-																		initTripCity(trip)
+																		initTripItemCity(trip)
 																		break
 																	case 'CorrectedData':
 																		finishTrip(true)
@@ -1886,7 +1945,7 @@ const TripItemComponent = memo(
 										<div className='ti-m-list'>
 											{trip?.marks?.map((v, i, arr) => {
 												return (
-													<div className='ti-m-l-item'>
+													<div className='ti-m-l-item' key={i}>
 														<div className='ti-m-l-i-index'>
 															<span># {arr.length - i}</span>
 														</div>
@@ -1904,30 +1963,12 @@ const TripItemComponent = memo(
 									''
 								)}
 
-								{citiesTimeline?.length ? (
+								{tempCitiesTimeline?.length ? (
 									<div className='ti-cities'>
-										<div className='ti-m-title'>
-											{t('tripCityTimeline', {
-												ns: 'tripPage',
-											})}
-										</div>
-
-										<div className='ti-m-list'>
-											{citiesTimeline?.map((v, i, arr) => {
-												return (
-													<div key={i} className='ti-m-l-item'>
-														<div className='ti-m-l-i-index'>
-															<span># {v.city}</span>
-														</div>
-														<div className='ti-m-l-i-createtime text-elipsis'>
-															{moment(Number(v.entryTime) * 1000).format(
-																'YYYY.MM.DD HH:mm'
-															)}
-														</div>
-													</div>
-												)
-											})}
-										</div>
+										<CityTimeLineComponent
+											cities={tempCitiesTimeline}
+											layout='TripItem'
+										/>
 									</div>
 								) : (
 									''

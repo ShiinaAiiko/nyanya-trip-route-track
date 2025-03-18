@@ -1,0 +1,36 @@
+syntax = "proto3";
+package file;
+
+option go_package = "./;protos";
+
+message Urls {
+  string domainUrl = 1;
+  string shortUrl = 2;
+  string url = 3;
+}
+message UrlsItem {
+  Urls urls = 1;
+  string id = 2;
+  int64 createTime = 3;
+  int64 lastUpdateTime = 4;
+}
+
+message FileInfo {
+  string name = 1;
+  int64 size = 2;
+  string type = 3;
+  string suffix = 4;
+  int64 lastModified = 5;
+  string hash = 6;
+}
+
+message GetUploadToken {
+  message Request { FileInfo fileInfo = 1; }
+  message Response {
+    Urls urls = 1;
+    string apiUrl = 2;
+    string token = 3;
+    int64 chunkSize = 4;
+    repeated int64 uploadedOffset = 5;
+  }
+}

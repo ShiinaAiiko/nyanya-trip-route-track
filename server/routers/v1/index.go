@@ -23,4 +23,6 @@ func (r *Routerv1) Init() {
 	r.InitConfigure()
 	r.InitOpen()
 	r.InitCity()
+	r.InitJourneyMemory()
+	r.InitFile()
 }

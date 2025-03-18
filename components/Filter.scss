@@ -136,36 +136,7 @@
   }
 
   .ftd-list {
-    .ftd-l-item {
-      padding: 0 0 0 6px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
-
-      &.PublicTransport.en-US {
-        .name {
-          font-size: 10px;
-        }
-      }
-
-      span {
-        font-size: 14px;
-      }
-
-      .name {
-        width: 130px;
-        word-wrap: break-word;
-        word-break: break-all;
-      }
-
-      .date {
-        color: #999;
-        font-size: 12px;
-        margin-top: 4px;
-      }
-    }
+ 
   }
 
   .ftd-buttons {
@@ -176,5 +147,35 @@
     span {
       font-size: 12px;
     }
+  }
+}
+.ftd-l-item {
+  padding: 0 0 0 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+
+  &.PublicTransport.en-US {
+    .name {
+      font-size: 10px;
+    }
+  }
+
+  span {
+    font-size: 14px;
+  }
+
+  .name {
+    width: 130px;
+    word-wrap: break-word;
+    word-break: break-all;
+  }
+
+  .date {
+    color: #999;
+    font-size: 12px;
+    margin-top: 4px;
   }
 }

@@ -13,6 +13,7 @@ import (
 	"github.com/cherrai/nyanyago-utils/nlog"
 	"github.com/cherrai/nyanyago-utils/nredis"
 	"github.com/cherrai/nyanyago-utils/ntimer"
+	"github.com/cherrai/nyanyago-utils/saass"
 	sso "github.com/cherrai/saki-sso-go"
 
 	// sfu "github.com/pion/ion-sfu/pkg/sfu"
@@ -70,7 +71,18 @@ func main() {
 		})
 		mongodb.ConnectMongoDB(conf.Config.Mongodb.Currentdb.Uri, conf.Config.Mongodb.Currentdb.Name)
 
+		conf.SAaSS = saass.New(&saass.Options{
+			AppId:      conf.Config.Saass.AppId,
+			AppKey:     conf.Config.Saass.AppKey,
+			BaseUrl:    conf.Config.Saass.BaseUrl,
+			ApiVersion: conf.Config.Saass.ApiVersion,
+		})
+
 		ntimer.SetTimeout(func() {
+			// cityDbx.InitAddCityesForTrip()
+
+			// methods.TestGenerateRouteImage()
+
 			// methods.GetCityBoundaries(conf.Config.CityVersion)
 			// tripDbx.TempDownloadTripPositionsToLocal(1, 5)
 			// tripDbx.TempRemoveTripPositions(1, 5)

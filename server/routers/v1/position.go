@@ -17,6 +17,7 @@ func (r *Routerv1) InitPosition() {
 			Authorize:          true,
 			RequestEncryption:  false,
 			ResponseEncryption: false,
+			RequestDataType:    "protobuf",
 			ResponseDataType:   "protobuf",
 		}),
 		pc.UpdateUserPosition)
@@ -27,6 +28,7 @@ func (r *Routerv1) InitPosition() {
 			Authorize:          true,
 			RequestEncryption:  false,
 			ResponseEncryption: false,
+			RequestDataType:    "protobuf",
 			ResponseDataType:   "protobuf",
 		}),
 		pc.UpdateUserPositionShare)
@@ -37,6 +39,7 @@ func (r *Routerv1) InitPosition() {
 			Authorize:          true,
 			RequestEncryption:  false,
 			ResponseEncryption: false,
+			RequestDataType:    "protobuf",
 			ResponseDataType:   "protobuf",
 		}),
 		pc.GetUserPositionShare)
@@ -47,6 +50,7 @@ func (r *Routerv1) InitPosition() {
 			Authorize:          true,
 			RequestEncryption:  false,
 			ResponseEncryption: false,
+			RequestDataType:    "protobuf",
 			ResponseDataType:   "protobuf",
 		}),
 		pc.GetUserPositionAndVehiclePosition)

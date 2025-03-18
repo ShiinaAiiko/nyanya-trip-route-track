@@ -17,6 +17,7 @@ func (r *Routerv1) InitVehicle() {
 			Authorize:          true,
 			RequestEncryption:  false,
 			ResponseEncryption: false,
+			RequestDataType:    "protobuf",
 			ResponseDataType:   "protobuf",
 		}),
 		vc.AddVehicle)
@@ -27,6 +28,7 @@ func (r *Routerv1) InitVehicle() {
 			Authorize:          true,
 			RequestEncryption:  false,
 			ResponseEncryption: false,
+			RequestDataType:    "protobuf",
 			ResponseDataType:   "protobuf",
 		}),
 		vc.GetVehicles)
@@ -37,6 +39,7 @@ func (r *Routerv1) InitVehicle() {
 			Authorize:          true,
 			RequestEncryption:  false,
 			ResponseEncryption: false,
+			RequestDataType:    "protobuf",
 			ResponseDataType:   "protobuf",
 		}),
 		vc.UpdateVehicle)
@@ -47,6 +50,7 @@ func (r *Routerv1) InitVehicle() {
 			Authorize:          true,
 			RequestEncryption:  false,
 			ResponseEncryption: false,
+			RequestDataType:    "protobuf",
 			ResponseDataType:   "protobuf",
 		}),
 		vc.DeleteVehicle)

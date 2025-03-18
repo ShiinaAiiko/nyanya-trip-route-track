@@ -145,7 +145,47 @@
 		"gpsPoints": "{{length}} GPS points"
 	},
 	"visitedCitiesModal": {
-		"title": "Visited Cities"
+		"title": "Visited Cities",
+
+		"visitedWorldTitle": "Visited the World",
+		"visitedWorldCount": " countries",
+		"journeyedCountryTitle": "Journeyed through {{country}}",
+		"journeyedCountryCount": " cities",
+		"exploredCityTitle": "Explored {{city}}",
+		"exploredCityCount": " towns",
+		"travelSummary": "Over {{days}} days and {{hours}} hours, completed {{trips}} trips covering {{distance}} kilometers",
+		"footprintCoverage": "Footprint covers approximately {{area}} square kilometers",
+
+		"cityTimeline": "City Exploration Timeline",
+		"exploredDate": "{{date}} Discovered",
+		"arrivedDate": "{{date}} Arrived"
+	},
+	"journeyMemoriesModal": {
+		"title": "Journey Memories",
+		"createNewJourneyMemory": "Create a New Journey Memory",
+		"selectTrips": "Select Trips",
+		"selectedTripsCount": "{{length}} Trips Selected",
+		"timelineEmpty": "No timeline added yet",
+
+		"timeline": "Timeline",
+		"map": "Map",
+
+		"updateMoment": "Update Moment",
+		"addMoment": "Add Moment",
+		"deleteMoment": "Delete Moment",
+		"deleteThisMoment": "Delete this moment?",
+		"viewMoment": "View Moment",
+		"moment": "Moment",
+
+		"updateJourneyMemory": "Update Journey Memory",
+		"addJourneyMemory": "Add Journey Memory",
+		"deleteJourneyMemory": "Delete Journey Memory",
+		"confirmDeleteJourneyMemory": "Are you sure you want to delete this journey memory?",
+
+		"viewMomentMapTrack": "View Moment Track",
+		"viewAllMomentMapTrack": "View All Moments' Tracks",
+		"createdAt": "Created on {{date}} at {{time}}",
+		"lastUpdatedAt": "Last updated on {{date}} at {{time}}"
 	},
 	"settings": {
 		"title": "Settings",
@@ -280,7 +320,13 @@
 		"enable": "Enable",
 		"disable": "Disable",
 
-		"unableLoadMap": "Unable to load map, switch to new basemap"
+		"unableLoadMap": "Unable to load map, switch to new basemap",
+
+		"deleteImage": "Delete This Image",
+
+		"filesUploaded": "Uploaded {{count}} files",
+		"uploadCompleted": "Upload Completed",
+		"mediaLimitExceeded": "The number of media cannot exceed 9"
 	},
 	"weather": {
 		"weather0": "Sunny",

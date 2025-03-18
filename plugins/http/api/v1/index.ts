@@ -4,6 +4,8 @@ import { configureApi } from './configure'
 import { tripApi } from './trip'
 import { openApi } from './open'
 import { cityApi } from './city'
+import { journeyMemoryApi } from './journeyMemory'
+import { fileApi } from './file'
 
 
 export const v1 = {
@@ -12,5 +14,7 @@ export const v1 = {
   ...positionApi,
   ...configureApi,
   ...openApi,
-  ...cityApi
+  ...cityApi,
+  ...journeyMemoryApi,
+  ...fileApi
 }

@@ -153,6 +153,17 @@ const HeaderComponent = ({
 														)
 													)
 													break
+												case 'JourneyMemories':
+													if (!user.isLogin) {
+														dispatch(methods.user.loginAlert())
+														return
+													}
+													dispatch(
+														layoutSlice.actions.setOpenJourneyMemoriesModal(
+															true
+														)
+													)
+													break
 												case 'VisitedCities':
 													if (!user.isLogin) {
 														dispatch(methods.user.loginAlert())
@@ -310,10 +321,27 @@ const HeaderComponent = ({
 									{user.isLogin ? (
 										<saki-menu-item padding='10px 18px' value={'VisitedCities'}>
 											<div className='tb-h-r-user-item'>
-												<saki-icon color='#666' type='Add'></saki-icon>
+												<saki-icon color='#666' type='MapFootprints'></saki-icon>
 												<span>
-													{t('visitedCities', {
-														ns: 'VisitedCitiesModal',
+													{t('title', {
+														ns: 'visitedCitiesModal',
+													})}
+												</span>
+											</div>
+										</saki-menu-item>
+									) : (
+										''
+									)}
+									{user.isLogin ? (
+										<saki-menu-item
+											padding='10px 18px'
+											value={'JourneyMemories'}
+										>
+											<div className='tb-h-r-user-item'>
+												<saki-icon color='#666' type='Camera2Fill'></saki-icon>
+												<span>
+													{t('title', {
+														ns: 'journeyMemoriesModal',
 													})}
 												</span>
 											</div>

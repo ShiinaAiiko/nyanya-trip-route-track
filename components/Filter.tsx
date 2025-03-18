@@ -595,10 +595,10 @@ const FilterComponent = ({
 								<div className='ftd-l-customtrip'>
 									<span>
 										{showCustomTrip
-											? t('hideCustomTrip', {
+											? t('showAllTrip', {
 													ns: 'trackRoutePage',
 											  })
-											: t('showCustomTrip', {
+											: t('onlyShowCustomTrip', {
 													ns: 'trackRoutePage',
 											  })}
 									</span>

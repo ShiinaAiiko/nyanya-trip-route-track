@@ -288,6 +288,21 @@ func (t *CityDbx) GetCity(id string, name string, fullName string) (*models.City
 	return city, nil
 }
 
+func (t *CityDbx) GetFullCityForCitiesProto(id string, cities []*protos.CityItem) (citiesProto []*protos.CityItem) {
+
+	for _, v := range cities {
+		if v.Id == id {
+			citiesProto = append(citiesProto, v)
+			if v.ParentCityId != "" {
+				citiesProto = append(citiesProto, t.GetFullCityForCitiesProto(v.ParentCityId, cities)...)
+			}
+			return
+		}
+	}
+
+	return
+}
+
 // func (t *CityDbx) GetCities(ids []string) (cities []*models.City, err error) {
 
 // 	for _, id := range ids {
@@ -317,27 +332,31 @@ func (t *CityDbx) getCities(ids []string, lastResultIds []string) ([]*models.Cit
 	if len(ids) == 0 {
 		return nil, nil
 	}
+	log.Info(len(ids))
 
+	var err error
 	var results []*models.City
 
-	key := conf.Redisdb.GetKey("GetCities")
+	// key := conf.Redisdb.GetKey("GetCities")
 
-	mKey := key.CreateMKey(ids...)
+	// mKey := key.CreateMKey(ids...)
 
-	conf.Redisdb.Delete(key.GetKey("sD3Lsp8SG"))
+	// conf.Redisdb.Delete(key.GetKey("sD3Lsp8SG"))
 
-	cmds, emptyKeyIndices, err := conf.Redisdb.MGet(mKey.GetMKey())
+	// cmds, emptyKeyIndices, err := conf.Redisdb.MGet(mKey.GetMKey())
 
-	emptyKeys := mKey.GetEmptyKeys(emptyKeyIndices...)
+	emptyKeys := ids
+
+	// emptyKeys := mKey.GetEmptyKeys(emptyKeyIndices...)
 
 	// log.Info("cmds", len(cmds), len(ids), ids, err)
 	// log.Info("emptyKeys", len(emptyKeyIndices), emptyKeyIndices, emptyKeys)
 
-	for _, v := range cmds {
-		city := new(models.City)
-		v.Struct(city)
-		results = append(results, city)
-	}
+	// for _, v := range cmds {
+	// 	city := new(models.City)
+	// 	v.Struct(city)
+	// 	results = append(results, city)
+	// }
 
 	if err != nil || len(emptyKeys) != 0 {
 		params := []bson.M{
@@ -379,17 +398,18 @@ func (t *CityDbx) getCities(ids []string, lastResultIds []string) ([]*models.Cit
 
 	}
 
-	values := map[string]any{}
-	for _, v := range results {
-		values[key.GetKey(v.Id)] = v
-	}
+	// redis
+	// values := map[string]any{}
+	// for _, v := range results {
+	// 	values[key.GetKey(v.Id)] = v
+	// }
 
-	// log.Info("results", len(results), len(values))
+	// // log.Info("results", len(results), len(values))
 
-	err = conf.Redisdb.MSetStruct(values, key.GetExpiration())
-	if err != nil {
-		log.Info(err)
-	}
+	// err = conf.Redisdb.MSetStruct(values, key.GetExpiration())
+	// if err != nil {
+	// 	log.Info(err)
+	// }
 	// log.Error("results", len(results), len(values))
 
 	parentIds := narrays.Filter(narrays.Map(results, func(v *models.City, i int) string {
@@ -478,6 +498,13 @@ func (t *CityDbx) GetAllCitiesVisitedByUser(authorId string) (cities []*UserVisi
 		{
 			"$match": bson.M{
 				"authorId": authorId,
+				"status":   1,
+				"cities": bson.M{
+					"$exists": true,
+					"$not": bson.M{
+						"$size": 0,
+					},
+				},
 			},
 		},
 		{
@@ -567,76 +594,142 @@ func (t *CityDbx) GetAllCitiesVisitedByUser(authorId string) (cities []*UserVisi
 }
 
 func (t *CityDbx) InitCityes() (cities *map[string]int64, err error) {
-	// trip := new(models.Trip)
+	trip := new(models.Trip)
 
-	// var results []*models.Trip
+	var results []*models.Trip
 
-	// params := []bson.M{
-	// 	{
-	// 		"$match": bson.M{
-	// 			"$and": []bson.M{
-	// 				bson.M{
-	// 					// "_id": "T1HAZSw5G",
-	// 					"cities": bson.M{
-	// 						"$exists": true,
-	// 						"$not": bson.M{
-	// 							"$size": 0,
-	// 						},
-	// 					},
-	// 				},
-	// 			},
-	// 		},
-	// 	},
-	// 	{
-	// 		"$project": bson.M{
-	// 			"_id":    1,
-	// 			"cities": 1,
-	// 		},
-	// 	},
-	// }
+	params := []bson.M{
+		{
+			"$match": bson.M{
+				"$and": []bson.M{
+					bson.M{
+						// "_id": "T1HAZSw5G",
+						"_id": bson.M{
+							"$in": []string{"HjFiAGJwf"},
+							// "$in": []string{"GfhyeHASJ", "smYOp1MrX", "l8LRZP67g", "tG0Bo3t3t"},
+						},
+						// "createTime": bson.M{
+						// 	"$lte": 1710486182,
+						// 	"$gte": 0,
+						// },
+						"cities": bson.M{
+							"$exists": true,
+							"$not": bson.M{
+								"$size": 0,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			"$project": bson.M{
+				"_id":    1,
+				"cities": 1,
+			},
+		},
+	}
 
-	// opts, err := trip.GetCollection().Aggregate(context.TODO(), params)
-	// if err != nil {
-	// 	// log.Error(err)
-	// 	return nil, err
-	// }
-	// if err = opts.All(context.TODO(), &results); err != nil {
-	// 	// log.Error(err)
-	// 	return nil, err
-	// }
+	opts, err := trip.GetCollection().Aggregate(context.TODO(), params)
+	if err != nil {
+		// log.Error(err)
+		return nil, err
+	}
+	if err = opts.All(context.TODO(), &results); err != nil {
+		// log.Error(err)
+		return nil, err
+	}
 
-	// log.Info("results", results)
+	log.Info("results", results)
 
-	// type CityIdType struct {
-	// 	Id        string
-	// 	EntryTime int64
-	// }
+	type CityIdType struct {
+		Id        string
+		EntryTime int64
+	}
 
-	// for _, v := range results {
-	// 	for _, sv := range v.Cities {
+	for _, v := range results {
+		for _, sv := range v.Cities {
 
-	// 		log.Info(sv.Id, sv.CityId)
+			log.Info(sv.CityId)
 
-	// 		updateResult, err := trip.GetCollection().UpdateOne(context.TODO(),
-	// 			bson.M{
-	// 				"$and": []bson.M{
-	// 					{
-	// 						"_id":        v.Id,
-	// 						"cities._id": sv.Id,
-	// 					},
-	// 				},
-	// 			}, bson.M{
-	// 				"$set": bson.M{
-	// 					"cities.$.cityId": sv.Id,
-	// 					"cities.$._id":    "",
-	// 				},
-	// 			}, options.Update().SetUpsert(false))
+			updateResult, err := trip.GetCollection().UpdateOne(context.TODO(),
+				bson.M{
+					"$and": []bson.M{
+						{
+							"_id": v.Id,
+							// "cities._id": sv.Id,
+						},
+					},
+				}, bson.M{
+					"$set": bson.M{
+						"cities": []*models.TripCity{},
+					},
+				}, options.Update().SetUpsert(false))
 
-	// 		log.Info(updateResult, err)
+			log.Info(updateResult, err)
 
-	// 	}
-	// 	// cities = append(cities, v.Cities)
-	// }
+		}
+		// cities = append(cities, v.Cities)
+	}
+
+	return nil, nil
+}
+
+func (t *CityDbx) InitAddCityesForTrip() (cities *map[string]int64, err error) {
+	trip := new(models.Trip)
+
+	var results []*models.Trip
+
+	params := []bson.M{
+		{
+			"$match": bson.M{
+				"$and": []bson.M{
+					bson.M{
+						"createTime": bson.M{
+							"$lte": 1736230041,
+							"$gte": 1735193241,
+						},
+					},
+				},
+			},
+		},
+		{
+			"$sort": bson.M{
+				"createTime": -1,
+			},
+		},
+		{
+			"$skip": 0,
+		},
+		{
+			"$limit": 1,
+		},
+		{
+			"$project": bson.M{
+				"_id":        1,
+				"createTime": 1,
+				"cities":     1,
+			},
+		},
+	}
+
+	opts, err := trip.GetCollection().Aggregate(context.TODO(), params)
+	if err != nil {
+		// log.Error(err)
+		return nil, err
+	}
+	if err = opts.All(context.TODO(), &results); err != nil {
+		// log.Error(err)
+		return nil, err
+	}
+
+	log.Info("results", results)
+
+	for _, v := range results {
+		t := time.Unix(v.CreateTime, 0)
+		log.Info(v.Id, t.Format("2006-01-02 15:04:05"), len(v.Cities))
+
+	}
 
 	return nil, nil
 }

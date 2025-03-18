@@ -149,9 +149,24 @@ export const getZoom = (
   lon2: number
 ) => {
   const distance = getDistance(lat1, lon1, lat2, lon2)
-  // console.log('distancedistance', distance)
+  // console.log('distancedistance', lat1, lon1, lat2, lon2, distance)
   // const distance = 500000
   // let tempNum = -1
+  if (distance >= 5000000) {
+    return 3
+  }
+  if (distance >= 4500000) {
+    return 3.5
+  }
+  if (distance >= 3000000) {
+    return 4
+  }
+  if (distance >= 1400000) {
+    return 5
+  }
+  if (distance >= 800000) {
+    return 5.5
+  }
   if (distance >= 500000) {
     return 6
   }
@@ -487,15 +502,15 @@ export const roadColorFade = (layer: any) => {
       let result = await imageColorInversion({
         imgEl,
       },
-        // [
-        [[180, 255], [90, 228], [0, 195], [1, 1]],
-        // 56, 176, 203
-        // [[58, 189], [177, 227], [203, 241], [1, 1]],
-        // [[146, 202], [122, 190], [190, 221], [1, 1]],
-        // [[56, 197], [176, 232], [203, 239], [1, 1]],
-        // // 96, 193, 106
-        // [[70, 216], [185, 237], [82, 209], [1, 1]],
-        // ],
+        [
+          [[180, 255], [90, 228], [0, 195], [1, 1]],
+          // 56, 176, 203
+          // [[58, 189], [177, 227], [203, 241], [1, 1]],
+          // [[146, 202], [122, 190], [190, 221], [1, 1]],
+          // [[56, 197], [176, 232], [203, 239], [1, 1]],
+          // // 96, 193, 106
+          // [[70, 216], [185, 237], [82, 209], [1, 1]],
+        ],
         // [
         [233, 233, 233, 1],
         // [233, 233, 233, 1],
@@ -556,4 +571,13 @@ function normalizeLng(lng: number) {
 export const toFixed = (num: number, fractionDigits: number = 10) => {
   const n = Math.pow(10, fractionDigits)
   return Math.round(num * n) / n
+}
+
+export function stripHtmlTags(html: string): string {
+  if (typeof html !== 'string') return '';
+
+  // 移除 HTML 标签
+  let text = html.replace(/<[^>]*>/g, '');
+
+  return text;
 }

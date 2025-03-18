@@ -1,0 +1,129 @@
+syntax = "proto3";
+
+option go_package = "./;protos";
+package journeyMemory;
+import "trip.proto";
+
+// JourneyMemoryTimeLineIMediaItem 表示媒体项
+message JourneyMemoryMediaItem {
+  string type = 1; // "image", "video", etc.
+  string url = 2;
+}
+
+// JourneyMemoryTimeLineItem 表示时间线中的一个条目
+message JourneyMemoryTimelineItem {
+  string id = 7;
+  string name = 1;
+  string desc = 2;
+  repeated JourneyMemoryMediaItem media = 3; // 媒体项数组
+  repeated string tripIds = 4;               // 旅行 ID 数组
+  int64 time = 5;                            // 时间戳
+
+  // 仅输出用
+  trip.TripHistoricalStatistics statistics = 6;
+  repeated trip.Trip trips = 8;
+}
+
+message JourneyMemoryItem {
+  string id = 1;
+  string name = 2;
+  string desc = 3;
+  repeated JourneyMemoryMediaItem media = 11;
+
+  repeated JourneyMemoryTimelineItem timeline = 4;
+
+  string authorId = 9;
+  // 1、-1
+  int32 status = 5;
+  int64 createTime = 6;
+  int64 lastUpdateTime = 7;
+  int64 deleteTime = 8;
+
+  // 仅输出用
+  trip.TripHistoricalStatistics statistics = 10;
+}
+
+message AddJM {
+  message Request {
+    string name = 1;
+    string desc = 2;
+  repeated JourneyMemoryMediaItem media = 3;
+  }
+  message Response { JourneyMemoryItem journeyMemory = 1; }
+}
+
+message UpdateJM {
+  message Request {
+    string id = 1;
+    string name = 2;
+    string desc = 3;
+  repeated JourneyMemoryMediaItem media = 4;
+  }
+  message Response {}
+}
+
+message GetJMDetail {
+  message Request { string id = 1; }
+  message Response { JourneyMemoryItem journeyMemory = 1; }
+}
+
+message GetJMList {
+  message Request {
+    int32 pageNum = 1;
+    int32 pageSize = 2;
+  }
+  message Response {
+    repeated JourneyMemoryItem list = 1;
+    int32 total = 2;
+  }
+}
+
+message DeleteJM {
+  message Request { string id = 1; }
+  message Response {}
+}
+
+message AddJMTimeline {
+  message Request {
+    string id = 6;
+    string name = 1;
+    string desc = 2;
+    repeated JourneyMemoryMediaItem media = 3; // 媒体项数组
+    repeated string tripIds = 4;               // 旅行 ID 数组
+    int64 time = 5;                            // 时间戳
+  }
+  message Response { JourneyMemoryTimelineItem journeyMemoryTimeline = 1; }
+}
+
+message UpdateJMTimeline {
+  message Request {
+    string id = 6;
+    string timelineId = 7;
+    string name = 1;
+    string desc = 2;
+    repeated JourneyMemoryMediaItem media = 3; // 媒体项数组
+    repeated string tripIds = 4;               // 旅行 ID 数组
+    int64 time = 5;                            // 时间戳
+  }
+  message Response {}
+}
+
+message GetJMTimelineList {
+  message Request {
+    string id = 1;
+    int32 pageNum = 2;
+    int32 pageSize = 3;
+  }
+  message Response {
+    repeated JourneyMemoryTimelineItem list = 1;
+    int32 total = 2;
+  }
+}
+
+message DeleteJMTimeline {
+  message Request {
+    string id = 1;
+    string timelineId = 2;
+  }
+  message Response {}
+}

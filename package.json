@@ -1,10 +1,10 @@
 {
 	"name": "nyanya-trip-route-track",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"private": true,
 	"scripts": {
 		"nodemon": "nodemon ./nodemon.js",
-		"dev": "cp -r ./config.dev.json ./config.temp.json && rm -rf ./.next && cross-env CLIENT_ENV=development next dev -p 23202",
+		"dev": "cp -r ./config.dev.json ./config.temp.json && rm -rf ./.next && ./release.sh download:saki-ui-react && ./release.sh copySakiUIReactTypes  && cross-env CLIENT_ENV=development next dev -p 23202",
 		"build": "next build",
 		"devstart": "yarn run build && cross-env CLIENT_ENV=development next start -p 23200",
 		"start": "next build && cross-env CLIENT_ENV=production next start -p 23200",
@@ -17,9 +17,10 @@
 	},
 	"dependencies": {
 		"@akaguny/open-meteo-wmo-to-emoji": "^0.1.0",
-		"@nyanyajs/utils": "^1.0.25",
+		"@nyanyajs/utils": "^1.0.33",
 		"@reduxjs/toolkit": "^1.7.0",
 		"@saki-ui/core": "1.0.2",
+		"@turf/area": "^7.2.0",
 		"axios": "^0.24.0",
 		"blueimp-md5": "^2.19.0",
 		"chart.js": "^4.4.0",
@@ -36,11 +37,13 @@
 		"qs": "^6.10.1",
 		"react": "18.2.0",
 		"react-dom": "18.2.0",
+		"react-error-boundary": "^5.0.0",
 		"react-i18next": "^11.18.3",
 		"react-redux": "^8.1.2",
 		"redux": "^4.2.1",
 		"screenfull": "^6.0.2",
-		"socket.io-client": "^4.4.0"
+		"socket.io-client": "^4.4.0",
+		"swiper": "^11.2.5"
 	},
 	"devDependencies": {
 		"@types/blueimp-md5": "^2.18.0",

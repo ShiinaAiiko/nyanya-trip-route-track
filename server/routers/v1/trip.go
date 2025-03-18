@@ -17,6 +17,7 @@ func (r *Routerv1) InitTrip() {
 			Authorize:          true,
 			RequestEncryption:  false,
 			ResponseEncryption: false,
+			RequestDataType:    "protobuf",
 			ResponseDataType:   "protobuf",
 		}),
 		tc.AddTrip)
@@ -27,6 +28,7 @@ func (r *Routerv1) InitTrip() {
 			Authorize:          true,
 			RequestEncryption:  false,
 			ResponseEncryption: false,
+			RequestDataType:    "protobuf",
 			ResponseDataType:   "protobuf",
 		}),
 		tc.AddTripMark)
@@ -37,6 +39,7 @@ func (r *Routerv1) InitTrip() {
 			Authorize:          true,
 			RequestEncryption:  false,
 			ResponseEncryption: false,
+			RequestDataType:    "protobuf",
 			ResponseDataType:   "protobuf",
 		}),
 		tc.AddTripToOnline)
@@ -47,6 +50,7 @@ func (r *Routerv1) InitTrip() {
 			Authorize:          true,
 			RequestEncryption:  false,
 			ResponseEncryption: false,
+			RequestDataType:    "protobuf",
 			ResponseDataType:   "protobuf",
 		}),
 		tc.UpdateTripPosition)
@@ -57,6 +61,7 @@ func (r *Routerv1) InitTrip() {
 			Authorize:          true,
 			RequestEncryption:  false,
 			ResponseEncryption: false,
+			RequestDataType:    "protobuf",
 			ResponseDataType:   "protobuf",
 		}),
 		tc.FinishTrip)
@@ -67,6 +72,7 @@ func (r *Routerv1) InitTrip() {
 			Authorize:          true,
 			RequestEncryption:  false,
 			ResponseEncryption: false,
+			RequestDataType:    "protobuf",
 			ResponseDataType:   "protobuf",
 		}),
 		tc.CorrectedTripData)
@@ -77,6 +83,7 @@ func (r *Routerv1) InitTrip() {
 			Authorize:          true,
 			RequestEncryption:  false,
 			ResponseEncryption: false,
+			RequestDataType:    "protobuf",
 			ResponseDataType:   "protobuf",
 		}),
 		tc.UpdateTrip)
@@ -87,6 +94,7 @@ func (r *Routerv1) InitTrip() {
 			Authorize:          true,
 			RequestEncryption:  false,
 			ResponseEncryption: false,
+			RequestDataType:    "protobuf",
 			ResponseDataType:   "protobuf",
 		}),
 		tc.UpdateTrips)
@@ -97,6 +105,7 @@ func (r *Routerv1) InitTrip() {
 			Authorize:          true,
 			RequestEncryption:  false,
 			ResponseEncryption: false,
+			RequestDataType:    "protobuf",
 			ResponseDataType:   "protobuf",
 		}),
 		tc.DeleteTrip)
@@ -107,6 +116,7 @@ func (r *Routerv1) InitTrip() {
 			Authorize:          false,
 			RequestEncryption:  false,
 			ResponseEncryption: false,
+			RequestDataType:    "protobuf",
 			ResponseDataType:   "protobuf",
 		}),
 		tc.GetTrip)
@@ -117,6 +127,7 @@ func (r *Routerv1) InitTrip() {
 			Authorize:          false,
 			RequestEncryption:  false,
 			ResponseEncryption: false,
+			RequestDataType:    "protobuf",
 			ResponseDataType:   "protobuf",
 		}),
 		tc.GetTripPositions)
@@ -127,7 +138,8 @@ func (r *Routerv1) InitTrip() {
 			Authorize:          true,
 			RequestEncryption:  false,
 			ResponseEncryption: false,
-			ResponseDataType:   "protobuf",
+			RequestDataType:    "protobuf",
+			ResponseDataType:   "json",
 		}),
 		tc.GetTripHistoryPositions)
 
@@ -137,6 +149,7 @@ func (r *Routerv1) InitTrip() {
 			Authorize:          true,
 			RequestEncryption:  false,
 			ResponseEncryption: false,
+			RequestDataType:    "protobuf",
 			ResponseDataType:   "protobuf",
 		}),
 		tc.GetTrips)
@@ -147,6 +160,7 @@ func (r *Routerv1) InitTrip() {
 			Authorize:          true,
 			RequestEncryption:  false,
 			ResponseEncryption: false,
+			RequestDataType:    "protobuf",
 			ResponseDataType:   "protobuf",
 		}),
 		tc.GetTripStatistics)
@@ -157,6 +171,7 @@ func (r *Routerv1) InitTrip() {
 			Authorize:          true,
 			RequestEncryption:  false,
 			ResponseEncryption: false,
+			RequestDataType:    "protobuf",
 			ResponseDataType:   "protobuf",
 		}),
 		tc.GetHistoricalStatistics)
@@ -167,6 +182,7 @@ func (r *Routerv1) InitTrip() {
 			Authorize:          true,
 			RequestEncryption:  false,
 			ResponseEncryption: false,
+			RequestDataType:    "protobuf",
 			ResponseDataType:   "protobuf",
 		}),
 		tc.ResumeTrip)

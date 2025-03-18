@@ -19,7 +19,13 @@ import store, {
 import { useSelector, useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { bindEvent, snackbar, progressBar } from '@saki-ui/core'
-import { Debounce, deepCopy, NyaNyaWasm, QueueLoop } from '@nyanyajs/utils'
+import {
+	AsyncQueue,
+	Debounce,
+	deepCopy,
+	NyaNyaWasm,
+	QueueLoop,
+} from '@nyanyajs/utils'
 import {
 	getRegExp,
 	copyText,
@@ -60,8 +66,12 @@ import {
 	languages,
 } from '../../plugins/i18n/i18n'
 import { log } from 'console'
-import { filterTripsForTrackRoutePage } from '../../store/trip'
+import {
+	filterTripsForTrackRoutePage,
+	getAllTripPositions,
+} from '../../store/trip'
 import FiexdWeatherComponent from '../../components/FiexdWeather'
+import { createDistanceScaleControl } from '../../plugins/map'
 
 const TrackRoutePage = () => {
 	const { t, i18n } = useTranslation('trackRoutePage')
@@ -114,8 +124,8 @@ const TrackRoutePage = () => {
 	const [type, setType] = useState<TripType>('Running')
 
 	const [startTrip, setStartTrip] = useState(false)
-	const [pageNum, setPageNum] = useState(1)
-	const [pageSize, setPageSize] = useState(15)
+	// const [pageNum, setPageNum] = useState(1)
+	// const [pageSize, setPageSize] = useState(15)
 
 	const [disablePanTo, setDisablePanTo] = useState(false)
 
@@ -296,7 +306,7 @@ const TrackRoutePage = () => {
 			// }, 5500);
 			// const init = async () => {
 			dispatch(
-				methods.trip.GetTripStatistics({
+				methods.trip.GetTripHistoryData({
 					loadCloudData: true,
 				})
 			)
@@ -332,7 +342,7 @@ const TrackRoutePage = () => {
 
 				const { config } = store.getState()
 				// getHistoricalStatistic()
-				console.log('getTripHistoryPositionslocalIds', localIds)
+				console.log('getAllTripPositions', localIds)
 				await getTripHistoryPositions()
 			}
 			init()
@@ -342,7 +352,7 @@ const TrackRoutePage = () => {
 		//     getTripStatistics()
 		//   }, 500);
 		// }
-	}, [user.isLogin, pageNum, initLocalData, trip.tripStatistics, map.current])
+	}, [user.isLogin, initLocalData, trip.tripStatistics, map.current])
 
 	const requestWakeLock = async () => {
 		try {
@@ -434,81 +444,89 @@ const TrackRoutePage = () => {
 					let laodCount = 0
 					let tripData: protoRoot.trip.ITripPositions[] = []
 
-					loadingSnackbar.current = snackbar({
-						message: t('loadingData', {
-							ns: 'prompt',
-						}),
-						vertical: 'top',
-						horizontal: 'center',
-						backgroundColor: 'var(--saki-default-color)',
-						color: '#fff',
-					})
+					// loadingSnackbar.current = snackbar({
+					// 	message: t('loadingData', {
+					// 		ns: 'prompt',
+					// 	}),
+					// 	vertical: 'top',
+					// 	horizontal: 'center',
+					// 	backgroundColor: 'var(--saki-default-color)',
+					// 	color: '#fff',
+					// })
 
-					const unPulledIds: string[] = []
+					// const unPulledIds: string[] = []
 
-					tripPositions.forEach((v) => {
-						if (!selectedTripIds.includes(v.value.id || '')) return
+					// tripPositions.forEach((v) => {
+					// 	if (!selectedTripIds.includes(v.value.id || '')) return
 
-						if ((v.value.positions?.[0]?.split('_').length || 0) > 2) {
-							tripData.push(v.value)
-							return
-						}
+					// 	if ((v.value.positions?.[0]?.split('_').length || 0) > 2) {
+					// 		tripData.push(v.value)
+					// 		return
+					// 	}
 
-						// 这些是未获取的
+					// 	// 这些是未获取的
 
-						unPulledIds.push(String(v.value.id))
+					// 	unPulledIds.push(String(v.value.id))
 
-						// promiseAll.push(
-						//   new Promise(async (res: any) => {
-						//     const posRes = await httpApi.v1.GetTripPositions({
-						//       id: v.value.id,
-						//       shareKey: '',
-						//     })
-						//     // console.log(' fTripPositions GetTripPositions posRes', posRes)
-						//     if (
-						//       posRes.code === 200 &&
-						//       posRes.data?.tripPositions?.positions &&
-						//       posRes.data?.tripPositions.status
-						//     ) {
-						//       laodCount++
-						//       loadingSnackbar?.setMessage(
-						//         t('loadedData', {
-						//           ns: 'prompt',
-						//           percentage:
-						//             String(
-						//               laodCount && promiseAll.length
-						//                 ? Math.floor(
-						//                   (laodCount / promiseAll.length || 0) * 100
-						//                 )
-						//                 : 0
-						//             ) + '%',
-						//         })
-						//       )
+					// 	// promiseAll.push(
+					// 	//   new Promise(async (res: any) => {
+					// 	//     const posRes = await httpApi.v1.GetTripPositions({
+					// 	//       id: v.value.id,
+					// 	//       shareKey: '',
+					// 	//     })
+					// 	//     // console.log(' fTripPositions GetTripPositions posRes', posRes)
+					// 	//     if (
+					// 	//       posRes.code === 200 &&
+					// 	//       posRes.data?.tripPositions?.positions &&
+					// 	//       posRes.data?.tripPositions.status
+					// 	//     ) {
+					// 	//       laodCount++
+					// 	//       loadingSnackbar?.setMessage(
+					// 	//         t('loadedData', {
+					// 	//           ns: 'prompt',
+					// 	//           percentage:
+					// 	//             String(
+					// 	//               laodCount && promiseAll.length
+					// 	//                 ? Math.floor(
+					// 	//                   (laodCount / promiseAll.length || 0) * 100
+					// 	//                 )
+					// 	//                 : 0
+					// 	//             ) + '%',
+					// 	//         })
+					// 	//       )
 
-						//       res(posRes.data.tripPositions)
+					// 	//       res(posRes.data.tripPositions)
 
-						//       await storage.tripPositions.set(
-						//         v.value.id || '',
-						//         posRes.data.tripPositions
-						//       )
-						//     } else {
-						//       res(undefined)
-						//     }
-						//   })
-						// )
-					})
+					// 	//       await storage.tripPositions.set(
+					// 	//         v.value.id || '',
+					// 	//         posRes.data.tripPositions
+					// 	//       )
+					// 	//     } else {
+					// 	//       res(undefined)
+					// 	//     }
+					// 	//   })
+					// 	// )
+					// })
 
-					// const res = await Promise.all(promiseAll)
+					// // const res = await Promise.all(promiseAll)
 
-					if (unPulledIds.length) {
-						loadingSnackbar.current.open()
-					}
+					// if (unPulledIds.length) {
+					// 	loadingSnackbar.current.open()
+					// }
+
+					// tripData = tripData.concat(
+					// 	await getDetailedPositionsOfTrip(unPulledIds, 0, unPulledIds.length)
+					// )
 
 					tripData = tripData.concat(
-						await getDetailedPositionsOfTrip(unPulledIds, 0, unPulledIds.length)
+						await getAllTripPositions({
+							ids: selectedTripIds,
+							pageSize: 10,
+							loadingSnackbar: true,
+							fullData: true,
+						})
 					)
-
-					// console.log('fTripPositions', res, tripData)
+					console.log('getAllTripPositions allres', tripData)
 
 					tripData.forEach(async (v) => {
 						const positions = formatPositionsStr(
@@ -1019,177 +1037,206 @@ const TrackRoutePage = () => {
 		})
 	}
 
+	const getTripHistoryPositionsPageNum = useRef(1)
+	const getTripHistoryPositionsAQ = useRef(
+		new AsyncQueue({
+			maxQueueConcurrency: 5,
+		})
+	)
+
 	const getTripHistoryPositions = async () => {
 		try {
-			if (!loadingSnackbar.current) {
-				loadingSnackbar.current = snackbar({
-					message: t('loadingData', {
-						ns: 'prompt',
-					}),
-					vertical: 'top',
-					horizontal: 'center',
-					backgroundColor: 'var(--saki-default-color)',
-					color: '#fff',
-				})
-				loadingSnackbar.current.open()
-			}
-
 			const trip = store.getState().trip
-
 			const allIds =
 				trip.tripStatistics
 					.filter((v) => v.type === 'All')?.[0]
-					?.list?.map((v) => v.id) || []
-			const localIdsObj: {
-				[id: string]: string
-			} = {}
-			console.log(
-				'getTripHistoryPositions allIds',
-				trip.tripStatistics,
-				allIds.length,
-				localIds.length
-			)
-			localIds.forEach((v) => {
-				localIdsObj[v] = v
+					?.list?.map((v) => v.id || '') || []
+
+			const res = await getAllTripPositions({
+				ids: allIds,
+				pageSize: 15,
+				onload(totalCount, loadCount) {
+					console.log('getAllTripPositions', totalCount, loadCount)
+				},
+				loadingSnackbar: true,
 			})
-			const unPulledIds = allIds
-				.map((v) => String(v))
-				.filter((v) => {
-					return !localIdsObj[v]
-				})
+			console.log('getAllTripPositions allres', res)
 
-			console.log(
-				'getTripHistoryPositions',
-				loadStatus,
-				localIds,
-				unPulledIds,
-				unPulledIds.slice((pageNum - 1) * pageSize, pageNum * pageSize)
-				// localIds,
-				// trip.tripStatistics.filter(v => v.type === "All")?.[0]?.list?.map(v => v.id)
-			)
+			loadData()
 
-			const ids = unPulledIds.slice(
-				(pageNum - 1) * pageSize,
-				pageNum * pageSize
-			)
-
-			if (
-				!trip.tripStatistics.filter((v) => v.type === 'All')?.[0] ||
-				!ids.length
-			) {
-				loadData()
-				return
-			}
-
-			if (loadStatus === 'loading' || loadStatus == 'noMore') return
-			setLoadStatus('loading')
-			console.log(!user.isLogin || type === 'Local')
-			// if (!user.isLogin || type === 'Local') {
-			// 	const trips = await storage.trips.getAll()
-			// 	console.log('getLocalTrips', trips)
-
-			// 	const obj: any = {}
-			// 	// let distance = 0
-			// 	// let time = 0
-			// 	trips.forEach((v) => {
-			// 		if (!v.value.type) return
-			// 		!obj[v.value.type] &&
-			// 			(obj[v.value.type] = {
-			// 				count: 0,
-			// 				distance: 0,
-			// 				time: 0,
-			// 			})
-
-			// 		obj[v.value.type].count += 1
-			// 		obj[v.value.type].distance += v.value.statistics?.distance || 0
-			// 		obj[v.value.type].time +=
-			// 			(Number(v.value.endTime) || 0) - (Number(v.value.startTime) || 0)
+			// if (!loadingSnackbar.current) {
+			// 	loadingSnackbar.current = snackbar({
+			// 		message: t('loadingData', {
+			// 			ns: 'prompt',
+			// 		}),
+			// 		vertical: 'top',
+			// 		horizontal: 'center',
+			// 		backgroundColor: 'var(--saki-default-color)',
+			// 		color: '#fff',
 			// 	})
-			// 	setHistoricalStatistics({
-			// 		...historicalStatistics,
-			// 		...obj,
+			// 	loadingSnackbar.current.open()
+			// }
+
+			// const pageNum = getTripHistoryPositionsPageNum.current
+
+			// const localIdsObj: {
+			// 	[id: string]: string
+			// } = {}
+			// console.log(
+			// 	'getTripHistoryPositions allIds',
+			// 	trip.tripStatistics,
+			// 	allIds.length,
+			// 	localIds.length
+			// )
+			// localIds.forEach((v) => {
+			// 	localIdsObj[v] = v
+			// })
+			// const unPulledIds = allIds
+			// 	.map((v) => String(v))
+			// 	.filter((v) => {
+			// 		return !localIdsObj[v]
 			// 	})
-			// 	setLoadStatus('loaded')
+
+			// console.log(
+			// 	'getTripHistoryPositions',
+			// 	loadStatus,
+			// 	localIds,
+			// 	unPulledIds,
+			// 	unPulledIds.slice((pageNum - 1) * pageSize, pageNum * pageSize)
+			// 	// localIds,
+			// 	// trip.tripStatistics.filter(v => v.type === "All")?.[0]?.list?.map(v => v.id)
+			// )
+
+			// const ids = unPulledIds.slice(
+			// 	(pageNum - 1) * pageSize,
+			// 	pageNum * pageSize
+			// )
+
+			// if (
+			// 	!trip.tripStatistics.filter((v) => v.type === 'All')?.[0] ||
+			// 	!ids.length
+			// ) {
+			// 	loadData()
 			// 	return
 			// }
-			//
 
-			const res = await httpApi.v1.GetTripHistoryPositions({
-				shareKey: String(sk || ''),
-				// pageNum,
-				pageNum: 1,
-				pageSize,
-				type: 'All',
-				ids,
-				// ids: [],
-				timeLimit: [0, Math.floor(new Date().getTime() / 1000)],
-				// timeLimit: [localLastTripStartTime + 1, Math.floor(new Date().getTime() / 1000)],
-			})
-			console.log(
-				'GetTripHistoryPositions res',
-				localLastTripStartTime,
-				localIds,
-				res,
-				pageNum,
-				unPulledIds.slice((pageNum - 1) * pageSize, pageNum * pageSize),
-				ids
-			)
-			if (res.code === 200) {
-				const promiseAll: any[] = []
-				let startTime = 0
-				res.data.list?.forEach(async (v) => {
-					if (Number(v.startTime) > startTime) {
-						startTime = Number(v.startTime)
-					}
-					v.id && promiseAll.push(storage.tripPositions.set(v.id, v))
-				})
-				Promise.all(promiseAll).then(async () => {
-					await storage.global.set('localLastTripStartTime', startTime)
+			// if (loadStatus === 'loading' || loadStatus == 'noMore') return
+			// setLoadStatus('loading')
+			// console.log(!user.isLogin || type === 'Local')
+			// // if (!user.isLogin || type === 'Local') {
+			// // 	const trips = await storage.trips.getAll()
+			// // 	console.log('getLocalTrips', trips)
 
-					laodCount.current += Number(res.data.total)
-					// laodCount.current += unPulledIds.length
-					const total =
-						trip.tripStatistics?.filter((v) => v.type === 'All')?.[0]?.count ||
-						0
+			// // 	const obj: any = {}
+			// // 	// let distance = 0
+			// // 	// let time = 0
+			// // 	trips.forEach((v) => {
+			// // 		if (!v.value.type) return
+			// // 		!obj[v.value.type] &&
+			// // 			(obj[v.value.type] = {
+			// // 				count: 0,
+			// // 				distance: 0,
+			// // 				time: 0,
+			// // 			})
 
-					console.log(
-						'GetTripHistoryPositions res',
-						await storage.tripPositions.getAll(),
-						laodCount.current,
-						total
-					)
+			// // 		obj[v.value.type].count += 1
+			// // 		obj[v.value.type].distance += v.value.statistics?.distance || 0
+			// // 		obj[v.value.type].time +=
+			// // 			(Number(v.value.endTime) || 0) - (Number(v.value.startTime) || 0)
+			// // 	})
+			// // 	setHistoricalStatistics({
+			// // 		...historicalStatistics,
+			// // 		...obj,
+			// // 	})
+			// // 	setLoadStatus('loaded')
+			// // 	return
+			// // }
+			// //
 
-					loadingSnackbar.current?.setMessage(
-						t('loadedData', {
-							ns: 'prompt',
-							percentage:
-								String(
-									laodCount.current && total
-										? Math.floor((laodCount.current / total || 0) * 100)
-										: 0
-								) + '%',
-						})
-					)
-					if (Number(res.data.total || 0) === pageSize) {
-						setPageNum(pageNum + 1)
-					} else {
-						loadData()
-					}
-				})
-			} else {
-				loadData()
-			}
-			// const obj: any = {}
-			// obj[type] = {
-			// 	count: res?.data?.count || 0,
-			// 	distance: res?.data?.distance || 0,
-			// 	time: res?.data?.time || 0,
-			// }
-			// setHistoricalStatistics({
-			// 	...historicalStatistics,
-			// 	...obj,
+			// const res = await httpApi.v1.GetTripHistoryPositions({
+			// 	shareKey: String(sk || ''),
+			// 	// pageNum,
+			// 	pageNum: 1,
+			// 	pageSize,
+			// 	type: 'All',
+			// 	ids,
+			// 	// ids: [],
+			// 	timeLimit: [0, Math.floor(new Date().getTime() / 1000)],
+			// 	// timeLimit: [localLastTripStartTime + 1, Math.floor(new Date().getTime() / 1000)],
 			// })
-			setLoadStatus('loaded')
+			// console.log(
+			// 	'GetTripHistoryPositions res',
+			// 	localLastTripStartTime,
+			// 	localIds,
+			// 	res,
+			// 	pageNum,
+			// 	unPulledIds.slice((pageNum - 1) * pageSize, pageNum * pageSize),
+			// 	ids
+			// )
+			// if (res.code === 200) {
+			// 	const promiseAll: any[] = []
+			// 	let startTime = 0
+			// 	res.data.list?.forEach(async (v) => {
+			// 		if (Number(v.startTime) > startTime) {
+			// 			startTime = Number(v.startTime)
+			// 		}
+			// 		v.id && promiseAll.push(storage.tripPositions.set(v.id, v))
+			// 	})
+			// 	Promise.all(promiseAll).then(async () => {
+			// 		await storage.global.set('localLastTripStartTime', startTime)
+
+			// 		laodCount.current += Number(res.data.total)
+			// 		// laodCount.current += unPulledIds.length
+			// 		const total =
+			// 			trip.tripStatistics?.filter((v) => v.type === 'All')?.[0]?.count ||
+			// 			0
+
+			// 		console.log(
+			// 			'GetTripHistoryPositions res',
+			// 			await storage.tripPositions.getAll(),
+			// 			laodCount.current,
+			// 			total
+			// 		)
+
+			// 		loadingSnackbar.current?.setMessage(
+			// 			t('loadedData', {
+			// 				ns: 'prompt',
+			// 				percentage:
+			// 					String(
+			// 						laodCount.current && total
+			// 							? Math.floor((laodCount.current / total || 0) * 100)
+			// 							: 0
+			// 					) + '%',
+			// 			})
+			// 		)
+			// 		if (Number(res.data.total || 0) === pageSize) {
+			// 			// setPageNum(pageNum + 1)
+
+			// 			getTripHistoryPositionsAQ.current.increase(async () => {
+			// 				for (let i = 0; i < 3; i++) {
+			// 					getTripHistoryPositionsPageNum.current += 1
+			// 					await getTripHistoryPositions(pageSize)
+			// 				}
+			// 			})
+			// 		} else {
+			//       console.log("loadDataloadData")
+			// 			loadData()
+			// 		}
+			// 	})
+			// } else {
+			// 	loadData()
+			// }
+			// // const obj: any = {}
+			// // obj[type] = {
+			// // 	count: res?.data?.count || 0,
+			// // 	distance: res?.data?.distance || 0,
+			// // 	time: res?.data?.time || 0,
+			// // }
+			// // setHistoricalStatistics({
+			// // 	...historicalStatistics,
+			// // 	...obj,
+			// // })
+			// setLoadStatus('loaded')
 		} catch (error) {
 			console.error(error)
 		}
@@ -1367,6 +1414,15 @@ const TrackRoutePage = () => {
 					config.configure.trackRouteMap?.mapMode === 'Black'
 				)
 
+				createDistanceScaleControl(
+					map.current,
+					config.deviceType === 'Mobile' ? 80 : 100,
+					{
+						position: 'bottomleft',
+						y: '5px',
+					}
+				)
+
 				console.log('layer', layer)
 				// }
 				//定义一个地图缩放控件
@@ -1505,58 +1561,74 @@ const TrackRoutePage = () => {
 		loadCount: number,
 		totalCount: number
 	) => {
-		let tripPositions: protoRoot.trip.ITripPositions[] = []
-
-		// console.log("GetTripHistoryPositionsresres unPulledIds", unPulledIds)
-
-		if (unPulledIds.length === 0) {
-			return tripPositions
-		}
-
-		const pageSize = 6
-
-		const res = await httpApi.v1.GetTripHistoryPositions({
-			shareKey: String(sk || ''),
-			// pageNum,
-			pageNum: 1,
-			pageSize: pageSize,
-			type: 'All',
-			ids: unPulledIds.slice(0, pageSize),
-			timeLimit: [0, Math.floor(new Date().getTime() / 1000)],
+		const tripPositions = await getAllTripPositions({
+			ids: unPulledIds,
+			pageSize: 10,
+			onload(totalCount, loadCount) {
+				console.log('getAllTripPositions', totalCount, loadCount)
+			},
+			loadingSnackbar: true,
 			fullData: true,
-			// timeLimit: [localLastTripStartTime + 1, Math.floor(new Date().getTime() / 1000)],
 		})
+		console.log(
+			'fTripPositions getDetailedPositionsOfTrip',
+			tripPositions,
+			unPulledIds
+		)
 
-		if (res.code === 200) {
-			res.data.list?.forEach((v) => {
-				if (v.id) {
-					tripPositions.push(v)
-					storage.tripPositions.setSync(v.id, v)
-				}
-			})
+		// // console.log("GetTripHistoryPositionsresres unPulledIds", unPulledIds)
 
-			loadCount =
-				loadCount + pageSize > totalCount ? totalCount : loadCount + pageSize
+		// // console.log('GetTripHistoryPositions', unPulledIds)
+		// if (unPulledIds.length === 0) {
+		// 	return tripPositions
+		// }
 
-			loadingSnackbar.current?.setMessage(
-				t('loadedData', {
-					ns: 'prompt',
-					percentage:
-						String(
-							loadCount && totalCount
-								? Math.floor((loadCount / totalCount || 0) * 100)
-								: 0
-						) + '%',
-				})
-			)
+		// const pageSize = 6
 
-			const ids = unPulledIds.slice(pageSize, unPulledIds.length)
-			if (ids.length !== 0) {
-				tripPositions = tripPositions.concat(
-					await getDetailedPositionsOfTrip(ids, loadCount, totalCount)
-				)
-			}
-		}
+		// const res = await httpApi.v1.GetTripHistoryPositions({
+		// 	shareKey: String(sk || ''),
+		// 	// pageNum,
+		// 	pageNum: 1,
+		// 	pageSize: pageSize,
+		// 	type: 'All',
+		// 	ids: unPulledIds.slice(0, pageSize),
+		// 	timeLimit: [0, Math.floor(new Date().getTime() / 1000)],
+		// 	fullData: true,
+		// 	// timeLimit: [localLastTripStartTime + 1, Math.floor(new Date().getTime() / 1000)],
+		// })
+
+		// // console.log('GetTripHistoryPositions', res)
+
+		// if (res.code === 200) {
+		// 	res.data.list?.forEach((v) => {
+		// 		if (v.id) {
+		// 			tripPositions.push(v)
+		// 			storage.tripPositions.setSync(v.id, v)
+		// 		}
+		// 	})
+
+		// 	loadCount =
+		// 		loadCount + pageSize > totalCount ? totalCount : loadCount + pageSize
+
+		// 	loadingSnackbar.current?.setMessage(
+		// 		t('loadedData', {
+		// 			ns: 'prompt',
+		// 			percentage:
+		// 				String(
+		// 					loadCount && totalCount
+		// 						? Math.floor((loadCount / totalCount || 0) * 100)
+		// 						: 0
+		// 				) + '%',
+		// 		})
+		// 	)
+
+		// 	const ids = unPulledIds.slice(pageSize, unPulledIds.length)
+		// 	if (ids.length !== 0) {
+		// 		tripPositions = tripPositions.concat(
+		// 			await getDetailedPositionsOfTrip(ids, loadCount, totalCount)
+		// 		)
+		// 	}
+		// }
 		return tripPositions
 	}
 

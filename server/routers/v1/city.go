@@ -17,6 +17,7 @@ func (r *Routerv1) InitCity() {
 			Authorize:          true,
 			RequestEncryption:  false,
 			ResponseEncryption: false,
+			RequestDataType:    "protobuf",
 			ResponseDataType:   "protobuf",
 		}),
 		c.UpdateCity)
@@ -27,17 +28,19 @@ func (r *Routerv1) InitCity() {
 			Authorize:          true,
 			RequestEncryption:  false,
 			ResponseEncryption: false,
+			RequestDataType:    "protobuf",
 			ResponseDataType:   "protobuf",
 		}),
 		c.GetCityDetails)
 
 	r.Group.GET(
 		role.SetRole("/city/user/list/get", &middleware.RoleOptionsType{
-			CheckApp: false,
-			// Authorize:          true,
-			Authorize:          false,
+			CheckApp:  false,
+			Authorize: true,
+			// Authorize:          false,
 			RequestEncryption:  false,
 			ResponseEncryption: false,
+			RequestDataType:    "protobuf",
 			ResponseDataType:   "protobuf",
 		}),
 		c.GetAllCitiesVisitedByUser)

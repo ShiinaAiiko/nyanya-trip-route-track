@@ -53,6 +53,12 @@ declare global {
       "saki-segmented": any
       "saki-segmented-item": any
       "saki-tooltip": any
+      "saki-images": any
+      "saki-carousel": any
+      "saki-carousel-item": any
+      "saki-carousel-nav": any
+      "saki-carousel-nav-item": any
+      "saki-viewer": any
     }
   }
   namespace Window {

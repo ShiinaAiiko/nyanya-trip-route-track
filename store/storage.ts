@@ -8,8 +8,9 @@ import md5 from 'blueimp-md5'
 import store, { ActionParams } from '.'
 import { WebStorage } from '@nyanyajs/utils'
 import { protoRoot } from '../protos'
+import { GeoJSON } from './city'
 // import { User } from './user'
-// import { WebStorage } from '@nyanyajs/utils'
+// import { WebStorage } from './webStorage'
 
 export let storage = {
   global: new WebStorage({
@@ -31,6 +32,10 @@ export let storage = {
   cityDetails: new WebStorage<string, protoRoot.trip.ITripCity>({
     storage: 'IndexedDB',
     baseLabel: 'cityDetails',
+  }),
+  cityBoundaries: new WebStorage<string, GeoJSON>({
+    storage: 'IndexedDB',
+    baseLabel: 'cityBoundaries',
   }),
 }
 

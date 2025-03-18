@@ -47,6 +47,10 @@ var RedisCacheKeys = map[string]*nredis.RedisCacheKeysType{
 		Key:        "GetCity",
 		Expiration: 5 * 60 * time.Second,
 	},
+	"GetJM": {
+		Key:        "GetJM",
+		Expiration: 5 * 60 * time.Second,
+	},
 	"GetCities": {
 		Key:        "GetCities",
 		Expiration: 5 * 60 * time.Second,

@@ -11,6 +11,7 @@ import (
 	"github.com/ShiinaAiiko/nyanya-trip-route-track/server/protos"
 	"github.com/ShiinaAiiko/nyanya-trip-route-track/server/services/middleware"
 	"github.com/ShiinaAiiko/nyanya-trip-route-track/server/services/response"
+	"github.com/cherrai/nyanyago-utils/narrays"
 	"github.com/cherrai/nyanyago-utils/nint"
 	"github.com/cherrai/nyanyago-utils/nlog"
 	"github.com/cherrai/nyanyago-utils/nstrings"
@@ -1233,7 +1234,7 @@ func (fc *TripController) GetTripPositions(c *gin.Context) {
 
 func (fc *TripController) GetTripHistoryPositions(c *gin.Context) {
 	// 1、请求体
-	var res response.ResponseType
+	var res response.ResponseProtobufType
 	res.Code = 200
 
 	// 2、获取参数
@@ -1428,10 +1429,9 @@ func (fc *TripController) GetTripHistoryPositions(c *gin.Context) {
 
 	protoData.Total = nint.ToInt64(len(protoData.List))
 
-	// log.Info(protoData.Total)
-	res.Data = protoData
+	log.Info(protoData.Total)
 
-	res.Call(c)
+	res.JSON(c, res.ProtoToMap(protoData))
 }
 
 func (fc *TripController) GetTrips(c *gin.Context) {
@@ -1465,7 +1465,7 @@ func (fc *TripController) GetTrips(c *gin.Context) {
 			"Plane"})),
 		validation.Parameter(&data.TimeLimit, validation.Length(2, 2), validation.Required()),
 		validation.Parameter(&data.PageNum, validation.GreaterEqual(int64(1)), validation.Required()),
-		validation.Parameter(&data.PageSize, validation.NumRange(int64(1), int64(101)), validation.Required()),
+		validation.Parameter(&data.PageSize, validation.NumRange(int64(1), int64(1000000)), validation.Required()),
 		// validation.Parameter(&data.DistanceLimit, validation.Length(2, 2), validation.Required()),
 	); err != nil {
 		res.Errors(err)
@@ -1483,8 +1483,13 @@ func (fc *TripController) GetTrips(c *gin.Context) {
 	}
 	userInfo := userInfoAny.(*sso.UserInfo)
 
-	getTrips, err := tripDbx.GetTrips(userInfo.Uid, data.Type, data.PageNum, data.PageSize, data.TimeLimit[0],
-		data.TimeLimit[1], data.VehicleLimit,
+	getTrips, err := tripDbx.GetTripsBaseData(
+		[]string{},
+		userInfo.Uid, data.Type,
+		// 1, 100000,
+		data.PageNum, data.PageSize,
+		data.TimeLimit[0], data.TimeLimit[1],
+		data.VehicleLimit,
 
 		data.DistanceLimit[0]*1000,
 		data.DistanceLimit[1]*1000)
@@ -1582,7 +1587,9 @@ func (fc *TripController) GetTripStatistics(c *gin.Context) {
 
 	log.Info("data.DistanceLimit", data.DistanceLimit, authorId)
 	getTripsBaseData, err := tripDbx.GetTripsBaseData(
+		[]string{},
 		authorId, data.Type,
+		1, 100000,
 		// data.PageNum, data.PageSize,
 		data.TimeLimit[0],
 		data.TimeLimit[1], data.VehicleLimit,
@@ -1597,9 +1604,10 @@ func (fc *TripController) GetTripStatistics(c *gin.Context) {
 		return
 	}
 
-	time := int64(0)
+	timeSec := int64(0)
 	uselessData := []string{}
 	distance := float64(0)
+	days := []string{}
 	// trips := []*protos.Trip{}
 	for _, v := range getTripsBaseData {
 		if v.Status == 0 && v.Statistics.Distance < 50 {
@@ -1609,15 +1617,24 @@ func (fc *TripController) GetTripStatistics(c *gin.Context) {
 			continue
 		}
 		distance += v.Statistics.Distance
-		time += v.EndTime - v.StartTime
+		timeSec += v.EndTime - v.StartTime
+
+		t := time.Unix(v.StartTime, 0)
+		dateStr := t.Format("2006-01-02")
+
+		if !narrays.Includes(days, dateStr) {
+			days = append(days, dateStr)
+		}
+
 		// trips = append(trips, formartTrip(v))
 	}
 
 	protoData := &protos.GetTripStatistics_Response{
-		Count:       nint.ToInt64(len(getTripsBaseData)),
+		Count:       nint.ToInt32(len(getTripsBaseData)),
 		Distance:    distance,
 		UselessData: uselessData,
-		Time:        time,
+		Time:        timeSec,
+		Days:        nint.ToInt32(len(days)),
 		// List:        trips,
 	}
 
@@ -1665,7 +1682,9 @@ func (fc *TripController) GetBaseTripsByOpenAPI(c *gin.Context) {
 
 	// log.Info("data.DistanceLimit", data.DistanceLimit, authorId)
 	getTripsBaseData, err := tripDbx.GetTripsBaseData(
+		[]string{},
 		authorId, "All",
+		1, 100000,
 		0,
 		time.Now().Unix(),
 		data.VehicleLimit,

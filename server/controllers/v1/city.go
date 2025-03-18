@@ -10,6 +10,7 @@ import (
 	"github.com/cherrai/nyanyago-utils/narrays"
 	"github.com/cherrai/nyanyago-utils/nmath"
 	"github.com/cherrai/nyanyago-utils/validation"
+	sso "github.com/cherrai/saki-sso-go"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
 )
@@ -256,7 +257,7 @@ func (cl *CityController) GetAllCitiesVisitedByUser(c *gin.Context) {
 		return
 	}
 
-	// log.Info("data", data)
+	log.Info("data", data)
 
 	// 3、验证参数
 	if err = validation.ValidateStruct(
@@ -271,15 +272,15 @@ func (cl *CityController) GetAllCitiesVisitedByUser(c *gin.Context) {
 
 	// log.Info(data)
 
-	// userInfoAny, exists := c.Get("userInfo")
-	// if !exists {
-	// 	res.Errors(err)
-	// 	res.Code = 10004
-	// 	res.Call(c)
-	// 	return
-	// }
-	// authorId := userInfoAny.(*sso.UserInfo).Uid
-	authorId := "78L2tkleM"
+	userInfoAny, exists := c.Get("userInfo")
+	if !exists {
+		res.Errors(err)
+		res.Code = 10004
+		res.Call(c)
+		return
+	}
+	authorId := userInfoAny.(*sso.UserInfo).Uid
+	// authorId := "78L2tkleM"
 
 	cityIds, err := cityDbx.GetAllCitiesVisitedByUser(authorId)
 	if err != nil {

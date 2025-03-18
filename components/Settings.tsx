@@ -988,8 +988,8 @@ const Maps = ({ show }: { show: boolean }) => {
 						</div>
 						<saki-segmented
 							ref={bindEvent({
-                changevalue: (e) => {
-                  console.log(e)
+								changevalue: (e) => {
+									console.log(e)
 									dispatch(
 										methods.config.SetConfigure({
 											...config.configure,
@@ -1772,11 +1772,24 @@ const Cache = ({ show }: { show: boolean }) => {
 	const getSize = async () => {
 		const tripPositions = await storage.tripPositions.getAll()
 		const trips = await storage.trips.getAll()
+		const cityDetails = await storage.trips.getAll()
+		const cityBoundaries = await storage.trips.getAll()
 
 		// console.log(tripPositions, JSON.stringify(tripPositions).length)
 		const s =
-			JSON.stringify(tripPositions).length + JSON.stringify(trips).length - 4
+			JSON.stringify(tripPositions).length +
+			JSON.stringify(trips).length +
+			JSON.stringify(cityDetails).length +
+			JSON.stringify(cityBoundaries).length -
+			8
 		setSize(s <= 0 ? 0 : s)
+	}
+
+	const clearCache = () => {
+		storage.trips.deleteAll()
+		storage.tripPositions.deleteAll()
+		storage.cityDetails.deleteAll()
+		storage.cityBoundaries.deleteAll()
 	}
 
 	return (
@@ -1789,11 +1802,10 @@ const Cache = ({ show }: { show: boolean }) => {
 				<saki-button
 					ref={bindEvent({
 						tap: () => {
-							storage.trips.deleteAll()
-							storage.tripPositions.deleteAll()
+							clearCache()
 							setTimeout(() => {
 								getSize()
-							}, 300)
+							}, 700)
 						},
 					})}
 					margin='20px 0 0'

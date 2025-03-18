@@ -200,95 +200,7 @@
       }
     }
 
-    .th-list {
-      .th-l-item {
-        background-color: #fff;
-        border: 1px dashed var(--saki-default-color);
-        // border-bottom: 1px dashed var(--saki-default-color);
-        border-radius: 10px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 18px 20px;
-        margin: 0 0 10px 0;
-        transition: background-color 0.3s;
-
-        &:hover {
-          background-color: #f3f3f3;
-        }
-
-        &:active {
-          background-color: #eee;
-        }
-
-        .th-l-i-left {
-          display: flex;
-          flex-direction: column;
-
-          .th-l-i-l-title {
-            display: flex;
-            justify-content: flex-start;
-            align-items: center;
-
-            .th-l-i-l-t-local,
-            .th-l-i-l-t-customTrip {
-              background-color: var(--saki-default-color);
-              color: #fff;
-              border-radius: 4px;
-              padding: 2px 6px;
-              margin-left: 6px;
-            }
-
-            .th-l-i-l-t-customTrip {
-              background-color: #62c3e8;
-            }
-
-            .ti-d-tip {
-              font-size: 10px;
-              margin: 0 0 0 4px;
-              color: #999;
-              font-style: italic;
-              background-color: #eee;
-              padding: 4px 8px;
-              border-radius: 6px;
-            }
-          }
-
-          .th-l-i-l-info {
-            display: flex;
-            justify-content: flex-start;
-            position: relative;
-
-            // padding: 0 0 0 12px;
-            // &::before {
-            // 	content: '';
-            // 	width: 6px;
-            // 	height: 6px;
-            // 	background-color: var(--saki-default-color);
-            // 	border-radius: 50%;
-            // 	position: absolute;
-            // 	left: 0;
-            // 	top: 50%;
-            // 	transform: translate(0, -50%);
-            // }
-            .info-item {
-              color: #555;
-              margin-right: 10px;
-              white-space: nowrap;
-              font-size: 12px;
-            }
-          }
-        }
-
-        .th-l-i-right {
-          .th-l-i-r-date {
-            color: #999;
-            white-space: nowrap;
-            font-size: 12px;
-          }
-        }
-      }
-    }
+    .th-list {}
   }
 
   .th-item-page {
@@ -353,6 +265,94 @@
     justify-content: flex-end;
 
     span {
+      font-size: 12px;
+    }
+  }
+}
+
+.trip-list-item-component {
+  background-color: #fff;
+  border: 1px dashed var(--saki-default-color);
+  // border-bottom: 1px dashed var(--saki-default-color);
+  border-radius: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 20px;
+  margin: 0 0 10px 0;
+  transition: background-color 0.3s;
+
+  &:hover {
+    background-color: #f3f3f3;
+  }
+
+  &:active {
+    background-color: #eee;
+  }
+
+  .th-l-i-left {
+    display: flex;
+    flex-direction: column;
+
+    .th-l-i-l-title {
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+
+      .th-l-i-l-t-local,
+      .th-l-i-l-t-customTrip {
+        background-color: var(--saki-default-color);
+        color: #fff;
+        border-radius: 4px;
+        padding: 2px 6px;
+        margin-left: 6px;
+      }
+
+      .th-l-i-l-t-customTrip {
+        background-color: #62c3e8;
+      }
+
+      .ti-d-tip {
+        font-size: 10px;
+        margin: 0 0 0 4px;
+        color: #999;
+        font-style: italic;
+        background-color: #eee;
+        padding: 4px 8px;
+        border-radius: 6px;
+      }
+    }
+
+    .th-l-i-l-info {
+      display: flex;
+      justify-content: flex-start;
+      position: relative;
+
+      // padding: 0 0 0 12px;
+      // &::before {
+      // 	content: '';
+      // 	width: 6px;
+      // 	height: 6px;
+      // 	background-color: var(--saki-default-color);
+      // 	border-radius: 50%;
+      // 	position: absolute;
+      // 	left: 0;
+      // 	top: 50%;
+      // 	transform: translate(0, -50%);
+      // }
+      .info-item {
+        color: #555;
+        margin-right: 10px;
+        white-space: nowrap;
+        font-size: 12px;
+      }
+    }
+  }
+
+  .th-l-i-right {
+    .th-l-i-r-date {
+      color: #999;
+      white-space: nowrap;
       font-size: 12px;
     }
   }

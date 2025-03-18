@@ -1,82 +1,129 @@
 .visited-cities-modal {
   width: 100%;
   height: 100%;
+  position: relative;
 
-  &.showTag {
-    .map-custom-trip-marker-wrap {
-      display: none;
-    }
+  .th-header {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 56px;
+    z-index: 600;
   }
 
-  .cct-main {
-    width: 100%;
-    height: calc(100% - 56px);
-    position: relative;
+  // &.Mobile {
+  //   .vc-main {
+  //     #visited-cities-map {
+  //       height: calc(100% - 200px + 56px);
+  //     }
 
-    #cct-map {
+  //     .vc-page {
+  //       margin: calc(100% - 200px) 0 0;
+
+  //     }
+  //   }
+  // }
+
+  .vc-main {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    background-color: #fff;
+
+    .vc-map-wrap {
+      width: 100%;
+      height: calc(100% - 200px);
+      position: absolute;
+      left: 0;
+      top: 0;
+      z-index: 591;
+      transition: height 0.3s;
+
+      .vc-switch-citytype {
+        position: absolute;
+        right: 20px;
+        bottom: 10px;
+        z-index: 592;
+      }
+
+      #visited-cities-map {
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        left: 0;
+        top: 0;
+        outline: none;
+      }
+    }
+
+    saki-scroll-view {
       width: 100%;
       height: 100%;
     }
 
-    .ctt-m-info {
-      width: 100%;
-      height: 100%;
-      position: absolute;
-      top: 0;
-      left: 0;
-      z-index: 666;
+    .vc-layer {
       background-color: #fff;
-      padding: 0 10px;
+      border-radius: 10px 10px 0 0;
+      margin: calc(100% - 250px) 0 0;
+      transition: margin 0.3s;
+      padding: 10px 10px 20px;
 
-      transition: opacity .3s, transform .3s;
-
-      &.cct-info-enter {
-        opacity: 0;
-        transform: translateX(100%);
+      &.startScroll {
+        position: relative;
+        z-index: 592;
       }
 
-      &.cct-info-leave,
-      &.cct-info-enter-active {
-        opacity: 1;
-        transform: translateX(0%);
-      }
 
-      &.cct-info-leave-active {
-        opacity: 0;
-        transform: translateX(100%);
-      }
+      .vc-m-tabs {
 
-      &.cct-info-leave-done {
-        display: none;
-      }
+        overflow: hidden;
 
-      .info-main {
-        margin: 0 auto;
-        width: 100%;
-        max-width: 400px;
+        .timeline-item {
 
-        .im-item {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 10px 0 0;
 
-          .ftd-l-date {
+          .vc-m-header {
             display: flex;
-            flex-direction: column;
-            justify-content: flex-end;
+            justify-content: space-between;
+            align-items: center;
+            margin: 0px 0 0px 0;
+            padding: 10px 10px;
+            border: 1px dashed var(--saki-default-color);
+            border-radius: 10px;
 
-            .ftd-l-d-content {
+            .vch-left {
+              display: flex;
+              flex-direction: column;
+
+              .vch-l-note {
+                font-size: 16px;
+              }
+
+              .vch-l-title {
+                display: flex;
+                justify-content: flex-start;
+                align-items: baseline;
+                margin: 4px 0 0;
+                font-size: 16px;
+
+                .days {
+                  font-size: 28px;
+                  font-weight: 700;
+                  margin: 0 4px 0 0;
+                }
+              }
+
+              .vch-l-desc {
+                font-size: 14px;
+                color: #444;
+              }
+            }
+
+            .vch-right {
               display: flex;
               justify-content: flex-end;
               align-items: center;
             }
-          }
-
-          &.im-buttons {
-            display: flex;
-            justify-content: flex-end;
-            align-items: center;
           }
         }
       }
@@ -88,88 +135,134 @@
   stroke-dasharray: 10;
 }
 
-.map-custom-trip-marker {
-  --custom-trip-marker-pixel: 10px;
-  --custom-trip-marker-bg-color: var(--saki-default-color);
+
+.city-list-modal {
+  width: 100%;
 
 
-  // position: relative;
-  width: var(--custom-trip-marker-pixel);
-  height: var(--custom-trip-marker-pixel);
-  border-radius: 50%;
-  margin: calc(-1 * var(--custom-trip-marker-pixel) / 2) 0 0 calc(-1 * var(--custom-trip-marker-pixel) / 2);
-  border: 2px solid #fff;
-  background-color: var(--custom-trip-marker-bg-color);
-
-  &.active {
-    .map-custom-trip-marker-wrap {
-      background-color: #62c3e8;
-
-      &::before {
-        border-top: 30px solid #62c3e8;
-      }
-    }
-  }
-
-  .map-custom-trip-marker-wrap {
-    position: absolute;
-    left: -30px;
-    top: -8px;
-    background-color: var(--custom-trip-marker-bg-color);
+  .cl-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 4px;
-    height: 28px;
-    border-radius: 14px;
-    transform: scale(0.8) translate(42px, 15px);
+    padding: 10px 14px 20px;
+  }
 
+  .cl-list {
+    .list-item {
+      .item-name {
+        padding: 0 14px;
+      }
 
-    &::before {
-      content: "";
-      position: absolute;
-      left: -10px;
-      top: -14px;
+      .item-cities {
+        .cities-item {
+          padding: 6px 10px;
+          border: 2px solid #eee;
+          border-radius: 6px;
+          overflow: hidden;
 
-      transform: rotate(130deg);
+          background-color: #eee;
 
-      border-top: 30px solid var(--custom-trip-marker-bg-color);
-      border-left: 8px solid transparent;
-      border-right: 8px solid transparent;
+          transition: background-color .2s;
 
-    }
+          &.active {
+            border: 2px solid var(--saki-default-color);
+            background-color: #f7e2e5;
+          }
 
-    .msm-icon {
-      background-color: #fff;
-      width: 16px;
-      height: 16px;
-      border-radius: 50%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      position: relative;
+          &:hover {
+            background-color: #ddd;
 
-      saki-icon {}
-    }
+            &.active {
+              background-color: #f7cad2;
+            }
+          }
 
-    .msm-speed {
-      display: flex;
-      justify-content: flex-start;
-      align-items: flex-end;
-      padding: 0 2px 0 2px;
-      position: relative;
+          &:active {
+            background-color: #ccc;
 
-      span {
-        color: #fff;
-
-        &:nth-child(1) {
-          font-size: 14px;
+            &.active {
+              background-color: #eeacb8;
+            }
+          }
         }
+      }
+    }
+  }
+}
 
-        &:nth-child(2) {
-          font-size: 11px;
-          margin-left: 2px;
-          transform: translate(0, -2px);
+
+.city-timeline-component {
+  background-color: #fff;
+
+  .timeline-header {
+    margin: 20px 0 10px;
+
+    .th-left {
+      font-size: 20px;
+      font-weight: 700;
+
+    }
+  }
+
+  .timeline-list {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
+    .tl-item {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+
+      .tl-i-header {
+        margin: 10px 0 8px;
+
+        .tl-i-h-title {
+          font-weight: 700;
+          font-size: 16px;
+        }
+      }
+
+      .tl-i-list {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+
+        .tl-i-l-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin: 6px 0;
+
+          .tl-i-l-i-left {
+            color: #000;
+            font-weight: 700;
+            font-size: 14px;
+            padding: 0 6px 0 0;
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            flex: 1;
+
+            &.TripItem {
+              font-weight: 500;
+            }
+
+            span {
+              &:nth-child(1) {
+                margin-right: 4px;
+              }
+            }
+          }
+
+          .tl-i-l-i-right {
+            font-weight: 300;
+            font-size: 13px;
+            color: #999;
+            font-style: italic;
+            white-space: nowrap;
+            // min-width: 150px;
+          }
         }
       }
     }

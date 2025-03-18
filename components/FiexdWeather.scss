@@ -1,10 +1,15 @@
 .fiexd-weather-component {
 
-  max-width: calc(100% - 90px);
+  max-width: calc(100% - 130px);
 
-  &.full {
-    max-width: 100%;
+  &.Mobile {
+    max-width: calc(100% - 100px);
+
   }
+
+  // &.full {
+  //   max-width: 100%;
+  // }
 
   // @media screen and (max-width: 374px) {
   //   // max-width: 230px;
@@ -34,8 +39,14 @@
   word-break: break-all;
   text-align: right;
 
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+
   span {
     line-height: 15px;
+    user-select: none;
+    cursor: pointer;
     // background-color: rgba(255, 255, 255, 0.7);
     // padding: 2px 0;
 

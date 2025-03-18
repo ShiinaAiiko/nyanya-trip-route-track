@@ -15,6 +15,7 @@ type RoleOptionsType struct {
 	Authorize          bool
 	RequestEncryption  bool
 	ResponseEncryption bool
+	RequestDataType    string
 	ResponseDataType   string
 	isSocketServer     bool
 	isHttpServer       bool

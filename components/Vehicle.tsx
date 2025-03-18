@@ -5,6 +5,7 @@ import React, {
 	useCallback,
 	useContext,
 	useEffect,
+	useMemo,
 	useReducer,
 	useState,
 } from 'react'
@@ -156,7 +157,7 @@ const VehiclePage = () => {
 			dispatch(methods.vehicle.Init())
 
 			dispatch(
-				methods.trip.GetTripStatistics({
+				methods.trip.GetTripHistoryData({
 					loadCloudData: false,
 				})
 			).unwrap()
@@ -201,14 +202,23 @@ const VehiclePage = () => {
 		}).open()
 	}
 
-	const trips = filterTrips({
-		list: [],
-		startDate: '',
-		endDate: '',
-		types: [],
-	})
+	const trips = useMemo(() => {
+		return filterTrips({
+			list: [],
+			startDate: '',
+			endDate: '',
+			types: [],
+		})
+	}, [layout.openVehicleModal, user.isLogin])
 
-	console.log('trips', trips)
+	// const trips = filterTrips({
+	// 	list: [],
+	// 	startDate: '',
+	// 	endDate: '',
+	// 	types: [],
+	// })
+
+	// console.log('trips', trips)
 
 	return (
 		<div
@@ -1131,7 +1141,7 @@ const AddTripHere = () => {
 		setLoadStatus('loading')
 
 		await dispatch(
-			methods.trip.GetTripStatistics({
+			methods.trip.GetTripHistoryData({
 				loadCloudData,
 			})
 		).unwrap()
@@ -1228,7 +1238,7 @@ const AddTripHere = () => {
 			<div className='ath-main'>
 				<div className='ath-m-header'>
 					<div className='ath-m-h-left'>
-						<span>{t("setTripsInBatchesTo")}</span>
+						<span>{t('setTripsInBatchesTo')}</span>
 						{vehicle.vehicles.length ? (
 							<saki-dropdown
 								visible={openSelectVehicleDropDown}

@@ -14,7 +14,8 @@ RUN \
 COPY . .
 
 RUN \
-  # yarn protos && \
+  yarn protos && \
+  ./release.sh download:saki-ui-react && \
   yarn export
 
 FROM node:18.19.1-alpine3.19

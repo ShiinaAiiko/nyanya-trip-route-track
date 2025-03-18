@@ -45,6 +45,7 @@ import screenfull from 'screenfull'
 import Script from 'next/script'
 import CreateCustomTripComponent from '../components/CreateCustomTrip'
 import VisitedCitiesModal from '../components/VisitedCities'
+import JourneyMemoriesModal from '../components/JourneyMemories'
 
 // import { testGpsData } from '../plugins/methods'
 // import parserFunc from 'ua-parser-js'
@@ -111,14 +112,14 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
 
 		const lf = console.log
 		const wf = console.warn
-		const ef = console.error
+		// const ef = console.error
 		const tf = console.time
 		const tef = console.timeEnd
 
 		if (process.env.CLIENT_ENV === 'production' && debug !== 'true') {
 			console.log = () => {}
 			console.warn = () => {}
-			console.error = () => {}
+			// console.error = () => {}
 			console.time = () => {}
 			console.timeEnd = () => {}
 		}
@@ -138,7 +139,7 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
 		return () => {
 			console.log = lf
 			console.warn = wf
-			console.error = ef
+			// console.error = ef
 			console.time = tf
 			console.timeEnd = tef
 
@@ -190,6 +191,8 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
 			// 	)
 			// 	dispatch(configSlice.actions.setFullScreen(screenfull.isFullscreen))
 			// }, 700)
+
+			eventListener.dispatch('resize_vcm', undefined)
 
 			dispatch(methods.config.getDeviceType())
 		})
@@ -442,6 +445,15 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
 				></Script> */}
 				<script src='/js/responsivevoice.js'></script>
 				{/* <script src='https://code.responsivevoice.org/responsivevoice.js?key=qH3G8T7O'></script> */}
+
+				{/* <link
+					rel='stylesheet'
+					href='https://cdn.jsdelivr.net/npm/lightgallery/css/lightgallery-bundle.min.css'
+				/>
+				<script src='https://cdn.jsdelivr.net/npm/lightgallery/lightgallery.umd.js'></script>
+				<script src='https://cdn.jsdelivr.net/npm/lightgallery/plugins/zoom/lg-zoom.umd.js'></script>
+				<script src='https://cdn.jsdelivr.net/npm/lightgallery/plugins/fullscreen/lg-fullscreen.umd.js'></script>
+				<script src='https://cdn.jsdelivr.net/npm/lightgallery/plugins/video/lg-video.umd.js'></script> */}
 			</Head>
 			<div className='trip-layout saki-loading'>
 				<NoSSR>
@@ -578,6 +590,7 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
 						<FindLocationComponent />
 						<CreateCustomTripComponent />
 						<VisitedCitiesModal />
+						<JourneyMemoriesModal />
 						{/* <StatisticsComponent /> */}
 
 						<saki-aside-modal

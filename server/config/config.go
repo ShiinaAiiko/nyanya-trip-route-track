@@ -10,6 +10,7 @@ import (
 	"github.com/cherrai/nyanyago-utils/nfile"
 	"github.com/cherrai/nyanyago-utils/nlog"
 	"github.com/cherrai/nyanyago-utils/nshortid"
+	"github.com/cherrai/nyanyago-utils/saass"
 	sso "github.com/cherrai/saki-sso-go"
 	"github.com/go-resty/resty/v2"
 )
@@ -18,6 +19,7 @@ var (
 	log           = nlog.New()
 	Config        *typings.Config
 	SSO           *sso.SakiSSO
+	SAaSS         *saass.SAaSS
 	RestyClient   = resty.New()
 	G             = goroutinepanic.G
 	FileTokenSign = "saass_2022_6_4"

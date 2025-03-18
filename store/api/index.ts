@@ -47,6 +47,20 @@ export const apiSlice = createSlice({
 
 
         openGetTripStatistics: "/open/trip/statistics/get",
+
+
+        addJM: "/journeyMemory/add",
+        updateJM: "/journeyMemory/update",
+        getJMDetail: "/journeyMemory/detail/get",
+        getJMList: "/journeyMemory/list/get",
+        deleteJM: "/journeyMemory/delete",
+        "AddJMTimeline": "/journeyMemory/timeline/add",
+        "UpdateJMTimeline": "/journeyMemory/timeline/update",
+        "GetJMTimelineList": "/journeyMemory/timeline/list/get",
+        "DeleteJMTimeline": "/journeyMemory/timeline/delete",
+
+
+        "GetUploadToken": "/file/getUploadToken",
       },
     },
   },

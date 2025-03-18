@@ -11,12 +11,12 @@ import (
 
 	conf "github.com/ShiinaAiiko/nyanya-trip-route-track/server/config"
 	"github.com/ShiinaAiiko/nyanya-trip-route-track/server/models"
+	"github.com/ShiinaAiiko/nyanya-trip-route-track/server/protos"
 	"github.com/ShiinaAiiko/nyanya-trip-route-track/server/services/methods"
 	"github.com/cherrai/nyanyago-utils/narrays"
 	"github.com/cherrai/nyanyago-utils/ncommon"
 	"github.com/cherrai/nyanyago-utils/nlog"
 	"github.com/cherrai/nyanyago-utils/nshortid"
-	"github.com/cherrai/nyanyago-utils/nstrings"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -1114,6 +1114,8 @@ func readTempGPSFile(trip *models.Trip, tempFile bool) (*models.Trip, error) {
 		tempFolderPath = "./static/gps/temp/" + conf.Config.Version + "/" + time.Unix(trip.CreateTime, 0).Format("2006/01/02")
 	}
 
+	log.Info(tempFolderPath + "/" + trip.Id)
+
 	jsonFile, _ := os.Open(tempFolderPath + "/" + trip.Id)
 
 	defer jsonFile.Close()
@@ -1348,110 +1350,219 @@ func (t *TripDbx) GetTripAllPositions(authorId, typeStr string,
 	return results, nil
 }
 
-func (t *TripDbx) GetTrips(
+func (t *TripDbx) FormatTripStatistics(trips []*models.Trip) *protos.TripHistoricalStatistics {
+	ths := protos.TripHistoricalStatistics{}
+
+	timeSec := int64(0)
+	uselessData := []string{}
+	distance := float64(0)
+	days := []string{}
+	maxDistance := &protos.TripHistoricalStatistics_NumItem{
+		Num: 0,
+		Id:  "",
+	}
+	maxSpeed := &protos.TripHistoricalStatistics_NumItem{
+		Num: 0,
+		Id:  "",
+	}
+	fastestAverageSpeed := &protos.TripHistoricalStatistics_NumItem{
+		Num: 0,
+		Id:  "",
+	}
+	maxAltitude := &protos.TripHistoricalStatistics_NumItem{
+		Num: 0,
+		Id:  "",
+	}
+	minAltitude := &protos.TripHistoricalStatistics_NumItem{
+		Num: 0,
+		Id:  "",
+	}
+	maxClimbAltitude := &protos.TripHistoricalStatistics_NumItem{
+		Num: 0,
+		Id:  "",
+	}
+	maxDescendAltitude := &protos.TripHistoricalStatistics_NumItem{
+		Num: 0,
+		Id:  "",
+	}
+	// trips := []*protos.Trip{}
+	for _, v := range trips {
+
+		if maxDistance.Num <= v.Statistics.Distance {
+			maxDistance.Num = v.Statistics.Distance
+			maxDistance.Id = v.Id
+		}
+		if maxSpeed.Num <= v.Statistics.MaxSpeed {
+			maxSpeed.Num = v.Statistics.MaxSpeed
+			maxSpeed.Id = v.Id
+		}
+		if fastestAverageSpeed.Num <= v.Statistics.AverageSpeed {
+			fastestAverageSpeed.Num = v.Statistics.AverageSpeed
+			fastestAverageSpeed.Id = v.Id
+		}
+		if maxAltitude.Num <= v.Statistics.MaxAltitude {
+			maxAltitude.Num = v.Statistics.MaxAltitude
+			maxAltitude.Id = v.Id
+		}
+		if minAltitude.Num >= v.Statistics.MinAltitude {
+			minAltitude.Num = v.Statistics.MinAltitude
+			minAltitude.Id = v.Id
+		}
+		if maxClimbAltitude.Num >= v.Statistics.ClimbAltitude {
+			maxClimbAltitude.Num = v.Statistics.ClimbAltitude
+			maxClimbAltitude.Id = v.Id
+		}
+		if maxDescendAltitude.Num >= v.Statistics.DescendAltitude {
+			maxDescendAltitude.Num = v.Statistics.DescendAltitude
+			maxDescendAltitude.Id = v.Id
+		}
+
+		if v.Status == 0 && v.Statistics.Distance < 50 {
+			uselessData = append(uselessData, v.Id)
+		}
+		if v.Status != 1 {
+			continue
+		}
+		distance += v.Statistics.Distance
+		timeSec += v.EndTime - v.StartTime
+
+		t := time.Unix(v.StartTime, 0)
+		dateStr := t.Format("2006-01-02")
+
+		if !narrays.Includes(days, dateStr) {
+			days = append(days, dateStr)
+		}
+
+		// trips = append(trips, formartTrip(v))
+	}
+
+	ths.Count = int32(len(trips))
+	ths.Time = timeSec
+	ths.Distance = distance
+	ths.Days = int32(len(days))
+	ths.MaxDistance = maxDistance
+	ths.MaxSpeed = maxSpeed
+	ths.FastestAverageSpeed = fastestAverageSpeed
+	ths.MaxAltitude = maxAltitude
+	ths.MinAltitude = minAltitude
+	ths.MaxClimbAltitude = maxClimbAltitude
+	ths.MaxDescendAltitude = maxDescendAltitude
+
+	return &ths
+}
+
+// old name GetTrips replace Old GetTripsBaseData
+func (t *TripDbx) GetTripsBaseData(
+	ids []string,
 	authorId, typeStr string,
-	pageNum, pageSize int64, startTime, endTime int64,
+	pageNum, pageSize int64,
+	startTime, endTime int64,
 	vehicleLimit []string,
 	minDistance int64,
 	maxDistance int64) ([]*models.Trip, error) {
 	trip := new(models.Trip)
 	var results []*models.Trip
 
-	key := conf.Redisdb.GetKey("GetTrips")
-	err := conf.Redisdb.GetStruct(key.GetKey(
-		authorId+typeStr+
-			nstrings.ToString(pageNum)+
-			nstrings.ToString(pageSize)+
-			nstrings.ToString(startTime)+
-			nstrings.ToString(endTime),
-	), results)
-	if err != nil || true {
+	// key := conf.Redisdb.GetKey("GetTrips")
+	// err := conf.Redisdb.GetStruct(key.GetKey(
+	// 	authorId+typeStr+
+	// 		nstrings.ToString(pageNum)+
+	// 		nstrings.ToString(pageSize)+
+	// 		nstrings.ToString(startTime)+
+	// 		nstrings.ToString(endTime),
+	// ), results)
+	// if err != nil || true {
 
-		match := bson.M{
-			"authorId": authorId,
-			"status": bson.M{
-				"$in": []int64{1, 0},
-			},
-			"createTime": bson.M{
-				"$gte": startTime,
-				"$lt":  endTime,
-			},
-			"statistics.distance": bson.M{
-				"$gte": minDistance,
-			},
-		}
-		if typeStr != "All" {
-			match["type"] = typeStr
-		}
-		if len(vehicleLimit) > 0 {
-			match["vehicleId"] = bson.M{
-				"$in": vehicleLimit,
-			}
-		}
-
-		if maxDistance < 500*1000 {
-			match["statistics.distance"] = bson.M{
-				"$gte": minDistance,
-				"$lt":  maxDistance,
-			}
-		}
-
-		params := []bson.M{
-			{
-				"$match": bson.M{
-					"$and": []bson.M{
-						match,
-					},
-				},
-			}, {
-				"$sort": bson.M{
-					"status":     1,
-					"createTime": -1,
-				},
-			},
-			{
-				"$skip": pageSize * (pageNum - 1),
-			},
-			{
-				"$limit": pageSize,
-			},
-			{
-				"$project": bson.M{
-					"_id":         1,
-					"name":        1,
-					"type":        1,
-					"authorId":    1,
-					"vehicleId":   1,
-					"cities":      1,
-					"status":      1,
-					"statistics":  1,
-					"permissions": 1,
-					"startTime":   1,
-					"endTime":     1,
-					"createTime":  1,
-				},
-			},
-		}
-
-		opts, err := trip.GetCollection().Aggregate(context.TODO(), params)
-		if err != nil {
-			// log.Error(err)
-			return nil, err
-		}
-		if err = opts.All(context.TODO(), &results); err != nil {
-			// log.Error(err)
-			return nil, err
+	match := bson.M{
+		"authorId": authorId,
+		"status": bson.M{
+			"$in": []int64{1, 0},
+		},
+		"createTime": bson.M{
+			"$gte": startTime,
+			"$lt":  endTime,
+		},
+		"statistics.distance": bson.M{
+			"$gte": minDistance,
+		},
+	}
+	if typeStr != "All" {
+		match["type"] = typeStr
+	}
+	if len(ids) > 0 {
+		match["_id"] = bson.M{
+			"$in": ids,
 		}
 	}
-	err = conf.Redisdb.SetStruct(key.GetKey(
-		authorId+typeStr+
-			nstrings.ToString(pageNum)+
-			nstrings.ToString(pageSize)+
-			nstrings.ToString(startTime)+
-			nstrings.ToString(endTime)), results, key.GetExpiration())
+	if len(vehicleLimit) > 0 {
+		match["vehicleId"] = bson.M{
+			"$in": vehicleLimit,
+		}
+	}
+
+	if maxDistance < 500*1000 {
+		match["statistics.distance"] = bson.M{
+			"$gte": minDistance,
+			"$lt":  maxDistance,
+		}
+	}
+
+	params := []bson.M{
+		{
+			"$match": bson.M{
+				"$and": []bson.M{
+					match,
+				},
+			},
+		}, {
+			"$sort": bson.M{
+				"status":     1,
+				"createTime": -1,
+			},
+		},
+		{
+			"$skip": pageSize * (pageNum - 1),
+		},
+		{
+			"$limit": pageSize,
+		},
+		{
+			"$project": bson.M{
+				"_id":         1,
+				"name":        1,
+				"type":        1,
+				"authorId":    1,
+				"vehicleId":   1,
+				"cities":      1,
+				"status":      1,
+				"statistics":  1,
+				"permissions": 1,
+				"startTime":   1,
+				"endTime":     1,
+				"createTime":  1,
+			},
+		},
+	}
+
+	opts, err := trip.GetCollection().Aggregate(context.TODO(), params)
 	if err != nil {
-		log.Info(err)
+		// log.Error(err)
+		return nil, err
 	}
+	if err = opts.All(context.TODO(), &results); err != nil {
+		// log.Error(err)
+		return nil, err
+	}
+	// }
+	// err = conf.Redisdb.SetStruct(key.GetKey(
+	// 	authorId+typeStr+
+	// 		nstrings.ToString(pageNum)+
+	// 		nstrings.ToString(pageSize)+
+	// 		nstrings.ToString(startTime)+
+	// 		nstrings.ToString(endTime)), results, key.GetExpiration())
+	// if err != nil {
+	// 	log.Info(err)
+	// }
 
 	return results, nil
 }
@@ -1557,92 +1668,90 @@ func (t *TripDbx) GetHistoricalStatisticsData(authorId, typeStr, dataType string
 	return results[0], nil
 }
 
-func (t *TripDbx) GetTripsBaseData(
-	authorId, typeStr string,
-	// pageNum, pageSize int64,
-	startTime, endTime int64,
-	vehicleLimit []string,
-	minDistance int64,
-	maxDistance int64) ([]*models.Trip, error) {
-	trip := new(models.Trip)
-	var results []*models.Trip
-	match := bson.M{
-		"authorId": authorId,
-		"status": bson.M{
-			"$in": []int64{1, 0},
-		},
-		"statistics.distance": bson.M{
-			"$gte": minDistance,
-		},
-	}
-	if typeStr != "All" {
-		match["type"] = typeStr
-	}
-	if len(vehicleLimit) > 0 {
-		match["vehicleId"] = bson.M{
-			"$in": vehicleLimit,
-		}
-	}
-	if len(vehicleLimit) > 0 {
-		match["vehicleId"] = bson.M{
-			"$in": vehicleLimit,
-		}
-	}
-	if maxDistance < 500*1000 {
-		match["statistics.distance"] = bson.M{
-			"$gte": minDistance,
-			"$lt":  maxDistance,
-		}
-	}
-	params := []bson.M{
-		{
-			"$match": bson.M{
-				"$and": []bson.M{
-					match,
-					{
-						"createTime": bson.M{
-							"$gte": startTime,
-							"$lt":  endTime,
-						},
-					},
-				},
-			},
-		}, {
-			"$sort": bson.M{
-				"createTime": -1,
-			},
-		},
-		{
-			"$project": bson.M{
-				"_id":         1,
-				"name":        1,
-				"type":        1,
-				"status":      1,
-				"vehicleId":   1,
-				"cities":      1,
-				"statistics":  1,
-				"permissions": 1,
-				"startTime":   1,
-				"endTime":     1,
-				"createTime":  1,
-			},
-		},
-	}
+// func (t *TripDbx) GetTripsBaseData(
+// 	authorId, typeStr string,
+// 	// pageNum, pageSize int64,
+// 	startTime, endTime int64,
+// 	vehicleLimit []string,
+// 	minDistance int64,
+// 	maxDistance int64) ([]*models.Trip, error) {
+// 	trip := new(models.Trip)
+// 	var results []*models.Trip
+// 	match := bson.M{
+// 		"authorId": authorId,
+// 		"status": bson.M{
+// 			"$in": []int64{1, 0},
+// 		},
+// 		"createTime": bson.M{
+// 			"$gte": startTime,
+// 			"$lt":  endTime,
+// 		},
+// 		"statistics.distance": bson.M{
+// 			"$gte": minDistance,
+// 		},
+// 	}
+// 	if typeStr != "All" {
+// 		match["type"] = typeStr
+// 	}
+// 	if len(vehicleLimit) > 0 {
+// 		match["vehicleId"] = bson.M{
+// 			"$in": vehicleLimit,
+// 		}
+// 	}
+// 	if len(vehicleLimit) > 0 {
+// 		match["vehicleId"] = bson.M{
+// 			"$in": vehicleLimit,
+// 		}
+// 	}
+// 	if maxDistance < 500*1000 {
+// 		match["statistics.distance"] = bson.M{
+// 			"$gte": minDistance,
+// 			"$lt":  maxDistance,
+// 		}
+// 	}
+// 	params := []bson.M{
+// 		{
+// 			"$match": bson.M{
+// 				"$and": []bson.M{
+// 					match,
+// 				},
+// 			},
+// 		}, {
+// 			"$sort": bson.M{
+// 				"createTime": -1,
+// 			},
+// 		},
+// 		{
+// 			"$project": bson.M{
+// 				"_id":         1,
+// 				"name":        1,
+// 				"type":        1,
+// 				"status":      1,
+// 				"vehicleId":   1,
+// 				"cities":      1,
+// 				"statistics":  1,
+// 				"permissions": 1,
+// 				"startTime":   1,
+// 				"endTime":     1,
+// 				"createTime":  1,
+// 			},
+// 		},
+// 	}
 
-	aOptions := options.Aggregate()
-	aOptions.SetAllowDiskUse(true)
-	opts, err := trip.GetCollection().Aggregate(context.TODO(), params, aOptions)
-	if err != nil {
-		// log.Error(err)
-		return nil, err
-	}
-	if err = opts.All(context.TODO(), &results); err != nil {
-		// log.Error(err)
-		return nil, err
-	}
+// 	aOptions := options.Aggregate()
+// 	aOptions.SetAllowDiskUse(true)
+// 	opts, err := trip.GetCollection().Aggregate(context.TODO(), params, aOptions)
+// 	if err != nil {
+// 		// log.Error(err)
+// 		return nil, err
+// 	}
+// 	if err = opts.All(context.TODO(), &results); err != nil {
+// 		// log.Error(err)
+// 		return nil, err
+// 	}
 
-	return results, nil
-}
+// 	return results, nil
+// }
 
 func (t *TripDbx) DeleteRedisData(authorId, id string) error {
 	log.Info("DeleteRedisData", authorId, id)

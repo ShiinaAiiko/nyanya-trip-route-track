@@ -36,3 +36,5 @@ ssh.sh
 .npmrc
 .yarnrc
 build.tgz
+
+/components/saki-ui-react/

@@ -32,6 +32,7 @@ import {
 	formatPositionsStr,
 	getTimeLimit,
 	toFixed,
+	getLatLngGcj02ToWgs84,
 	// testGpsData,
 } from '../../plugins/methods'
 import { getGeoInfo } from 'findme-js'
@@ -55,7 +56,7 @@ import {
 	defaultLanguage,
 	languages,
 } from '../../plugins/i18n/i18n'
-import { Statistics, tripSlice } from '../../store/trip'
+import { initTripCity, Statistics, tripSlice } from '../../store/trip'
 import SpeedMeterComponent from '../../components/SpeedMeter'
 
 import * as geolib from 'geolib'
@@ -68,6 +69,10 @@ import {
 	positionSlice,
 } from '../../store/position'
 import FiexdWeatherComponent from '../../components/FiexdWeather'
+import {
+	createDistanceScaleControl,
+	getZoomDistanceScale,
+} from '../../plugins/map'
 
 let tempTimer: any
 
@@ -82,13 +87,12 @@ const TripPage = () => {
 	const vehicle = useSelector((state: RootState) => state.vehicle)
 
 	const startTrip = useSelector((state: RootState) => state.trip.startTrip)
-	const { weatherInfo, tripStatistics, cityInfo } = useSelector(
-		(state: RootState) => {
+	const { weatherInfo, tripStatistics, cityInfo, historicalStatistics } =
+		useSelector((state: RootState) => {
 			const { cityInfo } = state.city
-			const { weatherInfo, tripStatistics } = state.trip
-			return { weatherInfo, tripStatistics, cityInfo }
-		}
-	)
+			const { weatherInfo, tripStatistics, historicalStatistics } = state.trip
+			return { weatherInfo, tripStatistics, cityInfo, historicalStatistics }
+		})
 
 	const position = useSelector((state: RootState) => state.position)
 
@@ -163,13 +167,6 @@ const TripPage = () => {
 	const [dataTheme, setDataTheme] = useState('')
 	const [openDataThemeDropDown, setOpenDataThemeDropDown] = useState(false)
 
-	const [historicalStatistics, setHistoricalStatistics] = useState<{
-		[type: string]: {
-			distance: 0
-			time: 0
-			count: 0
-		}
-	}>({})
 	const [loadStatus, setLoadStatus] = useState<'loading' | 'loaded' | 'noMore'>(
 		'loaded'
 	)
@@ -232,14 +229,14 @@ const TripPage = () => {
 		init()
 	}, [])
 
-	useEffect(() => {
-		const init = async () => {
-			const nRes = await httpApi.v1.GetAllCitiesVisitedByUser({})
+	// useEffect(() => {
+	// 	const init = async () => {
+	// 		const nRes = await httpApi.v1.GetAllCitiesVisitedByUser({})
 
-			console.log('nRes', nRes)
-		}
-		init()
-	}, [])
+	// 		console.log('nRes', nRes)
+	// 	}
+	// 	init()
+	// }, [])
 
 	useEffect(() => {
 		eventListener.on('resumeTrip', async (trip: protoRoot.trip.ITrip) => {
@@ -983,7 +980,7 @@ const TripPage = () => {
 
 	useEffect(() => {
 		console.log('tyupe', router.pathname, type, user.isLogin)
-		type && getTripStatistics(type)
+		type && dispatch(methods.trip.GetTripHistoricalStatistics({ type }))
 	}, [user.isLogin, type])
 
 	useEffect(() => {
@@ -991,6 +988,12 @@ const TripPage = () => {
 			updateTripVehicleId()
 		}
 	}, [user.isLogin, vehicle])
+
+	useEffect(() => {
+		if (user.isLogin) {
+			// initTripCity()
+		}
+	}, [user.isLogin])
 
 	useEffect(() => {
 		user.isInit && addCity(cityInfo)
@@ -1016,26 +1019,26 @@ const TripPage = () => {
 
 	const initMap = () => {
 		const L: typeof Leaflet = (window as any).L
-		// console.log(
-		// 	'initMap',
-		// 	L,
-		// 	config.country,
-		// 	config.connectionOSM,
-		// 	geo.position,
-		// 	deepCopy(geo.position),
-		// 	loadedMap.current,
-		// 	L &&
-		// 		!loadedMap.current &&
-		// 		geo.position?.coords?.latitude &&
-		// 		config.mapUrl !== 'AutoSelect'
-		// )
+		console.log(
+			'initMap1',
+			L,
+			config.country,
+			config.connectionOSM,
+			geo.position,
+			deepCopy(geo.position),
+			loadedMap.current,
+			L &&
+				!loadedMap.current &&
+				geo.position?.coords?.latitude &&
+				config.mapUrl !== 'AutoSelect'
+		)
 		if (
 			L &&
 			!loadedMap.current &&
-			geo.position?.coords?.latitude &&
+      geo.position?.coords?.latitude &&
 			config.mapUrl !== 'AutoSelect'
 		) {
-			console.log('开始加载！')
+			console.log('initMap1 开始加载！')
 			let lat = toFixed(geo.position?.coords.latitude) || 0
 			let lon = toFixed(geo.position?.coords.longitude) || 0
 			if (map.current) {
@@ -1127,6 +1130,16 @@ const TripPage = () => {
 				// m.addControl(zoomControl)
 				// m.removeControl(zoomControl)
 				bindMapClickEvent()
+
+				createDistanceScaleControl(
+					map.current,
+					config.deviceType === 'Mobile' ? 80 : 100,
+					{
+						position: 'bottomleft',
+						y: '5px',
+					}
+				)
+
 				map.current.on('zoom', (e) => {
 					console.log('zoomEvent', e.target._zoom)
 				})
@@ -1159,8 +1172,14 @@ const TripPage = () => {
 
 			dispatch(positionSlice.actions.setSelectRealTimeMarkerId(''))
 
-			let lat = Math.round(popLocation.lat * 1000000) / 1000000
-			let lng = Math.round(popLocation.lng * 1000000) / 1000000
+			const latlng = getLatLngGcj02ToWgs84(
+				config.mapUrl,
+				popLocation.lat,
+				popLocation.lng
+			)
+
+			let lat = Math.round(latlng[0] * 1000000) / 1000000
+			let lng = Math.round(latlng[1] * 1000000) / 1000000
 			dispatch(
 				geoSlice.actions.setSelectPosition({
 					latitude: lat,
@@ -1575,64 +1594,7 @@ const TripPage = () => {
 			}
 		}
 		setTrip(undefined)
-		getTripStatistics(type)
-	}
-
-	const getTripStatistics = async (type: string) => {
-		console.log(loadStatus, loadStatus === 'loading' || loadStatus == 'noMore')
-		if (loadStatus === 'loading' || loadStatus == 'noMore') return
-		setLoadStatus('loading')
-		console.log(!user.isLogin || type === 'Local')
-		if (!user.isLogin || type === 'Local') {
-			const trips = await storage.trips.getAll()
-			console.log('getLocalTrips', trips)
-
-			const obj: any = {}
-			// let distance = 0
-			// let time = 0
-			trips.forEach((v) => {
-				if (!v.value.type) return
-				!obj[v.value.type] &&
-					(obj[v.value.type] = {
-						count: 0,
-						distance: 0,
-						time: 0,
-					})
-
-				obj[v.value.type].count += 1
-				obj[v.value.type].distance += v.value.statistics?.distance || 0
-				obj[v.value.type].time +=
-					(Number(v.value.endTime) || 0) - (Number(v.value.startTime) || 0)
-			})
-			setHistoricalStatistics({
-				...historicalStatistics,
-				...obj,
-			})
-			setLoadStatus('loaded')
-			return
-		}
-
-		// const tripStatisticsCloud = await getTripStatistics(1, 'All')
-
-		const res = await httpApi.v1.GetTripStatistics({
-			type: type,
-			timeLimit: [1540915200, Math.floor(new Date().getTime() / 1000)],
-			distanceLimit: [0, 500],
-		})
-		console.log('getTripStatistics', res)
-		if (res.code === 200) {
-			const obj: any = {}
-			obj[type] = {
-				count: res?.data?.count || 0,
-				distance: res?.data?.distance || 0,
-				time: res?.data?.time || 0,
-			}
-			setHistoricalStatistics({
-				...historicalStatistics,
-				...obj,
-			})
-		}
-		setLoadStatus('loaded')
+		dispatch(methods.trip.GetTripHistoricalStatistics({ type }))
 	}
 
 	const updateUserPosition = async (position: protoRoot.trip.ITripPosition) => {
@@ -1698,6 +1660,12 @@ const TripPage = () => {
 						onCurrentPosition={() => {
 							setDisablePanTo(true)
 							geo.position && panToMap(geo.position, true)
+							dispatch(
+								geoSlice.actions.setSelectPosition({
+									latitude: -10000,
+									longitude: -10000,
+								})
+							)
 						}}
 						onMark={async () => {
 							await addMark()
@@ -1940,7 +1908,7 @@ const TripPage = () => {
 							'tp-m-trip-right-buttons ' + (startTrip ? 'starting' : '')
 						}
 					></div>
-					{!(
+					{/* {!(
 						geo.selectPosition.latitude === -10000 &&
 						geo.selectPosition.longitude === -10000
 					) && !startTrip ? (
@@ -1972,13 +1940,7 @@ const TripPage = () => {
 						</div>
 					) : (
 						''
-					)}
-					{/* <div
-						style={{
-							margin: '150px 0 0',
-						}}
-					></div>
-					<FooterComponent></FooterComponent> */}
+					)} */}
 				</div>
 			</div>
 		</>

@@ -6,6 +6,7 @@ type Config struct {
 	SSO     Sso
 	BaseUrl string
 	Redis   Redis
+	Saass   SAaSS
 	// StaticPathDomain string
 	Mongodb     Mongodb
 	OpenApp     []*OpenApp
@@ -24,6 +25,12 @@ type Sso struct {
 	AppId  string
 	AppKey string
 	Host   string
+}
+type SAaSS struct {
+	AppId      string
+	AppKey     string
+	BaseUrl    string
+	ApiVersion string
 }
 type Redis struct {
 	Addr     string

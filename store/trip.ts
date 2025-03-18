@@ -6,17 +6,20 @@ import {
 } from '@reduxjs/toolkit'
 import { storage } from './storage'
 import { protoRoot, ForEachLongToNumber } from '../protos'
-import { formatPositionsStr, getDistance } from '../plugins/methods'
+import { formatPositionsStr, getDistance, getLatLng, getSpeedColor, getZoom } from '../plugins/methods'
 import { eventListener, R, TabsTripType } from './config'
 import { httpApi } from '../plugins/http/api'
 import store, { layoutSlice, methods } from '.'
 import { isLinearGradient } from 'html2canvas/dist/types/css/types/image'
 import i18n from '../plugins/i18n/i18n'
 import { snackbar } from '@saki-ui/core'
-import { AsyncQueue, Debounce, deepCopy } from '@nyanyajs/utils'
+import { Debounce, deepCopy, Wait } from '@nyanyajs/utils'
+import { AsyncQueue,  } from '@nyanyajs/utils'
+// import { AsyncQueue } from "./asyncQueue"
 import { t } from 'i18next'
 import { toolApiUrl } from '../config'
 import { GeoJSON } from './city'
+import moment from 'moment'
 
 export interface Statistics {
   speed: number;
@@ -30,21 +33,6 @@ export interface Statistics {
 }
 
 const modelName = 'trip'
-
-
-export const ethnicReg = /傣族|布朗族|独龙族|佤族|怒族|景颇族|普米族|德昂族|拉祜族|阿昌族|纳西族|哈尼族|藏族|蒙古族|回族|维吾尔族|壮族|苗族|彝族|布依族|朝鲜族|满族|侗族|瑶族|白族|土家族|哈萨克族|黎族|傈僳族|东乡族|仡佬族|拉祜族|佤族|水族|土族|羌族|达斡尔族|仫佬族|锡伯族|柯尔克孜族|景颇族|撒拉族|布朗族|毛南族|塔吉克族|普米族|阿昌族|怒族|乌孜别克族|俄罗斯族|鄂温克族|崩龙族|裕固族|保安族|京族|独龙族|赫哲族|高山族/g
-export const cityType = /省|自治区|直辖市|特别行政区|市|自治州|盟|地区|县|自治县|旗|自治旗|特区|林区|区|镇|乡|街道|村|社区/g
-
-export const ethnicGroups = [
-  "蒙古族", "回族", "藏族", "维吾尔族", "苗族", "彝族", "壮族", "布依族",
-  "朝鲜族", "满族", "侗族", "瑶族", "白族", "土家族", "哈尼族", "哈萨克族",
-  "傣族", "黎族", "傈僳族", "佤族", "畲族", "高山族", "拉祜族", "水族",
-  "东乡族", "纳西族", "景颇族", "柯尔克孜族", "土族", "达斡尔族", "仫佬族",
-  "羌族", "布朗族", "撒拉族", "毛南族", "仡佬族", "锡伯族", "阿昌族", "普米族",
-  "塔吉克族", "怒族", "乌孜别克族", "俄罗斯族", "鄂温克族", "德昂族", "保安族",
-  "裕固族", "京族", "塔塔尔族", "独龙族", "鄂伦春族", "赫哲族", "门巴族",
-  "珞巴族", "基诺族"
-];
 
 
 export const state = {
@@ -88,6 +76,15 @@ export const state = {
     windSpeed: 0,
     windDirection: "",
     visibility: 0
+  },
+
+  historicalStatistics: {} as {
+    [type: string]: {
+      distance: 0
+      time: 0
+      count: 0
+      days: 0
+    }
   }
 }
 
@@ -147,23 +144,367 @@ export type TripStatisticsType = typeof state.tripStatistics[0]
 // 	return tDistance !== trip.statistics?.distance ? 1 : -1
 // }
 
+const aq = new AsyncQueue()
+const wa = new Wait()
 
-const asyncQueue = new AsyncQueue()
+let connectLength = 0
+let total = 0
+let ids: string[] = []
 
-export const initTripCity = async (trip: protoRoot.trip.ITrip) => {
+export const initTripCity = async () => {
+  const trips = await getTrips({
+    pageNum: 1,
+    type: "All",
+    startTime:
+      1540915200
+  })
 
-  let nextPosTime = 0
-  let count = 1
+  console.log("initTripCity", trips)
 
-  trip.positions?.forEach(v => {
+  setInterval(() => {
+    console.log("initTripCity wa.dispatch", total, total > 100, ids, connectLength, connectLength < 3)
+    if (connectLength === 0) {
+      ids = []
+      wa.dispatch("initTripCity")
+      wa.revoke("initTripCity")
 
-    if (Number(v.timestamp) > nextPosTime) {
-      // console.log('initCity', count, v.latitude, v.timestamp)
-      nextPosTime = Number(v.timestamp) + 120
-      count++
+    }
+  }, 2 * 1000)
 
+  for (let i = 0; i < trips.trips.length; i++) {
+    // break
+
+    if (total > 100) {
+      break
+    }
+
+    const trip = trips.trips[i]
+
+    if (trip.cities?.length) continue
+
+    const ct = Number(trip.createTime || 0)
+
+    // 1739602982
+    // 1710486182
+    if (ct > 173519324 && ct <= 1739602982) {
+
+      console.log("initTripCity", trip.id, trip, moment(ct * 1000).format("YYYY-MM-DD hh:mm:ss"))
+
+      const posRes = await httpApi.v1.GetTripPositions({
+        id: trip.id,
+      })
+      console.log('initTripCity GetTripPositions posRes1111', posRes)
+
+
+
+      const _trip = deepCopy(trip)
+      _trip.positions = formatPositionsStr(
+        Number(posRes.data.tripPositions?.startTime) || 0,
+        posRes.data.tripPositions?.positions || []
+      )
+
+
+      connectLength += 1
+      initTripItemCity(_trip)
+      ids.push(_trip.id || "")
+      if (connectLength >= 3) {
+        console.log("initTripCity wa.dispatch 开始等待", total, connectLength, connectLength < 3)
+        await wa.waiting("initTripCity")
+      }
+
+      // break
+    }
+
+
+  }
+}
+
+// let data = {
+//   pageNum: 0,
+//   loadCount: 0
+// }
+
+export const getAllTripPositions = async (
+  {
+    ids,
+    shareKey = "",
+    pageNum = 1,
+    pageSize = 5,
+    fullData = false,
+    totalCount = 0,
+    // loadCount = 0,
+    loadingSnackbar = false,
+    _snackbar,
+    asyncQueue,
+    data,
+    maxQueueConcurrency = 5,
+    onload
+  }: {
+    ids: string[],
+    shareKey?: string,
+    pageNum?: number
+    pageSize?: number
+    fullData?: boolean
+    totalCount?: number
+    // loadCount?: number
+    loadingSnackbar?: boolean
+    _snackbar?: ReturnType<typeof snackbar>,
+    asyncQueue?: AsyncQueue
+    data?: {
+      // pageNum: number
+      loadCount: number
+      list: protoRoot.trip.ITripPositions[]
+    },
+    maxQueueConcurrency?: number
+    onload?: (totalCount: number, loadCount: number) => void
+  }
+): Promise<protoRoot.trip.ITripPositions[]> => {
+
+  ids = ids.filter(v => !!v)
+
+
+  // let pageNum = data.pageNum
+
+  if (!asyncQueue) {
+    asyncQueue = new AsyncQueue({
+      maxQueueConcurrency,
+    })
+  }
+
+  let isInit = false
+  if (!data) {
+    data = {
+      loadCount: 0,
+      list: []
+    }
+    isInit = true
+  }
+
+  if (loadingSnackbar && !_snackbar) {
+    _snackbar = snackbar({
+      message: t('loadingData', {
+        ns: 'prompt',
+      }),
+      vertical: 'top',
+      horizontal: 'center',
+      backgroundColor: 'var(--saki-default-color)',
+      color: '#fff',
+    })
+    _snackbar.open()
+  }
+
+  // console.log("getAllTripPositions mget", ids)
+  // await storage.tripPositions.delete("dywT0Wz1o")
+
+  totalCount = isInit ? ids.length : totalCount
+
+  let loadCount = data?.loadCount || 0
+
+  if (isInit) {
+    let localTrips = await storage.tripPositions.mget(ids)
+
+    if (fullData) {
+      localTrips = localTrips.filter(v => {
+        return (v.value.positions?.[0]?.split('_').length || 0) > 2
+      })
+    }
+
+    data.list = data?.list.concat(localTrips.map(v => v.value))
+
+    const localTripIdsMap = localTrips.reduce((idsMap, v) => {
+      idsMap[v.key] = true
+      return idsMap
+    }, {} as {
+      [id: string]: boolean
+    })
+    loadCount = localTrips.length
+
+    ids = ids.reduce((newIds, v) => {
+      if (!localTripIdsMap[v]) {
+        newIds.push(v)
+      }
+
+      return newIds
+    }, [] as string[])
+
+
+
+    console.log("getAllTripPositions mget", ids, localTrips)
+  }
+  // console.log("getAllTripPositions mget",
+  //   ids.length, isInit, data.list.length)
+
+
+
+
+
+  if (!isInit) {
+    if (ids.length) {
+
+      const res = await httpApi.v1.GetTripHistoryPositions({
+        shareKey,
+        // pageNum,
+        pageNum: 1,
+        pageSize,
+        type: 'All',
+        ids: ids.slice((pageNum - 1) * pageSize, pageNum * pageSize),
+        // ids: [],
+        timeLimit: [0, Math.floor(new Date().getTime() / 1000)],
+        fullData
+        // timeLimit: [localLastTripStartTime + 1, Math.floor(new Date().getTime() / 1000)],
+      })
+
+      console.log("getAllTripPositions", res, pageNum, ids.length, pageNum, loadCount, totalCount)
+
+      if (res.code === 200 && res.data?.list?.length) {
+        for (let i = 0; i < res.data?.list?.length; i++) {
+
+          const v = res.data.list[i]
+
+          await storage.tripPositions.set(v?.id || "", v)
+
+        }
+
+
+        const list = res.data?.list || []
+        data.list = data?.list.concat(list)
+
+
+        data.loadCount = data.loadCount + Number(res.data.total || 0)
+
+        loadCount = data.loadCount
+
+        onload?.(totalCount, loadCount)
+
+        _snackbar?.setMessage(
+          t('loadedData', {
+            ns: 'prompt',
+            percentage:
+              String(
+                loadCount && totalCount
+                  ? Math.floor((loadCount / totalCount || 0) * 100)
+                  : 0
+              ) + '%',
+          })
+        )
+
+        if (Number(res.data.total || 0) === pageSize) {
+
+
+          // let tempPageNum = data.pageNum
+          // for (let i = 1; i <= maxQueueConcurrency; i++) {
+          //   data.pageNum = tempPageNum + i
+          //   console.log("getAllTripPositions ", data.pageNum, i, Math.ceil(totalCount / pageSize))
+          //   if (data.pageNum > Math.ceil(totalCount / pageSize)) {
+          //     break
+          //   }
+
+          //   asyncQueue.increase(() => {
+          //     return getAllTripPositions({
+          //       ids,
+          //       shareKey,
+          //       // pageNum,
+          //       // pageNum: pageNum + 1 + i,
+          //       pageSize,
+          //       totalCount: totalCount,
+          //       // loadCount: loadCount,
+          //       fullData,
+          //       loadingSnackbar,
+          //       _snackbar, asyncQueue,
+          //       data,
+          //       onload
+          //     })
+          //   })
+          // }
+
+          // await asyncQueue.wait.waiting()
+
+          return data.list
+        }
+
+      }
+
+    } else {
+      _snackbar?.setMessage(
+        t('loadedData', {
+          ns: 'prompt',
+          percentage:
+            String(
+              loadCount && totalCount
+                ? Math.floor((loadCount / totalCount || 0) * 100)
+                : 0
+            ) + '%',
+        })
+      )
+      onload?.(totalCount, loadCount)
+    }
+    return data?.list || []
+  }
+
+  if (ids.length) {
+    for (let i = 1; i <= Math.ceil(totalCount / pageSize); i++) {
+      // data.pageNum = tempPageNum + i
+      // console.log("getAllTripPositions ", data.pageNum, i, Math.ceil(totalCount / pageSize))
+      // if (data.pageNum > Math.ceil(totalCount / pageSize)) {
+      //   break
+      // }
 
       asyncQueue.increase(async () => {
+        return await getAllTripPositions({
+          ids,
+          shareKey,
+          pageNum: i,
+          // pageNum: pageNum + 1 + i,
+          pageSize,
+          totalCount: totalCount,
+          // loadCount: loadCount,
+          fullData,
+          loadingSnackbar,
+          _snackbar,
+          asyncQueue,
+          data,
+          onload
+        })
+      })
+    }
+  } else {
+    asyncQueue.increase(async () => { })
+  }
+
+
+
+  // console.log("getAllTripPositions aq", aq)
+  await asyncQueue.wait.waiting()
+  // console.log("getAllTripPositions allRes", aq)
+  setTimeout(() => {
+    // console.log(" getAllTripPositions _snackbar?.close()", _snackbar?.close())
+    _snackbar?.close()
+  }, 1000);
+
+  return data?.list || []
+}
+
+
+let count = 1
+export const initTripItemCity = async (trip: protoRoot.trip.ITrip) => {
+
+  if (trip.cities?.length) return
+  let nextPosTime = 0
+
+  console.log("initTripCity", trip.positions, trip.positions?.length)
+
+  if (trip.positions?.length) {
+    for (let i = 0; i < trip.positions?.length; i++) {
+      const v = trip.positions[i]
+
+      // console.log(Number(v.timestamp) > nextPosTime)
+
+      if (Number(v.timestamp) > nextPosTime) {
+        // console.log('initCity', count, v.latitude, v.timestamp)
+        nextPosTime = Number(v.timestamp) + 90
+        count++
+
+        // console.log("initTripCity  cityinfo", count)
 
         const lat = v.latitude
         const lng = v.longitude
@@ -173,12 +514,12 @@ export const initTripCity = async (trip: protoRoot.trip.ITrip) => {
           url:
             // `https://restapi.amap.com/v3/geocode/regeo?output=json&location=104.978701,24.900169&key=fb7fdf3663af7a532b8bdcd1fc3e6776&radius=100&extensions=all`
             // `https://restapi.amap.com/v3/geocode/regeo?output=json&location=${lon},${lat}&key=fb7fdf3663af7a532b8bdcd1fc3e6776&radius=100&extensions=all`
-            toolApiUrl + `/api/v1/geocode/regeo?latitude=${lat}&longitude=${lng}&platform=Amap`
+            toolApiUrl + `/api/v1/geocode/regeo?latitude=${lat}&longitude=${lng}`
           // `https://tools.aiiko.club/api/v1/geocode/regeo?latitude=${lat}&longitude=${lng}&platform=Amap`
         })
         const data = res?.data?.data as any
-        console.log("initCity cityinfo", data)
-        if (!data?.country || res?.data?.code !== 200) return
+
+        if (!data?.country || res?.data?.code !== 200) continue
         let newCi = {
           country: data.country,
           state: data.state,
@@ -189,7 +530,7 @@ export const initTripCity = async (trip: protoRoot.trip.ITrip) => {
           address: [data.country, data.state, data.region, data.city, data.town].filter(v => v).join("·")
         }
 
-        // console.log('initCity', count, v.latitude, v.timestamp)
+        // console.log('initCity', newCi, v.timestamp)
         const nres = await httpApi.v1.UpdateCity({
           tripId: trip.id,
           // tripId: trip?.id || 'wKod7r4LS',
@@ -203,21 +544,48 @@ export const initTripCity = async (trip: protoRoot.trip.ITrip) => {
           },
           entryTime: v.timestamp,
         })
-        console.log('initCity', nres, newCi)
-        if (nres.code === 200) {
-        }
-      }, "initTripCity")
+        console.log("initTripCity  cityinfo", count, data, data.platform, newCi, [lat, lng], nres,
+          moment(Number(v.timestamp) * 1000).format("YYYY-MM-DD hh:mm:ss"))
+        // console.log('initTripCity', nres, newCi)
+
+
+      }
+
 
     }
-  })
 
-  console.log('initCity', trip.positions)
+  }
+
+  connectLength -= 1
+  total += 1
+  ids = ids.filter(v => v !== trip.id)
+  console.log("initTripCity  cityinfo", count)
+
+  // console.log('initCity', trip.positions)
+}
+
+
+
+
+
+
+let loadStatus = {
+  GetTripStatistics: "loaded"
 }
 
 export const tripSlice = createSlice({
   name: modelName,
   initialState: state,
   reducers: {
+    setHistoricalStatistics: (
+      state,
+      params: {
+        payload: (typeof state.historicalStatistics)
+        type: string
+      }
+    ) => {
+      state.historicalStatistics = params.payload
+    },
     setWeatherInfo: (
       state,
       params: {
@@ -342,7 +710,7 @@ export const getTrips = async (
   trips: protoRoot.trip.ITrip[],
   startTime: number
 }> => {
-  const pageSize = 100
+  const pageSize = 10 * 10000
 
   // let startTime =  1540915200
   let tempStartTime = startTime || 1540915200
@@ -411,42 +779,55 @@ export const getTrips = async (
 }
 
 
-export const filterTripsForTrackRoutePage = () => {
-  const { config, trip } = store.getState()
-  const { configure } = config
+export const FilterTrips = ({
+  selectedTripTypes,
+  shortestDistance,
+  longestDistance,
+  showCustomTrip,
+  selectedVehicleIds,
+  startDate,
+  endDate,
+}: {
+  selectedTripTypes: string[],
+  shortestDistance: number
+  longestDistance: number
+  showCustomTrip: boolean
+  selectedVehicleIds: string[]
+  startDate: string
+  endDate: string
+}) => {
 
+  const { trip } = store.getState()
 
-  const startDate = configure.filter?.trackRoute?.startDate || ''
-  const endDate = configure.filter?.trackRoute?.endDate || ''
 
   const trips = trip.tripStatistics
     ?.filter((v) =>
-      configure.filter?.trackRoute?.selectedTripTypes?.length === 0
+      selectedTripTypes?.length === 0
         ? v.type === 'All'
-        : configure.filter?.trackRoute?.selectedTripTypes?.includes(
+        : selectedTripTypes?.includes(
           v.type
         )
     )
     .reduce((list, v) => list.concat(v.list), [] as protoRoot.trip.ITrip[])
     .filter((v) => {
-      const shortestDistance =
-        Number(configure.filter?.trackRoute?.shortestDistance) * 1000
-      const longestDistance =
-        Number(configure.filter?.trackRoute?.longestDistance) * 1000
+      const _shortestDistance =
+        (shortestDistance) * 1000
+      const _longestDistance =
+        (longestDistance) * 1000
       return (
-        Number(v.statistics?.distance) >= shortestDistance &&
-        (longestDistance >= 500 * 1000
+        Number(v.statistics?.distance) >= _shortestDistance &&
+        (_longestDistance >= 500 * 1000
           ? true
-          : Number(v.statistics?.distance) <= longestDistance)
+          : Number(v.statistics?.distance) <= _longestDistance)
       )
     })
 
   const list =
     trips
-      .filter(v => configure.filter?.trackRoute?.showCustomTrip ? v.permissions?.customTrip : true)
+      .filter(v => showCustomTrip ? v.permissions?.customTrip : true)
       .filter((v) => {
-        return configure.filter?.trackRoute?.selectedVehicleIds?.length
-          ? configure.filter?.trackRoute?.selectedVehicleIds.includes(
+        return selectedVehicleIds?.length
+          ? selectedVehicleIds.includes(
             v.vehicle?.id || ''
           )
           : true
@@ -468,6 +849,22 @@ export const filterTripsForTrackRoutePage = () => {
       }) || []
   // console.log('filterList', list, trip.tripStatistics)
   return list
+}
+
+export const filterTripsForTrackRoutePage = () => {
+  const { config, trip } = store.getState()
+  const { configure } = config
+
+
+  return FilterTrips({
+    selectedTripTypes: configure.filter?.trackRoute?.selectedTripTypes || [],
+    shortestDistance: Number(configure.filter?.trackRoute?.shortestDistance) || 0,
+    longestDistance: Number(configure.filter?.trackRoute?.longestDistance) || 0,
+    showCustomTrip: configure.filter?.trackRoute?.showCustomTrip || false,
+    selectedVehicleIds: configure.filter?.trackRoute?.selectedVehicleIds || [],
+    startDate: configure.filter?.trackRoute?.startDate || "",
+    endDate: configure.filter?.trackRoute?.endDate || "",
+  })
 }
 
 export const filterTrips = ({
@@ -566,14 +963,31 @@ export const tripMethods = {
         res.data.trip.cities = cities
 
 
-        const cityBoundaries = await store.dispatch(methods.city.GetCityBoundaries(
-          {
-            cities
-          }
-        )).unwrap()
-        console.log("GetCityBoundaries", cityBoundaries)
+        // const cityBoundaries = await store.dispatch(methods.city.GetCityBoundaries(
+        //   {
+        //     cities: cities.reduce((tv, cv) => {
 
-        store.dispatch(tripSlice.actions.setCityBoundariesForDetailPage(cityBoundaries))
+        //       if (tv.filter(sv => {
+        //         return sv.cityId === cv.cityId
+        //       })?.length === 0) {
+        //         tv.push({
+        //           cityId: cv.cityId || "",
+        //           level: cv.cityDetails?.filter(v => v.id === cv.cityId)?.[0]?.level || 5,
+        //           name: cv.cityDetails?.filter(sv => Number(sv.level) <= 4).map(sv => sv.name?.zhCN).join(",") || "",
+        //         })
+        //       }
+
+        //       return tv
+        //     }, [] as {
+        //       cityId: string,
+        //       level: number
+        //       name: string
+        //     }[])
+        //   }
+        // )).unwrap()
+        // console.log("GetCityBoundaries", cityBoundaries)
+
+        // store.dispatch(tripSlice.actions.setCityBoundariesForDetailPage(cityBoundaries))
       }
 
       // res.data?.trip?.cities.forEach(v => {
@@ -679,7 +1093,7 @@ export const tripMethods = {
     }
     return res.data?.trip
   }),
-  GetTripStatistics: createAsyncThunk(modelName + '/GetTripStatistics', async (
+  GetTripsBaseData: createAsyncThunk(modelName + '/GetTripsBaseData', async (
     { loadCloudData, alert = true }: {
       loadCloudData?: boolean
       alert?: boolean
@@ -709,6 +1123,46 @@ export const tripMethods = {
 
       loadBaseData?.open()
 
+      console.time("GetTripStatistics")
+
+      const k = "getTripStatisticsStartTime"
+      // storage.trips.deleteAll()
+      // await storage.global.delete(k)
+
+      const getTripsCloud = await getTrips({
+        pageNum: 1,
+        type: "All",
+        startTime:
+          loadCloudData ? 1540915200 : (Number(await storage.global.get(k)) || 1540915200)
+      })
+      await storage.global.set(k, getTripsCloud.startTime + 1)
+
+      const getTripsLocal = (await storage.trips.getAll()).map((v) => {
+        return ForEachLongToNumber(v)
+      }).map((v): protoRoot.trip.ITrip => {
+        return v.value
+      }).concat(getTripsCloud.trips)
+
+      loadBaseData?.close()
+      console.timeEnd("GetTripStatistics")
+
+
+      return getTripsLocal
+    } catch (error) {
+      console.error(error)
+      return []
+    }
+  }),
+  GetTripHistoryData: createAsyncThunk(modelName + '/GetTripHistoryData', async (
+    { loadCloudData, alert = true }: {
+      loadCloudData?: boolean
+      alert?: boolean
+    }, thunkAPI) => {
+    const dispatch = thunkAPI.dispatch
+    const { trip, config, user } = store.getState()
+
+    try {
+
 
       const ts: typeof trip.tripStatistics = [
         {
@@ -733,39 +1187,25 @@ export const tripMethods = {
         })
       })
 
-      console.time("GetTripStatistics")
 
-      const k = "getTripStatisticsStartTime"
-      // storage.trips.deleteAll()
-      // await storage.global.delete(k)
 
-      const getTripsCloud = await getTrips({
-        pageNum: 1,
-        type: "All",
-        startTime:
-          !loadCloudData ? (Number(await storage.global.get(k)) || 1540915200) : 1540915200
-      })
-      await storage.global.set(k, getTripsCloud.startTime + 1)
+      const baseTrips = await dispatch(methods.trip.GetTripsBaseData({
+        loadCloudData, alert
+      })).unwrap()
 
-      const getTripsLocal = (await storage.trips.getAll()).map(v => ForEachLongToNumber(v))
+
       const tripsTemp = Object.fromEntries(
-        (getTripsLocal.map(v => v.value)
-          .concat(getTripsCloud.trips)).filter(v => {
-            return Number(v.status) >= 0 && v.authorId === user.userInfo.uid
-          }).map((v) => [
-            v?.id || "",
-            v,
-          ])
+        baseTrips.filter(v => {
+          return Number(v.status) >= 0 && v.authorId === user.userInfo.uid
+        }).map((v) => [
+          v?.id || "",
+          v,
+        ])
       )
 
       const tripStatistics: protoRoot.trip.ITrip[] = Object.keys(tripsTemp).map(v => {
         return tripsTemp[v]
       })
-
-      console.timeEnd("GetTripStatistics")
-
-      console.log("GetTripStatistics c",
-        getTripsCloud, getTripsLocal, tripStatistics)
 
       tripStatistics?.forEach((v) => {
         let i = [0]
@@ -815,15 +1255,13 @@ export const tripMethods = {
 
       tripStatistics.forEach(v => {
         if (v.cities?.length || v.id === 'JxoX2UrkU') {
-          console.log('cccccc', v)
+          // console.log('cccccc', v)
         }
       })
 
       console.log('tsts listlist', ts)
 
       dispatch(tripSlice.actions.setTripStatistics(ts))
-
-      loadBaseData?.close()
 
     } catch (error) {
       console.error(error)
@@ -1016,6 +1454,87 @@ export const tripMethods = {
         vertical: 'top',
         horizontal: 'center',
       }).open()
+    } catch (error) {
+      console.error(error)
+    }
+
+  }),
+
+
+  GetTripHistoricalStatistics: createAsyncThunk(modelName + '/GetTripHistoricalStatistics', async (
+    {
+      type }: {
+
+        type: string
+      }, thunkAPI) => {
+    const dispatch = thunkAPI.dispatch
+
+    const { user, trip } = store.getState()
+
+    const { historicalStatistics } = trip
+
+    try {
+
+      if (loadStatus.GetTripStatistics === 'loading' || loadStatus.GetTripStatistics == 'noMore') return
+      loadStatus.GetTripStatistics = "loading"
+      console.log(!user.isLogin || type === 'Local')
+      if (!user.isLogin || type === 'Local') {
+        const trips = await storage.trips.getAll()
+        console.log('getLocalTrips', trips)
+
+        const obj: any = {}
+        // let distance = 0
+        // let time = 0
+        trips.forEach((v) => {
+          if (!v.value.type) return
+          !obj[v.value.type] &&
+            (obj[v.value.type] = {
+              count: 0,
+              distance: 0,
+              time: 0,
+            })
+
+          obj[v.value.type].count += 1
+          obj[v.value.type].distance += v.value.statistics?.distance || 0
+          obj[v.value.type].time +=
+            (Number(v.value.endTime) || 0) - (Number(v.value.startTime) || 0)
+        })
+
+        dispatch(tripSlice.actions.setHistoricalStatistics({
+          ...historicalStatistics,
+          ...obj,
+        }))
+
+
+        loadStatus.GetTripStatistics = "loaded"
+        return
+      }
+
+      // const tripStatisticsCloud = await getTripStatistics(1, 'All')
+
+      const res = await httpApi.v1.GetTripStatistics({
+        type: type,
+        timeLimit: [1540915200, Math.floor(new Date().getTime() / 1000)],
+        distanceLimit: [0, 500],
+      })
+      console.log('getTripStatistics', res)
+      if (res.code === 200) {
+        const obj: any = {}
+        obj[type] = {
+          count: res?.data?.count || 0,
+          distance: res?.data?.distance || 0,
+          time: res?.data?.time || 0,
+          days: res?.data?.days || 0,
+        }
+
+        dispatch(tripSlice.actions.setHistoricalStatistics({
+          ...historicalStatistics,
+          ...obj,
+        }))
+
+      }
+      loadStatus.GetTripStatistics = "loaded"
+
     } catch (error) {
       console.error(error)
     }

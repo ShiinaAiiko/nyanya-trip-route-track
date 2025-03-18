@@ -1,12 +1,23 @@
 #! /bin/bash
 name="nyanya-trip-route-track"
 port=23202
+sakiuiVersion="v1.0.7"
 branch="main"
 # configFilePath="config.dev.json"
 configFilePath="config.pro.json"
 registryUrl="https://registry.npmmirror.com/"
 DIR=$(cd $(dirname $0) && pwd)
-allowMethods=("unzip zip protos stop rm npmconfig install gitpull dockerremove start logs")
+allowMethods=("download:saki-ui-react copySakiUIReactTypes unzip zip protos stop rm npmconfig install gitpull dockerremove start logs")
+
+copySakiUIReactTypes() {
+  sakiUIPath="/home/shiina_aiiko/Workspace/Development/@Aiiko/ShiinaAiikoDevWorkspace/@OpenSourceProject/saki-ui/saki-ui"
+  sakiUITypesPath=$sakiUIPath"/dist/types"
+  typesPath=$DIR/components/saki-ui-react
+
+  mkdir -p $typesPath
+  cp -r $sakiUITypesPath $typesPath
+
+}
 
 npmconfig() {
   echo "-> 配置npm config"
@@ -97,6 +108,13 @@ unzip() {
 
 zip() {
   tar cvzf /build.tgz -C /dist .
+}
+
+download:saki-ui-react() {
+  mkdir -p ./components
+  wget https://saki-ui.aiiko.club/packages/saki-ui-react-${sakiuiVersion}.tgz -O saki-ui-react.tgz
+  tar zxvf ./saki-ui-react.tgz -C ./components
+  rm -rf ./saki-ui*
 }
 
 stop() {
