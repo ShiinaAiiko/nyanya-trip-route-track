@@ -1,7 +1,8 @@
 #! /bin/bash
 name="nyanya-trip-route-track"
 port=23202
-sakiuiVersion="v1.0.7"
+version="v1.0.29"
+sakiuiVersion="v1.0.8"
 branch="main"
 # configFilePath="config.dev.json"
 configFilePath="config.pro.json"
@@ -47,8 +48,26 @@ dockerremove() {
   docker rm $(docker ps -q -f status=exited) 2 &>/dev/null
   docker rmi -f $(docker images | grep '<none>' | awk '{print $3}') 2 &>/dev/null
 }
+setVersion() {
+  echo "-> $version"
+  sed -i "s/\"version\":.*$/\"version\":\"${version:1}\",/" ./config.dev.json
+  sed -i "s/\"version\":.*$/\"version\":\"${version:1}\",/" ./config.pro.json
+
+  jsurl='https:\/\/saki-ui.aiiko.club\/packages\/'$sakiuiVersion'\/saki-ui\/saki-ui.js'
+  sed -i "10,13s/\"jsurl\":.*$/\"jsurl\": \"$jsurl\",/" ./config.pro.json
+
+  esmjsurl='https:\/\/saki-ui.aiiko.club\/packages\/'$sakiuiVersion'\/saki-ui\/saki-ui.esm.js'
+  sed -i "10,13s/\"esmjsurl\":.*$/\"esmjsurl\": \"$esmjsurl\"/" ./config.pro.json
+  # INPUT_FILE="./config.pro.web.json"
+  # OUTPUT_FILE="./config.pro.web1.json"
+  # FIELD_TO_MODIFY="jsurl" # 要修改的字段名称
+  # NEW_VALUE="https://saki-ui.aiiko.club/packages/$version/saki-ui/saki-ui.js"
+
+  # sed -E "s/(\"$FIELD_TO_MODIFY\"[[:space:]]*:[[:space:]]*\")[^\"]*(\")/\1$NEW_VALUE\2/" "$INPUT_FILE" >"$OUTPUT_FILE"
+}
 
 start() {
+  setVersion
   echo "-> 正在启动「${name}」服务"
 
   # gitpull

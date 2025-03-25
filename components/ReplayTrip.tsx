@@ -1,4 +1,12 @@
-import React, { use, useCallback, useEffect, useRef, useState } from 'react'
+import React, {
+	use,
+	useCallback,
+	useEffect,
+	useMemo,
+	useReducer,
+	useRef,
+	useState,
+} from 'react'
 
 import { useSelector, useDispatch } from 'react-redux'
 import store, {
@@ -46,8 +54,14 @@ import Leaflet from 'leaflet'
 import SpeedMeterComponent from './SpeedMeter'
 import { Statistics } from '../store/trip'
 import { eventListener } from '../store/config'
-import { createMaxSpeedMarker } from '../store/position'
 import screenfull from 'screenfull'
+import { createIconMarker } from '../store/map'
+import { SakiScrollView } from './saki-ui-react/components'
+import {
+	convertCityLevelToTypeString,
+	getCityName,
+	getSimpleCityName,
+} from '../store/city'
 
 const ReplayTripComponent = () => {
 	const { t, i18n } = useTranslation('replayTripPage')
@@ -63,6 +77,9 @@ const ReplayTripComponent = () => {
 			ref={bindEvent({
 				close() {
 					dispatch(layoutSlice.actions.setOpenReplayTripModal(false))
+				},
+				loaded() {
+					eventListener.dispatch('loadModal:ReplayTrip', true)
 				},
 			})}
 			width='100%'
@@ -141,6 +158,8 @@ const ReplayTripComponent = () => {
 	)
 }
 
+const forceUpdateReducer = (state: number) => state + 1
+
 const ReplayTripPage = ({ clearEvent }: { clearEvent: NEventListener }) => {
 	const { t, i18n } = useTranslation('replayTripPage')
 	const layout = useSelector((state: RootState) => state.layout)
@@ -157,6 +176,8 @@ const ReplayTripPage = ({ clearEvent }: { clearEvent: NEventListener }) => {
 	const trackWidth = useSelector(
 		(state: RootState) => config.configure.polylineWidth?.reviewTrip || 6
 	)
+
+	const [, forceUpdate] = useReducer(forceUpdateReducer, 0)
 
 	const dispatch = useDispatch<AppDispatch>()
 	// const [menuType, setMenuType] = useState('Appearance')
@@ -221,45 +242,38 @@ const ReplayTripPage = ({ clearEvent }: { clearEvent: NEventListener }) => {
 
 	const [disablePanTo, setDisablePanTo] = useState(false)
 
+	const [speedMeterZoom, setZoomSpeedMeter] = useState<'zoomIn' | 'zoomOut'>(
+		'zoomOut'
+	)
+
 	const [runningSpeed, setRunningSpeed] = useState(1)
 	const [runningSpeedArr] = useState([
-		{
-			t: '0.5x',
-			v: 2,
-		},
-		{
-			t: '0.75x',
-			v: 1.5,
-		},
-		{
-			t: '1x',
-			v: 1,
-		},
-		{
-			t: '5x',
-			v: 0.5,
-		},
-		{
-			t: '7.5x',
-			v: 0.25,
-		},
-		{
-			t: '10x',
-			v: 0.1,
-		},
-		{
-			t: '20x',
-			v: 0.05,
-		},
-		{
-			t: '50x',
-			v: 0.025,
-		},
-		{
-			t: '100x',
-			v: 0.01,
-		},
+		{ t: '0.5x', v: 2.0 },
+		{ t: '0.75x', v: 1.3333 },
+		{ t: '1x', v: 1.0 },
+		{ t: '2x', v: 0.5 },
+		{ t: '3x', v: 0.3333 },
+		{ t: '4x', v: 0.25 },
+		{ t: '5x', v: 0.2 },
+		{ t: '6x', v: 0.1667 },
+		{ t: '7x', v: 0.1429 },
+		{ t: '8x', v: 0.125 },
+		{ t: '9x', v: 0.1111 },
+		{ t: '10x', v: 0.1 },
+		{ t: '11x', v: 0.0909 },
+		{ t: '12x', v: 0.0833 },
+		{ t: '13x', v: 0.0769 },
+		{ t: '14x', v: 0.0714 },
+		{ t: '15x', v: 0.0667 },
+		{ t: '16x', v: 0.0625 },
+		{ t: '17x', v: 0.0588 },
+		{ t: '18x', v: 0.0556 },
+		{ t: '19x', v: 0.0526 },
+		{ t: '20x', v: 0.05 },
 	])
+
+	const showeProgressBar = useRef(true)
+
 	const [openRunningSpeedDropDown, setOpenRunningSpeedDropDown] =
 		useState(false)
 
@@ -817,6 +831,8 @@ const ReplayTripPage = ({ clearEvent }: { clearEvent: NEventListener }) => {
 					// 	)
 					// 	.openOn(map.current)
 
+					showeProgressBar.current = !showeProgressBar.current
+
 					dispatch(
 						geoSlice.actions.setSelectPosition({
 							latitude: Math.round(popLocation.lat * 1000000) / 1000000,
@@ -957,15 +973,16 @@ const ReplayTripPage = ({ clearEvent }: { clearEvent: NEventListener }) => {
 
 					setMaxSpeedPosition(maxSpeedPosition)
 					if (maxSpeedPosition) {
-						maxSpeedMarker.current = createMaxSpeedMarker(
-							map.current,
-							maxSpeedPosition?.speed || 0,
-							getLatLng(
+						maxSpeedMarker.current = createIconMarker({
+							map: map.current,
+							maxSpeed: maxSpeedPosition?.speed || 0,
+							latlng: getLatLng(
 								config.mapUrl,
-								maxSpeedPosition?.latitude || 0,
-								maxSpeedPosition?.longitude || 0
-							)
-						)
+								maxSpeedPosition.latitude || 0,
+								maxSpeedPosition.longitude || 0
+							),
+							type: 'MaxSpeed',
+						})
 					}
 
 					console.timeEnd('getLatLnggetLatLng')
@@ -1068,6 +1085,126 @@ const ReplayTripPage = ({ clearEvent }: { clearEvent: NEventListener }) => {
 		}
 	}
 
+	const cityTimeline = useMemo(() => {
+		return (
+			trip?.cities?.reduce(
+				(results, v, i, arr) => {
+					v.entryTimes?.forEach((t) => {
+						results.push({
+							item: v,
+							time: Number(t.timestamp),
+						})
+					})
+					if (arr.length - 1 === i) {
+						console.log('trip?.cities results', results)
+						results.sort((a, b) => a.time - b.time)
+					}
+					return results
+				},
+				[] as {
+					item: protoRoot.trip.ITripCity
+					time: number
+				}[]
+			) || []
+		)
+	}, [trip?.cities])
+
+	const findCityByTimestamp = (
+		cityTimeline: {
+			item: protoRoot.trip.ITripCity
+			time: number
+		}[],
+		timestamp: number
+	) => {
+		if (!cityTimeline.length) return
+		let city = cityTimeline[0]
+		for (let i = 0; i < cityTimeline.length; i++) {
+			// console.log(
+			// 	'lllll',
+			// 	i,
+			// 	moment(cityTimeline[i].time * 1000).format('hh:mm:ss'),
+			// 	moment(timestamp * 1000).format('hh:mm:ss'),
+			// 	moment(Number(trip?.startTime) * 1000).format('hh:mm:ss'),
+			// 	moment(Number(trip?.endTime) * 1000).format('hh:mm:ss'),
+			// 	cityTimeline[i].time > timestamp
+			// )
+			if (cityTimeline[i].time > timestamp) {
+				break
+			}
+			city = cityTimeline[i]
+		}
+		return city
+	}
+
+	// const [fullCityName, setFullCityName] = useState(true)
+
+	const entryTime = useRef(0)
+
+	const [cityInfo, setCityInfo] = useState<
+		protoRoot.trip.ITripCity | undefined
+	>()
+	useEffect(() => {
+		const tempCitiInfo = findCityByTimestamp(
+			cityTimeline,
+			Number(trip?.startTime) + listenTime
+		)
+		if (tempCitiInfo?.time !== entryTime.current) {
+			// console.log('新城市', tempCitiInfo)
+			entryTime.current = tempCitiInfo?.time || 0
+
+			const spans = document.querySelectorAll('.rt-city span')
+
+			// 动画参数
+			const exitDuration = 300 // 消失阶段 0.3 秒（快速）
+			const enterDuration = 1200 // 显示阶段 1.2 秒（灵巧）
+
+			setTimeout(() => {
+				// console.log('新城市', 3232)
+				setCityInfo(tempCitiInfo?.item)
+			}, 400)
+
+			// 为每个字符添加动画
+			spans.forEach((span, index) => {
+				const delay = index * 100 // 每个字符延迟 100ms
+
+				// 1. 消失动画（快速向左上方淡出）
+				const exitAnimation = span.animate(
+					[
+						{ transform: 'translate(0, 0)', opacity: 1 }, // 开始位置
+						{ transform: 'translate(-80px, -40px)', opacity: 0 }, // 快速消失
+					],
+					{
+						duration: exitDuration,
+						delay: delay,
+						easing: 'ease-out', // 快速消失的自然减速
+						fill: 'forwards',
+					}
+				)
+
+				// 2. 显示动画（从右上方灵巧滑入）
+				exitAnimation.onfinish = () => {
+					span.animate(
+						[
+							{ transform: 'translate(80px, -40px) rotate(15deg)', opacity: 0 }, // 从右上方带点旋转进入
+							{
+								transform: 'translate(0, -10px) rotate(-5deg)',
+								opacity: 0.7,
+								offset: 0.7,
+							}, // 中间轻微弹起
+							{ transform: 'translate(0, 0) rotate(0deg)', opacity: 1 }, // 平滑落地
+						],
+						{
+							duration: enterDuration,
+							delay: 0, // 消失后立即开始
+							easing: 'cubic-bezier(0.25, 0.1, 0.25, 1.5)', // 弹性感（超出目标后回弹）
+							fill: 'forwards',
+						}
+					)
+				}
+			})
+		}
+	}, [listenTime])
+
 	const clear = (initMap = false) => {
 		console.log('clear')
 		clearTimeout(updatePositionTimer.current)
@@ -1105,6 +1242,45 @@ const ReplayTripPage = ({ clearEvent }: { clearEvent: NEventListener }) => {
 		((Number(trip?.positions?.[trip?.positions?.length - 1]?.timestamp) || 0) -
 			Number(trip?.startTime))
 
+	const cityStyle = useRef('Dark')
+	const fullCityName = useRef(true)
+
+	const timer = useRef<NodeJS.Timeout>()
+
+	const cityClickEvent = useRef({
+		timer: deepCopy(timer.current),
+		startTime: 0,
+		mouseDown: (e: any) => {
+			cityClickEvent.current.startTime = e.timeStamp
+			cityClickEvent.current.timer = setTimeout(() => {
+				// cityClickEvent.current.copyText()
+				cityStyle.current = cityStyle.current === 'Dark' ? 'Light' : 'Dark'
+				forceUpdate()
+				return
+			}, 700)
+		},
+		mouseUp: (e: any) => {
+			cityClickEvent.current?.timer &&
+				clearTimeout(cityClickEvent.current.timer)
+
+			// console.log(
+			// 	'cityClickEvent.current',
+			// 	e.timeStamp - cityClickEvent.current.startTime
+			// )
+
+			if (!cityClickEvent.current?.startTime) return
+
+			if (e.timeStamp - cityClickEvent.current.startTime < 700) {
+				// setFullCityName(!fullCityName)
+				fullCityName.current = !fullCityName.current
+				forceUpdate()
+			}
+			cityClickEvent.current.startTime = 0
+
+			e.stopPropagation()
+			e.preventDefault()
+		},
+	})
 	return (
 		<div
 			className='rt-main'
@@ -1124,7 +1300,9 @@ const ReplayTripPage = ({ clearEvent }: { clearEvent: NEventListener }) => {
 					' ' +
 					(startTrip ? 'start' : '') +
 					' ' +
-					(isRoadColorFade() ? 'roadColorFade' : '')
+					(isRoadColorFade() ? 'roadColorFade' : '') +
+					' ' +
+					speedMeterZoom
 				}
 			></div>
 
@@ -1140,6 +1318,12 @@ const ReplayTripPage = ({ clearEvent }: { clearEvent: NEventListener }) => {
 					updatedPositionsLength={updatingPositionIndex.current}
 					positionsLength={trip.positions.length}
 					runTime={startTrip ? 1000 * runningSpeed : 1}
+					// cities={trip?.cities || []}
+					onZoom={(v) => {
+						console.log(v)
+						setZoomSpeedMeter(v)
+						map.current?.invalidateSize(true)
+					}}
 				/>
 			) : (
 				''
@@ -1178,7 +1362,49 @@ const ReplayTripPage = ({ clearEvent }: { clearEvent: NEventListener }) => {
 				''
 			)}
 
-			<div className={'rt-processbar ' + config.deviceType}>
+			{cityInfo?.cityDetails?.length ? (
+				<div
+					ref={
+						bindEvent({
+							// click: () => {
+							// 	// setFullCityName(!fullCityName)
+							// 	fullCityName.current = !fullCityName.current
+							// },
+							mousedown: cityClickEvent.current.mouseDown,
+							mouseup: cityClickEvent.current.mouseUp,
+							touchstart: cityClickEvent.current.mouseDown,
+							touchend: cityClickEvent.current.mouseUp,
+						}) as any
+					}
+					className={'rt-city ' + cityStyle.current}
+				>
+					{/* <span>贵州·黔西南·兴义·万峰湖</span> */}
+					{cityInfo?.cityDetails
+						?.slice(1, cityInfo?.cityDetails?.length || 0)
+						.map((v, i, arr) => {
+							let name = getCityName(v.name)
+							if (!fullCityName.current) {
+								name = getSimpleCityName(
+									name,
+									convertCityLevelToTypeString(v.level || 1)
+								)
+							}
+							return (
+								<span key={i}>{name + (i < arr.length - 1 ? '·' : '')}</span>
+							)
+						})}
+				</div>
+			) : (
+				''
+			)}
+			<div
+				className={
+					'rt-processbar ' +
+					config.deviceType +
+					' ' +
+					(showeProgressBar.current ? 'show' : 'hide')
+				}
+			>
 				<saki-button
 					ref={bindEvent({
 						tap: () => {
@@ -1308,27 +1534,37 @@ const ReplayTripPage = ({ clearEvent }: { clearEvent: NEventListener }) => {
 						</span>
 					</saki-button>
 					<div slot='main'>
-						<saki-menu
-							ref={bindEvent({
-								selectvalue: async (e) => {
-									setRunningSpeed(Number(e.detail.value))
-
-									setOpenRunningSpeedDropDown(false)
-									await storage.global.set('runningSpeed', e.detail.value)
-								},
-							})}
+						<SakiScrollView
+							maxHeight={Math.min(config.deviceWH.h, 300) + 'px'}
+							mode='Custom'
 						>
-							{/* 0.5, 0.75, 1, 2.5, 5, 7.5, 10 */}
-							{runningSpeedArr.map((v) => {
-								return (
-									<saki-menu-item key={v.v} padding='10px 14px' value={v.v}>
-										<saki-row align-items='center' justify-content='center'>
-											<span>{v.t}</span>
-										</saki-row>
-									</saki-menu-item>
-								)
-							})}
-						</saki-menu>
+							<saki-menu
+								ref={bindEvent({
+									selectvalue: async (e) => {
+										setRunningSpeed(Number(e.detail.value))
+
+										setOpenRunningSpeedDropDown(false)
+										await storage.global.set('runningSpeed', e.detail.value)
+									},
+								})}
+							>
+								{/* 0.5, 0.75, 1, 2.5, 5, 7.5, 10 */}
+								{runningSpeedArr.map((v) => {
+									return (
+										<saki-menu-item
+											key={v.v}
+											padding='10px 14px'
+											value={v.v}
+											active={v.v === runningSpeed}
+										>
+											<saki-row align-items='center' justify-content='center'>
+												<span>{v.t}</span>
+											</saki-row>
+										</saki-menu-item>
+									)
+								})}
+							</saki-menu>
+						</SakiScrollView>
 					</div>
 				</saki-dropdown>
 				<saki-button

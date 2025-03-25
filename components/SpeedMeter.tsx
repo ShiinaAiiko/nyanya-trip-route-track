@@ -96,9 +96,8 @@ const SpeedMeterComponent = ({
 		setMounted(true)
 		const init = async () => {
 			setDataTheme((await storage.global.get('dataTheme')) || 'Dark')
-			setZoomOutSpeedMeter(
-				(await storage.global.get('zoomOutSpeedMeter')) || false
-			)
+			const zoom = (await storage.global.get('zoomOutSpeedMeter')) || false
+			setZoomOutSpeedMeter(zoom)
 		}
 		init()
 	}, [])
@@ -160,7 +159,7 @@ const SpeedMeterComponent = ({
 			timeLimit: [sd, ed],
 		})
 		console.log('GetHistoricalStatistics', res, type)
-		if (res.code === 200) {
+		if (res.code === 200 && res.data?.maxSpeed?.num) {
 			const hs: protoRoot.trip.GetHistoricalStatistics.IResponse = {
 				maxSpeed: {
 					num: res.data.maxSpeed?.num,

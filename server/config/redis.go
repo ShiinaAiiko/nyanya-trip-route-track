@@ -59,4 +59,8 @@ var RedisCacheKeys = map[string]*nredis.RedisCacheKeysType{
 		Key:        "Test",
 		Expiration: 5 * 60 * time.Second,
 	},
+	"GetOsmInfo": {
+		Key:        "GetOsmInfo",
+		Expiration: 5 * 60 * time.Second,
+	},
 }

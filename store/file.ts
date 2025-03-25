@@ -15,7 +15,34 @@ import i18n from '../plugins/i18n/i18n'
 
 export const saass = new SAaSS({})
 
-export const getSAaSSImageUrl = (url: string, type?: "" | "big" | "mid" | "small") => {
+export const selectFiles = () => {
+  return new Promise<FileList | null>((resolve, reject) => {
+    try {
+      const input = document.createElement('input')
+      input.type = 'file'
+      input.accept = 'image/*'
+      input.multiple = true
+
+      input.oninput = () => {
+        resolve(input.files)
+
+      }
+      input.onblur = () => {
+        console.log('close')
+      }
+      input.onfocus = () => {
+        console.log('close')
+      }
+      input.click()
+    } catch (error) {
+      console.error(error)
+      reject(error)
+    }
+  })
+
+}
+
+export const getSAaSSImageUrl = (url: string, type?: "" | "big" | "mid" | "small" | "thumbnail") => {
 
   if (url.includes("https://saass.aiiko.club")) {
     if (type === "big") {
@@ -25,7 +52,10 @@ export const getSAaSSImageUrl = (url: string, type?: "" | "big" | "mid" | "small
       return url + "?x-saass-process=image/resize,700,70"
     }
     if (type === "small") {
-      return url + "?x-saass-process=image/resize,160,70"
+      return url + "?x-saass-process=image/resize,120,70"
+    }
+    if (type === "thumbnail") {
+      return url + "?x-saass-process=image/resize,80,70"
     }
 
   }
@@ -37,6 +67,7 @@ export const getSAaSSImageUrl = (url: string, type?: "" | "big" | "mid" | "small
 
 export interface MediaItem extends protoRoot.journeyMemory.IJourneyMemoryMediaItem {
   file?: File
+  id: string
 }
 
 

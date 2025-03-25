@@ -1629,7 +1629,7 @@ func (t *TripDbx) GetHistoricalStatisticsData(authorId, typeStr, dataType string
 	}
 	if dataType == "descendAltitude" {
 		project["statistics.descendAltitude"] = 1
-		sort["statistics.descendAltitude"] = 1
+		sort["statistics.descendAltitude"] = -1
 		match["statistics.distance"] = bson.M{
 			"$gte": 3000,
 		}

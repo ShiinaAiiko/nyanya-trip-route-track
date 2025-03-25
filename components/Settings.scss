@@ -304,6 +304,17 @@
     margin: 20px 0 0;
   }
 
+  .sm-segmented {
+    position: relative;
+    height: 52px;
+    display: flex;
+    justify-content: flex-end;
+
+    saki-segmented {
+      position: absolute;
+    }
+  }
+
   .sm-bm-recommend {
     display: flex;
     justify-content: flex-start;

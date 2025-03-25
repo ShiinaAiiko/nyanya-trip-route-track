@@ -639,6 +639,9 @@ const CreateCustomTripComponent = () => {
 				close() {
 					dispatch(layoutSlice.actions.setOpenCreateCustomTripModal(false))
 				},
+				loaded() {
+					eventListener.dispatch('loadModal:CreateCustomTrip', true)
+				},
 			})}
 			width='100%'
 			height='100%'

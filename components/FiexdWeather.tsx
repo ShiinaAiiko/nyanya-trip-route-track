@@ -62,7 +62,15 @@ import {
 } from '../store/position'
 import { openWeatherWMOToEmoji } from '@akaguny/open-meteo-wmo-to-emoji'
 
-const FiexdWeatherComponent = ({ full }: { full: boolean }) => {
+const FiexdWeatherComponent = ({
+	full,
+	showCoords,
+	coords,
+}: {
+	showCoords: boolean
+	coords: GeolocationCoordinates
+	full: boolean
+}) => {
 	const { t, i18n } = useTranslation('weather')
 	const { config, geo, weatherInfo, cityInfo } = useSelector(
 		(state: RootState) => {
@@ -75,6 +83,9 @@ const FiexdWeatherComponent = ({ full }: { full: boolean }) => {
 		}
 	)
 
+	const altitude = (coords?.altitude || 0).toFixed(1)
+	const speed = coords?.speed || 0
+
 	const dispatch = useDispatch<AppDispatch>()
 
 	const d = useRef(new Debounce())
@@ -82,6 +93,7 @@ const FiexdWeatherComponent = ({ full }: { full: boolean }) => {
 	const [loadWeather, setLoadWeather] = useState(false)
 	const [fullWeather, setFullWeather] = useState(false)
 	const [fullCityName, setFullCityName] = useState(false)
+	const [fullCoords, setFullCoords] = useState(false)
 
 	const timer = useRef<NodeJS.Timeout>()
 
@@ -89,6 +101,7 @@ const FiexdWeatherComponent = ({ full }: { full: boolean }) => {
 		const init = async () => {
 			setFullWeather((await storage.global.get('fullWeather')) || false)
 			setFullCityName((await storage.global.get('fullCityName')) || false)
+			setFullCoords((await storage.global.get('fullCoords')) || false)
 		}
 		init()
 	}, [])
@@ -200,7 +213,10 @@ const FiexdWeatherComponent = ({ full }: { full: boolean }) => {
 				' ' +
 				config.lang +
 				' ' +
-				(config.deviceType === 'Mobile' && !fullWeather && !fullCityName
+				(config.deviceType === 'Mobile' &&
+				!fullCoords &&
+				!fullWeather &&
+				!fullCityName
 					? 'text-elipsis'
 					: '') +
 				' ' +
@@ -285,6 +301,39 @@ const FiexdWeatherComponent = ({ full }: { full: boolean }) => {
 									.join('·')}
 							</span>
 							<span>|</span>
+						</>
+					) : (
+						''
+					)}
+					{showCoords ? (
+						<>
+							<span
+								onClick={() => {
+									setFullCoords(!fullCoords)
+									storage.global.set('fullCoords', !fullCoords)
+								}}
+							>
+								<span>
+									{`${
+										fullCoords
+											? t('speed', {
+													ns: 'tripPage',
+											  }) + ' '
+											: ''
+									} ${Math.round((speed * 3600) / 100) / 10} km/h`}
+								</span>
+								<span>·</span>
+								<span>
+									{(fullCoords
+										? t('altitude', {
+												ns: 'tripPage',
+										  }) +
+										  ' ' +
+										  altitude
+										: altitude) + ' m'}
+								</span>
+								<span>|</span>
+							</span>
 						</>
 					) : (
 						''

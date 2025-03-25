@@ -19,16 +19,24 @@ type CityCoords struct {
 	Longitude float64 `bson:"longitude" json:"longitude,omitempty"`
 }
 
-var CityNameLanguages = []string{"zhCN"}
+var CityNameLanguages = []string{"zhCN", "en", "zhHans", "zhHant"}
 
 type CityName struct {
-	ZhCN string `bson:"zhCN" json:"zhCN,omitempty"`
+	ZhCN   string `bson:"zhCN" json:"zhCN,omitempty"`
+	En     string `bson:"en" json:"en,omitempty"`
+	ZhHans string `bson:"zhHans" json:"zhHans,omitempty"`
+	ZhHant string `bson:"zhHant" json:"zhHant,omitempty"`
+}
+type CityNames struct {
+	Names      map[string]string `bson:"names" json:"names,omitempty"`
+	CreateTime int64             `bson:"createTime" json:"createTime,omitempty"`
 }
 
 type City struct {
 	Id string `bson:"_id" json:"id,omitempty"`
 	// 城市名 多国语言
-	Name *CityName `bson:"name" json:"name,omitempty"`
+	Name  *CityName  `bson:"name" json:"name,omitempty"`
+	Names *CityNames `bson:"names" json:"names,omitempty"`
 	// 父级文件夹路径Id
 	ParentCityId string `bson:"parentCityId" json:"parentCityId,omitempty"`
 

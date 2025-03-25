@@ -14,11 +14,11 @@ import { isLinearGradient } from 'html2canvas/dist/types/css/types/image'
 import i18n from '../plugins/i18n/i18n'
 import { snackbar } from '@saki-ui/core'
 import { Debounce, deepCopy, Wait } from '@nyanyajs/utils'
-import { AsyncQueue,  } from '@nyanyajs/utils'
+import { AsyncQueue, } from '@nyanyajs/utils'
 // import { AsyncQueue } from "./asyncQueue"
 import { t } from 'i18next'
 import { toolApiUrl } from '../config'
-import { GeoJSON } from './city'
+import { cityMethods, GeoJSON } from './city'
 import moment from 'moment'
 
 export interface Statistics {
@@ -205,7 +205,7 @@ export const initTripCity = async () => {
 
 
       connectLength += 1
-      initTripItemCity(_trip)
+      initTripItemCity(_trip, false, false)
       ids.push(_trip.id || "")
       if (connectLength >= 3) {
         console.log("initTripCity wa.dispatch 开始等待", total, connectLength, connectLength < 3)
@@ -327,7 +327,7 @@ export const getAllTripPositions = async (
       return newIds
     }, [] as string[])
 
-
+    totalCount = ids.length
 
     console.log("getAllTripPositions mget", ids, localTrips)
   }
@@ -354,7 +354,9 @@ export const getAllTripPositions = async (
         // timeLimit: [localLastTripStartTime + 1, Math.floor(new Date().getTime() / 1000)],
       })
 
-      console.log("getAllTripPositions", res, pageNum, ids.length, pageNum, loadCount, totalCount)
+      console.log("getAllTripPositions", res, fullData, pageNum,
+        ids.slice((pageNum - 1) * pageSize, pageNum * pageSize),
+        ids.length, pageNum, loadCount, totalCount)
 
       if (res.code === 200 && res.data?.list?.length) {
         for (let i = 0; i < res.data?.list?.length; i++) {
@@ -382,7 +384,7 @@ export const getAllTripPositions = async (
             percentage:
               String(
                 loadCount && totalCount
-                  ? Math.floor((loadCount / totalCount || 0) * 100)
+                  ? Math.min(100, Math.floor((loadCount / totalCount || 0) * 100))
                   : 0
               ) + '%',
           })
@@ -431,7 +433,7 @@ export const getAllTripPositions = async (
           percentage:
             String(
               loadCount && totalCount
-                ? Math.floor((loadCount / totalCount || 0) * 100)
+                ? Math.min(100, Math.floor((loadCount / totalCount || 0) * 100))
                 : 0
             ) + '%',
         })
@@ -486,9 +488,29 @@ export const getAllTripPositions = async (
 
 
 let count = 1
-export const initTripItemCity = async (trip: protoRoot.trip.ITrip) => {
+export const initTripItemCity = async (trip: protoRoot.trip.ITrip, init: boolean, isSnackbar: boolean) => {
 
-  if (trip.cities?.length) return
+  if (trip.cities?.length && !init) return
+
+
+  if (!init) {
+
+  }
+  let _snackbar: ReturnType<typeof snackbar> | undefined
+
+  if (isSnackbar) {
+    _snackbar = snackbar({
+      message: t('loadingData', {
+        ns: 'prompt',
+      }),
+      vertical: 'top',
+      horizontal: 'center',
+      backgroundColor: 'var(--saki-default-color)',
+      color: '#fff',
+    })
+    _snackbar.open()
+  }
+
   let nextPosTime = 0
 
   console.log("initTripCity", trip.positions, trip.positions?.length)
@@ -561,6 +583,8 @@ export const initTripItemCity = async (trip: protoRoot.trip.ITrip) => {
   ids = ids.filter(v => v !== trip.id)
   console.log("initTripCity  cityinfo", count)
 
+
+  _snackbar?.close()
   // console.log('initCity', trip.positions)
 }
 
@@ -787,6 +811,7 @@ export const FilterTrips = ({
   selectedVehicleIds,
   startDate,
   endDate,
+  selectedTripIds
 }: {
   selectedTripTypes: string[],
   shortestDistance: number
@@ -795,6 +820,7 @@ export const FilterTrips = ({
   selectedVehicleIds: string[]
   startDate: string
   endDate: string
+  selectedTripIds: string[]
 }) => {
 
   const { trip } = store.getState()
@@ -848,13 +874,16 @@ export const FilterTrips = ({
         return ct >= st && ct <= et
       }) || []
   // console.log('filterList', list, trip.tripStatistics)
+
+  if (selectedTripIds?.length) {
+    return list.filter(v => selectedTripIds.includes(v.id || ""))
+  }
   return list
 }
 
 export const filterTripsForTrackRoutePage = () => {
   const { config, trip } = store.getState()
   const { configure } = config
-
 
   return FilterTrips({
     selectedTripTypes: configure.filter?.trackRoute?.selectedTripTypes || [],
@@ -864,6 +893,7 @@ export const filterTripsForTrackRoutePage = () => {
     selectedVehicleIds: configure.filter?.trackRoute?.selectedVehicleIds || [],
     startDate: configure.filter?.trackRoute?.startDate || "",
     endDate: configure.filter?.trackRoute?.endDate || "",
+    selectedTripIds: []
   })
 }
 
@@ -1135,13 +1165,18 @@ export const tripMethods = {
         startTime:
           loadCloudData ? 1540915200 : (Number(await storage.global.get(k)) || 1540915200)
       })
+
+      console.log("baseTrips getTripsCloud", getTripsCloud)
       await storage.global.set(k, getTripsCloud.startTime + 1)
+
+      const getTripsCloudIds = getTripsCloud.trips.map(v => v.id || "")
 
       const getTripsLocal = (await storage.trips.getAll()).map((v) => {
         return ForEachLongToNumber(v)
-      }).map((v): protoRoot.trip.ITrip => {
+      }).filter(v => getTripsCloudIds.includes(v.id || "")).map((v): protoRoot.trip.ITrip => {
         return v.value
       }).concat(getTripsCloud.trips)
+      console.log("baseTrips getTripsLocal", getTripsLocal)
 
       loadBaseData?.close()
       console.timeEnd("GetTripStatistics")
@@ -1154,9 +1189,10 @@ export const tripMethods = {
     }
   }),
   GetTripHistoryData: createAsyncThunk(modelName + '/GetTripHistoryData', async (
-    { loadCloudData, alert = true }: {
+    { loadCloudData, alert = true, cityDetails = false }: {
       loadCloudData?: boolean
       alert?: boolean
+      cityDetails?: boolean
     }, thunkAPI) => {
     const dispatch = thunkAPI.dispatch
     const { trip, config, user } = store.getState()
@@ -1192,6 +1228,47 @@ export const tripMethods = {
       const baseTrips = await dispatch(methods.trip.GetTripsBaseData({
         loadCloudData, alert
       })).unwrap()
+
+      console.log("baseTrips", baseTrips)
+
+      if (cityDetails) {
+        const cities = await dispatch(cityMethods.GetAllCitiesVisitedByUser({
+          tripIds: []
+        })).unwrap()
+        // console.log('gcv', cities)
+
+        const cityDetailsMap = cities.reduce((results, v, i) => {
+
+          v.cities?.forEach(sv => {
+            sv.cities?.forEach(ssv => {
+              ssv.cities?.forEach((sssv => {
+                if (sssv.level === 5) {
+                  results[sssv?.id || ""] = [v, sv, ssv, sssv,]
+                }
+                sssv.cities?.forEach((ssssv => {
+                  if (ssssv.level === 5) {
+                    results[ssssv?.id || ""] = [v, sv, ssv, sssv, ssssv]
+                  }
+                }))
+              }))
+            })
+          })
+
+          return results
+        }, {} as {
+          [cityId: string]: protoRoot.city.ICityItem[]
+        })
+
+        // console.log("gcv cityDetailsMap", cityDetailsMap)
+        baseTrips.forEach(v => {
+          v.cities?.forEach(v => {
+
+            v.cityDetails = cityDetailsMap[v?.cityId || ""]
+          })
+        })
+
+      }
+
 
 
       const tripsTemp = Object.fromEntries(
@@ -1260,6 +1337,8 @@ export const tripMethods = {
       })
 
       console.log('tsts listlist', ts)
+
+
 
       dispatch(tripSlice.actions.setTripStatistics(ts))
 

@@ -268,6 +268,9 @@ const FindLocationComponent = () => {
 				close() {
 					dispatch(layoutSlice.actions.setOpenFindLocationModal(false))
 				},
+				loaded() {
+					eventListener.dispatch('loadModal:FindLocation', true)
+				},
 			})}
 			width='100%'
 			height='100%'

@@ -6,7 +6,7 @@ import {
 } from '@reduxjs/toolkit'
 import { getI18n } from 'react-i18next'
 import store, { ActionParams } from '.'
-import { WebStorage, NRequest, SAaSS, NEventListener, deepCopy } from '@nyanyajs/utils'
+import { WebStorage, NRequest, SAaSS, NEventListener, deepCopy, Debounce } from '@nyanyajs/utils'
 
 import { Languages, languages, defaultLanguage } from '../plugins/i18n/i18n'
 import { storage } from './storage'
@@ -17,6 +17,8 @@ import { protoRoot } from '../protos'
 import screenfull from 'screenfull'
 
 export const R = new NRequest()
+
+export const d = new Debounce()
 
 export type TripType =
   | 'Running'
@@ -343,6 +345,8 @@ const configure: protoRoot.configure.IConfigure = {
       selectedTripIds: [] as string[],
       shortestDistance: 0,
       longestDistance: 500,
+      showCustomTrip: false,
+      showFullData: false
     },
   },
   roadColorFade: false,
@@ -449,28 +453,50 @@ export const configSlice = createSlice({
     syncLocationWhileTraveling: true,
 
 
-    connectionBaseMapUrl: true,
-    connectionTrackRouteMapUrl: true,
+    connectionMapUrl: true,
+    turnOnCityVoice: true
+    // connectionBaseMapUrl: true,
+    // connectionTrackRouteMapUrl: true,
   },
   reducers: {
-    setConnectionTrackRouteMapUrl: (
+    setTurnOnCityVoice: (
       state,
       params: {
-        payload: typeof state["connectionTrackRouteMapUrl"]
+        payload: typeof state["turnOnCityVoice"]
         type: string
       }
     ) => {
-      state.connectionTrackRouteMapUrl = params.payload
+      state.turnOnCityVoice = params.payload
+
+      storage.global.setSync("turnOnCityVoice", params.payload ? 1 : -1)
     },
-    setConnectionBaseMapUrl: (
+    setConnectionMapUrl: (
       state,
       params: {
-        payload: typeof state["connectionBaseMapUrl"]
+        payload: typeof state["connectionMapUrl"]
         type: string
       }
     ) => {
-      state.connectionBaseMapUrl = params.payload
+      state.connectionMapUrl = params.payload
     },
+    // setConnectionTrackRouteMapUrl: (
+    //   state,
+    //   params: {
+    //     payload: typeof state["connectionTrackRouteMapUrl"]
+    //     type: string
+    //   }
+    // ) => {
+    //   state.connectionTrackRouteMapUrl = params.payload
+    // },
+    // setConnectionBaseMapUrl: (
+    //   state,
+    //   params: {
+    //     payload: typeof state["connectionBaseMapUrl"]
+    //     type: string
+    //   }
+    // ) => {
+    //   state.connectionBaseMapUrl = params.payload
+    // },
     setSyncLocationWhileTraveling: (
       state,
       params: {
@@ -502,6 +528,8 @@ export const configSlice = createSlice({
         }
       }
 
+      !obj.speedColorLimit &&
+        (obj.speedColorLimit = configure.speedColorLimit)
       !obj.trackSpeedColor &&
         (obj.trackSpeedColor = configure.trackSpeedColor)
       !obj.trackRouteColor &&
@@ -733,6 +761,10 @@ export const configMethods = {
     thunkAPI.dispatch(configMethods.setLanguage(language))
 
 
+    const turnOnCityVoice = await storage.global.get('turnOnCityVoice') || 1
+    thunkAPI.dispatch(configSlice.actions.setTurnOnCityVoice(turnOnCityVoice === 1))
+
+
     // const showDetailedDataForMultipleHistoricalTrips =
     //   (await storage.global.get(
     //     'showDetailedDataForMultipleHistoricalTrips'
@@ -766,26 +798,29 @@ export const configMethods = {
       const res = await httpApi.v1.GetConfigure({
       })
 
-      console.log("GetConfigure", res,
-        Number(res.data.configure?.lastUpdateTime),
-        Number(config.configure?.lastUpdateTime))
+      // console.log("filter1 GetConfigure", res,
+      //   res.code === 200 && res.data.configure,
+      //   Number(res.data.configure?.lastUpdateTime), Number(config.configure?.lastUpdateTime),
+      //   Number(res.data.configure?.lastUpdateTime) > Number(config.configure?.lastUpdateTime),
+      // )
       if (res.code === 200 && res.data.configure) {
-        if (Number(res.data.configure?.lastUpdateTime) > Number(config.configure?.lastUpdateTime)) {
+        if (Number(res.data.configure?.lastUpdateTime) >= Number(config.configure?.lastUpdateTime)) {
 
           const c = res.data.configure
           const conf = {
             ...config.configure,
-            speedColorLimit: c.speedColorLimit,
-            trackSpeedColor: c.trackSpeedColor,
-            trackRouteColor: c.trackRouteColor,
-            showAvatarAtCurrentPosition: c.showAvatarAtCurrentPosition,
-            polylineWidth: c.polylineWidth,
+            speedColorLimit: c.speedColorLimit || configure.speedColorLimit,
+            trackSpeedColor: c.trackSpeedColor || configure.trackSpeedColor,
+            trackRouteColor: c.trackRouteColor || configure.trackRouteColor,
+            showAvatarAtCurrentPosition: c.showAvatarAtCurrentPosition || configure.showAvatarAtCurrentPosition,
+            polylineWidth: c.polylineWidth || configure.polylineWidth,
             filter: {
               ...(config.configure.filter || configure.filter),
-              trackRoute: c.filter?.trackRoute
+              trackRoute: c.filter?.trackRoute || configure.filter?.trackRoute,
             },
             lastUpdateTime: c.lastUpdateTime
           }
+          console.log("filter1 GetConfigure", conf, config.configure)
           thunkAPI.dispatch(configSlice.actions.setConfigure(
             conf
           ))
@@ -797,6 +832,7 @@ export const configMethods = {
   SetConfigure: createAsyncThunk(
     'config/SetConfigure',
     async (configure: protoRoot.configure.IConfigure, thunkAPI) => {
+
       const { config } = store.getState()
       console.log("SyncConfigure", config.initConfigure)
       if (!config.initConfigure) return
@@ -812,14 +848,17 @@ export const configMethods = {
           ...configure["filter"],
           trackRoute: {
             ...configure["filter"]?.["trackRoute"],
-            selectedTripIds: []
+            // selectedTripIds: []
           }
         }
       }
       await storage.global.set('configure', obj)
-      const res = await (httpApi).v1.SyncConfigure({
-        configure: obj
-      })
+      d.increase(async () => {
+        const res = await (httpApi).v1.SyncConfigure({
+          configure: obj
+        })
+        console.log('filter1', res, obj)
+      }, 700)
 
     }
   ),

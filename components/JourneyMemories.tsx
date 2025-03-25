@@ -55,7 +55,7 @@ import {
 } from '../plugins/methods'
 import TripItemComponent from './TripItem'
 import { Chart } from 'chart.js'
-import { Debounce, deepCopy, NEventListener } from '@nyanyajs/utils'
+import { Debounce, deepCopy, getShortId, NEventListener } from '@nyanyajs/utils'
 import StatisticsComponent from './Statistics'
 import Leaflet from 'leaflet'
 import SpeedMeterComponent from './SpeedMeter'
@@ -77,6 +77,7 @@ import {
 	formartCities,
 	GeoJSON,
 	getAllCityAreas,
+	getCityName,
 	getSimpleCityName,
 	updateCityMarkers,
 	watchCenterCity,
@@ -113,9 +114,11 @@ import { clear } from 'console'
 import {
 	getSAaSSImageUrl,
 	MediaItem,
+	selectFiles,
 	uploadFile,
 	uploadFiles,
 } from '../store/file'
+import { loadModal } from '../store/layout'
 
 const JourneyMemoriesModal = () => {
 	const { t, i18n } = useTranslation('journeyMemoriesModal')
@@ -135,6 +138,7 @@ const JourneyMemoriesModal = () => {
 	const [activeVehicleIdDropdown, setActiveVehicleIdDropdown] = useState('')
 
 	useEffect(() => {
+		console.log('JourneyMemories', layout.openJourneyMemoriesModal)
 		if (layout.openJourneyMemoriesModal) {
 			backPage(-10)
 			dispatch(
@@ -157,9 +161,21 @@ const JourneyMemoriesModal = () => {
 		)
 
 		dispatch(
+			setJMState({
+				type: 'filterConfig',
+				value: {
+					...(await storage.global.get('jm-filterConfig')),
+					longestDistance: 500,
+					shortestDistance: 0,
+				},
+			})
+		)
+
+		dispatch(
 			methods.trip.GetTripHistoryData({
-				loadCloudData: false,
+				loadCloudData: true,
 				alert: false,
+				cityDetails: true,
 			})
 		).unwrap()
 		dispatch(
@@ -211,6 +227,10 @@ const JourneyMemoriesModal = () => {
 				close() {
 					dispatch(layoutSlice.actions.setOpenJourneyMemoriesModal(false))
 				},
+				loaded() {
+					console.log('loadModal:JourneyMemories loaded3')
+					eventListener.dispatch('loadModal:JourneyMemories', true)
+				},
 			})}
 			width='100%'
 			height='100%'
@@ -236,7 +256,9 @@ const JourneyMemoriesModal = () => {
 						// border
 						back-icon={jmState.pageTypes.length > 0}
 						close-icon={jmState.pageTypes.length === 0}
-						left-width={config.deviceType === 'Mobile' ? '100%' : ''}
+						left-width={
+							config.deviceType === 'Mobile' ? 'calc(100% - 120px)' : ''
+						}
 						center-width={config.deviceType === 'Mobile' ? '0px' : ''}
 						right-width={'56px'}
 						ref={bindEvent({
@@ -424,7 +446,10 @@ const JourneyMemoriesModal = () => {
 																				height='50px'
 																				border-radius='6px'
 																				margin='0 10px 0 0'
-																				src={coverUrl}
+																				src={getSAaSSImageUrl(
+																					coverUrl,
+																					'thumbnail'
+																				)}
 																			></saki-images>
 																		) : (
 																			<div className='jmil-icon'>
@@ -731,7 +756,14 @@ const AddJourneyMemoriesPage = () => {
 				setNameErr('')
 				setDesc(jmState.editJM.desc || '')
 				richtextEl.current?.setValue(jmState.editJM.desc || '')
-				setMedia(jmState.editJM.media || [])
+				setMedia(
+					(jmState.editJM.media || []).map((v, i) => {
+						return {
+							...v,
+							id: i + getShortId(9),
+						}
+					})
+				)
 				return
 			}
 			setId('')
@@ -740,7 +772,44 @@ const AddJourneyMemoriesPage = () => {
 			setNameErr('')
 			setDesc('')
 			richtextEl.current?.setValue('')
-			setMedia([])
+			setMedia([
+				// {
+				// 	type: 'image',
+				// 	url: 'https://api.aiiko.club/public/images/upload/1/20250114/img_19fd1f07838688d21ab66d2f8cf98d9d.jpg',
+				// },
+				// {
+				// 	type: 'image',
+				// 	url: 'https://saass.aiiko.club/s/Ia8ar2s1dM',
+				// },
+				// {
+				// 	type: 'image',
+				// 	url: 'https://saass.aiiko.club/s/JQaBKAoXbE',
+				// },
+				// {
+				// 	type: 'image',
+				// 	url: 'https://saass.aiiko.club/s/IP7Z3zrdFb',
+				// },
+				// {
+				// 	type: 'image',
+				// 	url: 'https://saass.aiiko.club/s/Mxc6JVX5AZ',
+				// },
+				// {
+				// 	type: 'image',
+				// 	url: 'https://saass.aiiko.club/s/HLc1JT0Hu1',
+				// },
+				// {
+				// 	type: 'image',
+				// 	url: 'https://saass.aiiko.club/s/JjwJXrXcN1',
+				// },
+				// {
+				// 	type: 'image',
+				// 	url: 'https://saass.aiiko.club/s/IAWtouCQNu',
+				// },
+				// {
+				// 	type: 'image',
+				// 	url: 'https://saass.aiiko.club/s/JwMrYL4FGQ',
+				// },
+			])
 		}
 	}, [jmState.pageTypes])
 
@@ -1057,138 +1126,15 @@ const AddJourneyMemoriesPage = () => {
 				/> */}
 
 					<div className='av-item media'>
-						<span>{t('cover') + ' (可选)'}</span>
-						<div
-							style={{
-								maxWidth:
-									media.length >= 2 ? '270px' : (media.length + 1) * 90 + 'px',
+						<span>{t('cover')}</span>
+						<CoverListComponent
+							media={media}
+							onMedia={(media) => {
+								setMedia(media)
 							}}
-							className={'av-i-media ' + (media.length >= 2 ? 'grid' : 'flex')}
-						>
-							{media
-								// .concat(media)
-								// .concat(media)
-								// .concat(media)
-								.map((v, i) => {
-									return (
-										<div
-											ref={
-												bindEvent({
-													click: () => {
-														alert({
-															title: t('delete', {
-																ns: 'prompt',
-															}),
-															content: t('deleteImage', {
-																ns: 'prompt',
-															}),
-															cancelText: t('cancel', {
-																ns: 'prompt',
-															}),
-															confirmText: t('delete', {
-																ns: 'prompt',
-															}),
-															onCancel() {},
-															async onConfirm() {
-																setMedia(media.filter((_, si) => si !== i))
-															},
-														}).open()
-													},
-												}) as any
-											}
-											className='media-item'
-											key={i}
-										>
-											{v.type === 'image' ? (
-												<SakiImages
-													width='80px'
-													height='80px'
-													objectFit={'cover'}
-													borderRadius='10px'
-													src={getSAaSSImageUrl(v.url || '', 'small')}
-												></SakiImages>
-											) : (
-												''
-											)}
-										</div>
-									)
-								})}
-							{media.length < 9 ? (
-								<div
-									ref={
-										bindEvent({
-											click: () => {
-												const input = document.createElement('input')
-												input.type = 'file'
-												input.accept = 'image/*'
-												input.multiple = true
+						/>
 
-												input.oninput = () => {
-													if (input.files?.length) {
-														const tmedia = [...media]
-
-														for (let i = 0; i < input.files.length; i++) {
-															if (tmedia.length >= 9) {
-																snackbar({
-																	message: t('mediaLimitExceeded', {
-																		ns: 'prompt',
-																	}),
-																	autoHideDuration: 2000,
-																	vertical: 'top',
-																	horizontal: 'center',
-																	backgroundColor: 'var(--saki-default-color)',
-																	color: '#fff',
-																}).open()
-																break
-															}
-
-															tmedia.push({
-																type: 'image',
-																url: URL.createObjectURL(input.files[i]),
-																file: input.files[i],
-															})
-														}
-
-														setMedia(tmedia)
-														// const reader = new FileReader()
-														// reader.onload = (e) => {
-														// 	if (!e.target?.result?.toString()) return
-
-														// 	setMedia(
-														// 		media.concat([
-														// 			{
-														// 				type: 'image',
-														// 				url: e.target?.result?.toString() || '',
-														// 			},
-														// 		])
-														// 	)
-														// }
-														// reader.readAsDataURL(file)
-													}
-												}
-												input.onblur = () => {
-													console.log('close')
-												}
-												input.onfocus = () => {
-													console.log('close')
-												}
-												input.click()
-											},
-										}) as any
-									}
-									className='media-item'
-								>
-									<SakiIcon
-										color='#999'
-										width='24px'
-										height='24px'
-										type='Add'
-									></SakiIcon>
-								</div>
-							) : (
-								''
-							)}
-							{/* <saki-avatar
+						{/* <saki-avatar
 							ref={bindEvent({
 								edit: (e: any) => {
 									console.log(e)
@@ -1203,7 +1149,6 @@ const AddJourneyMemoriesPage = () => {
 							// edit-icon
 							src={logo}
 						></saki-avatar> */}
-						</div>
 					</div>
 
 					<div className='av-item av-buttons'>
@@ -1292,7 +1237,7 @@ const JourneyMemoriesItemPage = () => {
 		}[]
 	>([])
 
-	const [showType, setShowType] = useState('region')
+	const [showType, setShowType] = useState('ViewAllMomentMapTrack')
 
 	const [viewMomentMapTrackId, setViewMomentMapTrackId] = useState('')
 
@@ -1361,6 +1306,14 @@ const JourneyMemoriesItemPage = () => {
 			}
 		}
 	}, [jmState.jmDetail?.id, jmState.pageTypes])
+
+	// useEffect(() => {
+	// 	if (showType === 'ViewMomentMapTrack') {
+	// 		setViewMomentMapTrackId('')
+	// 		scrollViewEl.current?.scrollto?.('top')
+	// 		setShowType('ViewAllMomentMapTrack')
+	// 	}
+	// }, [showType])
 
 	useEffect(() => {
 		const id = jmState.jmDetail?.id || ''
@@ -1611,12 +1564,15 @@ const JourneyMemoriesItemPage = () => {
 		Number(jmState.jmDetail.lastUpdateTime) * 1000
 	)
 
-	const { cityNamesMap, cityNamesList } = useMemo(() => {
+	const { cityNamesMap, cityNamesList, tripIds } = useMemo(() => {
 		const cityNamesMap: {
 			[id: string]: string[]
 		} = {}
+		let tripIds: string[] = []
 		jmState.tlList.forEach((v) => {
 			const cityName: string[] = []
+
+			tripIds = tripIds.concat(v?.tripIds || [])
 
 			v.trips?.forEach((sv) => {
 				sv.cities?.forEach((ssv) => {
@@ -1627,7 +1583,7 @@ const JourneyMemoriesItemPage = () => {
 						if (sssv.level === 2 || sssv.level === 3 || sssv.level === 4) {
 							fullName.push(
 								getSimpleCityName(
-									sssv.name?.zhCN || '',
+									getCityName(sssv.name) || '',
 									convertCityLevelToTypeString(sssv.level || 1)
 								)
 							)
@@ -1649,7 +1605,7 @@ const JourneyMemoriesItemPage = () => {
 		const cityNamesList = Object.keys(cityNamesMap).reduce((cityNames, v) => {
 			return [...new Set(cityNames.concat(cityNamesMap[v]))]
 		}, [] as string[])
-		return { cityNamesMap, cityNamesList }
+		return { cityNamesMap, cityNamesList, tripIds }
 	}, [jmState.tlList])
 
 	return (
@@ -1739,14 +1695,17 @@ const JourneyMemoriesItemPage = () => {
 								// }}
 								className='jmd-carnav'
 							>
-								{viewMomentMapTrackId ? (
-									<div className='jmd-restore-track'>
+								<div className='jmd-c-btns'>
+									{/* {viewMomentMapTrackId ? (
 										<SakiButton
 											onTap={() => {
 												setViewMomentMapTrackId('')
 												scrollViewEl.current?.scrollto?.('top')
 											}}
 											padding='6px 10px'
+											height='36px'
+											border-radius='18px'
+											margin={'0 0 0 6px'}
 											type='Primary'
 										>
 											<span
@@ -1757,10 +1716,96 @@ const JourneyMemoriesItemPage = () => {
 												{t('viewAllMomentMapTrack')}
 											</span>
 										</SakiButton>
-									</div>
-								) : (
-									''
-								)}
+									) : (
+										''
+									)} */}
+
+									<saki-segmented
+										ref={bindEvent({
+											changevalue: async (e) => {
+												console.log('SetConfigure segmented', e, showType)
+
+												if (e.detail === 'VisitedCities') {
+													;(e.target as any)?.setValue(showType)
+
+													loadModal('VisitedCities', () => {
+														dispatch(
+															layoutSlice.actions.setOpenVisitedCitiesModal({
+																visible: true,
+																title: t('cityTrajectory', {
+																	ns: 'visitedCitiesModal',
+																	name: jmState.jmDetail?.name || '',
+																}),
+																tripIds,
+															})
+														)
+													})
+													return
+												}
+												if (e.detail === 'ViewAllMomentMapTrack') {
+													setViewMomentMapTrackId('')
+													scrollViewEl.current?.scrollto?.('top')
+													setShowType('ViewAllMomentMapTrack')
+													return
+												}
+												setShowType(e.detail)
+											},
+										})}
+										// width='200px'
+										height='40px'
+										border-radius='20px'
+										value={showType}
+										bg-color='rgba(255,255,255,0.7)'
+									>
+										<saki-segmented-item
+											padding='2px 8px'
+											value={'ViewAllMomentMapTrack'}
+										>
+											<span>{t('viewAllMomentMapTrack')}</span>
+										</saki-segmented-item>
+										{viewMomentMapTrackId ? (
+											<saki-segmented-item
+												padding='2px 8px'
+												value={'ViewMomentMapTrack'}
+											>
+												<span>{t('viewMomentMapTrack')}</span>
+											</saki-segmented-item>
+										) : (
+											''
+										)}
+
+										<saki-segmented-item
+											padding='2px 8px'
+											value={'VisitedCities'}
+										>
+											<span>
+												{t('title', {
+													ns: 'visitedCitiesModal',
+												})}
+											</span>
+										</saki-segmented-item>
+									</saki-segmented>
+
+									{/* <SakiButton
+										onTap={() => {
+											setViewMomentMapTrackId('')
+											scrollViewEl.current?.scrollto?.('top')
+										}}
+										padding='6px 10px'
+										height='36px'
+										border-radius='18px'
+										margin={'0 0 0 6px'}
+										type='Primary'
+									>
+										<span
+											style={{
+												whiteSpace: 'nowrap',
+											}}
+										>
+											{t('viewAllMomentMapTrack')}
+										</span>
+									</SakiButton> */}
+								</div>
 
 								<saki-carousel-nav
 									ref={bindEvent(
@@ -1802,7 +1847,7 @@ const JourneyMemoriesItemPage = () => {
 													width='100%'
 													height='100%'
 													objectFit='cover'
-													src={getSAaSSImageUrl(v.url || '', 'small')}
+													src={getSAaSSImageUrl(v.url || '', 'thumbnail')}
 												></SakiImages>
 												;
 											</saki-carousel-nav-item>
@@ -1834,7 +1879,16 @@ const JourneyMemoriesItemPage = () => {
 							dangerouslySetInnerHTML={{ __html: jmState.jmDetail.desc || '' }}
 						/>
 					</div>
-					{jmState.jmDetail?.statistics?.count}
+
+					<div className='jmd-city'>
+						{cityNamesList.map((v, i) => {
+							return (
+								<span className='cn' key={i}>
+									{v}
+								</span>
+							)
+						})}
+					</div>
 					{jmState.jmDetail?.statistics?.count ? (
 						<div className='jm-statistics'>
 							<div className='item-s-item'>
@@ -1883,15 +1937,6 @@ const JourneyMemoriesItemPage = () => {
 					) : (
 						''
 					)}
-					<div className='jmd-city'>
-						{cityNamesList.map((v, i) => {
-							return (
-								<span className='cn' key={i}>
-									{v}
-								</span>
-							)
-						})}
-					</div>
 					<div className='jmd-info'>
 						<span>
 							{t('numCities', {
@@ -2014,6 +2059,7 @@ const JourneyMemoriesItemPage = () => {
 																			deleteMoment(v.id || '')
 																			break
 																		case 'ViewMomentMapTrack':
+																			setShowType('ViewMomentMapTrack')
 																			setViewMomentMapTrackId(v?.id || '')
 																			scrollViewEl.current?.scrollto?.('top')
 																			break
@@ -2176,7 +2222,7 @@ const JourneyMemoriesItemPage = () => {
 																			borderRadius='10px'
 																			src={getSAaSSImageUrl(
 																				sv.url || '',
-																				'mid'
+																				'small'
 																			)}
 																		></SakiImages>
 																	</a>
@@ -2308,12 +2354,21 @@ const JourneyMemoriesItemPage = () => {
 																	trip={sv}
 																	type={sv.type as any}
 																	onTap={(id) => {
-																		dispatch(
-																			layoutSlice.actions.setOpenTripItemModal({
-																				visible: true,
-																				id: id || '',
-																			})
-																		)
+																		loadModal('TripHistory', () => {
+																			dispatch(
+																				layoutSlice.actions.setOpenTripItemModal(
+																					{
+																						visible: true,
+																						id: id || '',
+																					}
+																				)
+																			)
+																			dispatch(
+																				layoutSlice.actions.setOpenTripHistoryModal(
+																					true
+																				)
+																			)
+																		})
 																	}}
 																	key={si}
 																/>
@@ -2367,16 +2422,17 @@ const AddJourneyMemoriesTimelinePage = () => {
 		useState(false)
 	const [selectLogo, setSelectLogo] = useState(false)
 
-	const [filterConfig, setFilterConfig] =
-		useState<protoRoot.configure.Configure.Filter.IFilterItem>({
-			startDate: '',
-			endDate: '',
-			selectedVehicleIds: [] as string[],
-			selectedTripTypes: [] as string[],
-			selectedTripIds: [] as string[],
-			shortestDistance: 0,
-			longestDistance: 500,
-		})
+	// const [filterConfig, setFilterConfig] =
+	// 	useState<protoRoot.configure.Configure.Filter.IFilterItem>({
+	// 		startDate: '',
+	// 		endDate: '',
+	// 		selectedVehicleIds: [] as string[],
+	// 		selectedTripTypes: [] as string[],
+	// 		selectedTripIds: [] as string[],
+	// 		shortestDistance: 0,
+	// 		longestDistance: 500,
+	// 		showCustomTrip: false,
+	// 	})
 
 	const [id, setId] = useState('')
 	const [logo, setLogo] = useState('')
@@ -2435,7 +2491,14 @@ const AddJourneyMemoriesTimelinePage = () => {
 			setNameErr('')
 			setDesc(jmState.editJMTL.desc || '')
 			richtextEl.current?.setValue(jmState.editJMTL.desc || '')
-			setMedia(jmState.editJMTL.media || [])
+			setMedia(
+				(jmState.editJMTL.media || []).map((v, i) => {
+					return {
+						...v,
+						id: i + getShortId(9),
+					}
+				})
+			)
 			setTripIds(jmState.editJMTL.tripIds || [])
 			return
 		}
@@ -2562,6 +2625,12 @@ const AddJourneyMemoriesTimelinePage = () => {
 		}
 	}
 
+	const trips = useMemo(() => {
+		const trips = trip.tripStatistics?.filter((v) => v.type === 'All')
+		// console.log('baseTrips jm', trips)
+		return trips[0]?.list || []
+	}, [trip.tripStatistics])
+
 	return (
 		<div className='add-jmtl-page page-transition'>
 			<SakiScrollView mode='Custom' scroll-bar='Hidden'>
@@ -2596,7 +2665,7 @@ const AddJourneyMemoriesTimelinePage = () => {
 							},
 						})}
 						value={name}
-						placeholder={t('timelineNamePlaceholder')}
+						placeholder={t('namePlaceholder')}
 						width={'100%'}
 						height={'56px'}
 						type={'Text'}
@@ -2645,7 +2714,11 @@ const AddJourneyMemoriesTimelinePage = () => {
 					/>
 
 					<div className='av-item'>
-						<span>{t('tripList')}</span>
+						<span>
+							{t('pageTitle', {
+								ns: 'tripHistoryPage',
+							})}
+						</span>
 
 						<saki-button
 							ref={bindEvent({
@@ -2667,226 +2740,51 @@ const AddJourneyMemoriesTimelinePage = () => {
 						</saki-button>
 					</div>
 					<FilterComponent
-						dataList
-						trips={FilterTrips({
-							selectedTripTypes: filterConfig?.selectedTripTypes || [],
-							shortestDistance: Number(filterConfig?.shortestDistance) || 0,
-							longestDistance: Number(filterConfig?.longestDistance) || 0,
-							showCustomTrip: filterConfig?.showCustomTrip || false,
-							selectedVehicleIds: filterConfig?.selectedVehicleIds || [],
-							startDate: filterConfig?.startDate || '',
-							endDate: filterConfig?.endDate || '',
-						})}
-						selectTripIds={tripIds || []}
-						onDataList={(ids) => {
-							setFilterConfig({
-								...filterConfig,
-								selectedTripIds: ids,
-							})
-
-							setTripIds(ids)
-						}}
-						selectTypes={filterConfig?.selectedTripTypes || []}
-						onSelectTypes={(filterTypes) => {
-							setFilterConfig({
-								...filterConfig,
-								selectedTripTypes: filterTypes,
-							})
-						}}
-						distanceRange={{
-							minDistance: Number(filterConfig?.shortestDistance),
-							maxDistance: Number(filterConfig?.longestDistance),
-						}}
-						onSelectDistance={(obj) => {
-							setFilterConfig({
-								...filterConfig,
-								shortestDistance: obj.minDistance,
-								longestDistance: obj.maxDistance,
-							})
-						}}
-						date
-						startDate={filterConfig?.startDate || ''}
-						endDate={filterConfig?.endDate || ''}
-						selectStartDate={(date) => {
-							setFilterConfig({
-								...filterConfig,
-								startDate: date,
-							})
-						}}
-						selectEndDate={(date) => {
-							setFilterConfig({
-								...filterConfig,
-								endDate: date,
-							})
-						}}
-						selectVehicle
-						selectVehicleIds={filterConfig?.selectedVehicleIds || []}
-						onSelectVehicleIds={(ids) => {
-							setFilterConfig({
-								...filterConfig,
-								selectedVehicleIds: ids,
-							})
-						}}
 						visible={openFilterModal}
 						onclose={() => {
 							setOpenFilterModal(false)
 						}}
-						customTripSwitch
-						showCustomTrip={filterConfig?.showCustomTrip || false}
-						onShowCustomTrip={(showCustomTrip) => {
-							setFilterConfig({
-								...filterConfig,
-								showCustomTrip: showCustomTrip,
-							})
+						onLoad={(fc, trips) => {
+							console.log('FilterTrips onload', fc, trips)
+
+							setTripIds(trips?.map((v) => v.id || ''))
+							// setFilterConfig(fc)
+							dispatch(
+								setJMState({
+									type: 'filterConfig',
+									value: fc,
+								})
+							)
+
+							storage.global.setSync('jm-filterConfig', fc)
+
+							setOpenFilterModal(false)
 						}}
+						dataList
+						trips={trips}
+						selectTripIds={tripIds || []}
+						selectTypes={jmState.filterConfig?.selectedTripTypes || []}
+						distanceRange={{
+							minDistance: Number(jmState.filterConfig?.shortestDistance) || 0,
+							maxDistance: Number(jmState.filterConfig?.longestDistance) || 500,
+						}}
+						date
+						startDate={jmState.filterConfig?.startDate || ''}
+						endDate={jmState.filterConfig?.endDate || ''}
+						selectVehicle
+						selectVehicleIds={jmState.filterConfig?.selectedVehicleIds || []}
+						customTripSwitch
+						showCustomTrip={jmState.filterConfig?.showCustomTrip || false}
 					/>
 
 					<div className='av-item media'>
-						<span>{t('cover') + ' (可选)'}</span>
-						<div
-							style={{
-								maxWidth:
-									media.length >= 2 ? '270px' : (media.length + 1) * 90 + 'px',
+						<span>{t('cover')}</span>
+						<CoverListComponent
+							media={media}
+							onMedia={(media) => {
+								setMedia(media)
 							}}
-							className={'av-i-media ' + (media.length >= 2 ? 'grid' : 'flex')}
-						>
-							{media
-								// .concat(media)
-								// .concat(media)
-								// .concat(media)
-								.map((v, i) => {
-									return (
-										<div
-											ref={
-												bindEvent({
-													click: () => {
-														alert({
-															title: t('delete', {
-																ns: 'prompt',
-															}),
-															content: t('deleteImage', {
-																ns: 'prompt',
-															}),
-															cancelText: t('cancel', {
-																ns: 'prompt',
-															}),
-															confirmText: t('delete', {
-																ns: 'prompt',
-															}),
-															onCancel() {},
-															async onConfirm() {
-																setMedia(media.filter((_, si) => si !== i))
-															},
-														}).open()
-													},
-												}) as any
-											}
-											className='media-item'
-											key={i}
-										>
-											{v.type === 'image' ? (
-												<SakiImages
-													width='80px'
-													height='80px'
-													objectFit={'cover'}
-													borderRadius='10px'
-													src={getSAaSSImageUrl(v.url || '', 'small')}
-												></SakiImages>
-											) : (
-												''
-											)}
-										</div>
-									)
-								})}
-							{media.length < 9 ? (
-								<div
-									ref={
-										bindEvent({
-											click: () => {
-												const input = document.createElement('input')
-												input.type = 'file'
-												input.accept = 'image/*'
-												input.multiple = true
-
-												input.oninput = () => {
-													if (input.files?.length) {
-														const tmedia = [...media]
-
-														for (let i = 0; i < input.files.length; i++) {
-															if (tmedia.length >= 9) {
-																snackbar({
-																	message: t('mediaLimitExceeded', {
-																		ns: 'prompt',
-																	}),
-																	autoHideDuration: 2000,
-																	vertical: 'top',
-																	horizontal: 'center',
-																	backgroundColor: 'var(--saki-default-color)',
-																	color: '#fff',
-																}).open()
-																break
-															}
-															tmedia.push({
-																type: 'image',
-																url: URL.createObjectURL(input.files[i]),
-																file: input.files[i],
-															})
-														}
-														setMedia(tmedia)
-														// const reader = new FileReader()
-														// reader.onload = (e) => {
-														// 	if (!e.target?.result?.toString()) return
-
-														// 	setMedia(
-														// 		media.concat([
-														// 			{
-														// 				type: 'image',
-														// 				url: e.target?.result?.toString() || '',
-														// 			},
-														// 		])
-														// 	)
-														// }
-														// reader.readAsDataURL(file)
-													}
-												}
-												input.onblur = () => {
-													console.log('close')
-												}
-												input.onfocus = () => {
-													console.log('close')
-												}
-												input.click()
-											},
-										}) as any
-									}
-									className='media-item'
-								>
-									<SakiIcon
-										color='#999'
-										width='24px'
-										height='24px'
-										type='Add'
-									></SakiIcon>
-								</div>
-							) : (
-								''
-							)}
-							{/* <saki-avatar
-							ref={bindEvent({
-								edit: (e: any) => {
-									console.log(e)
-									setSelectLogo(true)
-								},
-							})}
-							width='80px'
-							height='80px'
-							border-radius='50%'
-							default-icon='User'
-							default-icon-size='24px'
-							// edit-icon
-							src={logo}
-						></saki-avatar> */}
-						</div>
+						/>
 					</div>
 
 					{jmState.pageTypes.includes('EditJM') ? (
@@ -2972,6 +2870,146 @@ const AddJourneyMemoriesTimelinePage = () => {
 				</div>
 			</SakiScrollView>
 		</div>
+	)
+}
+
+export const CoverListComponent = ({
+	media,
+	onMedia,
+}: {
+	media: MediaItem[]
+	onMedia: (media: MediaItem[]) => void
+}) => {
+	return (
+		<saki-drag-sort
+			ref={bindEvent({
+				dragdone: async (e) => {
+					console.log('saki-drag-sort', media, e)
+
+					onMedia(
+						(await (e.target as any)?.swapSort?.(
+							media,
+							e.detail.oldIndex,
+							e.detail.newIndex
+						)) || []
+					)
+				},
+			})}
+			// sort={
+			// 	config.deviceType !== 'Mobile' || config.platform === 'Electron'
+			// }
+			sort={true}
+			padding='0px'
+		>
+			<div
+				style={{
+					maxWidth:
+						media.length >= 2 ? '270px' : (media.length + 1) * 90 + 'px',
+				}}
+				className={
+					'drag-sort av-i-media ' + (media.length >= 2 ? 'grid' : 'flex')
+				}
+			>
+				{media
+					// .concat(media)
+					// .concat(media)
+					// .concat(media)
+					.map((v, i) => {
+						return (
+							<div
+								ref={
+									bindEvent({
+										click: () => {
+											alert({
+												title: t('delete', {
+													ns: 'prompt',
+												}),
+												content: t('deleteImage', {
+													ns: 'prompt',
+												}),
+												cancelText: t('cancel', {
+													ns: 'prompt',
+												}),
+												confirmText: t('delete', {
+													ns: 'prompt',
+												}),
+												onCancel() {},
+												async onConfirm() {
+													onMedia(media.filter((_, si) => si !== i))
+												},
+											}).open()
+										},
+									}) as any
+								}
+								className='media-item'
+								key={v.id}
+							>
+								{v.type === 'image' ? (
+									<SakiImages
+										width='80px'
+										height='80px'
+										objectFit={'cover'}
+										borderRadius='10px'
+										src={getSAaSSImageUrl(v.url || '', 'thumbnail')}
+									></SakiImages>
+								) : (
+									''
+								)}
+							</div>
+						)
+					})}
+				{media.length < 9 ? (
+					<div
+						ref={
+							bindEvent({
+								click: async () => {
+									const files = await selectFiles()
+
+									if (files?.length) {
+										const tmedia = [...media]
+
+										for (let i = 0; i < files.length; i++) {
+											if (tmedia.length >= 9) {
+												snackbar({
+													message: t('mediaLimitExceeded', {
+														ns: 'prompt',
+													}),
+													autoHideDuration: 2000,
+													vertical: 'top',
+													horizontal: 'center',
+													backgroundColor: 'var(--saki-default-color)',
+													color: '#fff',
+												}).open()
+												break
+											}
+
+											tmedia.push({
+												type: 'image',
+												url: URL.createObjectURL(files[i]),
+												file: files[i],
+												id: getShortId(9),
+											})
+										}
+
+										onMedia(tmedia)
+									}
+								},
+							}) as any
+						}
+						className='media-item disabled-sort'
+					>
+						<SakiIcon
+							color='#999'
+							width='24px'
+							height='24px'
+							type='Add'
+						></SakiIcon>
+					</div>
+				) : (
+					''
+				)}
+			</div>
+		</saki-drag-sort>
 	)
 }
 

@@ -17,16 +17,19 @@
       width: 100%;
       height: 100%;
 
-      &.Mobile.start {
-        height: calc(100% - 280px);
-        transform: translateY(280px);
+      &.zoomIn {
+        &.Mobile {
+          height: calc(100% - 280px);
+          transform: translateY(280px);
 
-        @media screen and (min-width: 500px) {
-          height: calc(100% - 230px);
-          transform: translateY(230px);
+          @media screen and (min-width: 500px) {
+            height: calc(100% - 230px);
+            transform: translateY(230px);
+          }
+
+          transition: all .3s;
         }
 
-        transition: all .3s;
       }
     }
 
@@ -85,6 +88,38 @@
       }
     }
 
+    .rt-city {
+      position: absolute;
+      bottom: 0px;
+      right: 0px;
+      z-index: 400;
+      padding: 10px;
+      border-radius: 10px 0 0 0;
+      width: 100%;
+
+      &.Dark {
+        background-color: rgba(0, 0, 0, 0.3);
+
+        span {
+          color: #aaa;
+        }
+      }
+
+      &.Light {
+        background-color: rgba(255, 255, 255, 0.3);
+
+        span {
+          color: #aaa;
+        }
+      }
+
+      span {
+        font-size: 22px;
+        font-weight: 700;
+        // color: #555;
+      }
+    }
+
     .rt-processbar {
       width: calc(100% - 60px);
       height: 40px;
@@ -101,7 +136,16 @@
       padding: 0px 10px;
       border-radius: 20px;
 
-      transition: background-color .3s;
+      transition: background-color .3s, bottom .3s;
+
+      &.show {
+        bottom: 30px;
+      }
+
+      &.hide {
+        bottom: -40px;
+
+      }
 
       &.Mobile {
         width: calc(100% - 20px);

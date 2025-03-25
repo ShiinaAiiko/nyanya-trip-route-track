@@ -50,10 +50,12 @@ interface Config {
 
 try {
   let configJson: Config = require('./config.temp.json')
-  let pkg = require('./package.json')
+  // let pkg = require('./package.json')
   // let configJson: Config = require('./config.test.json')
   if (configJson) {
-    version = pkg.version
+    version = configJson.version
+
+    baselog.Info("New version:", configJson.version)
     server = configJson.server
     sakisso = configJson.sakisso
     sakiui = configJson.sakiui

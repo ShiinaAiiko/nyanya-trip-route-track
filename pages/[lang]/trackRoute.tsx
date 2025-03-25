@@ -1,7 +1,7 @@
 import Head from 'next/head'
 import TripLaout, { getLayout } from '../../layouts/Trip'
 import Link from 'next/link'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { useRouter } from 'next/router'
 import axios from 'axios'
 import FooterComponent from '../../components/Footer'
@@ -72,6 +72,18 @@ import {
 } from '../../store/trip'
 import FiexdWeatherComponent from '../../components/FiexdWeather'
 import { createDistanceScaleControl } from '../../plugins/map'
+import { loadModal } from '../../store/layout'
+import FilterComponent from '../../components/Filter'
+import {
+	clearLayer,
+	renderPolyline,
+	renderPolylineItem,
+	RenderPolylineItemClickFunc,
+	RenderPolylineItemClickFuncReRender,
+	RenderPolylineItemParams,
+} from '../../store/map'
+
+const forceUpdateReducer = (state: number) => state + 1
 
 const TrackRoutePage = () => {
 	const { t, i18n } = useTranslation('trackRoutePage')
@@ -98,6 +110,8 @@ const TrackRoutePage = () => {
 	const currentLatlons = useRef<any[]>([])
 
 	const selectPolylineIds = useRef<string[]>([])
+
+	const [, forceUpdate] = useReducer(forceUpdateReducer, 0)
 
 	const loginSnackbar = useRef(
 		snackbar({
@@ -253,7 +267,7 @@ const TrackRoutePage = () => {
 		loadedMap.current = false
 		zoom.current = 0
 		initMap()
-		loadData()
+		// loadData()
 	}, [
 		config.trackRouteMapUrl,
 		config.showDetailedDataForMultipleHistoricalTrips,
@@ -305,9 +319,15 @@ const TrackRoutePage = () => {
 			// setTimeout(() => {
 			// }, 5500);
 			// const init = async () => {
+
+			// }
+			// init()
+
 			dispatch(
 				methods.trip.GetTripHistoryData({
 					loadCloudData: true,
+					alert: true,
+					cityDetails: true,
 				})
 			)
 				.unwrap()
@@ -318,8 +338,6 @@ const TrackRoutePage = () => {
 					// 	})
 					// )
 				})
-			// }
-			// init()
 		}
 	}, [user])
 
@@ -343,7 +361,7 @@ const TrackRoutePage = () => {
 				const { config } = store.getState()
 				// getHistoricalStatistic()
 				console.log('getAllTripPositions', localIds)
-				await getTripHistoryPositions()
+				// await getTripHistoryPositions()
 			}
 			init()
 		}
@@ -377,38 +395,106 @@ const TrackRoutePage = () => {
 	// startDate: protoRoot.configure.Configure.Filter.IFilterItem['startDate'],
 	// endDate: protoRoot.configure.Configure.Filter.IFilterItem['endDate'],
 	// selectedVehicleIds: protoRoot.configure.Configure.Filter.IFilterItem['selectedVehicleIds']
+
+	const selectPolylineParamsMap = useRef<{
+		[id: string]: ReturnType<RenderPolylineItemClickFuncReRender>
+	}>({})
+
 	const loadData = () => {
 		loadDataDebounce.current.increase(async () => {
 			const { config } = store.getState()
+			const L: typeof Leaflet = (window as any).L
 
 			console.log(
-				'GetTripStatistics',
+				'ffff filter1 GetTripStatistics',
 				config.configure.filter?.trackRoute,
 				trip.tripStatistics.length
 			)
-			if (!config.configure.filter?.trackRoute || !trip.tripStatistics.length)
+			if (
+				!L ||
+				!config.configure.filter?.trackRoute ||
+				!trip.tripStatistics.length
+			)
 				return
 
-			const { selectedTripIds } = config.configure.filter?.trackRoute
+			const { selectedTripIds, showFullData } =
+				config.configure.filter?.trackRoute
 
-			const matchObj: {
-				[id: string]: number
-			} = {}
+			let tripIds: string[] = []
 
-			Object.keys(polylines.current).forEach((v) => {
-				polylines.current[v].removeFrom(map.current)
-				polylines.current[v].removeEventListener('click')
-				delete polylines.current[v]
-			})
-			polylines.current = {}
+			let trips: protoRoot.trip.ITrip[] = []
 
-			const L: typeof Leaflet = (window as any).L
+			if (selectedTripIds?.length) {
+				tripIds = selectedTripIds
+			} else {
+				trips = filterTripsForTrackRoutePage().filter(
+					(v) => Number(v.status) >= 1
+				)
+
+				tripIds = trips.map((v) => v?.id || '')
+			}
+			await getHistoricalStatistic(tripIds)
+
+			const tripPositions = await getTripHistoryPositions(
+				tripIds,
+				showFullData || false
+			)
+
+			// let positions: protoRoot.trip.ITripPosition[] = []
+			// showFullData
+			console.log('showFullData', showFullData)
+
+			map.current &&
+				clearLayer({
+					map: map.current,
+					type: 'Polyline',
+				})
+
+			map.current &&
+				renderPolyline({
+					map: map.current,
+					trips: tripPositions,
+					speedColor: showFullData
+						? 'auto'
+						: getTrackRouteColor(
+								(config.configure?.trackRouteColor as any) || 'Red',
+								false
+						  ),
+					weight: Number(config.configure.polylineWidth?.historyTripTrack),
+					clickFunc({ params, reRender }) {
+						console.log('clickFunc', params)
+						delayClickPolyline.current = true
+						setTimeout(() => {
+							delayClickPolyline.current = false
+						}, 300)
+
+						if (selectPolylineIds.current.includes(params.tripId)) {
+							selectPolylineIds.current = selectPolylineIds.current.filter(
+								(sv) => sv !== params.tripId
+							)
+						} else {
+							selectPolylineIds.current.push(params.tripId)
+						}
+
+						selectPolylineParamsMap.current[params.tripId] = reRender({
+							...params,
+							weight:
+								Number(config.configure.polylineWidth?.historyTripTrack) +
+								(selectPolylineIds.current.includes(params.tripId) ? 4 : 0),
+						})
+
+						forceUpdate()
+					},
+				})
+
+			// Object.keys(polylines.current).forEach((v) => {
+			// 	polylines.current[v].removeFrom(map.current)
+			// 	polylines.current[v].removeEventListener('click')
+			// 	delete polylines.current[v]
+			// })
+			// polylines.current = {}
 
 			// if (!tripPositionsRef.current.length) {
-			const tripPositions = (await storage.tripPositions.getAll()).filter(
-				(v) => v.value.authorId === user.userInfo?.uid
-			)
-			console.log('GetTripHistoryPositions tripPositions.getAll', tripPositions)
 
 			// 	if (tripPositions.length && L) {
 			// 		tripPositionsRef.current = tripPositions
@@ -420,494 +506,197 @@ const TrackRoutePage = () => {
 			// 	trip.tripStatistics
 			// )
 
-			if (tripPositions.length && L) {
-				let minLat = 0
-				let minLon = 0
-				let maxLat = 0
-				let maxLon = 0
+			// let minLat = 0
+			// let minLon = 0
+			// let maxLat = 0
+			// let maxLon = 0
 
-				// let positions: protoRoot.trip.ITripPosition[] = []
+			// tripPositions.forEach(async (v) => {
+			// 	const latLngs: number[][] = []
+			// 	const colors: string[] = []
+			// 	v.positionList
+			// 		?.filter((sv) => {
+			// 			return !(Number(sv.speed || 0) < 0 || Number(sv.altitude || 0) < 0)
+			// 		})
+			// 		?.forEach((sv, i, arr) => {
+			// 			;(!minLat || minLat > Number(sv.latitude)) &&
+			// 				(minLat = Number(sv.latitude))
+			// 			;(!minLon || minLon > Number(sv.longitude)) &&
+			// 				(minLon = Number(sv.longitude))
+			// 			;(!maxLat || maxLat < Number(sv.latitude)) &&
+			// 				(maxLat = Number(sv.latitude))
+			// 			;(!maxLon || maxLon < Number(sv.longitude)) &&
+			// 				(maxLon = Number(sv.longitude))
 
-				if (
-					config.showDetailedDataForMultipleHistoricalTrips &&
-					selectedTripIds?.length
-				) {
-					// console.log('selectedTripIds', selectedTripIds)
+			// 			latLngs.push(
+			// 				getLatLng(
+			// 					config.trackRouteMapUrl,
+			// 					sv.latitude || 0,
+			// 					sv.longitude || 0
+			// 				) as any
+			// 			)
+			// 			const speedColorLimit = (config.configure.speedColorLimit as any)[
+			// 				(v?.type?.toLowerCase() || 'running') as any
+			// 			]
 
-					// const incompleteTripData = tripPositions.filter(
-					// 	(v) =>
-					// 		selectedTripIds.includes(v.value.id || '') &&
-					// 		(v.value.positions?.[0]?.split('_').length || 0) <= 2
-					// )
+			// 			colors.push(
+			// 				getSpeedColor(
+			// 					sv.speed || 0,
+			// 					speedColorLimit.minSpeed,
+			// 					speedColorLimit.maxSpeed,
+			// 					config.speedColorRGBs
+			// 				)
+			// 			)
+			// 		})
 
-					const promiseAll: any[] = []
-					let laodCount = 0
-					let tripData: protoRoot.trip.ITripPositions[] = []
+			// 	if (map.current) {
+			// 		// console.log(
+			// 		// 	'fTripPositions incompleteTripData',
+			// 		// 	latLngs.length,
+			// 		// 	colors.length,
+			// 		// 	map.current
+			// 		// )
 
-					// loadingSnackbar.current = snackbar({
-					// 	message: t('loadingData', {
-					// 		ns: 'prompt',
-					// 	}),
-					// 	vertical: 'top',
-					// 	horizontal: 'center',
-					// 	backgroundColor: 'var(--saki-default-color)',
-					// 	color: '#fff',
-					// })
+			// 		const { latLngs, colors } = await getLatlngsAndColors(
+			// 			{
+			// 				id: v.id,
+			// 				type: v.type,
+			// 			},
+			// 			v
+			// 		)
+			// 		// createPolyline(
+			// 		// 	v?.id || '',
+			// 		// 	latLngs,
+			// 		// 	colors,
+			// 		// 	showFullData ? 'polycolor' : 'polyline',
+			// 		// 	1,
+			// 		// 	map.current
+			// 		// )
 
-					// const unPulledIds: string[] = []
+			// 		renderPolylineItem({
+			// 			tripId: v.id || '',
+			// 			map: map.current,
+			// 			positions,
+			// 		})
 
-					// tripPositions.forEach((v) => {
-					// 	if (!selectedTripIds.includes(v.value.id || '')) return
+			// 		// delayClickPolyline.current = true
+			// 		// setTimeout(() => {
+			// 		//   delayClickPolyline.current = false
+			// 		// }, 300)
+			// 		// if (selectPolylineIds.current.includes(id + ';' + type)) {
+			// 		//   selectPolylineIds.current = selectPolylineIds.current.filter(
+			// 		//     (sv) => sv !== id + ';' + type
+			// 		//   )
+			// 		// } else {
+			// 		//   selectPolylineIds.current.push(id + ';' + type)
+			// 		// }
+			// 		// createPolyline(id, latLngs, colors, type, match, map)
+			// 	}
+			// })
 
-					// 	if ((v.value.positions?.[0]?.split('_').length || 0) > 2) {
-					// 		tripData.push(v.value)
-					// 		return
-					// 	}
+			// if (map.current) {
+			// 	const tempLatLon = {
+			// 		lat: (minLat + maxLat) / 2,
+			// 		lon: (minLon + maxLon) / 2,
+			// 	}
 
-					// 	// 这些是未获取的
+			// 	setLatLon({
+			// 		...tempLatLon,
+			// 	})
+			// 	map.current.setView(
+			// 		[tempLatLon.lat, tempLatLon.lon],
+			// 		// [
+			// 		//   120.3814, -1.09],
+			// 		getZoom(minLat, minLon, maxLat, maxLon)
+			// 	)
+			// }
 
-					// 	unPulledIds.push(String(v.value.id))
+			// console.log('fffff', minLat, minLon, maxLat, maxLon)
 
-					// 	// promiseAll.push(
-					// 	//   new Promise(async (res: any) => {
-					// 	//     const posRes = await httpApi.v1.GetTripPositions({
-					// 	//       id: v.value.id,
-					// 	//       shareKey: '',
-					// 	//     })
-					// 	//     // console.log(' fTripPositions GetTripPositions posRes', posRes)
-					// 	//     if (
-					// 	//       posRes.code === 200 &&
-					// 	//       posRes.data?.tripPositions?.positions &&
-					// 	//       posRes.data?.tripPositions.status
-					// 	//     ) {
-					// 	//       laodCount++
-					// 	//       loadingSnackbar?.setMessage(
-					// 	//         t('loadedData', {
-					// 	//           ns: 'prompt',
-					// 	//           percentage:
-					// 	//             String(
-					// 	//               laodCount && promiseAll.length
-					// 	//                 ? Math.floor(
-					// 	//                   (laodCount / promiseAll.length || 0) * 100
-					// 	//                 )
-					// 	//                 : 0
-					// 	//             ) + '%',
-					// 	//         })
-					// 	//       )
+			// if (loadingSnackbar.current) {
+			// 	loadingSnackbar.current.close()
+			// 	loadingSnackbar.current = undefined
+			// }
 
-					// 	//       res(posRes.data.tripPositions)
+			// if (showFullData) {
+			// 	if (loadingSnackbar.current) {
+			// 		loadingSnackbar.current.close()
+			// 		loadingSnackbar.current = undefined
+			// 	}
 
-					// 	//       await storage.tripPositions.set(
-					// 	//         v.value.id || '',
-					// 	//         posRes.data.tripPositions
-					// 	//       )
-					// 	//     } else {
-					// 	//       res(undefined)
-					// 	//     }
-					// 	//   })
-					// 	// )
-					// })
+			// 	// console.log('fTripPositions incompleteTripData', incompleteTripData)
 
-					// // const res = await Promise.all(promiseAll)
+			// 	// fTripPositions.forEach((v) => {
+			// 	// 	// const positions = formatPositionsStr(
+			// 	// 	// 	Number(v.value.startTime),
+			// 	// 	// 	v.value.positions || []
+			// 	// 	// )
+			// 	// 	// console.log('fTripPositions positions', positions)
+			// 	// })
 
-					// if (unPulledIds.length) {
-					// 	loadingSnackbar.current.open()
-					// }
+			// 	// console.log('fTripPositions', fTripPositions, selectedTripIds)
+			// } else {
+			// 	tripPositions.forEach(async (v, i) => {
+			// 		if (!v.positions?.length) return
 
-					// tripData = tripData.concat(
-					// 	await getDetailedPositionsOfTrip(unPulledIds, 0, unPulledIds.length)
-					// )
+			// 		// let latlngs: number[][] = []
 
-					tripData = tripData.concat(
-						await getAllTripPositions({
-							ids: selectedTripIds,
-							pageSize: 10,
-							loadingSnackbar: true,
-							fullData: true,
-						})
-					)
-					console.log('getAllTripPositions allres', tripData)
+			// 		v?.positionList?.forEach((sv, si) => {
+			// 			if (si === 0) {
+			// 				return
+			// 			}
+			// 			const lv = v?.positionList?.[si - 1]
+			// 			if (!lv) {
+			// 				return
+			// 			}
+			// 			// console.log('tempUsedPositions lv.latitude', lv.latitude)
+			// 			// if (Number(lv.latitude) < 0 || Number(lv.longitude) < 0) {
+			// 			// 	console.log('tempUsedPositions lv', lv, v)
+			// 			// }
+			// 			;(!minLat || minLat > Number(lv.latitude)) &&
+			// 				(minLat = Number(lv.latitude))
+			// 			;(!minLon || minLon > Number(lv.longitude)) &&
+			// 				(minLon = Number(lv.longitude))
+			// 			;(!maxLat || maxLat < Number(lv.latitude)) &&
+			// 				(maxLat = Number(lv.latitude))
+			// 			;(!maxLon || maxLon < Number(lv.longitude)) &&
+			// 				(maxLon = Number(lv.longitude))
+			// 		})
 
-					tripData.forEach(async (v) => {
-						const positions = formatPositionsStr(
-							Number(v.startTime),
-							v.positions || []
-						)
-						const latLngs: number[][] = []
-						const colors: string[] = []
-						positions
-							?.filter((sv) => {
-								return !(
-									Number(sv.speed || 0) < 0 || Number(sv.altitude || 0) < 0
-								)
-							})
-							?.forEach((sv, i, arr) => {
-								;(!minLat || minLat > Number(sv.latitude)) &&
-									(minLat = Number(sv.latitude))
-								;(!minLon || minLon > Number(sv.longitude)) &&
-									(minLon = Number(sv.longitude))
-								;(!maxLat || maxLat < Number(sv.latitude)) &&
-									(maxLat = Number(sv.latitude))
-								;(!maxLon || maxLon < Number(sv.longitude)) &&
-									(maxLon = Number(sv.longitude))
+			// 		if (map.current) {
+			// 			const { latLngs, colors } = await getLatlngsAndColors(
+			// 				{
+			// 					id: v.id,
+			// 					type: v.type,
+			// 				},
+			// 				v
+			// 			)
+			// 			// console.log(
+			// 			// 	'tempUsedPositions',
+			// 			// 	v.value?.id || '',
+			// 			// 	latLngs.length,
+			// 			// 	[],
+			// 			// 	'polyline',
+			// 			// 	match
+			// 			// )
+			// 			createPolyline(v?.id || '', latLngs, [], 'polyline', 1, map.current)
+			// 		}
 
-								latLngs.push(
-									getLatLng(
-										config.trackRouteMapUrl,
-										sv.latitude || 0,
-										sv.longitude || 0
-									) as any
-								)
-								const speedColorLimit = (
-									config.configure.speedColorLimit as any
-								)[(v?.type?.toLowerCase() || 'running') as any]
+			// 		// })
+			// 	})
 
-								colors.push(
-									getSpeedColor(
-										sv.speed || 0,
-										speedColorLimit.minSpeed,
-										speedColorLimit.maxSpeed,
-										config.speedColorRGBs
-									)
-								)
-							})
-
-						if (map.current) {
-							// console.log(
-							// 	'fTripPositions incompleteTripData',
-							// 	latLngs.length,
-							// 	colors.length,
-							// 	map.current
-							// )
-
-							const { latLngs, colors } = await getLatlngsAndColors(
-								{
-									id: v.id,
-									type: v.type,
-								},
-								v
-							)
-							createPolyline(
-								v?.id || '',
-								latLngs,
-								colors,
-								'polycolor',
-								1,
-								map.current
-							)
-						}
-					})
-
-					if (map.current) {
-						const tempLatLon = {
-							lat: (minLat + maxLat) / 2,
-							lon: (minLon + maxLon) / 2,
-						}
-
-						setLatLon({
-							...tempLatLon,
-						})
-						map.current.setView(
-							[tempLatLon.lat, tempLatLon.lon],
-							// [
-							//   120.3814, -1.09],
-							getZoom(minLat, minLon, maxLat, maxLon)
-						)
-					}
-
-					if (loadingSnackbar.current) {
-						loadingSnackbar.current.close()
-						loadingSnackbar.current = undefined
-					}
-
-					// console.log('fTripPositions incompleteTripData', incompleteTripData)
-
-					// fTripPositions.forEach((v) => {
-					// 	// const positions = formatPositionsStr(
-					// 	// 	Number(v.value.startTime),
-					// 	// 	v.value.positions || []
-					// 	// )
-					// 	// console.log('fTripPositions positions', positions)
-					// })
-
-					// console.log('fTripPositions', fTripPositions, selectedTripIds)
-				} else {
-					const filterTrips = Object.fromEntries(
-						filterTripsForTrackRoutePage().map((v) => [v.id || '', v])
-					)
-					const getMatch = (val: protoRoot.trip.ITripPositions) => {
-						let id = val.id || ''
-						if (matchObj[id] !== undefined) return matchObj[id]
-
-						let match = -1
-						if (filterTrips[id]) {
-							match = 1
-						}
-
-						matchObj[id] = match
-
-						return matchObj[id]
-						// if (matchObj[id] !== undefined) return matchObj[id]
-						// let match = 1
-						// // if (
-						// // 	selectedTripTypes?.length ||
-						// // 	selectedTripIds?.length ||
-						// // 	selectedVehicleIds?.length ||
-						// // 	startDate ||
-						// // 	endDate
-						// // ) {
-						// // 	match = 1
-						// // }
-						// if (
-						// 	selectedTripTypes?.length &&
-						// 	selectedTripTypes?.filter((sv) => {
-						// 		return val.type === sv
-						// 	}).length === 0
-						// ) {
-						// 	match = -1
-						// }
-						// if (
-						// 	selectedVehicleIds?.length &&
-						// 	selectedVehicleIds?.filter((sv) => {
-						// 		return val.vehicleId === sv
-						// 	}).length === 0
-						// ) {
-						// 	match = -1
-						// }
-
-						// // console.log('selectedVehicleIds', selectedVehicleIds.length, match)
-
-						// if (
-						// 	selectedTripIds?.length &&
-						// 	!selectedTripIds?.includes(String(val.id))
-						// ) {
-						// 	match = -1
-						// }
-
-						// const ct = Number(val.startTime)
-						// const st = Math.floor(
-						// 	new Date(
-						// 		(startDate ? startDate + ' 0:0:0' : '') || '2018-10-31'
-						// 	).getTime() / 1000
-						// )
-						// const et = Math.floor(
-						// 	new Date(
-						// 		(endDate ? endDate + ' 23:59:59' : '') || '5055-5-5'
-						// 	).getTime() / 1000
-						// )
-						// if (!(ct >= st && ct <= et)) {
-						// 	match = -1
-						// }
-
-						// const getTrip = trips[val.id || '']
-
-						// // console.log('getTripgetTrip', getTrip, val)
-						// if (
-						// 	!(
-						// 		Number(getTrip.statistics?.distance) >= shortestDistance &&
-						// 		(longestDistance >= 500 * 1000
-						// 			? true
-						// 			: Number(getTrip.statistics?.distance) <= longestDistance)
-						// 	)
-						// ) {
-						// 	match = -1
-						// }
-						// matchObj[id] = match
-
-						// return match
-					}
-					console.log(
-						'filterTrips',
-						filterTrips,
-						Object.keys(filterTrips).length
-					)
-
-					tripPositions.sort((a, b) => {
-						const match = getMatch(a.value)
-						if (match === 0) {
-							return Number(a.value.startTime) - Number(b.value.startTime)
-						} else {
-							return match === -1 ? -1 : 1
-						}
-					})
-
-					console.log(
-						'tempUsedPositions 每次用过的gps都记录，每次遍历检测到就去除',
-						tripPositions
-					)
-
-					tripPositions.forEach(async (v, i) => {
-						if (!v.value.positions?.length) return
-
-						const match = getMatch(v.value)
-
-						if (match < 0) return
-
-						// let latlngs: number[][] = []
-						const positions = formatPositionsStr(
-							Number(v.value.startTime),
-							v.value.positions
-						)
-
-						positions?.forEach((sv, si) => {
-							if (si === 0) {
-								return
-							}
-							const lv = positions[si - 1]
-							// console.log('tempUsedPositions lv.latitude', lv.latitude)
-							// if (Number(lv.latitude) < 0 || Number(lv.longitude) < 0) {
-							// 	console.log('tempUsedPositions lv', lv, v)
-							// }
-							;(!minLat || minLat > Number(lv.latitude)) &&
-								(minLat = Number(lv.latitude))
-							;(!minLon || minLon > Number(lv.longitude)) &&
-								(minLon = Number(lv.longitude))
-							;(!maxLat || maxLat < Number(lv.latitude)) &&
-								(maxLat = Number(lv.latitude))
-							;(!maxLon || maxLon < Number(lv.longitude)) &&
-								(maxLon = Number(lv.longitude))
-						})
-
-						// const startPosition = positions[0]
-						// const endPosition = positions[positions.length - 1]
-
-						// let lat = geo.position?.coords?.latitude || 0
-						// let lon = geo.position?.coords?.longitude || 0
-
-						// lat =
-						// 	(startPosition.latitude || 0) -
-						// 	((startPosition.latitude || 0) - (endPosition.latitude || 0)) / 2
-						// lon =
-						// 	(startPosition.longitude || 0) -
-						// 	((startPosition.longitude || 0) - (endPosition.longitude || 0)) /
-						// 		2
-
-						// cjza0gKVJ
-						// 78L2tkleM
-						// wguhwNMVy
-						// const vId = v.value.id || ""
-						// if (!(i > 320 && i < 435)) return
-						// // if (!(vId === "cjza0gKVJ" || vId === "iVIMJB727" || vId === "hbLhJg8fY" || vId === "wguhwNMVy")) return
-
-						// let tempArr: protoRoot.trip.ITripPosition[][] = []
-						// const newPositions = positions.filter((sv, si) => {
-						//   let isExists = false
-						//   if (si === 0) {
-						//     tempArr.push([sv])
-						//   }
-						//   tempUsedPositions.current.some(ssv => {
-						//     if (ssv.id === v.value.id) {
-						//       return true
-						//     }
-						//     const distance = getDistance(sv.latitude || 0, sv.longitude || 0, ssv.pos.latitude || 0, ssv.pos.longitude || 0)
-						//     if (distance <= 1) {
-						//       // console.log("tempUsedPositions",distance)
-						//       isExists = true
-						//       return isExists
-						//     }
-						//     return false
-						//   })
-
-						//   tempArr[tempArr.length - 1].push(sv)
-						//   if (!isExists) {
-						//     tempUsedPositions.current.push({
-						//       id: v.value.id || "",
-						//       pos: sv
-						//     })
-						//     return true
-						//   } else {
-						//     tempArr.push([sv])
-						//   }
-
-						//   // const isExists = tempUsedPositions.current
-						//   return false
-						// })
-						// tempArr = tempArr.filter(v => v.length > 1)
-						// console.log("tempUsedPositions tempArr", tempArr.filter(v => v.length > 1))
-
-						// // 分拆tempUsedPositions，
-						// // 剪过的，就从这里开始分
-						// console.log("tempUsedPositions", i, v, positions.length, newPositions.length,
-						//   tempUsedPositions.current.length)
-
-						// tempArr.forEach(newPositions => {
-						//   latlngs = []
-						// positions?.forEach((v, i) => {
-						// 	if (i === 0) {
-						// 		return
-						// 	}
-						// 	const lv = positions[i - 1]
-
-						// 	const latlng = getLatLng(config.trackRouteMapUrl, lat, lon)
-
-						// 	lat = latlng[0]
-						// 	lon = latlng[1]
-						// 	// console.log('lv.latitude', lv.latitude)
-						// 	;(!minLat || minLat > Number(lv.latitude)) &&
-						// 		(minLat = Number(lv.latitude))
-						// 	;(!minLon || minLon > Number(lv.longitude)) &&
-						// 		(minLon = Number(lv.longitude))
-						// 	;(!maxLat || maxLat < Number(lv.latitude)) &&
-						// 		(maxLat = Number(lv.latitude))
-						// 	;(!maxLon || maxLon < Number(lv.longitude)) &&
-						// 		(maxLon = Number(lv.longitude))
-						// 	latlngs.push(
-						// 		getLatLng(
-						// 			config.trackRouteMapUrl,
-						// 			lv.latitude || 0,
-						// 			lv.longitude || 0
-						// 		)
-						// 	)
-						// })
-
-						if (map.current) {
-							const { latLngs, colors } = await getLatlngsAndColors(
-								{
-									id: v.value.id,
-									type: v.value.type,
-								},
-								v.value
-							)
-							// console.log(
-							// 	'tempUsedPositions',
-							// 	v.value?.id || '',
-							// 	latLngs.length,
-							// 	[],
-							// 	'polyline',
-							// 	match
-							// )
-							createPolyline(
-								v.value?.id || '',
-								latLngs,
-								[],
-								'polyline',
-								match,
-								map.current
-							)
-						}
-
-						// })
-					})
-
-					// console.log('tempUsedPositions max', minLat, maxLat, minLon, maxLon, {
-					// 	lat: (minLat + maxLat) / 2,
-					// 	lon: (minLon + maxLon) / 2,
-					// })
-					setLatLon({
-						lat: (minLat + maxLat) / 2,
-						lon: (minLon + maxLon) / 2,
-					})
-				}
-
-				// console.log('fffff', minLat, minLon, maxLat, maxLon)
-			}
-
-			if (loadingSnackbar.current) {
-				loadingSnackbar.current.close()
-				loadingSnackbar.current = undefined
-			}
-
-			await getHistoricalStatistic(matchObj)
+			// 	console.log(
+			// 		'filter1 tempUsedPositions max',
+			// 		minLat,
+			// 		maxLat,
+			// 		minLon,
+			// 		maxLon,
+			// 		{
+			// 			lat: (minLat + maxLat) / 2,
+			// 			lon: (minLon + maxLon) / 2,
+			// 		}
+			// 	)
+			// }
 		}, 700)
 	}
 
@@ -1044,219 +833,48 @@ const TrackRoutePage = () => {
 		})
 	)
 
-	const getTripHistoryPositions = async () => {
+	const getTripHistoryPositions = async (ids: string[], fullData: boolean) => {
 		try {
-			const trip = store.getState().trip
-			const allIds =
-				trip.tripStatistics
-					.filter((v) => v.type === 'All')?.[0]
-					?.list?.map((v) => v.id || '') || []
-
 			const res = await getAllTripPositions({
-				ids: allIds,
+				// ids: allIds,
+				ids: ids,
 				pageSize: 15,
 				onload(totalCount, loadCount) {
 					console.log('getAllTripPositions', totalCount, loadCount)
 				},
 				loadingSnackbar: true,
+				fullData,
 			})
-			console.log('getAllTripPositions allres', res)
+			console.log(
+				'getAllTripPositions allres',
+				trip.tripStatistics,
+				// allIds,
+				res
+			)
 
-			loadData()
+			const tripPositions = (await storage.tripPositions.mget(ids)).filter(
+				(v) => v.value.authorId === user.userInfo?.uid
+			)
 
-			// if (!loadingSnackbar.current) {
-			// 	loadingSnackbar.current = snackbar({
-			// 		message: t('loadingData', {
-			// 			ns: 'prompt',
-			// 		}),
-			// 		vertical: 'top',
-			// 		horizontal: 'center',
-			// 		backgroundColor: 'var(--saki-default-color)',
-			// 		color: '#fff',
-			// 	})
-			// 	loadingSnackbar.current.open()
-			// }
-
-			// const pageNum = getTripHistoryPositionsPageNum.current
-
-			// const localIdsObj: {
-			// 	[id: string]: string
-			// } = {}
-			// console.log(
-			// 	'getTripHistoryPositions allIds',
-			// 	trip.tripStatistics,
-			// 	allIds.length,
-			// 	localIds.length
-			// )
-			// localIds.forEach((v) => {
-			// 	localIdsObj[v] = v
-			// })
-			// const unPulledIds = allIds
-			// 	.map((v) => String(v))
-			// 	.filter((v) => {
-			// 		return !localIdsObj[v]
-			// 	})
-
-			// console.log(
-			// 	'getTripHistoryPositions',
-			// 	loadStatus,
-			// 	localIds,
-			// 	unPulledIds,
-			// 	unPulledIds.slice((pageNum - 1) * pageSize, pageNum * pageSize)
-			// 	// localIds,
-			// 	// trip.tripStatistics.filter(v => v.type === "All")?.[0]?.list?.map(v => v.id)
-			// )
-
-			// const ids = unPulledIds.slice(
-			// 	(pageNum - 1) * pageSize,
-			// 	pageNum * pageSize
-			// )
-
-			// if (
-			// 	!trip.tripStatistics.filter((v) => v.type === 'All')?.[0] ||
-			// 	!ids.length
-			// ) {
-			// 	loadData()
-			// 	return
-			// }
-
-			// if (loadStatus === 'loading' || loadStatus == 'noMore') return
-			// setLoadStatus('loading')
-			// console.log(!user.isLogin || type === 'Local')
-			// // if (!user.isLogin || type === 'Local') {
-			// // 	const trips = await storage.trips.getAll()
-			// // 	console.log('getLocalTrips', trips)
-
-			// // 	const obj: any = {}
-			// // 	// let distance = 0
-			// // 	// let time = 0
-			// // 	trips.forEach((v) => {
-			// // 		if (!v.value.type) return
-			// // 		!obj[v.value.type] &&
-			// // 			(obj[v.value.type] = {
-			// // 				count: 0,
-			// // 				distance: 0,
-			// // 				time: 0,
-			// // 			})
-
-			// // 		obj[v.value.type].count += 1
-			// // 		obj[v.value.type].distance += v.value.statistics?.distance || 0
-			// // 		obj[v.value.type].time +=
-			// // 			(Number(v.value.endTime) || 0) - (Number(v.value.startTime) || 0)
-			// // 	})
-			// // 	setHistoricalStatistics({
-			// // 		...historicalStatistics,
-			// // 		...obj,
-			// // 	})
-			// // 	setLoadStatus('loaded')
-			// // 	return
-			// // }
-			// //
-
-			// const res = await httpApi.v1.GetTripHistoryPositions({
-			// 	shareKey: String(sk || ''),
-			// 	// pageNum,
-			// 	pageNum: 1,
-			// 	pageSize,
-			// 	type: 'All',
-			// 	ids,
-			// 	// ids: [],
-			// 	timeLimit: [0, Math.floor(new Date().getTime() / 1000)],
-			// 	// timeLimit: [localLastTripStartTime + 1, Math.floor(new Date().getTime() / 1000)],
-			// })
-			// console.log(
-			// 	'GetTripHistoryPositions res',
-			// 	localLastTripStartTime,
-			// 	localIds,
-			// 	res,
-			// 	pageNum,
-			// 	unPulledIds.slice((pageNum - 1) * pageSize, pageNum * pageSize),
-			// 	ids
-			// )
-			// if (res.code === 200) {
-			// 	const promiseAll: any[] = []
-			// 	let startTime = 0
-			// 	res.data.list?.forEach(async (v) => {
-			// 		if (Number(v.startTime) > startTime) {
-			// 			startTime = Number(v.startTime)
-			// 		}
-			// 		v.id && promiseAll.push(storage.tripPositions.set(v.id, v))
-			// 	})
-			// 	Promise.all(promiseAll).then(async () => {
-			// 		await storage.global.set('localLastTripStartTime', startTime)
-
-			// 		laodCount.current += Number(res.data.total)
-			// 		// laodCount.current += unPulledIds.length
-			// 		const total =
-			// 			trip.tripStatistics?.filter((v) => v.type === 'All')?.[0]?.count ||
-			// 			0
-
-			// 		console.log(
-			// 			'GetTripHistoryPositions res',
-			// 			await storage.tripPositions.getAll(),
-			// 			laodCount.current,
-			// 			total
-			// 		)
-
-			// 		loadingSnackbar.current?.setMessage(
-			// 			t('loadedData', {
-			// 				ns: 'prompt',
-			// 				percentage:
-			// 					String(
-			// 						laodCount.current && total
-			// 							? Math.floor((laodCount.current / total || 0) * 100)
-			// 							: 0
-			// 					) + '%',
-			// 			})
-			// 		)
-			// 		if (Number(res.data.total || 0) === pageSize) {
-			// 			// setPageNum(pageNum + 1)
-
-			// 			getTripHistoryPositionsAQ.current.increase(async () => {
-			// 				for (let i = 0; i < 3; i++) {
-			// 					getTripHistoryPositionsPageNum.current += 1
-			// 					await getTripHistoryPositions(pageSize)
-			// 				}
-			// 			})
-			// 		} else {
-			//       console.log("loadDataloadData")
-			// 			loadData()
-			// 		}
-			// 	})
-			// } else {
-			// 	loadData()
-			// }
-			// // const obj: any = {}
-			// // obj[type] = {
-			// // 	count: res?.data?.count || 0,
-			// // 	distance: res?.data?.distance || 0,
-			// // 	time: res?.data?.time || 0,
-			// // }
-			// // setHistoricalStatistics({
-			// // 	...historicalStatistics,
-			// // 	...obj,
-			// // })
-			// setLoadStatus('loaded')
+			return tripPositions.map((v) => {
+				const positions = formatPositionsStr(
+					Number(v.value.startTime),
+					v.value.positions || []
+				)
+				v.value.positionList = positions || []
+				return v.value
+			})
 		} catch (error) {
 			console.error(error)
+			return []
 		}
 	}
 
-	const getHistoricalStatistic = async (
-		matchObj: {
-			[id: string]: number
-		} = {}
-	) => {
+	const getHistoricalStatistic = async (ids: string[]) => {
 		const { trip, config } = store.getState()
 		if (!config.configure.filter?.trackRoute) return
 
-		const { selectedTripIds } = config.configure.filter?.trackRoute
-
-		console.log(
-			'getTDistance trip.tripStatistics',
-			matchObj,
-			trip.tripStatistics
-		)
+		// const { selectedTripIds } = config.configure.filter?.trackRoute
 
 		let s = trip.tripStatistics?.filter((v) => v.type === 'All')?.[0]
 
@@ -1271,11 +889,11 @@ const TrackRoutePage = () => {
 		let descendAltitude = 0
 
 		s?.list?.forEach((v) => {
-			if (Object.keys(matchObj).length && matchObj[v.id || ''] !== 1) return
+			if (!ids.includes(v.id || '')) return
 
-			if (selectedTripIds?.length && !selectedTripIds.includes(String(v.id))) {
-				return
-			}
+			// if (selectedTripIds?.length && !selectedTripIds.includes(String(v.id))) {
+			// 	return
+			// }
 			distance += Number(v.statistics?.distance) || 0
 			count += 1
 			time += Number(v.endTime) - Number(v.startTime) || 0
@@ -1334,6 +952,7 @@ const TrackRoutePage = () => {
 		config.configure.filter?.trackRoute?.showCustomTrip,
 		config.configure.trackRouteColor,
 		trip.tripStatistics,
+		loadedMap.current,
 	])
 
 	const initMap = () => {
@@ -1459,59 +1078,59 @@ const TrackRoutePage = () => {
 				// 	.addTo(map)
 
 				map.current.on('click', (e) => {
-					let popLocation = e.latlng
-					console.log(popLocation, {
-						latitude: Math.round(popLocation.lat * 1000000) / 1000000,
-						longitude: Math.round(popLocation.lng * 1000000) / 1000000,
-					})
+					// let popLocation = e.latlng
+					// console.log(popLocation, {
+					// 	latitude: Math.round(popLocation.lat * 1000000) / 1000000,
+					// 	longitude: Math.round(popLocation.lng * 1000000) / 1000000,
+					// })
 
-					console.log('click', currentLatlons.current)
+					// console.log('click', currentLatlons.current)
 
-					currentLatlons.current.push(deepCopy(popLocation))
+					// currentLatlons.current.push(deepCopy(popLocation))
 
-					console.log('click', popLocation, currentLatlons.current)
+					// console.log('click', popLocation, currentLatlons.current)
 
-					storage.global.setSync('currentLatlons', currentLatlons.current)
-					// L.popup()
-					// 	.setLatLng(popLocation)
-					// 	.setContent(
-					// 		`${Math.round(popLocation.lat * 1000000) / 1000000} - ${
-					// 			Math.round(popLocation.lng * 1000000) / 1000000
-					// 		}`
-					// 	)
-					// 	.openOn(map.current)
+					// storage.global.setSync('currentLatlons', currentLatlons.current)
+					// // L.popup()
+					// // 	.setLatLng(popLocation)
+					// // 	.setContent(
+					// // 		`${Math.round(popLocation.lat * 1000000) / 1000000} - ${
+					// // 			Math.round(popLocation.lng * 1000000) / 1000000
+					// // 		}`
+					// // 	)
+					// // 	.openOn(map.current)
 
-					dispatch(
-						geoSlice.actions.setSelectPosition({
-							latitude: Math.round(popLocation.lat * 1000000) / 1000000,
-							longitude: Math.round(popLocation.lng * 1000000) / 1000000,
-						})
-					)
-					// console.log(
-					// 	'selectPolylineIds.current',
-					// 	e,
-					// 	delayClickPolyline.current,
-					// 	selectPolylineIds.current
+					// dispatch(
+					// 	geoSlice.actions.setSelectPosition({
+					// 		latitude: Math.round(popLocation.lat * 1000000) / 1000000,
+					// 		longitude: Math.round(popLocation.lng * 1000000) / 1000000,
+					// 	})
 					// )
+					console.log(
+						'selectPolylineIds.current clickFunc',
+						delayClickPolyline.current,
+						selectPolylineParamsMap.current
+					)
 
 					if (delayClickPolyline.current) return
 
-					selectPolylineIds.current.forEach(async (v) => {
-						const [id, type] = v.split(';')
-
-						selectPolylineIds.current = selectPolylineIds.current.filter(
-							(sv) => sv !== id + ';' + type
-						)
-
-						// console.log('selectPolylineIds.current', id, type)
-						const { latLngs, colors } = await getLatlngsAndColors(
-							{
-								id,
+					Object.keys(selectPolylineParamsMap.current).forEach((id) => {
+						const params = selectPolylineParamsMap.current[id]
+						params.remove()
+						renderPolylineItem({
+							params: {
+								...params.params,
+								weight: Number(
+									config.configure.polylineWidth?.historyTripTrack
+								),
 							},
-							undefined
-						)
-						createPolyline(id, latLngs, colors, type as any, 1, map.current)
+							clickFunc: params.clickFunc,
+						})
 					})
+
+					selectPolylineParamsMap.current = {}
+					selectPolylineIds.current = []
+					forceUpdate()
 				})
 				map.current.on('zoom', (e) => {
 					console.log('zoomEvent', e.target._lastCenter, e.target._zoom)
@@ -1637,6 +1256,12 @@ const TrackRoutePage = () => {
 			';'
 		)?.[0] || ''
 
+	const trips = useMemo(() => {
+		const trips = trip.tripStatistics?.filter((v) => v.type === 'All')
+
+		return trips[0]?.list || []
+	}, [trip.tripStatistics])
+
 	return (
 		<>
 			<Head>
@@ -1667,6 +1292,13 @@ const TrackRoutePage = () => {
 							setDisablePanTo(true)
 							geo.position && panToMap(geo.position, true)
 						}}
+						onFilter={() => {
+							dispatch(
+								layoutSlice.actions.setOpenTripFilterModal(
+									!layout.openTripFilterModal
+								)
+							)
+						}}
 					></ButtonsComponent>
 					<div
 						id='tp-map'
@@ -1685,15 +1317,17 @@ const TrackRoutePage = () => {
 									<saki-button
 										ref={bindEvent({
 											tap: () => {
-												dispatch(
-													layoutSlice.actions.setOpenTripItemModal({
-														visible: true,
-														id: selectPolylineId,
-													})
-												)
-												dispatch(
-													layoutSlice.actions.setOpenTripHistoryModal(true)
-												)
+												loadModal('TripHistory', () => {
+													dispatch(
+														layoutSlice.actions.setOpenTripItemModal({
+															visible: true,
+															id: selectPolylineId,
+														})
+													)
+													dispatch(
+														layoutSlice.actions.setOpenTripHistoryModal(true)
+													)
+												})
 											},
 										})}
 										padding='10px 16px'
@@ -1736,9 +1370,11 @@ const TrackRoutePage = () => {
 
 												return
 											}
-											dispatch(
-												layoutSlice.actions.setOpenTripHistoryModal(true)
-											)
+											loadModal('TripHistory', () => {
+												dispatch(
+													layoutSlice.actions.setOpenTripHistoryModal(true)
+												)
+											})
 										},
 									})}
 									padding='10px 14px'
@@ -1838,14 +1474,16 @@ const TrackRoutePage = () => {
 								<saki-button
 									ref={bindEvent({
 										tap: () => {
-											dispatch(
-												layoutSlice.actions.setOpenHistoricalTripsDetailedDataModal(
-													false
+											loadModal('TripHistory', () => {
+												dispatch(
+													layoutSlice.actions.setOpenHistoricalTripsDetailedDataModal(
+														false
+													)
 												)
-											)
-											dispatch(
-												layoutSlice.actions.setOpenTripHistoryModal(true)
-											)
+												dispatch(
+													layoutSlice.actions.setOpenTripHistoryModal(true)
+												)
+											})
 										},
 									})}
 									type='CircleIconGrayHover'
@@ -2038,12 +1676,16 @@ const TrackRoutePage = () => {
 							<saki-button
 								ref={bindEvent({
 									tap: () => {
-										dispatch(
-											layoutSlice.actions.setOpenHistoricalTripsDetailedDataModal(
-												false
+										loadModal('TripHistory', () => {
+											dispatch(
+												layoutSlice.actions.setOpenHistoricalTripsDetailedDataModal(
+													false
+												)
 											)
-										)
-										dispatch(layoutSlice.actions.setOpenTripHistoryModal(true))
+											dispatch(
+												layoutSlice.actions.setOpenTripHistoryModal(true)
+											)
+										})
 									},
 								})}
 								padding='10px 18px'
@@ -2132,6 +1774,77 @@ const TrackRoutePage = () => {
 				) : (
 					''
 				)}
+
+				<FilterComponent
+					visible={layout.openTripFilterModal}
+					onclose={() => {
+						dispatch(layoutSlice.actions.setOpenTripFilterModal(false))
+					}}
+					onLoad={(fc, trips) => {
+						console.log('FilterTrips onload', fc, trips)
+
+						const f = {
+							...config.configure['filter'],
+						}
+
+						f &&
+							dispatch(
+								methods.config.SetConfigure({
+									...config.configure,
+									filter: {
+										...f,
+										trackRoute: {
+											...f['trackRoute'],
+											startDate: fc.startDate,
+											endDate: fc.endDate,
+											selectedVehicleIds: fc.selectedVehicleIds,
+											selectedTripTypes: fc.selectedTripTypes,
+											selectedTripIds: fc.selectedTripIds,
+											shortestDistance: fc.shortestDistance,
+											longestDistance: fc.longestDistance,
+											showFullData: fc.showFullData,
+										},
+									},
+								})
+							)
+
+						dispatch(layoutSlice.actions.setOpenTripFilterModal(false))
+					}}
+					dataList
+					trips={trips}
+					selectTripIds={
+						config.configure.filter?.trackRoute?.selectedTripIds || []
+					}
+					selectTypes={
+						config.configure.filter?.trackRoute?.selectedTripTypes || []
+					}
+					distanceRange={{
+						minDistance: Number(
+							config.configure.filter?.trackRoute?.shortestDistance
+						),
+						maxDistance: Number(
+							config.configure.filter?.trackRoute?.longestDistance
+						),
+					}}
+					date
+					startDate={config.configure.filter?.trackRoute?.startDate || ''}
+					endDate={config.configure.filter?.trackRoute?.endDate || ''}
+					selectVehicle
+					selectVehicleIds={
+						config.configure.filter?.trackRoute?.selectedVehicleIds || []
+					}
+					customTripSwitch
+					showCustomTrip={
+						config.configure.filter?.trackRoute?.showCustomTrip || false
+					}
+					showCustomTripSwitch={
+						config.configure.filter?.trackRoute?.showCustomTrip || false
+					}
+					fullDataSwitch
+					showFullDataSwitch={
+						config.configure.filter?.trackRoute?.showFullData || false
+					}
+				/>
 			</div>
 		</>
 	)

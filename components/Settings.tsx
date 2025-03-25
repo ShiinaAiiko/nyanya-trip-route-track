@@ -17,6 +17,7 @@ import {
 	getTrackSpeedColors,
 	defaultSpeedColorLimit,
 	getTrackRouteColor,
+	eventListener,
 } from '../store/config'
 import { Query } from '../plugins/methods'
 import { storage, storageMethods } from '../store/storage'
@@ -24,6 +25,7 @@ import { byteConvert } from '@nyanyajs/utils'
 import { getPositionShareText } from './Vehicle'
 import { getSpeed } from 'geolib'
 import { protoRoot } from '../protos'
+import { loadModal } from '../store/layout'
 
 const SettingsComponent = ({
 	visible,
@@ -64,6 +66,9 @@ const SettingsComponent = ({
 			ref={bindEvent({
 				close() {
 					onClose?.()
+				},
+				loaded() {
+					eventListener.dispatch('loadModal:Settings', true)
 				},
 			})}
 			width='100%'
@@ -503,8 +508,10 @@ const Account = ({ show }: { show: boolean }) => {
 						}}
 						ref={bindEvent({
 							tap: () => {
-								dispatch(layoutSlice.actions.setOpenLoginModal(true))
 								// CreateAnonymousAccountFunc()
+								loadModal('Login', () => {
+									store.dispatch(layoutSlice.actions.setOpenLoginModal(true))
+								})
 							},
 						})}
 						width='200px'
@@ -842,36 +849,39 @@ const Maps = ({ show }: { show: boolean }) => {
 								</div>
 							</saki-dropdown>
 						</div>
-						<saki-segmented
-							ref={bindEvent({
-								changevalue: (e) => {
-									console.log('SetConfigure segmented', e)
-									dispatch(
-										methods.config.SetConfigure({
-											...config.configure,
-											baseMap: {
-												...config.configure['baseMap'],
-												mapMode: e.detail,
-											},
-										})
+						<div className='sm-segmented'>
+							<saki-segmented
+								ref={bindEvent({
+									changevalue: (e) => {
+										console.log('SetConfigure segmented', e)
+										dispatch(
+											methods.config.SetConfigure({
+												...config.configure,
+												baseMap: {
+													...config.configure['baseMap'],
+													mapMode: e.detail,
+												},
+											})
+										)
+									},
+								})}
+								// width='100%'
+								height='40px'
+								border-radius='20px'
+								margin='12px 0 0'
+								value={config.configure.baseMap?.mapMode || 'Normal'}
+								// value={config.configure.baseMap?.mapMode || 'Normal'}
+								bg-color='#eee'
+							>
+								{['Normal', 'Gray', 'Dark', 'Black'].map((v, i) => {
+									return (
+										<saki-segmented-item padding='2px 14px' value={v} key={i}>
+											<span>{t(v.toLowerCase() + 'Mode')}</span>
+										</saki-segmented-item>
 									)
-								},
-							})}
-							width='100%'
-							height='36px'
-							border-radius='18px'
-							margin='12px 0 0'
-							value={config.configure.baseMap?.mapMode || 'Normal'}
-							// value={config.configure.baseMap?.mapMode || 'Normal'}
-						>
-							{['Normal', 'Gray', 'Dark', 'Black'].map((v, i) => {
-								return (
-									<saki-segmented-item value={v} key={i}>
-										<span>{t(v.toLowerCase() + 'Mode')}</span>
-									</saki-segmented-item>
-								)
-							})}
-						</saki-segmented>
+								})}
+							</saki-segmented>
+						</div>
 
 						<div className='sm-bm-recommend'>
 							{config.mapRecommend.baseMap.map((v, i) => {
@@ -986,36 +996,39 @@ const Maps = ({ show }: { show: boolean }) => {
 								</div>
 							</saki-dropdown>
 						</div>
-						<saki-segmented
-							ref={bindEvent({
-								changevalue: (e) => {
-									console.log(e)
-									dispatch(
-										methods.config.SetConfigure({
-											...config.configure,
-											trackRouteMap: {
-												...config.configure['trackRouteMap'],
-												mapMode: e.detail,
-											},
-										})
+						<div className='sm-segmented'>
+							<saki-segmented
+								ref={bindEvent({
+									changevalue: (e) => {
+										console.log(e)
+										dispatch(
+											methods.config.SetConfigure({
+												...config.configure,
+												trackRouteMap: {
+													...config.configure['trackRouteMap'],
+													mapMode: e.detail,
+												},
+											})
+										)
+									},
+								})}
+								width='100%'
+								height='36px'
+								border-radius='18px'
+								margin='12px 0 0'
+								value={config.configure.trackRouteMap?.mapMode || 'Normal'}
+								// value={config.configure.baseMap?.mapMode || 'Normal'}
+								bg-color='#eee'
+							>
+								{['Normal', 'Gray', 'Dark', 'Black'].map((v, i) => {
+									return (
+										<saki-segmented-item padding='2px 14px' value={v} key={i}>
+											<span>{t(v.toLowerCase() + 'Mode')}</span>
+										</saki-segmented-item>
 									)
-								},
-							})}
-							width='100%'
-							height='36px'
-							border-radius='18px'
-							margin='12px 0 0'
-							value={config.configure.trackRouteMap?.mapMode || 'Normal'}
-							// value={config.configure.baseMap?.mapMode || 'Normal'}
-						>
-							{['Normal', 'Gray', 'Dark', 'Black'].map((v, i) => {
-								return (
-									<saki-segmented-item value={v} key={i}>
-										<span>{t(v.toLowerCase() + 'Mode')}</span>
-									</saki-segmented-item>
-								)
-							})}
-						</saki-segmented>
+								})}
+							</saki-segmented>
+						</div>
 
 						<div className='sm-bm-recommend'>
 							{config.mapRecommend.trackRouteMap.map((v, i) => {
@@ -1262,8 +1275,9 @@ const Maps = ({ show }: { show: boolean }) => {
 									}) +
 										' ' +
 										Math.round(
-											(config.configure.speedColorLimit as any)[speedColorType]
-												.minSpeed * 3.6
+											(config.configure.speedColorLimit as any)?.[
+												speedColorType
+											].minSpeed * 3.6
 										)}
 									km/h
 								</span>
@@ -1273,8 +1287,9 @@ const Maps = ({ show }: { show: boolean }) => {
 									}) +
 										' ' +
 										Math.round(
-											(config.configure.speedColorLimit as any)[speedColorType]
-												.maxSpeed * 3.6
+											(config.configure.speedColorLimit as any)?.[
+												speedColorType
+											].maxSpeed * 3.6
 										)}
 									km/h
 								</span>
@@ -1311,9 +1326,9 @@ const Maps = ({ show }: { show: boolean }) => {
 									min={sliderRange[0]}
 									max={sliderRange[1]}
 									value={[
-										Math.round((speedColorLimit.minSpeed || 0) * 3.6 * 100) /
+										Math.round((speedColorLimit?.minSpeed || 0) * 3.6 * 100) /
 											100,
-										Math.round((speedColorLimit.maxSpeed || 0) * 3.6 * 100) /
+										Math.round((speedColorLimit?.maxSpeed || 0) * 3.6 * 100) /
 											100,
 									].join(';')}
 									bg-color='rgb(243,243,243)'
@@ -1491,6 +1506,30 @@ const Maps = ({ show }: { show: boolean }) => {
 					</div>
 				)}
 			></SettingsItem>
+			<SettingsItem
+				subtitle={() => <div>{t('turnOnVoice')}</div>}
+				main={() => (
+					<div className='sm-basemap'>
+						<span>
+							{t('turnOnCityVoice', {
+								ns: 'settings',
+							})}
+						</span>
+						<saki-switch
+							ref={bindEvent({
+								change: (e) => {
+									dispatch(
+										configSlice.actions.setTurnOnCityVoice(Boolean(e.detail))
+									)
+								},
+							})}
+							height='24px'
+							value={config.turnOnCityVoice}
+						></saki-switch>
+					</div>
+				)}
+			></SettingsItem>
+
 			<SettingsItem
 				subtitle={() => <div>{t('tripTrackWidth')}</div>}
 				main={() => (
@@ -1772,8 +1811,8 @@ const Cache = ({ show }: { show: boolean }) => {
 	const getSize = async () => {
 		const tripPositions = await storage.tripPositions.getAll()
 		const trips = await storage.trips.getAll()
-		const cityDetails = await storage.trips.getAll()
-		const cityBoundaries = await storage.trips.getAll()
+		const cityDetails = await storage.cityDetails.getAll()
+		const cityBoundaries = await storage.cityBoundaries.getAll()
 
 		// console.log(tripPositions, JSON.stringify(tripPositions).length)
 		const s =
@@ -1785,11 +1824,11 @@ const Cache = ({ show }: { show: boolean }) => {
 		setSize(s <= 0 ? 0 : s)
 	}
 
-	const clearCache = () => {
-		storage.trips.deleteAll()
-		storage.tripPositions.deleteAll()
-		storage.cityDetails.deleteAll()
-		storage.cityBoundaries.deleteAll()
+	const clearCache = async () => {
+		await storage.trips.deleteAll()
+		await storage.tripPositions.deleteAll()
+		await storage.cityDetails.deleteAll()
+		await storage.cityBoundaries.deleteAll()
 	}
 
 	return (
@@ -1801,10 +1840,10 @@ const Cache = ({ show }: { show: boolean }) => {
 			<div className='setting-cache'>
 				<saki-button
 					ref={bindEvent({
-						tap: () => {
-							clearCache()
-							setTimeout(() => {
-								getSize()
+						tap: async () => {
+							await clearCache()
+							setTimeout(async () => {
+								await getSize()
 							}, 700)
 						},
 					})}
@@ -1822,6 +1861,98 @@ const Cache = ({ show }: { show: boolean }) => {
 		</div>
 	)
 }
+// const Cache = ({ show }: { show: boolean }) => {
+// 	const { t, i18n } = useTranslation('settings')
+// 	const dispatch = useDispatch<AppDispatch>()
+
+// 	const layout = useSelector((state: RootState) => state.layout)
+
+// 	const [list, setList] = useState<
+// 		{
+// 			type: string
+// 			size: number
+// 		}[]
+// 	>([])
+// 	const types = ['tripPositions', 'trips', 'cityDetails', 'cityBoundaries']
+
+// 	useEffect(() => {
+// 		if (show) {
+// 			const init = async () => {
+// 				const tempList: typeof list = []
+
+// 				for (let i = 0; i < types.length; i++) {
+// 					tempList.push({
+// 						type: types[i],
+// 						size: await getSize(types[i]),
+// 					})
+// 				}
+// 				console.log('tempList', tempList)
+// 				setList(tempList)
+// 			}
+// 			init()
+// 			console.log('tempList', list)
+// 		}
+// 	}, [show, layout.settingType])
+
+// 	const getSize = async (type: string) => {
+// 		const tripPositions = await (storage as any)[type].getAll()
+// 		// const trips = await storage.trips.getAll()
+// 		// const cityDetails = await storage.cityDetails.getAll()
+// 		// const cityBoundaries = await storage.cityBoundaries.getAll()
+
+// 		// console.log(tripPositions, JSON.stringify(tripPositions).length)
+// 		const s = JSON.stringify(tripPositions).length
+// 		8
+// 		return Math.max(0, s)
+// 	}
+
+// 	const clearCache = async (type: string) => {
+// 		await (storage as any)[type].deleteAll()
+// 	}
+
+// 	return (
+// 		<div
+// 			style={{
+// 				display: show ? 'block' : 'none',
+// 			}}
+// 		>
+// 			<div className='setting-cache'>
+// 				{list.map((v) => {
+// 					return (
+// 						<saki-button
+// 							ref={bindEvent({
+// 								tap: async () => {
+// 									await clearCache(v.type)
+// 									setTimeout(async () => {
+// 										const size = await getSize(v.type)
+// 										setList(
+// 											list.map((sv) => {
+// 												if (sv.type === v.type) {
+// 													sv.size = size
+// 												}
+// 												return sv
+// 											})
+// 										)
+// 									}, 700)
+// 								},
+// 							})}
+// 							margin='20px 0 0'
+// 							// width='200px'
+// 							padding='8px 16px'
+// 							type='Primary'
+// 						>
+// 							{t('clearCache', {
+// 								ns: 'settings',
+// 								size: byteConvert(v.size),
+// 								name: v.type,
+// 							})}
+// 						</saki-button>
+// 					)
+// 				})}
+// 			</div>
+// 		</div>
+// 	)
+// }
 
 const About = ({ show }: { show: boolean }) => {
 	const { t, i18n } = useTranslation('settings')

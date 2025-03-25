@@ -17,7 +17,7 @@
 		"system": "使用设备语言"
 	},
 	"tripPage": {
-		"pageTitle": "行程路线轨迹",
+		"pageTitle": "开始行程",
 		"subtitle": "便捷方便的记录GPS路线轨迹、速度、里程、海拔等行程数据~，支持步行、骑行、驾车等多种出行方式。",
 		"all": "全部",
 		"running": "跑步",
@@ -86,7 +86,14 @@
 
 		"speedColorLimit": "速度颜色限制",
 
-		"numCities": "已走{{num}}城"
+		"numCities": "已走{{num}}城",
+
+		"date": "出行日期",
+
+		"initTripCity": "初始化走过的城市"
+	},
+	"replayTripPage": {
+		"title": "重游行程"
 	},
 	"trackRoutePage": {
 		"pageTitle": "历史行程轨迹",
@@ -99,8 +106,9 @@
 
 		"viewDetails": "查看详情",
 
-		"showCustomTrip": "显示自定义行程",
-		"hideCustomTrip": "隐藏自定义行程"
+		"showAllTrip": "显示所有旅行",
+		"onlyShowCustomTrip": "只显示自定义旅行",
+		"showSeedColor": "显示速度颜色"
 	},
 	"tripHistoryPage": {
 		"pageTitle": "行程历史"
@@ -152,6 +160,8 @@
 	},
 	"visitedCitiesModal": {
 		"title": "城市足迹",
+		"cityTrajectory": "{{name}}的城市轨迹",
+
 		"world": "世界",
 		"country": "国家",
 		"state": "省份",
@@ -189,17 +199,20 @@
 		"deleteThisMoment": "删除此记忆点?",
 		"viewMoment": "查看记忆点",
 		"moment": "记忆点",
+		"namePlaceholder": "名称",
+		"descPlaceholder": "介绍",
+		"cover": "封面",
 
 		"updateJourneyMemory": "更新旅途记忆",
 		"addJourneyMemory": "新增旅途记忆",
 		"deleteJourneyMemory": "删除旅途记忆",
 		"confirmDeleteJourneyMemory": "确定删除此旅途记忆吗？",
 
-		"viewMomentMapTrack": "查看记忆点轨迹",
-		"viewAllMomentMapTrack": "查看所有记忆点轨迹",
+		"viewMomentMapTrack": "记忆点轨迹",
+		"viewAllMomentMapTrack": "旅途轨迹",
 
 		"createdAt": "创建于 {{date}} {{time}}",
-    "lastUpdatedAt": "最后更新于 {{date}} {{time}}"
+		"lastUpdatedAt": "最后更新于 {{date}} {{time}}"
 	},
 	"settings": {
 		"title": "设置",
@@ -275,6 +288,9 @@
 
 		"currentPosition": "当前位置",
 		"showAvatarAtCurrentPosition": "在当前位置显示头像",
+
+		"turnOnVoice": "语言播报",
+		"turnOnCityVoice": "开启城市语音播报",
 
 		"selectedTripIdsTip": "列表中被选择的行程将会依据行程明细的速度展示对应的轨迹颜色",
 		"normalMode": "默认",
@@ -356,7 +372,12 @@
 
 		"filesUploaded": "已上传 {{count}} 个文件",
 		"uploadCompleted": "上传完毕",
-		"mediaLimitExceeded": "媒体数量不能超过9个"
+		"mediaLimitExceeded": "媒体数量不能超过9个",
+
+		"loadComponent": "正在加载 {{name}} 组件",
+		"newVersion": "新版本！",
+		"newVersionContent": "已经完成v{{version}}的版本更新，是否刷新页面？",
+		"refresh": "刷新"
 	},
 	"weather": {
 		"weather0": "晴",

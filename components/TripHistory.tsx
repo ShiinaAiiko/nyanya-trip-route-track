@@ -35,7 +35,7 @@ import { deepCopy } from '@nyanyajs/utils'
 import StatisticsComponent from './Statistics'
 import FilterComponent from './Filter'
 import { getTrips } from '../store/trip'
-import { TabsTripType } from '../store/config'
+import { eventListener, TabsTripType } from '../store/config'
 // import { isCorrectedData } from '../store/trip'
 
 const getMonth = () => {
@@ -143,6 +143,9 @@ const TripHistoryComponent = () => {
 			ref={bindEvent({
 				close() {
 					dispatch(layoutSlice.actions.setOpenTripHistoryModal(false))
+				},
+				loaded() {
+					eventListener.dispatch('loadModal:TripHistory', true)
 				},
 			})}
 			width='100%'
@@ -1243,6 +1246,23 @@ const TripHistoryPage = ({
 
 			<FilterComponent
 				visible={openFilterDropdown}
+				onclose={() => {
+					setOpenFilterDropdown(false)
+				}}
+				onLoad={(fc, trips) => {
+					console.log('FilterTrips onload', fc, trips)
+
+					setStartDate(fc.startDate)
+					setEndDate(fc.endDate)
+					setSelectVehicleIds(fc.selectedVehicleIds)
+					setDistanceRange({
+						minDistance: fc.shortestDistance,
+						maxDistance: fc.longestDistance,
+					})
+					setOpenFilterDropdown(false)
+
+					loadNewData()
+				}}
 				date
 				startDate={startDate}
 				endDate={endDate}
@@ -1263,32 +1283,29 @@ const TripHistoryPage = ({
 					console.log('onSelectDistance', e)
 					setDistanceRange(e)
 				}}
-				buttons={[
-					{
-						text: t('clear', {
-							ns: 'prompt',
-						}),
-						type: 'Normal',
-						onTap() {
-							clearFilterData()
-							loadNewData()
-							setOpenFilterDropdown(false)
-						},
-					},
-					{
-						text: t('filter', {
-							ns: 'prompt',
-						}),
-						type: 'Primary',
-						onTap() {
-							loadNewData()
-							setOpenFilterDropdown(false)
-						},
-					},
-				]}
-				onclose={() => {
-					setOpenFilterDropdown(false)
-				}}
+				// buttons={[
+				// 	{
+				// 		text: t('clear', {
+				// 			ns: 'prompt',
+				// 		}),
+				// 		type: 'Normal',
+				// 		onTap() {
+				// 			clearFilterData()
+				// 			loadNewData()
+				// 			setOpenFilterDropdown(false)
+				// 		},
+				// 	},
+				// 	{
+				// 		text: t('filter', {
+				// 			ns: 'prompt',
+				// 		}),
+				// 		type: 'Primary',
+				// 		onTap() {
+				// 			loadNewData()
+				// 			setOpenFilterDropdown(false)
+				// 		},
+				// 	},
+				// ]}
 				// customTripSwitch
 				// showCustomTrip={showCustomTrip}
 				// onShowCustomTrip={(showCustomTrip) => {

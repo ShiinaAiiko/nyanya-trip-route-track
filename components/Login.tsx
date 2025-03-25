@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next'
 import { prompt, alert, bindEvent } from '@saki-ui/core'
 import { Debounce } from '@nyanyajs/utils'
 import { sakisso } from '../config'
+import { eventListener } from '../store/config'
 
 const loginDebounce = new Debounce()
 const LoginComponent = () => {
@@ -41,6 +42,14 @@ const LoginComponent = () => {
 	// }, 1000)
 	return (
 		<saki-modal
+			ref={bindEvent({
+				close() {
+          dispatch(layoutSlice.actions.setOpenLoginModal(false))
+				},
+				loaded() {
+					eventListener.dispatch('loadModal:Login', true)
+				},
+			})}
 			max-width={config.deviceType === 'Mobile' ? 'auto' : '500px'}
 			min-width={config.deviceType === 'Mobile' ? 'auto' : '400px'}
 			max-height={config.deviceType === 'Mobile' ? 'auto' : '440px'}
@@ -51,9 +60,6 @@ const LoginComponent = () => {
 			border={config.deviceType === 'Mobile' ? 'none' : ''}
 			mask
 			background-color='#fff'
-			onClose={() => {
-				dispatch(layoutSlice.actions.setOpenLoginModal(false))
-			}}
 			visible={layout.openLoginModal}
 		>
 			<div className='login-component'>

@@ -24,6 +24,8 @@ import moment from 'moment'
 import { getPositionShareText } from './Vehicle'
 import { protoRoot } from '../protos'
 import { filterTripsForTrackRoutePage } from '../store/trip'
+import { loadModal } from '../store/layout'
+import { SakiButton, SakiIcon } from './saki-ui-react/components'
 
 const ButtonsComponent = ({
 	indexPage = false,
@@ -32,21 +34,25 @@ const ButtonsComponent = ({
 	realTimePosition = false,
 	filter = false,
 	layer = false,
+	aichat = true,
 	mark = false,
 	markCount = 0,
 	onCurrentPosition,
 	onMark,
+	onFilter,
 }: {
 	indexPage?: boolean
 	trackRoute?: boolean
 	currentPosition?: boolean
 	realTimePosition?: boolean
 	filter?: boolean
+	aichat?: boolean
 	layer?: boolean
 	mark?: boolean
 	markCount?: number
 	onCurrentPosition: () => void
 	onMark?: () => void
+	onFilter?: () => void
 }) => {
 	const { t, i18n } = useTranslation('tripPage')
 	const [mounted, setMounted] = useState(false)
@@ -241,11 +247,7 @@ const ButtonsComponent = ({
 						<saki-button
 							ref={bindEvent({
 								tap: () => {
-									dispatch(
-										layoutSlice.actions.setOpenTripFilterModal(
-											!layout.openTripFilterModal
-										)
-									)
+									onFilter?.()
 								},
 							})}
 							padding='24px'
@@ -260,183 +262,16 @@ const ButtonsComponent = ({
 								type='FilterFill'
 							></saki-icon>
 						</saki-button>
-
-						<FilterComponent
-							dataList
-							trips={filterTripsForTrackRoutePage()}
-							selectTripIds={
-								config.configure.filter?.trackRoute?.selectedTripIds || []
-							}
-							onDataList={(ids) => {
-								const f = {
-									...config.configure['filter'],
-								}
-
-								f &&
-									dispatch(
-										methods.config.SetConfigure({
-											...config.configure,
-											filter: {
-												...f,
-												trackRoute: {
-													...f['trackRoute'],
-													selectedTripIds: ids,
-												},
-											},
-										})
-									)
-							}}
-							selectTypes={
-								config.configure.filter?.trackRoute?.selectedTripTypes || []
-							}
-							onSelectTypes={(filterTypes) => {
-								const f = {
-									...config.configure['filter'],
-								}
-
-								f &&
-									dispatch(
-										methods.config.SetConfigure({
-											...config.configure,
-											filter: {
-												...f,
-												trackRoute: {
-													...f['trackRoute'],
-													selectedTripTypes: filterTypes,
-												},
-											},
-										})
-									)
-							}}
-							distanceRange={{
-								minDistance: Number(
-									config.configure.filter?.trackRoute?.shortestDistance
-								),
-								maxDistance: Number(
-									config.configure.filter?.trackRoute?.longestDistance
-								),
-							}}
-							onSelectDistance={(obj) => {
-								console.log('onSelectDistance', obj)
-								const f = {
-									...config.configure['filter'],
-								}
-
-								f &&
-									dispatch(
-										methods.config.SetConfigure({
-											...config.configure,
-											filter: {
-												...f,
-												trackRoute: {
-													...f['trackRoute'],
-													shortestDistance: obj.minDistance,
-													longestDistance: obj.maxDistance,
-												},
-											},
-										})
-									)
-							}}
-							date
-							startDate={config.configure.filter?.trackRoute?.startDate || ''}
-							endDate={config.configure.filter?.trackRoute?.endDate || ''}
-							selectStartDate={(date) => {
-								const f = {
-									...config.configure['filter'],
-								}
-
-								f &&
-									dispatch(
-										methods.config.SetConfigure({
-											...config.configure,
-											filter: {
-												...f,
-												trackRoute: {
-													...f['trackRoute'],
-													startDate: date,
-												},
-											},
-										})
-									)
-							}}
-							selectEndDate={(date) => {
-								const f = {
-									...config.configure['filter'],
-								}
-
-								f &&
-									dispatch(
-										methods.config.SetConfigure({
-											...config.configure,
-											filter: {
-												...f,
-												trackRoute: {
-													...f['trackRoute'],
-													endDate: date,
-												},
-											},
-										})
-									)
-							}}
-							selectVehicle
-							selectVehicleIds={
-								config.configure.filter?.trackRoute?.selectedVehicleIds || []
-							}
-							onSelectVehicleIds={(ids) => {
-								const f = {
-									...config.configure['filter'],
-								}
-
-								f &&
-									dispatch(
-										methods.config.SetConfigure({
-											...config.configure,
-											filter: {
-												...f,
-												trackRoute: {
-													...f['trackRoute'],
-													selectedVehicleIds: ids,
-												},
-											},
-										})
-									)
-							}}
-							visible={layout.openTripFilterModal}
-							onclose={() => {
-								dispatch(layoutSlice.actions.setOpenTripFilterModal(false))
-							}}
-							customTripSwitch
-							showCustomTrip={
-								config.configure.filter?.trackRoute?.showCustomTrip || false
-							}
-							onShowCustomTrip={(showCustomTrip) => {
-								const f = {
-									...config.configure['filter'],
-								}
-
-								f &&
-									dispatch(
-										methods.config.SetConfigure({
-											...config.configure,
-											filter: {
-												...f,
-												trackRoute: {
-													...f['trackRoute'],
-													showCustomTrip: showCustomTrip,
-												},
-											},
-										})
-									)
-							}}
-						/>
 					</>
 				)}
 				{layer && (
 					<saki-button
 						ref={bindEvent({
 							tap: () => {
-								dispatch(layoutSlice.actions.setSettingType('Maps'))
-								dispatch(layoutSlice.actions.setOpenSettingsModal(true))
+								loadModal('Settings', () => {
+									dispatch(layoutSlice.actions.setSettingType('Maps'))
+									dispatch(layoutSlice.actions.setOpenSettingsModal(true))
+								})
 							},
 						})}
 						padding='24px'
@@ -451,6 +286,27 @@ const ButtonsComponent = ({
 							type='Layer'
 						></saki-icon>
 					</saki-button>
+				)}
+				{aichat && (
+					<SakiButton
+						onTap={() => {
+							loadModal('Settings', () => {
+								dispatch(layoutSlice.actions.setSettingType('Maps'))
+								dispatch(layoutSlice.actions.setOpenSettingsModal(true))
+							})
+						}}
+						padding='24px'
+						margin='16px 0 0 0'
+						type='CircleIconGrayHover'
+						box-shadow='0 0 10px rgba(0, 0, 0, 0.3)'
+					>
+						<SakiIcon
+							color='var(--saki-default-color)'
+							width='22px'
+							height='22px'
+							type='ChatFill'
+						></SakiIcon>
+					</SakiButton>
 				)}
 				{currentPosition && (
 					<saki-button

@@ -46,6 +46,10 @@ import Script from 'next/script'
 import CreateCustomTripComponent from '../components/CreateCustomTrip'
 import VisitedCitiesModal from '../components/VisitedCities'
 import JourneyMemoriesModal from '../components/JourneyMemories'
+import LoadModalComponent, {
+	LoadModalsComponent,
+} from '../components/LoadModal'
+import { loadPwaNewVersion } from '../plugins/loadPwaNewVersion'
 
 // import { testGpsData } from '../plugins/methods'
 // import parserFunc from 'ua-parser-js'
@@ -153,6 +157,8 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
 		if (L) {
 			;(window as any)?.leafletPolycolor?.(L)
 		}
+
+		// loadPwaNewVersion()
 
 		setMounted(true)
 		setProgressBar(progressBar + 0.2 >= 1 ? 1 : progressBar + 0.2)
@@ -327,28 +333,33 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
 		if (!mapUrl) return
 
 		// console.log('checkMapUrl', mapUrl)
-		const xyz = [3260, 1695, 12]
+		const xyz = [812, 421, 10]
 
 		let url = mapUrl
+			.replace('{s}', 'a')
 			.replace('{x}', String(xyz[0]))
 			.replace('{y}', String(xyz[1]))
 			.replace('{z}', String(xyz[2]))
+
+		// console.log('checkMapUrl', type, url)
 		try {
 			const res = await fetch(url)
 			// console.log('checkMapUrl res', res, type)
-			console.log('checkMapUrl', mapUrl, url, type, router, res)
-			if (type === 'BaseMap') {
-				dispatch(configSlice.actions.setConnectionBaseMapUrl(res.ok))
-				return
-			}
-			dispatch(configSlice.actions.setConnectionTrackRouteMapUrl(res.ok))
+			// console.log('checkMapUrl', url, type, router, res)
+			dispatch(configSlice.actions.setConnectionMapUrl(res.ok))
+			// if (type === 'BaseMap') {
+			// 	dispatch(configSlice.actions.setConnectionBaseMapUrl(res.ok))
+			// 	return
+			// }
+			// dispatch(configSlice.actions.setConnectionTrackRouteMapUrl(res.ok))
 		} catch (error) {
 			console.log('checkMapUrl error', error, type)
-			if (type === 'BaseMap') {
-				dispatch(configSlice.actions.setConnectionBaseMapUrl(false))
-				return
-			}
-			dispatch(configSlice.actions.setConnectionTrackRouteMapUrl(false))
+			dispatch(configSlice.actions.setConnectionMapUrl(false))
+			// if (type === 'BaseMap') {
+			// 	dispatch(configSlice.actions.setConnectionBaseMapUrl(false))
+			// 	return
+			// }
+			// dispatch(configSlice.actions.setConnectionTrackRouteMapUrl(false))
 		}
 	}
 
@@ -576,21 +587,6 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
 				</div>
 				{mounted ? (
 					<>
-						<SettingsComponent
-							visible={layout.openSettingsModal}
-							// type={openSettingType}
-							onClose={() => {
-								dispatch(layoutSlice.actions.setOpenSettingsModal(false))
-							}}
-						/>
-						<LoginComponent />
-						<TripHistoryComponent />
-						<ReplayTripComponent />
-						<AddVehicleComponent />
-						<FindLocationComponent />
-						<CreateCustomTripComponent />
-						<VisitedCitiesModal />
-						<JourneyMemoriesModal />
 						{/* <StatisticsComponent /> */}
 
 						<saki-aside-modal
@@ -598,8 +594,9 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
 								close: (e) => {},
 							})}
 							visible={
-								!config.connectionBaseMapUrl ||
-								!config.connectionTrackRouteMapUrl
+								!config.connectionMapUrl
+								// !config.connectionBaseMapUrl ||
+								// !config.connectionTrackRouteMapUrl
 							}
 							vertical='Top'
 							horizontal='Center'
@@ -638,7 +635,7 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
 				) : (
 					''
 				)}
-				<TripEditComponent />
+				<LoadModalsComponent />
 			</div>
 		</>
 	)

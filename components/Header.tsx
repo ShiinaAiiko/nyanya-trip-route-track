@@ -16,6 +16,7 @@ import { useSelector, useStore, useDispatch } from 'react-redux'
 import axios from 'axios'
 import { appListUrl } from '../config'
 import MenuDropdownComponent from '../components/MenuDropdown'
+import { loadModal } from '../store/layout'
 
 const HeaderComponent = ({
 	// 暂时仅fixed可用
@@ -117,61 +118,81 @@ const HeaderComponent = ({
 											console.log(e.detail.value)
 											switch (e.detail.value) {
 												case 'Settings':
-													dispatch(
-														layoutSlice.actions.setOpenSettingsModal(true)
-													)
+													loadModal('Settings', () => {
+														dispatch(
+															layoutSlice.actions.setOpenSettingsModal(true)
+														)
+													})
 													break
 												case 'Login':
-													dispatch(layoutSlice.actions.setOpenLoginModal(true))
+													loadModal('Login', () => {
+														dispatch(
+															layoutSlice.actions.setOpenLoginModal(true)
+														)
+													})
+
 													break
 												case 'Logout':
 													dispatch(methods.user.logout())
 													break
 												case 'TripHistory':
 													// router.push('/tripHistory')
-													dispatch(
-														layoutSlice.actions.setOpenTripHistoryModal(true)
-													)
+
+													loadModal('TripHistory', () => {
+														dispatch(
+															layoutSlice.actions.setOpenTripHistoryModal(true)
+														)
+													})
 													break
 												case 'Vehicle':
 													if (!user.isLogin) {
 														dispatch(methods.user.loginAlert())
 														return
 													}
-													dispatch(
-														layoutSlice.actions.setOpenVehicleModal(true)
-													)
+													loadModal('AddVehicle', () => {
+														dispatch(
+															layoutSlice.actions.setOpenVehicleModal(true)
+														)
+													})
 													break
 												case 'CreateCustomTrip':
 													if (!user.isLogin) {
 														dispatch(methods.user.loginAlert())
 														return
 													}
-													dispatch(
-														layoutSlice.actions.setOpenCreateCustomTripModal(
-															true
+													loadModal('CreateCustomTrip', () => {
+														dispatch(
+															layoutSlice.actions.setOpenCreateCustomTripModal(
+																true
+															)
 														)
-													)
+													})
 													break
 												case 'JourneyMemories':
 													if (!user.isLogin) {
 														dispatch(methods.user.loginAlert())
 														return
 													}
-													dispatch(
-														layoutSlice.actions.setOpenJourneyMemoriesModal(
-															true
+													loadModal('JourneyMemories', () => {
+														dispatch(
+															layoutSlice.actions.setOpenJourneyMemoriesModal(
+																true
+															)
 														)
-													)
+													})
 													break
 												case 'VisitedCities':
 													if (!user.isLogin) {
 														dispatch(methods.user.loginAlert())
 														return
 													}
-													dispatch(
-														layoutSlice.actions.setOpenVisitedCitiesModal(true)
-													)
+													loadModal('VisitedCities', () => {
+														dispatch(
+															layoutSlice.actions.setOpenVisitedCitiesModal({
+																visible: true,
+															})
+														)
+													})
 													break
 												case 'Account':
 													dispatch(
@@ -321,7 +342,10 @@ const HeaderComponent = ({
 									{user.isLogin ? (
 										<saki-menu-item padding='10px 18px' value={'VisitedCities'}>
 											<div className='tb-h-r-user-item'>
-												<saki-icon color='#666' type='MapFootprints'></saki-icon>
+												<saki-icon
+													color='#666'
+													type='MapFootprints'
+												></saki-icon>
 												<span>
 													{t('title', {
 														ns: 'visitedCitiesModal',

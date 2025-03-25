@@ -47,6 +47,7 @@ import {
 	filterTripsForTrackRoutePage,
 	getTrips,
 } from '../store/trip'
+import { loadModal } from '../store/layout'
 // import { isCorrectedData } from '../store/trip'
 
 const initValue = {
@@ -111,6 +112,9 @@ const VehicleComponent = () => {
 				ref={bindEvent({
 					close() {
 						dispatch(layoutSlice.actions.setOpenVehicleModal(false))
+					},
+					loaded() {
+						eventListener.dispatch('loadModal:AddVehicle', true)
 					},
 				})}
 				width='100%'
@@ -382,14 +386,16 @@ const VehiclePage = () => {
 															ref={
 																bindEvent({
 																	click: () => {
-																		dispatch(
-																			layoutSlice.actions.setOpenFindLocationModal(
-																				true
+																		loadModal('FindLocation', () => {
+																			dispatch(
+																				layoutSlice.actions.setOpenFindLocationModal(
+																					true
+																				)
 																			)
-																		)
-																		eventListener.dispatch('find-location', {
-																			vehicleId: v.id,
-																			userId: v.authorId,
+																			eventListener.dispatch('find-location', {
+																				vehicleId: v.id,
+																				userId: v.authorId,
+																			})
 																		})
 																	},
 																}) as any
@@ -482,14 +488,16 @@ const VehiclePage = () => {
 																		})
 																		break
 																	case 'FindLocation':
-																		dispatch(
-																			layoutSlice.actions.setOpenFindLocationModal(
-																				true
+																		loadModal('FindLocation', () => {
+																			dispatch(
+																				layoutSlice.actions.setOpenFindLocationModal(
+																					true
+																				)
 																			)
-																		)
-																		eventListener.dispatch('find-location', {
-																			vehicleId: v.id,
-																			userId: v.authorId,
+																			eventListener.dispatch('find-location', {
+																				vehicleId: v.id,
+																				userId: v.authorId,
+																			})
 																		})
 
 																		break

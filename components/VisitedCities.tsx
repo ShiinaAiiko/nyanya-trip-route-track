@@ -69,6 +69,7 @@ import {
 	formartCities,
 	GeoJSON,
 	getAllCityAreas,
+	getCityName,
 	getSimpleCityName,
 	updateCityMarkers,
 	watchCenterCity,
@@ -123,20 +124,20 @@ const VisitedCitiesModal = () => {
 	const [selectCity, setSelectCity] = useState<protoRoot.city.ICityItem>()
 
 	useEffect(() => {
-		if (layout.openVisitedCitiesModal) {
+		if (layout.openVisitedCitiesModal.visible) {
 			loadData()
 			return
 		}
-	}, [layout.openVisitedCitiesModal])
+	}, [layout.openVisitedCitiesModal.visible])
 
 	useEffect(() => {
-		if (layout.openVisitedCitiesModal && config.mapUrl) {
+		if (layout.openVisitedCitiesModal.visible && config.mapUrl) {
 			loadedMap.current = false
 			initMap()
 			return
 		}
 		clearMap()
-	}, [layout.openVisitedCitiesModal, config.mapUrl])
+	}, [layout.openVisitedCitiesModal.visible, config.mapUrl])
 
 	useEffect(() => {
 		if (cityBoundaries.length && loadedMap.current && map.current) {
@@ -207,7 +208,7 @@ const VisitedCitiesModal = () => {
 						.filter((v) => Number(v.level) <= 4)
 				)
 
-				console.log('updateMarkers', e.target._zoom)
+				// console.log('updateMarkers', e.target._zoom, citiesArr)
 				if (map.current) {
 					updateCityMarkers(map.current, citiesArr, e.target._zoom)
 				}
@@ -234,7 +235,10 @@ const VisitedCitiesModal = () => {
 	}, [cityBoundaries, loadedMap.current])
 
 	useEffect(() => {
-		if (Object.keys(cityDistricts).length && layout.openVisitedCitiesModal) {
+		if (
+			Object.keys(cityDistricts).length &&
+			layout.openVisitedCitiesModal.visible
+		) {
 			const loadData = snackbar({
 				message: i18n.t('loadData', {
 					ns: 'prompt',
@@ -385,7 +389,7 @@ const VisitedCitiesModal = () => {
 					tv.push({
 						cityId: cv.id || '',
 						level: cv.level || 0,
-						name: cv.fullName || '',
+						name: cv.fullName?.zhCN || '',
 					})
 				}
 
@@ -401,7 +405,7 @@ const VisitedCitiesModal = () => {
 		console.log('loadCityBoundaries', tCityDistricts, map.current, citiesNames)
 
 		if (!cities?.length) {
-			return
+			return []
 		}
 
 		const cityBoundaries = await dispatch(
@@ -411,7 +415,9 @@ const VisitedCitiesModal = () => {
 		).unwrap()
 		console.log('gcv GetCityBoundaries', cityBoundaries)
 
-		setCityBoundaries(cityBoundaries)
+		// setCityBoundaries(cityBoundaries)
+
+		return cityBoundaries
 	}
 
 	const loadData = async () => {
@@ -426,7 +432,9 @@ const VisitedCitiesModal = () => {
 		})
 
 		loadData.open()
-		const res = await httpApi.v1.GetAllCitiesVisitedByUser({})
+		const res = await httpApi.v1.GetAllCitiesVisitedByUser({
+			tripIds: layout.openVisitedCitiesModal?.tripIds || [],
+		})
 
 		console.log('gcv', res)
 		if (res.code === 200) {
@@ -448,9 +456,16 @@ const VisitedCitiesModal = () => {
 					// 	v.coords.longitude = 106.7086936
 					// }
 
-					v.fullName =
-						(parentCity?.fullName ? parentCity?.fullName + ',' : '') +
-						v.name?.zhCN
+					v.fullName = {}
+					v.name &&
+						Object.keys(v.name).forEach((lang: any) => {
+							let pFullName = (parentCity?.fullName as any)?.[lang] || ''
+
+							;(v.fullName as any)[lang] =
+								(pFullName ? pFullName + ',' : '') +
+								((v.name as any)[lang] || '')
+						})
+
 					if (v.level === 2) {
 						if (v.cities?.[0]?.level === 4) {
 							tempCityDistricts['region'].push(v)
@@ -465,10 +480,12 @@ const VisitedCitiesModal = () => {
 
 			formatCityDistricts(res.data?.cities || [])
 			console.log('gcv', tempCityDistricts)
+			setSelectCity(tempCityDistricts['region'][0])
+			setSelectCountry(tempCityDistricts['country'][0])
 			setCityDistricts(tempCityDistricts)
 
 			Object.keys(tempCityDistricts).length &&
-				(await loadCityBoundaries(tempCityDistricts[showType]))
+				setCityBoundaries(await loadCityBoundaries(tempCityDistricts[showType]))
 		}
 
 		await dispatch(methods.trip.GetTripHistoricalStatistics({ type: 'All' }))
@@ -564,10 +581,10 @@ const VisitedCitiesModal = () => {
 			? t('visitedWorldTitle')
 			: type === 'region'
 			? t('journeyedCountryTitle', {
-					country: selectCountry?.name?.zhCN,
+					country: getCityName(selectCountry?.name),
 			  })
 			: t('exploredCityTitle', {
-					city: selectCity?.fullName?.split(',').join(''),
+					city: getCityName(selectCity?.fullName)?.split(',').join('·'),
 			  })
 	}
 
@@ -588,63 +605,30 @@ const VisitedCitiesModal = () => {
 
 	useEffect(() => {
 		const init = async () => {
-			const cities: {
+			let cityBoundaries: {
 				cityId: string
 				level: number
-				name: string
+				geojson: GeoJSON
 			}[] = []
+
 			switch (timelineType) {
 				case 'region':
-					cityDistricts['region'].forEach((v) => {
-						cities.push({
-							cityId: v.id || '',
-							level: v.level || 0,
-							name: v.fullName || '',
-						})
-					})
+					cityBoundaries = await loadCityBoundaries(cityDistricts['region'])
+
 					break
 				case 'town':
-					// cityDistricts['city']?.forEach((v) => {
-					// 	if (v.parentCityId === selectCity?.id) {
-					// 		console.log('cccccc', v)
-
-					// 		cityDistricts['town'].forEach((sv) => {
-					// 			if (sv.parentCityId === v.id) {
-					//         console.log('cccccc', sv)
-					// 			}
-					// 		})
-					// 	}
-					// })
-
-					selectCity?.id &&
-						cityDistricts['city']?.forEach((v) => {
-							if (v.parentCityId === selectCity?.id) {
-								cities.push({
-									cityId: v.id || '',
-									level: v.level || 0,
-									name: v.fullName || '',
-								})
-								// cityDistricts['town'].forEach((sv) => {
-								// 	if (sv.parentCityId === v.id) {
-								// 		cities.push({
-								// 			cityId: sv.id || '',
-								// 			level: sv.level || 0,
-								// 			name: sv.fullName || '',
-								// 		})
-								// 	}
-								// })
-							}
-						})
+					if (selectCity?.id) {
+						cityBoundaries = await loadCityBoundaries(
+							cityDistricts['city'].filter(
+								(v) => v.parentCityId === selectCity?.id
+							)
+						)
+					}
 
 					break
 			}
-			if (!cities.length) return setArea(0)
+			if (!cityBoundaries.length) return setArea(0)
 			// console.log('area', cities)
-			const cityBoundaries = await dispatch(
-				methods.city.GetCityBoundaries({
-					cities: cities,
-				})
-			).unwrap()
 
 			// console.log('area', cities, cityBoundaries)
 			const area = getAllCityAreas(cityBoundaries.map((v) => v.geojson))
@@ -722,7 +706,15 @@ const VisitedCitiesModal = () => {
 			<saki-modal
 				ref={bindEvent({
 					close() {
-						dispatch(layoutSlice.actions.setOpenVisitedCitiesModal(false))
+						dispatch(
+							layoutSlice.actions.setOpenVisitedCitiesModal({
+								visible: false,
+							})
+						)
+					},
+					loaded() {
+						console.log('loadModal1:TripHistory loaded3')
+						eventListener.dispatch('loadModal:VisitedCities', true)
 					},
 				})}
 				width='100%'
@@ -734,7 +726,7 @@ const VisitedCitiesModal = () => {
 				border={config.deviceType === 'Mobile' ? 'none' : ''}
 				mask-closable='false'
 				background-color='#fff'
-				visible={layout.openVisitedCitiesModal}
+				visible={layout.openVisitedCitiesModal.visible}
 			>
 				<div
 					className={
@@ -751,15 +743,19 @@ const VisitedCitiesModal = () => {
 							right-width={'56px'}
 							ref={bindEvent({
 								back() {
-									dispatch(layoutSlice.actions.setOpenVisitedCitiesModal(false))
+									dispatch(
+										layoutSlice.actions.setOpenVisitedCitiesModal({
+											visible: false,
+										})
+									)
 								},
 							})}
 							background-color={startScroll ? '#fff' : 'transparent'}
-							title={t('title', {})}
+							title={layout.openVisitedCitiesModal?.title || t('title', {})}
 						></saki-modal-header>
 					</div>
 					<div className='vc-main'>
-						{layout.openVisitedCitiesModal ? (
+						{layout.openVisitedCitiesModal.visible ? (
 							<>
 								<div className='vc-map-wrap'>
 									<div
@@ -776,27 +772,33 @@ const VisitedCitiesModal = () => {
 													setArea(0)
 												},
 											})}
-											width='200px'
+											// width='200px'
 											height='36px'
 											border-radius='18px'
 											value={showType}
 											bg-color='rgb(255,255,255,0.7)'
 										>
-											{['country', 'state', 'region', 'city'].map((v, i) => {
-												return (
-													<saki-segmented-item
-														padding='0 6px'
-														value={v}
-														key={i}
-													>
-														<span>
-															{t(v.toLowerCase(), {
-																ns: 'visitedCitiesModal',
-															})}
-														</span>
-													</saki-segmented-item>
-												)
-											})}
+											{['country', 'state', 'region', 'city'].map(
+												(v, i, arr) => {
+													return (
+														<saki-segmented-item
+															padding={
+																i === 0 || i === arr.length - 1
+																	? '0 14px'
+																	: '0 6px'
+															}
+															value={v}
+															key={i}
+														>
+															<span>
+																{t(v.toLowerCase(), {
+																	ns: 'visitedCitiesModal',
+																})}
+															</span>
+														</saki-segmented-item>
+													)
+												}
+											)}
 										</saki-segmented>
 									</div>
 								</div>
@@ -957,9 +959,9 @@ const VisitedCitiesModal = () => {
 																					className='text-two-elipsis'
 																				>
 																					{v === 'region'
-																						? selectCountry?.name?.zhCN
+																						? getCityName(selectCountry?.name)
 																						: v === 'town'
-																						? selectCity?.name?.zhCN
+																						? getCityName(selectCity?.name)
 																						: ''}
 																				</span>
 
@@ -1076,7 +1078,7 @@ const CityListModal = ({
 				}[] = []
 				cityDistricts['country'].forEach((v) => {
 					cities.push({
-						name: v.name?.zhCN || '',
+						name: getCityName(v.name) || '',
 						id: v.id || '',
 						active: v.id === selectCountry?.id,
 					})
@@ -1094,10 +1096,12 @@ const CityListModal = ({
 						active: boolean
 					}[] = []
 					cityDistricts['region'].forEach((sv) => {
-						if (sv.fullName?.split(',')[0] === v.name?.zhCN) {
+						if (
+							getCityName(sv.fullName)?.split(',')[0] === getCityName(v.name)
+						) {
 							cities.push({
 								name: getSimpleCityName(
-									sv.name?.zhCN || '',
+									getCityName(sv.name) || '',
 									convertCityLevelToTypeString(sv.level || 1)
 								),
 								id: sv.id || '',
@@ -1106,7 +1110,7 @@ const CityListModal = ({
 						}
 					})
 					list.push({
-						name: v.name?.zhCN || '',
+						name: getCityName(v.name) || '',
 						cities,
 					})
 
@@ -1286,6 +1290,8 @@ export const CityTimeLineComponent = ({
 }) => {
 	const { t, i18n } = useTranslation('visitedCitiesModal')
 	const config = useSelector((state: RootState) => state.config)
+
+	console.log('CityTimeLineComponent', cities)
 	return (
 		<div className='city-timeline-component'>
 			<div className='timeline-header'>
@@ -1309,18 +1315,20 @@ export const CityTimeLineComponent = ({
 							</div>
 							<div className='tl-i-list'>
 								{v.list.map((sv) => {
+									let fullName =
+										getCityName(sv?.fullName)
+											?.split(',')
+											.filter((v, i, arr) => i >= arr.length - 2 && i !== 0)
+											?.join(' · ') || ''
+
+									if (sv.level === 1) {
+										fullName = getCityName(sv?.fullName) || ''
+									}
 									return (
 										<div key={sv.id} className='tl-i-l-item'>
 											<div className={'tl-i-l-i-left ' + layout}>
 												<span>＃</span>
-												<span className='text-two-elipsis'>
-													{sv?.fullName
-														?.split(',')
-														.filter(
-															(v, i, arr) => i >= arr.length - 2 && i !== 0
-														)
-														?.join(' · ') || ''}
-												</span>
+												<span className='text-two-elipsis'>{fullName}</span>
 											</div>
 											<div className='tl-i-l-i-right'>
 												{layout === 'VisitedCities'

@@ -138,6 +138,62 @@
 		"setTripsInBatchesTo": "批次設定行程至",
 		"findLocation": "查看位置"
 	},
+	"visitedCitiesModal": {
+		"title": "城市足跡",
+		"cityTrajectory": "{{name}}的城市軌跡",
+
+		"world": "世界",
+		"country": "國家",
+		"state": "省",
+		"region": "城市",
+		"city": "區縣",
+		"town": "城鎮",
+
+		"visitedWorldTitle": "已遍訪世界",
+		"visitedWorldCount": "個國家",
+		"journeyedCountryTitle": "已旅行{{country}}",
+		"journeyedCountryCount": "座城市",
+		"exploredCityTitle": "已探索{{city}}",
+		"exploredCityCount": "個區縣",
+		"exploredTownCount": "個城鎮",
+		"travelSummary": "歷經 {{days}} 天 · {{hours}} 小時 · {{trips}} 次旅程 · {{distance}} 公里",
+		"footprintCoverage": "足跡覆​​蓋約 {{area}} 平方公里",
+
+		"cityTimeline": "城市探索時間軸",
+		"exploredDate": "{{date}} 已探索",
+		"arrivedDate": "{{date}} 駛入"
+	},
+	"journeyMemoriesModal": {
+		"title": "旅途記憶",
+		"createNewJourneyMemory": "創造新的旅途記憶",
+		"selectTrips": "選擇行程",
+		"selectedTripsCount": "已選擇了{{length}}個行程",
+		"timelineEmpty": "還未新增時間軸",
+
+		"timeline": "時間軸",
+		"map": "地圖",
+
+		"updateMoment": "更新記憶點",
+		"addMoment": "新增記憶點",
+		"deleteMoment": "刪除記憶點",
+		"deleteThisMoment": "刪除此記憶點?",
+		"viewMoment": "查看記憶點",
+		"moment": "記憶點",
+		"namePlaceholder": "名稱",
+		"descPlaceholder": "介紹",
+		"cover": "封面",
+
+		"updateJourneyMemory": "更新旅途記憶",
+		"addJourneyMemory": "新增旅途記憶",
+		"deleteJourneyMemory": "刪除旅途記憶",
+		"confirmDeleteJourneyMemory": "確定刪除此旅途記憶嗎？",
+
+		"viewMomentMapTrack": "記憶點軌跡",
+		"viewAllMomentMapTrack": "旅途軌跡",
+
+		"createdAt": "創建於 {{date}} {{time}}",
+		"lastUpdatedAt": "最後更新於 {{date}} {{time}}"
+	},
 	"settings": {
 		"title": "設置",
 		"tripHistory": "行程歷史",

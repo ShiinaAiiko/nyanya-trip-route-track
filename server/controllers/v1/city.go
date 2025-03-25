@@ -223,9 +223,9 @@ func (cl *CityController) GetCityDetails(c *gin.Context) {
 		cityProto := new(protos.CityItem)
 		copier.Copy(cityProto, city)
 
-		cityNameProto := new(protos.CityItem_CityName)
-		copier.Copy(cityNameProto, city.Name)
-		cityProto.Name = cityNameProto
+		// cityNameProto := new(protos.CityItem_CityName)
+		// copier.Copy(cityNameProto, city.Name)
+		// cityProto.Name = cityNameProto
 
 		// log.Info(city.Name)
 
@@ -262,7 +262,7 @@ func (cl *CityController) GetAllCitiesVisitedByUser(c *gin.Context) {
 	// 3、验证参数
 	if err = validation.ValidateStruct(
 		data,
-		// validation.Parameter(&data.Ids, validation.Required()),
+		validation.Parameter(&data.TripIds),
 	); err != nil {
 		res.Errors(err)
 		res.Code = 10002
@@ -282,7 +282,7 @@ func (cl *CityController) GetAllCitiesVisitedByUser(c *gin.Context) {
 	authorId := userInfoAny.(*sso.UserInfo).Uid
 	// authorId := "78L2tkleM"
 
-	cityIds, err := cityDbx.GetAllCitiesVisitedByUser(authorId)
+	cityIds, err := cityDbx.GetAllCitiesVisitedByUser(authorId, data.TripIds)
 	if err != nil {
 		res.Errors(err)
 		res.Code = 10006
@@ -318,9 +318,9 @@ func (cl *CityController) GetAllCitiesVisitedByUser(c *gin.Context) {
 		cityProto := new(protos.CityItem)
 		copier.Copy(cityProto, city)
 
-		cityNameProto := new(protos.CityItem_CityName)
-		copier.Copy(cityNameProto, city.Name)
-		cityProto.Name = cityNameProto
+		// cityNameProto := new(protos.CityItem_CityName)
+		// copier.Copy(cityNameProto, city.Name)
+		// cityProto.Name = cityNameProto
 
 		if cityIdsMap[city.Id] != nil {
 			// 镇
@@ -442,7 +442,7 @@ func (cl *CityController) GetCitiesByOpenAPI(c *gin.Context) {
 		return
 	}
 
-	cityIds, err := cityDbx.GetAllCitiesVisitedByUser(authorId)
+	cityIds, err := cityDbx.GetAllCitiesVisitedByUser(authorId, []string{})
 	if err != nil {
 		res.Errors(err)
 		res.Code = 10006
@@ -476,9 +476,9 @@ func (cl *CityController) GetCitiesByOpenAPI(c *gin.Context) {
 		cityProto := new(protos.CityItem)
 		copier.Copy(cityProto, city)
 
-		cityNameProto := new(protos.CityItem_CityName)
-		copier.Copy(cityNameProto, city.Name)
-		cityProto.Name = cityNameProto
+		// cityNameProto := new(protos.CityItem_CityName)
+		// copier.Copy(cityNameProto, city.Name)
+		// cityProto.Name = cityNameProto
 
 		if cityIdsMap[city.Id] != nil {
 			// 镇

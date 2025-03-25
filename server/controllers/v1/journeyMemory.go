@@ -223,6 +223,34 @@ func (fc *JourneyMemoryController) GetJMDetail(c *gin.Context) {
 		res.Call(c)
 		return
 	}
+
+	tripIds := []string{}
+	for _, sv := range jmProto.Timeline {
+		tripIds = append(tripIds, sv.TripIds...)
+	}
+
+	if len(tripIds) != 0 {
+		trips, err := tripDbx.GetTripsBaseData(
+			tripIds,
+			userInfo.Uid, "All",
+			1, 100000,
+			0,
+			time.Now().Unix(),
+			[]string{},
+			0,
+			500*1000,
+		)
+		if err != nil {
+			res.Errors(err)
+			res.Code = 10001
+			res.Call(c)
+			return
+		}
+
+		ts := tripDbx.FormatTripStatistics(trips)
+		jmProto.Statistics = ts
+	}
+
 	protoData := &protos.GetJMDetail_Response{
 		JourneyMemory: jmProto,
 	}

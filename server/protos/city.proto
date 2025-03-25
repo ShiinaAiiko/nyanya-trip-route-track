@@ -3,9 +3,15 @@ syntax = "proto3";
 option go_package = "./;protos";
 package city;
 
+message CityName {
+  string zhCN = 1;
+  string en = 2;
+  string zhHans = 3;
+  string zhHant = 4;
+}
+
 message CityItem {
   string id = 1;
-  message CityName { string zhCN = 1; }
   CityName name = 2;
   string parentCityId = 3;
 
@@ -22,12 +28,17 @@ message CityItem {
   int64 lastUpdateTime = 8;
 
   // 输出用
-  string fullName = 9;
+  CityName fullName = 9;
   int64 firstEntryTime = 10;
   int64 lastEntryTime = 11;
   int32 entryCount = 12;
   // 子城市列表，
   repeated CityItem cities = 13;
+}
+
+message ClearCities {
+  message Request { string tripId = 1; }
+  message Response {}
 }
 
 // 行程开始后，当检测到此城市不在tripcities列表时发送
@@ -65,6 +76,8 @@ message GetCityDetails {
 // 获取用户走过的所有城市列表
 message GetAllCitiesVisitedByUser {
   message Request {
+
+    repeated string tripIds = 1;
     // int64 pageNum = 1;
     // int64 pageSize = 2;
 

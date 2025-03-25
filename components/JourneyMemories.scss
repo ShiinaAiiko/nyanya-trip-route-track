@@ -11,7 +11,7 @@
     top: 0;
     width: 100%;
     height: 56px;
-    z-index: 600;
+    z-index: 700;
 
     .vc-h-left {
       display: flex;
@@ -250,9 +250,9 @@
       width: 80%;
       z-index: 600;
 
-      .jmd-restore-track {
+      .jmd-c-btns {
         position: absolute;
-        top: -40px;
+        top: -46px;
         right: 0px;
         z-index: 600;
 
@@ -291,7 +291,7 @@
         &.cn {
           display: inline-block;
           color: #666;
-          font-size: 14px;
+          font-size: 12px;
           background-color: #eee;
           padding: 4px;
           border-radius: 4px;

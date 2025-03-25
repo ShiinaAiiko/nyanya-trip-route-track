@@ -10,6 +10,14 @@ import store, { methods } from '.'
 import { alert } from '@saki-ui/core'
 
 export const layoutMethods = {}
+
+export type ModalType = "TripEdit" |
+  "Settings" | "Login" |
+  "TripHistory" | "ReplayTrip" |
+  "AddVehicle" | "VisitedCities" |
+  "JourneyMemories" | "CreateCustomTrip" |
+  "FindLocation"
+
 export const layoutSlice = createSlice({
   name: 'layout',
   initialState: {
@@ -25,7 +33,11 @@ export const layoutSlice = createSlice({
     openReplayTripModal: false,
     openFindLocationModal: false,
     openCreateCustomTripModal: false,
-    openVisitedCitiesModal: false,
+    openVisitedCitiesModal: {
+      visible: false,
+      title: "",
+      tripIds: [] as string[],
+    },
     openJourneyMemoriesModal: false,
     openHistoricalTripsDetailedDataModal: false,
     openStatisticsModal: {
@@ -43,8 +55,22 @@ export const layoutSlice = createSlice({
     editTripData: undefined as protoRoot.trip.ITrip | undefined,
     settingType: '',
     tripHistoryType: 'All' as TabsTripType,
+
+    loadModals: {} as {
+      [type: string]: (() => void)[]
+    }
   },
   reducers: {
+    setLoadModals: (
+      state,
+      params: {
+        payload: typeof state.loadModals
+        type: string
+      }
+    ) => {
+      console.log("TripHistory", params.payload)
+      state.loadModals = params.payload
+    },
     setOpenJourneyMemoriesModal: (
       state,
       params: {
@@ -53,15 +79,22 @@ export const layoutSlice = createSlice({
       }
     ) => {
       state.openJourneyMemoriesModal = params.payload
+      // console.log('setOpenJourneyMemoriesModal ', state.openJourneyMemoriesModal)
     },
     setOpenVisitedCitiesModal: (
       state,
       params: {
-        payload: boolean
+        payload: {
+          visible: boolean,
+          title?: string,
+          tripIds?: string[],
+        }
         type: string
       }
     ) => {
-      state.openVisitedCitiesModal = params.payload
+      state.openVisitedCitiesModal.visible = params.payload.visible
+      state.openVisitedCitiesModal.title = params.payload?.title || ''
+      state.openVisitedCitiesModal.tripIds = params.payload?.tripIds || []
     },
     setOpenCreateCustomTripModal: (
       state,
@@ -261,3 +294,17 @@ export const layoutSlice = createSlice({
     },
   },
 })
+
+
+
+export const loadModal = (type: ModalType, onLoad: () => void) => {
+  const { layout } = store.getState()
+
+  const results = { ...layout.loadModals }
+
+  if (!results[type]) {
+    results[type] = []
+  }
+  results[type].push(onLoad)
+  store.dispatch(layoutSlice.actions.setLoadModals(results))
+}

@@ -20,11 +20,13 @@ import (
 )
 
 type CityDbx struct {
+	city *models.City
 }
 
 var cityProject = bson.M{
 	"_id":            1,
 	"name":           1,
+	"names":          1,
 	"parentCityId":   1,
 	"coords":         1,
 	"level":          1,
@@ -74,7 +76,7 @@ func (t *CityDbx) GetCityCoords(fullName string) (*models.CityCoords, error) {
 
 	resp, err := conf.RestyClient.R().SetQueryParams(map[string]string{}).
 		Get(
-			conf.ToolApiUrl + "/api/v1/geocode/geo?address=" +
+			conf.Config.ToolsApiUrl + "/api/v1/geocode/geo?address=" +
 				fullName + "&platform=Amap",
 			// "https://tools.aiiko.club/api/v1/geocode/geo?address=" +
 			// 	fullName + "&platform=Amap",
@@ -148,7 +150,7 @@ func (t *CityDbx) AddAndGetCity(name string, fullName string, parentCityId strin
 		}
 		log.Error(coords)
 
-		if err := t.UpdateCity(city.Id, fullName, coords); err != nil {
+		if err := t.UpdateCity(city.Id, fullName, coords, nil); err != nil {
 			log.Error(err)
 			return city, err
 		}
@@ -173,7 +175,9 @@ func (t *CityDbx) AddCity(city *models.City) (*models.City, error) {
 	return city, nil
 }
 
-func (t *CityDbx) UpdateCity(id, fullName string, coords *models.CityCoords) error {
+func (t *CityDbx) UpdateCity(
+	id, fullName string, coords *models.CityCoords,
+	names *models.CityNames) error {
 	city := new(models.City)
 
 	setUp := bson.M{
@@ -183,6 +187,12 @@ func (t *CityDbx) UpdateCity(id, fullName string, coords *models.CityCoords) err
 	if coords != nil {
 		setUp["coords"] = coords
 	}
+
+	if names != nil {
+		setUp["names"] = names
+	}
+
+	// log.Info("setUp", setUp)
 
 	updateResult, err := city.GetCollection().UpdateOne(context.TODO(),
 		bson.M{
@@ -198,6 +208,7 @@ func (t *CityDbx) UpdateCity(id, fullName string, coords *models.CityCoords) err
 	if err != nil {
 		return err
 	}
+	// log.Info("updateResult", updateResult)
 	if updateResult.ModifiedCount == 0 {
 		return errors.New("update fail")
 	}
@@ -288,6 +299,20 @@ func (t *CityDbx) GetCity(id string, name string, fullName string) (*models.City
 	return city, nil
 }
 
+func (t *CityDbx) GetFullCityForCities(id string, cities []*models.City) (results []*models.City) {
+
+	for _, v := range cities {
+		if v.Id == id {
+			results = append(results, v)
+			if v.ParentCityId != "" {
+				results = append(results, t.GetFullCityForCities(v.ParentCityId, cities)...)
+			}
+			return
+		}
+	}
+
+	return
+}
 func (t *CityDbx) GetFullCityForCitiesProto(id string, cities []*protos.CityItem) (citiesProto []*protos.CityItem) {
 
 	for _, v := range cities {
@@ -436,7 +461,15 @@ func (t *CityDbx) getCities(ids []string, lastResultIds []string) ([]*models.Cit
 
 // 缺redis
 func (t *CityDbx) GetCities(ids []string) ([]*models.City, error) {
-	return t.getCities(ids, []string{})
+	cities, err := t.getCities(ids, []string{})
+
+	if err != nil {
+		return nil, err
+	}
+
+	cities, err = t.CitiesI18n(cities)
+
+	return cities, err
 }
 
 func (t *CityDbx) DeleteRedisData(id string, fullName string) error {
@@ -491,21 +524,28 @@ type UserVisitedCities struct {
 }
 
 // 缺redis
-func (t *CityDbx) GetAllCitiesVisitedByUser(authorId string) (cities []*UserVisitedCities, err error) {
+func (t *CityDbx) GetAllCitiesVisitedByUser(authorId string, tripIds []string) (cities []*UserVisitedCities, err error) {
 	trip := new(models.Trip)
+
+	match := bson.M{
+		"authorId": authorId,
+		"status":   1,
+		"cities": bson.M{
+			"$exists": true,
+			"$not": bson.M{
+				"$size": 0,
+			},
+		},
+	}
+	if len(tripIds) > 0 {
+		match["_id"] = bson.M{
+			"$in": tripIds,
+		}
+	}
 
 	params := []bson.M{
 		{
-			"$match": bson.M{
-				"authorId": authorId,
-				"status":   1,
-				"cities": bson.M{
-					"$exists": true,
-					"$not": bson.M{
-						"$size": 0,
-					},
-				},
-			},
+			"$match": match,
 		},
 		{
 			"$unwind": "$cities",
@@ -858,6 +898,209 @@ func (t *CityDbx) SetSubCityLevel(cityId string, level int) (cities *map[string]
 	// }
 
 	return nil, nil
+}
+
+type OsmInfo struct {
+	OsmType string
+	OsmId   int64
+	Names   map[string]string
+	// Latlng  *models.CityCoords
+}
+
+func (t *CityDbx) GetOsmInfo(fullName string) (*OsmInfo, error) {
+
+	result := new(OsmInfo)
+	key := conf.Redisdb.GetKey("GetOsmInfo")
+	err := conf.Redisdb.GetStruct(key.GetKey(fullName), result)
+
+	log.Info(err, result, fullName)
+	if err != nil || result == nil || true {
+		resp, err := conf.RestyClient.R().SetQueryParams(map[string]string{
+			"q":      fullName,
+			"format": "jsonv2",
+		}).
+			Get(
+				conf.Config.NominatimApiUrl + "/search",
+				// "https://tools.aiiko.club/api/v1/geocode/geo?address=" +
+				// 	fullName + "&platform=Amap",
+			)
+		if err != nil {
+			log.Error(err)
+			return nil, err
+		}
+
+		res := [](map[string]any){}
+
+		if err = json.Unmarshal(resp.Body(), &res); err != nil {
+			return nil, err
+		}
+		// log.Info("resp.Body()", resp.String())
+		log.Info("resp.Body()", res)
+
+		if len(res) == 0 {
+			return nil, err
+		}
+		// log.Info(res[0]["osm_type"])
+		// log.Info(res[0]["osm_id"], nint.ToInt64(res[0]["osm_id"]))
+
+		result.OsmType = nstrings.ToString(res[0]["osm_type"])
+		result.OsmId = nint.ToInt64(res[0]["osm_id"])
+
+		resp, err = conf.RestyClient.R().SetQueryParams(map[string]string{
+			"osmtype": strings.ToUpper(result.OsmType[0:1]),
+			"osmid":   nstrings.ToString(result.OsmId),
+		}).
+			Get(
+				conf.Config.NominatimApiUrl + "/details",
+				// "https://tools.aiiko.club/api/v1/geocode/geo?address=" +
+				// 	fullName + "&platform=Amap",
+			)
+		if err != nil {
+			log.Error(err)
+			return nil, err
+		}
+
+		res2 := map[string]any{}
+
+		// log.Info("resp.Body()", resp.String())
+		if err = json.Unmarshal(resp.Body(), &res2); err != nil {
+			return nil, err
+		}
+		// log.Info("resp.Body()", res)
+
+		log.Info(res2["names"], fullName, result.OsmType, strings.ToUpper(result.OsmType[0:1]))
+
+		// log.Info(res[0]["osm_id"], nint.ToInt64(res[0]["osm_id"]))
+
+		result.Names = map[string]string{}
+		for k, v := range res2["names"].(map[string]any) {
+			result.Names[k] = nstrings.ToString(v)
+		}
+
+		// result.OsmId = nint.ToInt64(res[0]["osm_id"])
+	}
+	err = conf.Redisdb.SetStruct(key.GetKey(fullName), result, key.GetExpiration())
+	if err != nil {
+		log.Info(err)
+	}
+
+	return result, nil
+}
+
+func (t *CityDbx) getFullName(id string, cities []*models.City) string {
+	fullCities := t.GetFullCityForCities(id, cities)
+	results := narrays.Map(fullCities, func(v *models.City, index int) string {
+		return nstrings.StringOr(v.Name.ZhCN, v.Name.En)
+	})
+	narrays.Reverse(&results)
+	return strings.Join(results, ",")
+}
+
+type I18nInfo struct {
+	CityId  string
+	Name    *models.CityName
+	OsmInfo *OsmInfo
+}
+
+func (t *CityDbx) FortmatNames(city *models.City, osmInfo *OsmInfo) *I18nInfo {
+	result := new(I18nInfo)
+
+	result.CityId = city.Id
+	result.OsmInfo = osmInfo
+	result.Name = &models.CityName{
+		ZhCN: nstrings.StringOr(
+			osmInfo.Names["name:zh-Hans"],
+			osmInfo.Names["name:zh"],
+			osmInfo.Names["name"]),
+		En: nstrings.StringOr(
+			osmInfo.Names["name:en"],
+			osmInfo.Names["name"]),
+		ZhHans: nstrings.StringOr(
+			osmInfo.Names["name:zh-Hans"],
+			osmInfo.Names["name:zh"],
+			osmInfo.Names["name"]),
+		ZhHant: nstrings.StringOr(
+			osmInfo.Names["name:zh-Hant"],
+			osmInfo.Names["name:zh-Hans"],
+			osmInfo.Names["name:zh"],
+			osmInfo.Names["name"]),
+	}
+
+	return result
+}
+
+func (t *CityDbx) CityI18n(city *models.City, cities []*models.City) (*I18nInfo, error) {
+	result := new(I18nInfo)
+
+	timestamp := time.Now().Unix()
+
+	if city.Names == nil {
+		city.Names = new(models.CityNames)
+	}
+
+	log.Info(len(city.Names.Names), city.Names.CreateTime >= timestamp)
+
+	if city.Names.CreateTime >= timestamp {
+		result = t.FortmatNames(city, &OsmInfo{
+			Names: city.Names.Names,
+		})
+		return result, nil
+	}
+	fn := t.getFullName(city.Id, cities)
+	log.Info(fn)
+
+	osmInfo, err := t.GetOsmInfo(fn)
+	if err != nil {
+		return nil, err
+	}
+	log.Info(osmInfo)
+
+	if osmInfo == nil {
+		osmInfo, err = t.GetOsmInfo(
+			nstrings.StringOr(city.Name.ZhCN, city.Name.En))
+		if err != nil {
+			return nil, err
+		}
+		if osmInfo == nil {
+			return result, nil
+		}
+
+	}
+
+	result = t.FortmatNames(city, osmInfo)
+
+	if err := t.UpdateCity(city.Id, fn, nil, &models.CityNames{
+		Names:      osmInfo.Names,
+		CreateTime: timestamp + 3600*24*30,
+	}); err != nil {
+		log.Error(err)
+		return result, err
+	}
+	log.Info(city.Id, fn, osmInfo, osmInfo.Names, err)
+
+	return result, nil
+}
+
+func (t *CityDbx) CitiesI18n(cities []*models.City) ([]*models.City, error) {
+	// 1、插入数据
+	log.Info("i18n", len(cities))
+
+	// results := []*I18nInfo{}
+
+	for _, v := range cities {
+
+		log.Info(v, len(cities))
+		result, err := t.CityI18n(v, cities)
+		if err != nil {
+			return nil, err
+		}
+
+		v.Name = result.Name
+
+		// results = append(results, result)
+	}
+
+	return cities, nil
 }
 
 // func (t *CityDbx) GetUserAllCities(authorId string) (cities *map[string]int64, err error) {

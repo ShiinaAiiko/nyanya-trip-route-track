@@ -194,6 +194,9 @@ const TripEditComponent = memo(() => {
 							})
 						)
 					},
+					loaded() {
+						eventListener.dispatch('loadModal:TripEdit', true)
+					},
 				})}
 				width='100%'
 				height={config.deviceType === 'Mobile' ? '100%' : 'auto'}

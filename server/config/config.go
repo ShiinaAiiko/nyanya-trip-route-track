@@ -29,7 +29,10 @@ var (
 	// 临时文件删除期限
 	TempFileRemovalDeadline = 60 * 3600 * 24 * time.Second
 
-	ToolApiUrl = "https://tools.aiiko.club"
+	// ToolApiUrl = "https://tools.aiiko.club"
+
+	// NominatimApiUrl = "http://192.168.204.132:17010"
+	// NominatimApiUrl = "https://nominatim.aiiko.club"
 )
 
 func GetConfig(configPath string) {

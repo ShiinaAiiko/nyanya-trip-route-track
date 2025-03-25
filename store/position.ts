@@ -322,31 +322,31 @@ export const createOtherPositionMarker = (map: Leaflet.Map, [lat, lon]: number[]
 }
 
 
-export const createMaxSpeedMarker = (map: Leaflet.Map, maxSpeed: number, [lat, lon]: number[]) => {
-  const L: typeof Leaflet = (window as any).L
+// export const createMaxSpeedMarker = (map: Leaflet.Map, maxSpeed: number, [lat, lon]: number[]) => {
+//   const L: typeof Leaflet = (window as any).L
 
-  console.log("maxSpeed", maxSpeed)
-  return L.marker([lat, lon], {
-    icon: L.divIcon({
-      html: `<div class='map-max-speed-marker-wrap'>
+//   console.log("maxSpeed", maxSpeed)
+//   return L.marker([lat, lon], {
+//     icon: L.divIcon({
+//       html: `<div class='map-max-speed-marker-wrap'>
 
-      <div class="msm-icon">
-        <saki-icon margin="-1px 0 0 -1px" color="var(--saki-default-color)" size="10px" type="Rocket"></saki-icon>
-      </div>
-      <div class="msm-speed">
-        <span>${Math.round((maxSpeed * 3600) / 100) / 10}</span>
-      <span>km/h</span>
-      </div>
+//       <div class="msm-icon">
+//         <saki-icon margin="-1px 0 0 -1px" color="var(--saki-default-color)" size="10px" type="Rocket"></saki-icon>
+//       </div>
+//       <div class="msm-speed">
+//         <span>${Math.round((maxSpeed * 3600) / 100) / 10}</span>
+//       <span>km/h</span>
+//       </div>
 
-      </div>`,
-      className:
-        'map-max-speed-marker ',
-      iconSize: undefined,
-    }),
-  })
-    .addTo(map)
-    .openPopup()
-}
+//       </div>`,
+//       className:
+//         'map-max-speed-marker ',
+//       iconSize: undefined,
+//     }),
+//   })
+//     .addTo(map)
+//     .openPopup()
+// }
 
 export const createCustomTripPointMarkerIcon = (distance: number, id: string) => {
   const L: typeof Leaflet = (window as any).L

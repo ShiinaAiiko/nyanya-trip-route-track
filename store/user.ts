@@ -19,6 +19,7 @@ import { nanoid } from 'nanoid'
 import { client } from './sso'
 import { alert, snackbar } from '@saki-ui/core'
 import i18n from '../plugins/i18n/i18n'
+import { loadModal } from './layout'
 
 export const modeName = 'user'
 
@@ -159,7 +160,11 @@ export const userMethods = {
       }),
       onCancel() { },
       async onConfirm() {
-        thunkAPI.dispatch(layoutSlice.actions.setOpenLoginModal(true))
+
+        loadModal('Login', () => {
+          thunkAPI.dispatch(layoutSlice.actions.setOpenLoginModal(true))
+        })
+
       },
     }).open()
   }),

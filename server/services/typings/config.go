@@ -8,9 +8,11 @@ type Config struct {
 	Redis   Redis
 	Saass   SAaSS
 	// StaticPathDomain string
-	Mongodb     Mongodb
-	OpenApp     []*OpenApp
-	CityVersion string
+	Mongodb         Mongodb
+	OpenApp         []*OpenApp
+	CityVersion     string
+	NominatimApiUrl string
+	ToolsApiUrl     string
 }
 
 type Server struct {

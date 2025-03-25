@@ -278,6 +278,45 @@ const FormatGeoKey = (keys: string[], latlon: string) => {
   return keys[Number(latlons[0])] + latlons[1]
 }
 
+const formatTripPositions = (
+  trip: protoRoot.trip.ITripPositions
+): protoRoot.trip.ITripPositions => {
+  let startLat = 0
+  let startLon = 0
+
+  const { startTime,
+    positions, positionList } = trip
+
+  if (positionList?.length) {
+    trip.positions = []
+    return {
+      ...trip,
+      positionList: positionList,
+      positions: []
+    }
+  }
+
+  if (!positions?.length) {
+    return {
+      ...trip,
+
+      positionList: positionList,
+      positions: []
+    }
+  }
+
+
+  const posList = formatPositionsStr(Number(trip?.startTime), trip?.positions || [])
+
+  return {
+    ...trip,
+    positionList: posList,
+    positions: []
+  }
+}
+
+
+
 export const formatPositionsStr = (
   startTime: number,
   positions: string[]
@@ -527,7 +566,7 @@ export const roadColorFade = (layer: any) => {
 
 
 export const isResumeTrip = (trip: protoRoot.trip.ITrip) => {
-  return (Number(trip.createTime) + 300 * 3600) >= Math.floor(new Date().getTime() / 1000)
+  return (Number(trip.createTime) + 3 * 3600) >= Math.floor(new Date().getTime() / 1000)
 }
 
 export const removePolylinePointByIndex = (polyline: Leaflet.Polyline<any>, targetIndex: number) => {

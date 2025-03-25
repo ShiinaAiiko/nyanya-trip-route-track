@@ -68,7 +68,7 @@ const modelName = 'city'
 
 
 export const state = {
-
+  cities: [] as protoRoot.city.ICityItem[],
   cityInfo: {
     country: "",
     state: "",
@@ -84,7 +84,10 @@ export const state = {
 
 
 export const ethnicReg = /傣族|布朗族|独龙族|佤族|怒族|景颇族|普米族|德昂族|拉祜族|阿昌族|纳西族|哈尼族|藏族|蒙古族|回族|维吾尔族|壮族|苗族|彝族|布依族|朝鲜族|满族|侗族|瑶族|白族|土家族|哈萨克族|黎族|傈僳族|东乡族|仡佬族|拉祜族|佤族|水族|土族|羌族|达斡尔族|仫佬族|锡伯族|柯尔克孜族|景颇族|撒拉族|布朗族|毛南族|塔吉克族|普米族|阿昌族|怒族|乌孜别克族|俄罗斯族|鄂温克族|崩龙族|裕固族|保安族|京族|独龙族|赫哲族|高山族/g
+
+export const ethnicZHTWReg = /傣族|布朗族|獨龍族|佤族|怒族|景頗族|普米族|德昂族|拉祜族|阿昌族|納西族|哈尼族|藏族|蒙古族|回族|維吾爾族|壯族|苗族|彝族|布依族|朝鮮族|滿族|侗族|瑤族|白族|土家族|哈薩克族|黎族|傈僳族|東鄉族|仡佬族|拉祜族|佤族|水族|土族|羌族|達斡爾族|仫佬族|錫伯族|柯爾克孜族|景頗族|撒拉族|布朗族|毛南族|塔吉克族|普米族|阿昌族|怒族|烏孜別克族|俄羅斯族|鄂溫克族|崩龍族|裕固族|保安族|京族|獨龍族|赫哲族|高山族/g
 export const cityType = /省|自治区|直辖市|特别行政区|市|自治州|盟|地区|县|自治县|旗|自治旗|特区|林区|区|镇|乡|街道|村|社区/g
+export const cityZHTWType = /省|自治區|直轄市|特別行政區|市|自治州|盟|地區|縣|自治縣|旗|自治旗|特區|林區|區|鎮|鄉|街道|村|社區/g
 
 export const ethnicGroups = [
   "蒙古族", "回族", "藏族", "维吾尔族", "苗族", "彝族", "壮族", "布依族",
@@ -98,19 +101,29 @@ export const ethnicGroups = [
 ];
 
 export const getSimpleCityName = (cityName: string, type: string) => {
+
+
   cityName = cityName?.replace(ethnicReg, '')
+    ?.replace(ethnicZHTWReg, '')
+
   if (type === 'city') {
     cityName = cityName?.replace(
       /(?<=..)(自治县|县|市|旗|自治旗|区|新区)/,
+      ''
+    )?.replace(
+      /(?<=..)(自治縣|縣|市|旗|自治旗|區|新區)/,
       ''
     )
   }
   if (type === 'town') {
     cityName = cityName?.replace(/镇|街道/g, '')
+      ?.replace(/鎮|街道/g, '')
   }
   if (type === 'state' || type === 'region') {
     cityName = cityName?.replace(cityType, '')
+      ?.replace(cityZHTWType, '')
   }
+
   return cityName
 }
 
@@ -270,7 +283,7 @@ export const formartCities = (cities: protoRoot.city.ICityItem[]) => {
       return {
         id: v.id || '',
         name: getSimpleCityName(
-          v.name?.zhCN || '',
+          getCityName(v.name) || '',
           convertCityLevelToTypeString(v.level || 1)
         ),
         lat: v.coords?.latitude || 0,
@@ -290,7 +303,7 @@ export const formartCities = (cities: protoRoot.city.ICityItem[]) => {
       citiesArr.unshift({
         id: v.id || '',
         name: getSimpleCityName(
-          v.name?.zhCN || '',
+          getCityName(v.name) || '',
           convertCityLevelToTypeString(v.level || 1)
         ),
         lat: v.coords?.latitude || 0,
@@ -505,6 +518,10 @@ export function updateCityMarkers(map: Leaflet.Map, citiesArr: CityInfo[], zoom:
     const L: typeof Leaflet = (window as any).L
 
     if (layer instanceof L.Marker) {
+      const icon = layer.getIcon()
+      if ((icon.options.className || "").indexOf("icon-marker") >= 0) {
+        return
+      }
       const cityId = layer.getPopup()?.getContent()?.toString() || ""
 
       // map.removeLayer(layer)
@@ -658,8 +675,14 @@ export const watchCenterCity = async (map: Leaflet.Map, f: (cityInfo: typeof sta
 
   map.on('moveend', () => {
     getCenterCityD.increase(async () => {
-      const center: L.LatLng = map.getCenter();
-      getCenterCity(center.lat, center.lng, f)
+      try {
+        if (!map?.getCenter) return
+        const center: L.LatLng = map.getCenter();
+        getCenterCity(center.lat, center.lng, f)
+      } catch (error) {
+        console.error(error)
+
+      }
     }, 1000)
   });
 
@@ -670,6 +693,15 @@ export const citySlice = createSlice({
   name: modelName,
   initialState: state,
   reducers: {
+    setCities: (
+      state,
+      params: {
+        payload: (typeof state.cities)
+        type: string
+      }
+    ) => {
+      state.cities = params.payload
+    },
     setCityInfo: (
       state,
       params: {
@@ -733,6 +765,33 @@ export const regeo = async ({ lat, lng, }: {
 }
 
 
+export const getCityName = (cityName: protoRoot.city.ICityName | null | undefined): string => {
+  if (!cityName) return ""
+  let lang = ""
+  switch (i18n.language) {
+    case "en-US":
+      lang = "en"
+      break;
+    case "zh-CN":
+      lang = "zhHans"
+
+      break;
+    case "zh-TW":
+      lang = "zhHant"
+
+      break;
+
+    default:
+      lang = "en"
+      break;
+  }
+
+  let name = (cityName as any)[lang]
+  // console.log("getCityName", cityName, name, lang)
+  return name
+}
+
+
 
 const asyncQueue = new AsyncQueue({
   maxQueueConcurrency: 5,
@@ -764,7 +823,7 @@ export const cityMethods = {
       if (!newCi) return
 
 
-      if (!customGPS) {
+      if (!customGPS && config.turnOnCityVoice) {
 
         // 不包括国家
         let msg = ""
@@ -870,6 +929,29 @@ export const cityMethods = {
       console.error(error)
     }
   }),
+  GetAllCitiesVisitedByUser: createAsyncThunk(modelName + '/GetAllCitiesVisitedByUser', async (
+    { tripIds }: {
+      tripIds: string[]
+    }, thunkAPI) => {
+    const dispatch = thunkAPI.dispatch
+
+    try {
+
+      const res = await httpApi.v1.GetAllCitiesVisitedByUser({
+        tripIds,
+      })
+      console.log("res", res)
+      if (res.code === 200) {
+        dispatch(citySlice.actions.setCities(res.data?.cities || []))
+
+      }
+      return res.data?.cities || []
+    } catch (error) {
+      console.error(error)
+      return []
+    }
+
+  }),
   GetCityDetails: createAsyncThunk(modelName + '/GetCityDetails', async (
     { trip }: {
       trip: protoRoot.trip.ITrip
@@ -911,7 +993,7 @@ export const cityMethods = {
 
           const fullCities = getFullCities(cRes.data?.cities || [], v.cityId || "")
 
-          v.city = fullCities.filter((_, i) => i >= 1).map(v => v.name?.["zhCN"] || "").join("·")
+          v.city = fullCities.filter((_, i) => i >= 1).map(v => getCityName(v.name) || "").join("·")
 
           v.cityDetails = fullCities
 

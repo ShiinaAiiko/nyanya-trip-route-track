@@ -26,7 +26,6 @@ import { Chart } from 'chart.js/auto'
 import {
 	formatAvgPace,
 	formatDistance,
-	formatPositionsStr,
 	formatTime,
 	getDistance,
 	getLatLng,
@@ -44,7 +43,6 @@ import NoSSR from './NoSSR'
 import { useRouter } from 'next/router'
 import { Debounce, deepCopy } from '@nyanyajs/utils'
 import { VehicleLogo } from './Vehicle'
-import { createMaxSpeedMarker } from '../store/position'
 import { initTripCity, initTripItemCity } from '../store/trip'
 import {
 	CityInfo,
@@ -57,6 +55,7 @@ import {
 	deleteCityMarker,
 	formartCities,
 	GeoJSON,
+	getCityName,
 	getSimpleCityName,
 	updateCityMarkers,
 } from '../store/city'
@@ -65,6 +64,8 @@ import {
 	CityTimeLineItem,
 	formatTimeLineCities,
 } from './VisitedCities'
+import { loadModal } from '../store/layout'
+import { createIconMarker } from '../store/map'
 
 // memo()
 const TripItemComponent = memo(
@@ -106,9 +107,14 @@ const TripItemComponent = memo(
 								) as any
 
 								if (cityItem) {
-									cityItem.fullName = cv.cityDetails
-										?.map((v) => v.name?.zhCN)
-										.join(',')
+									cityItem.fullName = {}
+									cityItem.name &&
+										Object.keys(cityItem.name).forEach((lang: any) => {
+											;(cityItem.fullName as any)[lang] = cv.cityDetails
+												?.map((v) => getCityName(v.name))
+												.join(',')
+										})
+
 									cityItem.firstEntryTime = v.timestamp
 								}
 								return cityItem
@@ -125,7 +131,7 @@ const TripItemComponent = memo(
 
 			citiles?.forEach((v) => {
 				const date =
-					v.fullName
+					getCityName(v.fullName)
 						?.split(',')
 						.filter((v, i, arr) => {
 							return i < arr.length - 2 && i > 0
@@ -507,7 +513,8 @@ const TripItemComponent = memo(
 						console.log(
 							'fTripPositions polyline',
 							polycolor?.addTo,
-							map.current
+							map.current,
+							positions
 						)
 						// console.log('LLLLplayline', playline)
 						// console.log('LLLLplayline', playline, playline.setLatLngs(latLngs))
@@ -515,76 +522,42 @@ const TripItemComponent = memo(
 						// console.log('config.mapPolyline.width', config.mapPolyline.width)
 
 						if (positions?.[0]) {
-							let startIcon = L.icon({
-								className: 'map_position_start_icon',
-								iconUrl: '/position_start_green.png',
-								iconSize: [28, 28],
-								// shadowSize: [36, 36],
-								iconAnchor: [14, 25],
-								// shadowAnchor: [4, 62],
-								// popupAnchor: [-3, -76],
-							})
-							L.marker(
-								getLatLng(
+							createIconMarker({
+								map: map.current,
+								latlng: getLatLng(
 									config.mapUrl,
 									positions[0]?.latitude || 0,
 									positions[0]?.longitude || 0
-								) as any,
-								{
-									icon: startIcon,
-								}
-							)
-								.addTo(map.current)
-								// .bindPopup(
-								// 	`${ipInfoObj.ipv4}`
-								// 	// `${ipInfoObj.country}, ${ipInfoObj.regionName}, ${ipInfoObj.city}`
-								// )
-								.openPopup()
+								),
+								type: 'StartPosition',
+							})
 						}
 						if (positions?.[positions.length - 1]) {
-							let endIcon = L.icon({
-								className: 'map_position_end_icon',
-								iconUrl: '/position_end_black.png',
-								iconSize: [26, 34],
-								// iconUrl: '/position_start.png',
-								// iconSize: [28, 28],
-								// shadowSize: [36, 36],
-								iconAnchor: [0, 30],
-								// shadowAnchor: [4, 62],
-								// popupAnchor: [-3, -76],
-							})
-							L.marker(
-								getLatLng(
+							createIconMarker({
+								map: map.current,
+								latlng: getLatLng(
 									config.mapUrl,
 									positions[positions.length - 1]?.latitude || 0,
 									positions[positions.length - 1]?.longitude || 0
-								) as any,
-								{
-									icon: endIcon,
-								}
-							)
-								.addTo(map.current)
-								// .bindPopup(
-								// 	`${ipInfoObj.ipv4}`
-								// 	// `${ipInfoObj.country}, ${ipInfoObj.regionName}, ${ipInfoObj.city}`
-								// )
-								.openPopup()
+								),
+								type: 'EndPosition',
+							})
 						}
 
 						if (maxSpeedPosition) {
-							maxSpeedMarker.current = createMaxSpeedMarker(
-								map.current,
-								maxSpeedPosition?.speed || 0,
-								getLatLng(
+							createIconMarker({
+								map: map.current,
+								maxSpeed: maxSpeedPosition?.speed || 0,
+								latlng: getLatLng(
 									config.mapUrl,
 									maxSpeedPosition.latitude || 0,
 									maxSpeedPosition.longitude || 0
-								)
-							)
+								),
+								type: 'MaxSpeed',
+							})
 						}
 						console.timeEnd('getLatLnggetLatLng')
 					}
-
 					// 添加城市marker
 					console.log('citymarker', trip.cities)
 
@@ -878,6 +851,11 @@ const TripItemComponent = memo(
 									// type: 'linear',
 									display: true,
 									position: 'right',
+									min: -60,
+									max: Math.max(120, Math.max(...speedData) + 10),
+									ticks: {
+										stepSize: 10, // 可选：设置刻度间隔
+									},
 									title: {
 										display: true,
 										text:
@@ -1311,6 +1289,10 @@ const TripItemComponent = memo(
 				}
 				console.log(res?.data?.trip)
 				dispatch(tripSlice.actions.setTripForDetailPage(res?.data?.trip))
+
+				initTripItemCity(res?.data?.trip, true, true).finally(() => {
+					getTrip()
+				})
 			}
 		}
 
@@ -1327,13 +1309,17 @@ const TripItemComponent = memo(
 								<saki-button
 									ref={bindEvent({
 										tap: () => {
-											dispatch(
-												tripSlice.actions.setReplayTripId({
-													id: trip?.id || '',
-													shareKey,
-												})
-											)
-											dispatch(layoutSlice.actions.setOpenReplayTripModal(true))
+											loadModal('ReplayTrip', () => {
+												dispatch(
+													tripSlice.actions.setReplayTripId({
+														id: trip?.id || '',
+														shareKey,
+													})
+												)
+												dispatch(
+													layoutSlice.actions.setOpenReplayTripModal(true)
+												)
+											})
 										},
 									})}
 									width='50px'
@@ -1447,7 +1433,12 @@ const TripItemComponent = memo(
 																			)
 																		break
 																	case 'initTripCity':
-																		initTripItemCity(trip)
+																		initTripItemCity(trip, true, true).finally(
+																			() => {
+																				getTrip()
+																			}
+																		)
+
 																		break
 																	case 'CorrectedData':
 																		finishTrip(true)
@@ -1458,12 +1449,15 @@ const TripItemComponent = memo(
 																		break
 																	case 'Edit':
 																		trip &&
-																			dispatch(
-																				layoutSlice.actions.setEditTripModal({
-																					visible: true,
-																					trip: trip,
-																				})
-																			)
+																			loadModal('TripEdit', () => {
+																				dispatch(
+																					layoutSlice.actions.setEditTripModal({
+																						visible: true,
+																						trip: trip,
+																					})
+																				)
+																			})
+
 																		break
 																	// case 'Replay':
 																	// 	dispatch(
@@ -1507,20 +1501,6 @@ const TripItemComponent = memo(
 														) : (
 															''
 														)}
-														<>
-															<saki-menu-item
-																padding='10px 18px'
-																value={'initTripCity'}
-															>
-																<div className='tb-h-r-user-item'>
-																	<span>
-																		{t('initTripCity', {
-																			ns: 'tripPage',
-																		})}
-																	</span>
-																</div>
-															</saki-menu-item>
-														</>
 														{trip?.status === 1 ? (
 															<>
 																<saki-menu-item
@@ -1633,6 +1613,25 @@ const TripItemComponent = memo(
 																	</span>
 																</div>
 															</saki-menu-item>
+														) : (
+															''
+														)}
+														{user.isLogin ? (
+															<>
+																<saki-menu-item
+																	padding='10px 18px'
+																	value={'initTripCity'}
+																	disabled={!!trip?.cities?.length}
+																>
+																	<div className='tb-h-r-user-item'>
+																		<span>
+																			{t('initTripCity', {
+																				ns: 'tripPage',
+																			})}
+																		</span>
+																	</div>
+																</saki-menu-item>
+															</>
 														) : (
 															''
 														)}

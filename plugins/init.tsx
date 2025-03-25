@@ -30,6 +30,8 @@ const Init = () => {
 		<>
 			<Head>
 				<link rel='icon' href='/favicon.ico' />
+				<link rel='manifest' href={`/manifest.json`} />
+				<script src='/js/sw-register.js' defer></script>
 				<script noModule src={sakiui.jsurl}></script>
 				<script type='module' src={sakiui.esmjsurl}></script>
 				<script noModule src={meowApps.jsurl}></script>

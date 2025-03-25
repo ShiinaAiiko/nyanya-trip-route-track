@@ -44,6 +44,16 @@ export const state = {
   jmDetail: {} as protoRoot.journeyMemory.IJourneyMemoryItem,
   tlPageNum: 1,
   tlPageSize: 100,
+  filterConfig: {
+    startDate: '',
+    endDate: '',
+    selectedVehicleIds: [] as string[],
+    selectedTripTypes: [] as string[],
+    selectedTripIds: [] as string[],
+    shortestDistance: 0,
+    longestDistance: 500,
+    showCustomTrip: false,
+  } as protoRoot.configure.Configure.Filter.IFilterItem
 }
 
 

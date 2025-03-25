@@ -16,7 +16,7 @@
 		"system": "Use device language"
 	},
 	"tripPage": {
-		"pageTitle": "Trip Route Track",
+		"pageTitle": "Start Trip",
 		"subtitle": "Conveniently record GPS route trajectories, speed, mileage, altitude and other travel data~, supporting multiple travel modes such as walking, cycling, and driving.",
 		"all": "All",
 		"running": "Running",
@@ -75,7 +75,14 @@
 
 		"numCities": "{{num}} cities",
 
-		"resumeTripDistanceLimit": "The distance from your last location is more than 100 meters. You can start a new trip."
+		"resumeTripDistanceLimit": "The distance from your last location is more than 100 meters. You can start a new trip.",
+
+		"date": "Travel date",
+
+		"initTripCity": "Initialize Visited Cities"
+	},
+	"replayTripPage": {
+		"title": "Replay Trip"
 	},
 	"trackRoutePage": {
 		"pageTitle": "Historical trip track",
@@ -88,8 +95,9 @@
 
 		"viewDetails": "View details",
 
-		"showCustomTrip": "Show custom trip",
-		"hideCustomTrip": "Hide custom trip"
+		"showAllTrip": "Show all trips",
+		"onlyShowCustomTrip": "Only show custom trips",
+		"showSeedColor": "Show Speed ​​Color"
 	},
 	"tripHistoryPage": {
 		"pageTitle": "Trip History"
@@ -146,6 +154,7 @@
 	},
 	"visitedCitiesModal": {
 		"title": "Visited Cities",
+		"cityTrajectory": "City Trajectory of {{name}}",
 
 		"visitedWorldTitle": "Visited the World",
 		"visitedWorldCount": " countries",
@@ -177,13 +186,13 @@
 		"viewMoment": "View Moment",
 		"moment": "Moment",
 
-		"updateJourneyMemory": "Update Journey Memory",
-		"addJourneyMemory": "Add Journey Memory",
-		"deleteJourneyMemory": "Delete Journey Memory",
+		"updateJourneyMemory": "Update",
+		"addJourneyMemory": "Add",
+		"deleteJourneyMemory": "Delete",
 		"confirmDeleteJourneyMemory": "Are you sure you want to delete this journey memory?",
 
 		"viewMomentMapTrack": "View Moment Track",
-		"viewAllMomentMapTrack": "View All Moments' Tracks",
+		"viewAllMomentMapTrack": "View All Tracks",
 		"createdAt": "Created on {{date}} at {{time}}",
 		"lastUpdatedAt": "Last updated on {{date}} at {{time}}"
 	},
@@ -252,6 +261,9 @@
 
 		"currentPosition": "Current Position",
 		"showAvatarAtCurrentPosition": "Show avatar at current position",
+
+		"turnOnVoice": "Voice broadcast",
+		"turnOnCityVoice": "Turn on city voice broadcast",
 
 		"selectedTripIdsTip": "The selected trip in the list will display the corresponding track color according to the speed of the trip details",
 		"normalMode": "Normal",
@@ -326,7 +338,12 @@
 
 		"filesUploaded": "Uploaded {{count}} files",
 		"uploadCompleted": "Upload Completed",
-		"mediaLimitExceeded": "The number of media cannot exceed 9"
+		"mediaLimitExceeded": "The number of media cannot exceed 9",
+
+		"loadComponent": "Loading {{name}} component",
+		"newVersion": "New Version!",
+		"newVersionContent": "Version {{version}} update has been completed. Do you want to refresh the page?",
+		"refresh": "Refresh"
 	},
 	"weather": {
 		"weather0": "Sunny",

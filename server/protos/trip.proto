@@ -259,6 +259,9 @@ message TripPositions {
   int64 correctedData = 7;
 
   string authorId = 8;
+
+  // 仅前端输出
+  repeated TripPosition positionList = 10;
 }
 
 message GetTripHistoryPositions {

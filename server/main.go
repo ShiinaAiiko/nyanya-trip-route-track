@@ -94,7 +94,34 @@ func main() {
 			// log.Info(cityDbx.AddAndGetFullCity("北碚区·澄江镇"))
 			// log.Info(cityDbx.AddAndGetFullCity("中国·重庆市·北碚区·澄江镇"))
 			// log.Info(cityDbx.InitTripPositionCity("fnh3rVBYC"))
-			// log.Info(cityDbx.NGetAllCitiesVisitedByUser("78L2tkleM"))
+
+			// cityIds, err := cityDbx.GetAllCitiesVisitedByUser("78L2tkleM", []string{
+			// 	"jhLWxii3A", "HjFiAGJwf",
+			// })
+
+			// ids := narrays.Map(cityIds, func(v *dbxv1.UserVisitedCities, index int) string {
+			// 	return v.CityId
+			// })
+
+			// cities, err := cityDbx.GetCities(ids)
+
+			// // for k, v := range cities {
+			// // 	// if k > 5 {
+			// // 	// 	break
+			// // 	// }
+			// // 	// log.Info(k, v.Name)
+			// // }
+
+			// cities, err = cityDbx.CitiesI18n(cities)
+
+			// // for k, v := range tempcities {
+			// // 	if k > 3 {
+			// // 		break
+			// // 	}
+			// // 	log.Info(v.Name)
+			// // }
+
+			// log.Info(len(cities), err)
 
 			// log.Info(narrays.StructDeduplication(
 			// 	[]string{"Mt0nsFQ8F", "SLmSOPHKt", "NGrfTTGCT", "UjbD6RNF7", "Mt0nsFQ8F", "SLmSOPHKt", "NGrfTTGCT", "UjbD6RNF7"},

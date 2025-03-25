@@ -73,6 +73,7 @@ import {
 	createDistanceScaleControl,
 	getZoomDistanceScale,
 } from '../../plugins/map'
+import { loadModal } from '../../store/layout'
 
 let tempTimer: any
 
@@ -687,7 +688,11 @@ const TripPage = () => {
 	}, [testData, startTrip])
 
 	useEffect(() => {
-		dispatch(layoutSlice.actions.setLayoutHeaderLogoText(t('pageTitle')))
+		dispatch(
+			layoutSlice.actions.setLayoutHeaderLogoText(
+				t('appTitle', { ns: 'common' })
+			)
+		)
 	}, [i18n.language])
 
 	useEffect(() => {
@@ -1035,7 +1040,7 @@ const TripPage = () => {
 		if (
 			L &&
 			!loadedMap.current &&
-      geo.position?.coords?.latitude &&
+			geo.position?.coords?.latitude &&
 			config.mapUrl !== 'AutoSelect'
 		) {
 			console.log('initMap1 开始加载！')
@@ -1187,13 +1192,14 @@ const TripPage = () => {
 				})
 			)
 
-			dispatch(
-				methods.city.GetCity({
-					lat: lat,
-					lng: lng,
-					customGPS: true,
-				})
-			)
+			!startTrip &&
+				dispatch(
+					methods.city.GetCity({
+						lat: lat,
+						lng: lng,
+						customGPS: true,
+					})
+				)
 		})
 	}
 
@@ -1652,6 +1658,7 @@ const TripPage = () => {
 				<div className='tp-main'>
 					<ButtonsComponent
 						currentPosition={!startTrip}
+						aichat={config.showIndexPageButton}
 						trackRoute={!startTrip && config.showIndexPageButton}
 						realTimePosition={config.showIndexPageButton && user.isLogin}
 						mark={startTrip}
@@ -1660,6 +1667,12 @@ const TripPage = () => {
 						onCurrentPosition={() => {
 							setDisablePanTo(true)
 							geo.position && panToMap(geo.position, true)
+							map.current?.setView(
+								[geo.position.coords.latitude, geo.position.coords.longitude],
+								// [
+								//   120.3814, -1.09],
+								15
+							)
 							dispatch(
 								geoSlice.actions.setSelectPosition({
 									latitude: -10000,
@@ -1683,6 +1696,8 @@ const TripPage = () => {
 						}
 					></div>
 					<FiexdWeatherComponent
+						showCoords={!startTrip}
+						coords={geo.position.coords}
 						full={startTrip || geo.selectPosition.latitude === -10000}
 					></FiexdWeatherComponent>
 					{startTrip || position.selectRealTimeMarkerId ? (
@@ -1821,16 +1836,18 @@ const TripPage = () => {
 													<saki-button
 														ref={bindEvent({
 															tap: () => {
-																dispatch(
-																	layoutSlice.actions.setTripHistoryType(
-																		(user.isLogin ? v : 'Local') as any
+																loadModal('TripHistory', () => {
+																	dispatch(
+																		layoutSlice.actions.setTripHistoryType(
+																			(user.isLogin ? v : 'Local') as any
+																		)
 																	)
-																)
-																dispatch(
-																	layoutSlice.actions.setOpenTripHistoryModal(
-																		true
+																	dispatch(
+																		layoutSlice.actions.setOpenTripHistoryModal(
+																			true
+																		)
 																	)
-																)
+																})
 															},
 														})}
 														type='CircleIconGrayHover'
