@@ -1499,7 +1499,7 @@ func (fc *TripController) GetTrips(c *gin.Context) {
 		res.Call(c)
 		return
 	}
-	log.Info("getTrips", getTrips)
+	// log.Info("getTrips", getTrips)
 	if len(getTrips) == 0 {
 		res.Errors(err)
 		res.Code = 10006

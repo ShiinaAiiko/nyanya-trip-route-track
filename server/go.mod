@@ -1,6 +1,6 @@
 module github.com/ShiinaAiiko/nyanya-trip-route-track/server
 
-go 1.21
+go 1.22
 
 require (
 	// github.com/cherrai/nyanyago-utils v1.0.0

@@ -207,21 +207,7 @@ const FiexdWeatherComponent = ({
 
 	return (
 		<div
-			className={
-				'fiexd-weather-component ' +
-				config.deviceType +
-				' ' +
-				config.lang +
-				' ' +
-				(config.deviceType === 'Mobile' &&
-				!fullCoords &&
-				!fullWeather &&
-				!fullCityName
-					? 'text-elipsis'
-					: '') +
-				' ' +
-				(full ? 'full' : '')
-			}
+			className={'fiexd-weather-component ' + config.deviceType}
 			onClick={() => {
 				if (!cityInfo.address) return
 
@@ -278,78 +264,111 @@ const FiexdWeatherComponent = ({
 				// }
 			}}
 		>
-			{weatherInfo ? (
+			{showCoords ? (
 				<>
-					{cityInfo?.state ? (
-						<>
-							<span
-								onMouseDown={cityClickEvent.mouseDown}
-								onMouseUp={cityClickEvent.mouseUp}
-								onTouchStart={cityClickEvent.mouseDown}
-								onTouchEnd={cityClickEvent.mouseUp}
-							>
-								{['state', 'region', 'city', 'town', 'road']
-									.map((v) => {
-										const si: any = cityInfo
-										let s = si[v]
-										// console.log(fullCityName, s, v, cityInfo)
-										if (fullCityName) return s
-
-										return getSimpleCityName(s, v)
-									})
-									.filter((v) => !!v)
-									.join('·')}
-							</span>
-							<span>|</span>
-						</>
-					) : (
-						''
-					)}
-					{showCoords ? (
-						<>
-							<span
-								onClick={() => {
-									setFullCoords(!fullCoords)
-									storage.global.set('fullCoords', !fullCoords)
-								}}
-							>
-								<span>
-									{`${
-										fullCoords
-											? t('speed', {
-													ns: 'tripPage',
-											  }) + ' '
-											: ''
-									} ${Math.round((speed * 3600) / 100) / 10} km/h`}
-								</span>
-								<span>·</span>
-								<span>
-									{(fullCoords
-										? t('altitude', {
-												ns: 'tripPage',
-										  }) +
-										  ' ' +
-										  altitude
-										: altitude) + ' m'}
-								</span>
-								<span>|</span>
-							</span>
-						</>
-					) : (
-						''
-					)}
 					<span
 						onClick={() => {
-							setFullWeather(!fullWeather)
-							storage.global.set('fullWeather', !fullWeather)
+							setFullCoords(!fullCoords)
+							storage.global.set('fullCoords', !fullCoords)
 						}}
+						className='fw-cords'
 					>
 						<span>
-							{(openWeatherWMOToEmoji(Number(weatherInfo.weatherCode))?.value ||
-								'') + weatherInfo?.weather}
+							{`${
+								fullCoords
+									? t('speed', {
+											ns: 'tripPage',
+									  }) + ' '
+									: ''
+							} ${Math.round((speed * 3600) / 100) / 10} km/h`}
 						</span>
-						{config.deviceType === 'Mobile' ? (
-							fullWeather ? (
+						<span>·</span>
+						<span>
+							{(fullCoords
+								? t('altitude', {
+										ns: 'tripPage',
+								  }) +
+								  ' ' +
+								  altitude
+								: altitude) + ' m'}
+						</span>
+					</span>
+				</>
+			) : (
+				''
+			)}
+			<div
+				className={
+					'fw-text ' +
+					config.deviceType +
+					' ' +
+					config.lang +
+					' ' +
+					(config.deviceType === 'Mobile' && !fullWeather && !fullCityName
+						? 'text-elipsis'
+						: '') +
+					' ' +
+					(full ? 'full' : '')
+				}
+			>
+				{weatherInfo ? (
+					<>
+						{cityInfo?.state ? (
+							<>
+								<span
+									onMouseDown={cityClickEvent.mouseDown}
+									onMouseUp={cityClickEvent.mouseUp}
+									onTouchStart={cityClickEvent.mouseDown}
+									onTouchEnd={cityClickEvent.mouseUp}
+								>
+									{['state', 'region', 'city', 'town', 'road']
+										.map((v) => {
+											const si: any = cityInfo
+											let s = si[v]
+											// console.log(fullCityName, s, v, cityInfo)
+											if (fullCityName) return s
+
+											return getSimpleCityName(s, v)
+										})
+										.filter((v) => !!v)
+										.join('·')}
+								</span>
+								<span>|</span>
+							</>
+						) : (
+							''
+						)}
+						<span
+							onClick={() => {
+								setFullWeather(!fullWeather)
+								storage.global.set('fullWeather', !fullWeather)
+							}}
+						>
+							<span>
+								{(openWeatherWMOToEmoji(Number(weatherInfo.weatherCode))
+									?.value || '') + weatherInfo?.weather}
+							</span>
+							{config.deviceType === 'Mobile' ? (
+								fullWeather ? (
+									<>
+										<span>|</span>
+										<span>
+											{(fullWeather
+												? t('daysTemperature', {
+														ns: 'weather',
+												  }) + ' '
+												: '') +
+												(weatherInfo.daysTemperature[1] +
+													'℃' +
+													'/' +
+													weatherInfo.daysTemperature[0] +
+													'℃')}
+										</span>
+									</>
+								) : (
+									''
+								)
+							) : (
 								<>
 									<span>|</span>
 									<span>
@@ -365,60 +384,44 @@ const FiexdWeatherComponent = ({
 												'℃')}
 									</span>
 								</>
-							) : (
-								''
-							)
-						) : (
-							<>
-								<span>|</span>
-								<span>
-									{(fullWeather
-										? t('daysTemperature', {
-												ns: 'weather',
-										  }) + ' '
-										: '') +
-										(weatherInfo.daysTemperature[1] +
-											'℃' +
-											'/' +
-											weatherInfo.daysTemperature[0] +
-											'℃')}
-								</span>
-							</>
-						)}
-						<span>|</span>
-						<span>
-							{(fullWeather
-								? t('temperature', {
-										ns: 'weather',
-								  }) + ' '
-								: '') +
-								(weatherInfo.temperature + '℃')}
-						</span>
-						<span>|</span>
-						<span>
-							{(fullWeather
-								? t('apparentTemperature', {
-										ns: 'weather',
-								  }) + ' '
-								: '') +
-								(weatherInfo.apparentTemperature + '℃')}
-						</span>
-						<span>|</span>
-						<span>
-							{weatherInfo.windDirection + ' ' + weatherInfo.windSpeed + 'm/s'}
-						</span>
-						{/* <span>|</span>
+							)}
+							<span>|</span>
+							<span>
+								{(fullWeather
+									? t('temperature', {
+											ns: 'weather',
+									  }) + ' '
+									: '') +
+									(weatherInfo.temperature + '℃')}
+							</span>
+							<span>|</span>
+							<span>
+								{(fullWeather
+									? t('apparentTemperature', {
+											ns: 'weather',
+									  }) + ' '
+									: '') +
+									(weatherInfo.apparentTemperature + '℃')}
+							</span>
+							<span>|</span>
+							<span>
+								{weatherInfo.windDirection +
+									' ' +
+									weatherInfo.windSpeed +
+									'm/s'}
+							</span>
+							{/* <span>|</span>
 					<span>{weatherInfo.windSpeed + 'm/s'}</span> */}
-						<span>|</span>
-						<span>
-							{(fullWeather
-								? t('humidity', {
-										ns: 'weather',
-								  }) + ' '
-								: '') +
-								(weatherInfo.humidity + '%')}
-						</span>
-						{/* <span>|</span>
+							<span>|</span>
+							<span>
+								{(fullWeather
+									? t('humidity', {
+											ns: 'weather',
+									  }) + ' '
+									: '') +
+									(weatherInfo.humidity + '%')}
+							</span>
+							{/* <span>|</span>
 					<span>
 						{(showWeatherTip
 							? t('visibility', {
@@ -427,11 +430,12 @@ const FiexdWeatherComponent = ({
 							: '') + (weatherInfo.visibility / 1000).toFixed(1)}
 						km
 					</span> */}
-					</span>
-				</>
-			) : (
-				''
-			)}
+						</span>
+					</>
+				) : (
+					''
+				)}
+			</div>
 		</div>
 	)
 }

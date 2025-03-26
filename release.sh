@@ -1,7 +1,7 @@
 #! /bin/bash
 name="nyanya-trip-route-track"
 port=23202
-version="v1.0.29"
+version="v1.0.34"
 sakiuiVersion="v1.0.8"
 branch="main"
 # configFilePath="config.dev.json"

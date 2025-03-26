@@ -6,7 +6,7 @@ branch="main"
 # configFilePath="config.dev.json"
 configFilePath="config.pro.json"
 DIR=$(cd $(dirname $0) && pwd)
-allowMethods=("backup runexec run stop gitpull protos dockerremove start logs")
+allowMethods=("unzip backup runexec run stop gitpull protos dockerremove start logs")
 
 gitpull() {
   echo "-> 正在拉取远程仓库"
@@ -35,6 +35,8 @@ start() {
   # cp -r ../protos $DIR/protos_temp
   cp -r ~/.ssh $DIR
   cp -r ~/.gitconfig $DIR
+
+  mkdir -p $DIR/static
 
   echo "-> 准备构建Docker"
   docker build \
@@ -72,7 +74,6 @@ start() {
   rm -rf $DIR/nyanya-toolbox
 }
 
-
 backup() {
   # backupTime=$(date +'%Y-%m-%d_%T')
   # zip -q -r ./saass_$backupTime.zip ./static
@@ -81,6 +82,10 @@ backup() {
   # unzip -d ./ build_2023-07-04_21:11:13.zip
 }
 
+unzip() {
+  mkdir -p $DIR/static
+  tar xvzf $DIR/trip_static.tgz -C $DIR/static
+}
 
 run() {
   echo "-> 正在启动「${runName}」服务"
