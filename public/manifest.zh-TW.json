@@ -1,0 +1,37 @@
+{
+	"short_name": "行程路線軌跡",
+	"name": "行程路線軌跡",
+	"icons": [
+		{
+			"src": "/icons/icon.ico",
+			"sizes": "64x64 32x32 24x24 16x16",
+			"type": "image/x-icon",
+			"purpose": "any maskable"
+		},
+		{
+			"src": "/icons/256x256.png",
+			"type": "image/png",
+			"sizes": "192x192",
+			"purpose": "any maskable"
+		},
+		{
+			"src": "/icons/256x256.png",
+			"type": "image/png",
+			"sizes": "256x256",
+			"purpose": "any maskable"
+		},
+		{
+			"src": "/icons/512x512.png",
+			"type": "image/png",
+			"sizes": "512x512",
+			"purpose": "any maskable"
+		}
+	],
+	"orientation": "portrait-primary",
+	"start_url": "/zh-TW?pwa=true",
+	"scope": "/zh-TW?pwa=true",
+	"display": "standalone",
+	"theme_color": "#ffffff",
+	"background_color": "#ffffff",
+	"description": "便捷方便的記錄GPS路線軌跡、速度、里程、海拔等行程數據~，支援步行、騎行、駕車等多種出行方式。"
+}

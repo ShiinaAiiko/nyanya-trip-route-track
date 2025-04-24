@@ -47,18 +47,20 @@ declare global {
       'saki-linear-progress-bar': any
       'saki-row': any
       'saki-date-picker': any
-      "saki-transition": any
-      "saki-avatar-select": any
-      "saki-slider": any
-      "saki-segmented": any
-      "saki-segmented-item": any
-      "saki-tooltip": any
-      "saki-images": any
-      "saki-carousel": any
-      "saki-carousel-item": any
-      "saki-carousel-nav": any
-      "saki-carousel-nav-item": any
-      "saki-viewer": any
+      'saki-transition': any
+      'saki-avatar-select': any
+      'saki-slider': any
+      'saki-segmented': any
+      'saki-segmented-item': any
+      'saki-tooltip': any
+      'saki-images': any
+      'saki-carousel': any
+      'saki-carousel-item': any
+      'saki-carousel-nav': any
+      'saki-carousel-nav-item': any
+      'saki-viewer': any
+      'saki-waterfall-layout': any
+      'saki-waterfall-layout-item': any
     }
   }
   namespace Window {

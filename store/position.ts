@@ -15,10 +15,9 @@ import { getIconType } from '../components/Vehicle'
 // import { User } from './user'
 // import { WebStorage } from '@nyanyajs/utils'
 
-
 let realTimePositionTimer: NodeJS.Timeout
-let realTimePositionList: protoRoot.position.GetUserPositionAndVehiclePosition.Response.IPositionItem[]
-  = []
+let realTimePositionList: protoRoot.position.GetUserPositionAndVehiclePosition.Response.IPositionItem[] =
+  []
 
 let realTimePositionListMarker: {
   [id: string]: Leaflet.Marker<any> | undefined
@@ -27,20 +26,29 @@ let realTimePositionListMarker: {
 const d = new Debounce()
 // const [selectRealTimeMarkkerId, setSelectRealTimeMarkkerId] = useState('')
 
-
-export const initSyncPosition = (map?: Leaflet.Map) => {
+export const initSyncPosition = (
+  map: Leaflet.Map,
+  showPositionMarker: boolean
+) => {
   clearInterval(realTimePositionTimer)
 
   d.increase(() => {
     const { config, user, position, trip } = store.getState()
 
-    let b = config.userPositionShare >= 0 &&
-      user.isLogin && map &&
-      ((trip.startTrip ? config.syncLocationWhileTraveling : true))
-    console.log("initSyncPosition", b, config.syncLocationWhileTraveling, position.syncPositionIntervalTime)
+    let b =
+      config.userPositionShare >= 0 &&
+      user.isLogin &&
+      map &&
+      (trip.startTrip ? config.syncLocationWhileTraveling : true) &&
+      showPositionMarker
+    console.log(
+      'initSyncPosition',
+      b,
+      config.syncLocationWhileTraveling,
+      position.syncPositionIntervalTime
+    )
 
     if (b && map) {
-
       getUserPositionAndVehiclePosition(map)
       realTimePositionTimer = setInterval(() => {
         getUserPositionAndVehiclePosition(map)
@@ -49,18 +57,20 @@ export const initSyncPosition = (map?: Leaflet.Map) => {
       return
     }
     clearRealTimePositionListMarker()
-  }, 1000)
+  }, 700)
 }
 
 export const clearRealTimePositionListMarker = () => {
-  console.log("initSyncPosition clearRealTimePositionListMarker", realTimePositionListMarker)
+  console.log(
+    'initSyncPosition clearRealTimePositionListMarker',
+    realTimePositionListMarker
+  )
   Object.keys(realTimePositionListMarker).forEach((id) => {
     realTimePositionListMarker[id]?.remove()
     delete realTimePositionListMarker[id]
   })
   realTimePositionListMarker = {}
 }
-
 
 const getUserPositionAndVehiclePosition = async (map: Leaflet.Map) => {
   const { geo, user, trip, vehicle, config, position } = store.getState()
@@ -75,7 +85,7 @@ const getUserPositionAndVehiclePosition = async (map: Leaflet.Map) => {
     // longitude: 110.917969,
   }
   let maxDistance = (startTrip ? 4 : 1500) * 1000
-  let now = Math.floor(new Date().getTime() / 1000)
+  let now = 32503651200
   const res = await httpApi.v1.GetUserPositionAndVehiclePosition({
     maxDistance,
     latitudeLimit: [
@@ -88,12 +98,16 @@ const getUserPositionAndVehiclePosition = async (map: Leaflet.Map) => {
     ],
     timeLimit: [0, now + 10],
   })
-  console.log('initSyncPosition 同步 getUserPositionAndVehiclePosition', res, position.syncPositionIntervalTime)
+  console.log(
+    'initSyncPosition 同步 getUserPositionAndVehiclePosition',
+    res,
+    position.syncPositionIntervalTime
+  )
   if (res.code === 200 && res.data?.list) {
     const newList = res.data?.list || []
     const oldObj: {
       [
-      id: string
+        id: string
       ]: protoRoot.position.GetUserPositionAndVehiclePosition.Response.IPositionItem
     } = Object.fromEntries(
       realTimePositionList.map((v) => [
@@ -191,7 +205,7 @@ const getUserPositionAndVehiclePosition = async (map: Leaflet.Map) => {
       // console.log('同步', v, startTrip)
 
       const [lat, lon] = getLatLng(
-        config.mapUrl,
+        (map as any).mapUrl,
         Number(v.position?.latitude),
         Number(v.position?.longitude)
       ) as any
@@ -205,9 +219,10 @@ const getUserPositionAndVehiclePosition = async (map: Leaflet.Map) => {
 
       if (!realTimePositionListMarker[id]) {
         realTimePositionListMarker[id] = createOtherPositionMarker(
-          map, [lat, lon], v
+          map,
+          [lat, lon],
+          v
         )
-
 
         bindRealTimePositionMarkerClickEvent(id)
         return
@@ -222,7 +237,7 @@ const getUserPositionAndVehiclePosition = async (map: Leaflet.Map) => {
       console.log('检测是否有被删除的marker，有则清除')
       const newObj: {
         [
-        id: string
+          id: string
         ]: protoRoot.position.GetUserPositionAndVehiclePosition.Response.IPositionItem
       } = Object.fromEntries(
         realTimePositionList.map((v) => [
@@ -240,12 +255,10 @@ const getUserPositionAndVehiclePosition = async (map: Leaflet.Map) => {
     return
   }
 
-
   store.dispatch(positionSlice.actions.setSyncPositionIntervalTime(30))
 
   clearRealTimePositionListMarker()
 }
-
 
 const bindRealTimePositionMarkerClickEvent = (id: string) => {
   const marker = realTimePositionListMarker[id]
@@ -267,8 +280,9 @@ export const bindRealTimePositionListMarkerClickEvent = () => {
   })
 }
 
-
-export const createOtherPositionMarker = (map: Leaflet.Map, [lat, lon]: number[],
+export const createOtherPositionMarker = (
+  map: Leaflet.Map,
+  [lat, lon]: number[],
   positionItem: protoRoot.position.GetUserPositionAndVehiclePosition.Response.IPositionItem
 ) => {
   try {
@@ -277,7 +291,7 @@ export const createOtherPositionMarker = (map: Leaflet.Map, [lat, lon]: number[]
 
     const id = positionItem?.vehicleInfo?.id || positionItem?.userInfo?.uid
 
-    console.log("createOtherPositionMarker", map)
+    console.log('createOtherPositionMarker', map)
 
     return L.marker([lat, lon], {
       icon: L.divIcon({
@@ -290,15 +304,17 @@ export const createOtherPositionMarker = (map: Leaflet.Map, [lat, lon]: number[]
       border='2px solid #fff'
       border-hover='2px solid #fff'
       border-active='2px solid #fff'
-      box-shadow='${positionItem.type === 'User' ? '0 0 10px rgba(0, 0, 0, 0.2)' : ''
-          }'
+      box-shadow='${
+        positionItem.type === 'User' ? '0 0 10px rgba(0, 0, 0, 0.2)' : ''
+      }'
       default-icon={'UserLine'}
       nickname='${positionItem.userInfo?.nickname}'
       src='${positionItem.userInfo?.avatar}'
       alt=''
     ></saki-avatar>
-    ${positionItem.type === 'Vehicle'
-            ? `<div class="map-marker-realtime-position-icon">
+    ${
+      positionItem.type === 'Vehicle'
+        ? `<div class="map-marker-realtime-position-icon">
       <saki-icon
   width="22px"
   height="22px"
@@ -306,8 +322,8 @@ export const createOtherPositionMarker = (map: Leaflet.Map, [lat, lon]: number[]
   type='${getIconType(positionItem.vehicleInfo?.type || '')}'
 ></saki-icon>
 </div>`
-            : ''
-          }
+        : ''
+    }
 
     </div>`,
         className: 'map-marker-realtime-position ' + positionItem.type,
@@ -320,7 +336,6 @@ export const createOtherPositionMarker = (map: Leaflet.Map, [lat, lon]: number[]
     console.info(error)
   }
 }
-
 
 // export const createMaxSpeedMarker = (map: Leaflet.Map, maxSpeed: number, [lat, lon]: number[]) => {
 //   const L: typeof Leaflet = (window as any).L
@@ -348,13 +363,15 @@ export const createOtherPositionMarker = (map: Leaflet.Map, [lat, lon]: number[]
 //     .openPopup()
 // }
 
-export const createCustomTripPointMarkerIcon = (distance: number, id: string) => {
+export const createCustomTripPointMarkerIcon = (
+  distance: number,
+  id: string
+) => {
   const L: typeof Leaflet = (window as any).L
   return L.divIcon({
     html: `<div class='map-custom-trip-marker-wrap'>
     <div class="msm-speed">
-      <span>${Math.round((distance || 0) / 10) /
-      100}</span>
+      <span>${Math.round((distance || 0) / 10) / 100}</span>
     <span>km</span>
     </div>
     <div class="msm-icon">
@@ -362,31 +379,41 @@ export const createCustomTripPointMarkerIcon = (distance: number, id: string) =>
     </div>
 
     </div>`,
-    className:
-      'map-custom-trip-marker ' + id,
+    className: 'map-custom-trip-marker ' + id,
     iconSize: undefined,
   })
 }
 
-export const createCustomTripPointMarker = (map: Leaflet.Map, distance: number, id: string, [lat, lon]: number[]) => {
+export const createCustomTripPointMarker = (
+  map: Leaflet.Map,
+  distance: number,
+  id: string,
+  [lat, lon]: number[]
+) => {
   const L: typeof Leaflet = (window as any).L
 
   return L.marker([lat, lon], {
-    icon: createCustomTripPointMarkerIcon(distance, id)
+    icon: createCustomTripPointMarkerIcon(distance, id),
   })
     .addTo(map)
     .openPopup()
 }
 
-export const createMyPositionMarker = (map: Leaflet.Map, [lat, lon]: number[]) => {
+export const createMyPositionMarker = (
+  map: Leaflet.Map,
+  [lat, lon]: number[],
+  showAvatarAtCurrentPosition: boolean
+) => {
   const { user, config } = store.getState()
   const L: typeof Leaflet = (window as any).L
 
-  return L.marker([lat, lon], {
-    icon: L.divIcon({
-      html: `<div class='map_current_position_icon-wrap'>
+  return (
+    L.marker([lat, lon], {
+      icon: L.divIcon({
+        html: `<div class='map_current_position_icon-wrap'>
       <div class='icon'></div>
-      ${user.userInfo?.uid && config.configure.showAvatarAtCurrentPosition
+      ${
+        user.userInfo?.uid && showAvatarAtCurrentPosition
           ? `<div class='saki-avatar'><saki-avatar
         width='${22}px'
         height='${22}px'
@@ -400,36 +427,36 @@ export const createMyPositionMarker = (map: Leaflet.Map, [lat, lon]: number[]) =
         alt=''
       ></saki-avatar></div>`
           : ''
-        }
+      }
 
       </div>`,
-      className:
-        'map_current_position_icon ' +
-        (user?.userInfo?.uid &&
-          config.configure.showAvatarAtCurrentPosition
-          ? ' avatar'
-          : ' noAvatar'),
-      // iconUrl: user?.userInfo?.avatar || '',
-      // iconUrl: '/current_position_50px.png',
-      // iconUrl: user?.userInfo?.avatar || '/current_position_50px.png',
-      iconSize: [26, 26], // size of the icon
-      // shadowSize: [36, 36], // size of the shadow
-      // iconAnchor: [22, 94], // point of the icon which will correspond to marker's location
-      // shadowAnchor: [4, 62], // the same for the shadow
-      // popupAnchor: [-3, -76], // point from which the popup should open relative to the iconAnchor
-    }),
-  })
-    .addTo(map)
-    // .bindPopup(
-    // 	`${ipInfoObj.ipv4}`
-    // 	// `${ipInfoObj.country}, ${ipInfoObj.regionName}, ${ipInfoObj.city}`
-    // )
-    .openPopup()
+        className:
+          'map_current_position_icon ' +
+          (user?.userInfo?.uid && showAvatarAtCurrentPosition
+            ? ' avatar'
+            : ' noAvatar'),
+        // iconUrl: user?.userInfo?.avatar || '',
+        // iconUrl: '/current_position_50px.png',
+        // iconUrl: user?.userInfo?.avatar || '/current_position_50px.png',
+        iconSize: [26, 26], // size of the icon
+        // shadowSize: [36, 36], // size of the shadow
+        // iconAnchor: [22, 94], // point of the icon which will correspond to marker's location
+        // shadowAnchor: [4, 62], // the same for the shadow
+        // popupAnchor: [-3, -76], // point from which the popup should open relative to the iconAnchor
+      }),
+    })
+      .addTo(map)
+      // .bindPopup(
+      // 	`${ipInfoObj.ipv4}`
+      // 	// `${ipInfoObj.country}, ${ipInfoObj.regionName}, ${ipInfoObj.city}`
+      // )
+      .openPopup()
+  )
 }
 
 export let state = {
   syncPositionIntervalTime: 5,
-  selectRealTimeMarkerId: ""
+  selectRealTimeMarkerId: '',
 }
 
 export const positionSlice = createSlice({
@@ -458,7 +485,7 @@ export const positionSlice = createSlice({
 })
 
 export const positionMethods = {
-  init: createAsyncThunk('position/init', async ({ }, thunkAPI) => {
+  init: createAsyncThunk('position/init', async ({}, thunkAPI) => {
     return
   }),
 }

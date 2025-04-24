@@ -9,7 +9,7 @@ let RequestType = protoRoot.base.RequestType
 let ResponseType = protoRoot.base.ResponseType
 let ResponseEncryptDataType = protoRoot.base.ResponseEncryptDataType
 
-export const initPublic = () => { }
+export const initPublic = () => {}
 
 R.interceptors.request.use(async (config) => {
   const { api, user } = store.getState()
@@ -22,6 +22,7 @@ R.interceptors.request.use(async (config) => {
     config.data.deviceId = deviceId
   }
   config.data.userAgent = userAgent
+  console.log('user request', config, config.data)
   // console.log(deepCopy(config))
   // nyanyalog.info("axiosrequest",JSON.parse(JSON.stringify(config.data)))
 
@@ -84,9 +85,9 @@ R.interceptors.request.use(async (config) => {
         userAgent: config.data.userAgent,
         data: config.data.data,
         open: {
-          appKey: "KfVaIIU5ccxJyQjqr0uPQfhB",
-          userId: AES.encrypt("78L2tkleM", "KfVaIIU5ccxJyQjqr0uPQfhB").value
-        }
+          appKey: 'KfVaIIU5ccxJyQjqr0uPQfhB',
+          userId: AES.encrypt('78L2tkleM', 'KfVaIIU5ccxJyQjqr0uPQfhB').value,
+        },
       })
     ).finish()
 
@@ -95,7 +96,6 @@ R.interceptors.request.use(async (config) => {
     }
   }
   // console.log(config.data)
-
 
   // if (config?.config?.dataType === 'protobuf') {
   // 	config.responseType = 'arraybuffer'
@@ -110,10 +110,7 @@ R.interceptors.response.use(async (response) => {
   const config: any = response.config
   // console.log("interceptors", config, config?.config?.dataType)
   // console.log()
-  if (
-    config?.config?.dataType === 'protobuf' &&
-    response?.headers?.['content-type'] === 'application/x-protobuf'
-  ) {
+  if (config?.config?.dataType === 'protobuf' && response?.headers?.['content-type'] === 'application/x-protobuf') {
     // 	// 将二进制数据生成js对象
     // console.log(response.data.protobuf)
     // console.log(Buffer.from(response.data.protobuf, 'utf-8'))
@@ -148,8 +145,6 @@ R.interceptors.response.use(async (response) => {
     })
     // console.log('解密', response.data, data.key)
     delete response.data.protobuf
-
-
 
     if (data?.code !== 200 && data?.code !== 10006) {
       console.error(data)

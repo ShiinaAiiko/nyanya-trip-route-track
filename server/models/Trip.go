@@ -6,6 +6,7 @@ import (
 
 	conf "github.com/ShiinaAiiko/nyanya-trip-route-track/server/config"
 	mongodb "github.com/ShiinaAiiko/nyanya-trip-route-track/server/db/mongo"
+	"github.com/cherrai/nyanyago-utils/fileStorageDB"
 	"github.com/cherrai/nyanyago-utils/validation"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -39,7 +40,8 @@ type TripStatistics struct {
 type TripPermissions struct {
 	// 为空则不支持分享
 	// 传了则视为分享权限，可无视用户校验
-	ShareKey string `bson:"shareKey" json:"shareKey,omitempty"`
+	// ShareKey string `bson:"shareKey" json:"shareKey,omitempty"`
+	AllowShare bool `bson:"allowShare" json:"allowShare,omitempty"`
 
 	CustomTrip bool `bson:"customTrip" json:"customTrip,omitempty"`
 	// Share bool `bson:"share" json:"share,omitempty"`
@@ -113,7 +115,7 @@ func (s *Trip) Default() error {
 		s.CreateTime = unixTimeStamp
 	}
 	if s.LastUpdateTime == 0 {
-		s.LastUpdateTime = -1
+		s.LastUpdateTime = unixTimeStamp
 	}
 	if s.EndTime == 0 {
 		s.EndTime = -1
@@ -130,6 +132,38 @@ func (s *Trip) Default() error {
 
 func (s *Trip) GetCollectionName() string {
 	return "Trip"
+}
+
+type TripFsDB struct {
+	Trip       *fileStorageDB.Model[*Trip]
+	TripIds    *fileStorageDB.Model[[]string]
+	Expiration time.Duration
+}
+
+var tripFsDB *TripFsDB
+
+func (s *Trip) GetFsDB() *TripFsDB {
+	if tripFsDB != nil {
+		return tripFsDB
+	}
+
+	tripDB, err := fileStorageDB.CreateModel[*Trip](conf.FsDB, s.GetCollectionName())
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
+	tripIdsDB, err := fileStorageDB.CreateModel[[]string](conf.FsDB, s.GetCollectionName()+"list")
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
+	db := new(TripFsDB)
+	db.Trip = tripDB
+	db.TripIds = tripIdsDB
+	db.Expiration = 15 * time.Minute
+
+	tripFsDB = db
+	return db
 }
 
 func (s *Trip) GetCollection() *mongo.Collection {

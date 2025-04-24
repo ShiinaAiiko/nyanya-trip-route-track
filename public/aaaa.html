@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pinterest 风格瀑布流</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        background-color: #f5f5f5;
+        padding: 20px;
+        font-family: Arial, sans-serif;
+      }
+
+      .waterfall {
+        column-gap: 12px;
+        width: 100%;
+        max-width: 1200px;
+        margin: 0 auto;
+        column-width: 250px; /* 固定列宽，类似 Pinterest */
+      }
+
+      .item {
+        break-inside: avoid;
+        margin-bottom: 12px;
+        background: #fff;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s;
+      }
+
+      .item:hover {
+        transform: translateY(-4px); /* 悬停效果 */
+      }
+
+      .item img {
+        width: 100%;
+        height: auto;
+        display: block;
+        object-fit: cover; /* 确保图片按比例填充 */
+      }
+
+      /* 响应式：调整列宽和间距 */
+      @media (max-width: 768px) {
+        .waterfall {
+          column-width: 200px;
+          column-gap: 10px;
+        }
+        .item {
+          margin-bottom: 10px;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .waterfall {
+          column-width: 160px;
+          column-gap: 8px;
+        }
+        .item {
+          margin-bottom: 8px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="waterfall">
+      <div class="item"><img src="https://picsum.photos/300/400?random=1" alt="img1" loading="lazy" /></div>
+      <div class="item"><img src="https://picsum.photos/250/300?random=2" alt="img2" loading="lazy" /></div>
+      <div class="item"><img src="https://picsum.photos/320/500?random=3" alt="img3" loading="lazy" /></div>
+      <div class="item"><img src="https://picsum.photos/280/350?random=4" alt="img4" loading="lazy" /></div>
+      <div class="item"><img src="https://picsum.photos/310/420?random=5" alt="img5" loading="lazy" /></div>
+      <div class="item"><img src="https://picsum.photos/260/320?random=6" alt="img6" loading="lazy" /></div>
+      <div class="item"><img src="https://picsum.photos/290/450?random=7" alt="img7" loading="lazy" /></div>
+      <div class="item"><img src="https://picsum.photos/270/380?random=8" alt="img8" loading="lazy" /></div>
+      <div class="item"><img src="https://picsum.photos/300/360?random=9" alt="img9" loading="lazy" /></div>
+      <div class="item"><img src="https://picsum.photos/280/400?random=10" alt="img10" loading="lazy" /></div>
+      <div class="item"><img src="https://picsum.photos/310/340?random=11" alt="img11" loading="lazy" /></div>
+      <div class="item"><img src="https://picsum.photos/260/500?random=12" alt="img12" loading="lazy" /></div>
+      <div class="item"><img src="https://picsum.photos/290/370?random=13" alt="img13" loading="lazy" /></div>
+      <div class="item"><img src="https://picsum.photos/320/410?random=14" alt="img14" loading="lazy" /></div>
+      <div class="item"><img src="https://picsum.photos/270/330?random=15" alt="img15" loading="lazy" /></div>
+      <div class="item"><img src="https://picsum.photos/300/460?random=16" alt="img16" loading="lazy" /></div>
+      <div class="item"><img src="https://picsum.photos/280/390?random=17" alt="img17" loading="lazy" /></div>
+      <div class="item"><img src="https://picsum.photos/310/350?random=18" alt="img18" loading="lazy" /></div>
+      <div class="item"><img src="https://picsum.photos/260/430?random=19" alt="img19" loading="lazy" /></div>
+      <div class="item"><img src="https://picsum.photos/290/380?random=20" alt="img20" loading="lazy" /></div>
+    </div>
+  </body>
+</html>

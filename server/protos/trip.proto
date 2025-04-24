@@ -55,7 +55,7 @@ message TripStatistics {
 }
 
 message TripPermissions {
-  string shareKey = 1;
+  bool allowShare = 1;
   bool customTrip = 2;
 }
 
@@ -88,6 +88,7 @@ message Trip {
   int64 status = 6;
   int64 createTime = 7;
   int64 startTime = 10;
+  int64 lastUpdateTime = 16;
   int64 endTime = 8;
 
   // web专属
@@ -184,8 +185,8 @@ message UpdateTrip {
   message Request {
     // 必填
     string id = 1;
-    // 可填，Generate、Delete
-    string shareKey = 2;
+    // 可填，Allow / NotAllow
+    string allowShare = 2;
     // 可填
     string name = 3;
     // 可填，Running、Bike、Drive
@@ -194,8 +195,6 @@ message UpdateTrip {
     string vehicleId = 5;
   }
   message Response {
-    // 可填
-    string shareKey = 1;
     // 可填
     string name = 2;
   }
@@ -220,20 +219,12 @@ message DeleteTrip {
 }
 
 message GetTrip {
-  message Request {
-    string id = 1;
-    // 可填 传了则视为分享权限，可无视用户校验
-    string shareKey = 2;
-  }
+  message Request { string id = 1; }
   message Response { Trip trip = 1; }
 }
 
 message GetTripPositions {
-  message Request {
-    string id = 1;
-    // 可填 传了则视为分享权限，可无视用户校验
-    string shareKey = 2;
-  }
+  message Request { string id = 1; }
   message Response {
     // 时间记得是输出秒，且输出与startTime相差多少s的数字即可
     // startTime为第一个position的时间戳
@@ -262,11 +253,11 @@ message TripPositions {
 
   // 仅前端输出
   repeated TripPosition positionList = 10;
+  TripPermissions permissions = 11;
 }
 
 message GetTripHistoryPositions {
   message Request {
-    string shareKey = 1;
     // 必选 All、Running、Bike、Drive
     string type = 2;
     // 包括筛选，每次不能传入超过20个数据
@@ -279,6 +270,8 @@ message GetTripHistoryPositions {
     repeated string vehicleLimit = 8;
 
     bool fullData = 7;
+
+    string jmId = 9;
   }
   message Response {
     repeated TripPositions list = 1;
@@ -293,14 +286,18 @@ message GetTrips {
     // 必选 All、Running、Bike、Drive
     string type = 2;
     // 可选 [createTime,endTime]
-    repeated int64 timeLimit = 3;
+    repeated int64 createTimeLimit = 3;
+    // 可选 [startTime,endTime]
+    repeated int64 lastUpdateTimeLimit = 9;
     // 可选 CreateTime / TotalDistance，默认 CreateTime
     string sort = 4;
     int64 pageNum = 5;
     int64 pageSize = 6;
     repeated string vehicleLimit = 7;
+    repeated string journeyMemoryLimit = 10;
     repeated int64 distanceLimit = 8;
 
+    bool turnOffCache = 11;
     // repeated int64 distanceLimit = 7;
   }
   message Response {
@@ -318,6 +315,7 @@ message GetTripStatistics {
     // 可选 [createTime,endTime]
     repeated int64 timeLimit = 3;
     repeated string vehicleLimit = 4;
+    repeated string journeyMemoryLimit = 6;
     repeated int64 distanceLimit = 5;
     // int64 pageNum = 6;
     // int64 pageSize = 7;
@@ -327,16 +325,16 @@ message GetTripStatistics {
     // repeated int64 distanceLimit = 4;
   }
   message Response {
-    // trip.TripHistoricalStatistics statistics = 1;
-    int32 count = 1;
-    // s
-    int64 time = 2;
-    // m
-    double distance = 3;
-    int32 days = 4;
-
-    // repeated Trip list = 4;
-    repeated string uselessData = 5;
+    trip.TripHistoricalStatistics statistics = 1;
+    // int32 count = 1;
+    // // s
+    // int64 time = 2;
+    // // m
+    // double distance = 3;
+    // int32 days = 4;
+    //
+    // // repeated Trip list = 4;
+    // repeated string uselessData = 5;
   }
 }
 
@@ -358,29 +356,35 @@ message TripHistoricalStatistics {
   NumItem minAltitude = 9;
   NumItem maxClimbAltitude = 10;
   NumItem maxDescendAltitude = 11;
+  NumItem maxTotalTripDuration = 13;
+  NumItem maxDrivingDuration = 14;
 }
 
-message GetHistoricalStatistics {
-  message Request {
-    // 必选 Running、Bike、Drive
-    string type = 1;
-    // 可选 [createTime,endTime]
-    repeated int64 timeLimit = 2;
-
-    // repeated int64 distanceLimit = 3;
-  }
-  message Response {
-    // trip.TripHistoricalStatistics statistics = 1;
-    message NumItem {
-      double num = 1;
-      string id = 2;
-    }
-    NumItem maxDistance = 1;
-    NumItem maxSpeed = 2;
-    NumItem fastestAverageSpeed = 3;
-    NumItem maxAltitude = 4;
-    NumItem minAltitude = 5;
-    NumItem maxClimbAltitude = 6;
-    NumItem maxDescendAltitude = 7;
-  }
+// message GetHistoricalStatistics {
+//   message Request {
+//     // 必选 Running、Bike、Drive
+//     string type = 1;
+//     // 可选 [createTime,endTime]
+//     repeated int64 timeLimit = 2;
+//
+//     // repeated int64 distanceLimit = 3;
+//   }
+//   message Response {
+//     trip.TripHistoricalStatistics statistics = 1;
+//     // message NumItem {
+//     //   double num = 1;
+//     //   string id = 2;
+//     // }
+//     // NumItem maxDistance = 1;
+//     // NumItem maxSpeed = 2;
+//     // NumItem fastestAverageSpeed = 3;
+//     // NumItem maxAltitude = 4;
+//     // NumItem minAltitude = 5;
+//     // NumItem maxClimbAltitude = 6;
+//     // NumItem maxDescendAltitude = 7;
+//   }
+// }
+message ClearTripCities {
+  message Request { string tripId = 1; }
+  message Response {}
 }

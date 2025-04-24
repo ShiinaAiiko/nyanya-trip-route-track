@@ -8,15 +8,46 @@ import { protoRoot } from '../protos'
 import { TabsTripType } from './config'
 import store, { methods } from '.'
 import { alert } from '@saki-ui/core'
+// import { MediaItem } from './file'
 
 export const layoutMethods = {}
 
-export type ModalType = "TripEdit" |
-  "Settings" | "Login" |
-  "TripHistory" | "ReplayTrip" |
-  "AddVehicle" | "VisitedCities" |
-  "JourneyMemories" | "CreateCustomTrip" |
-  "FindLocation"
+export type ModalType =
+  | 'TripEdit'
+  | 'Settings'
+  | 'Login'
+  | 'TripHistory'
+  | 'ReplayTrip'
+  | 'AddVehicle'
+  | 'VisitedCities'
+  | 'JourneyMemories'
+  | 'CreateCustomTrip'
+  | 'FindLocation'
+  | 'ImagesWaterfall'
+  | 'MapLayer'
+
+export interface IWMediaItem
+  extends protoRoot.journeyMemory.IJourneyMemoryMediaItem {
+  tlItem: protoRoot.journeyMemory.IJourneyMemoryTimelineItem
+}
+
+export const defaultMapLayerModalFeaturesList = {
+  mapLayer: true,
+  mapMode: true,
+  roadColorFade: true,
+  showAvatarAtCurrentPosition: true,
+  showSpeedColor: true,
+  cityName: true,
+  cityBoundaries: true,
+  tripTrackRoute: true,
+  speedAnimation: true,
+  turnOnVoice: true,
+  showPositionMarker: true,
+  trackSpeedColor: true,
+  trackRouteColor: true,
+  polylineWidth: true,
+  speedColorLimit: true,
+}
 
 export const layoutSlice = createSlice({
   name: 'layout',
@@ -35,7 +66,7 @@ export const layoutSlice = createSlice({
     openCreateCustomTripModal: false,
     openVisitedCitiesModal: {
       visible: false,
-      title: "",
+      title: '',
       tripIds: [] as string[],
     },
     openJourneyMemoriesModal: false,
@@ -48,9 +79,31 @@ export const layoutSlice = createSlice({
       visible: false,
       id: '',
     },
-    openMapLayerModal: false,
+    openMapLayerModal: {
+      visible: false,
+      mapLayerType: '' as keyof protoRoot.configure.Configure.IMapLayer,
+      mapLayerConfig:
+        {} as protoRoot.configure.Configure.MapLayer.IMapLayerItem,
+      modalConfig: {
+        vertical: 'Bottom',
+        horizontal: 'Left',
+        offsetX: '20px',
+        offsetY: '50px',
+      } as {
+        vertical: 'Bottom' | 'Top' | 'Center'
+        horizontal: 'Center' | 'Left' | 'Right'
+        offsetX: string
+        offsetY: string
+      },
+      featuresList: defaultMapLayerModalFeaturesList,
+    },
     openTripTrackRoute: false,
     openTripFilterModal: false,
+    openImagesWaterfallModal: {
+      visible: false,
+      title: '',
+      mediaList: [] as IWMediaItem[],
+    },
     editTripModal: false,
     editTripData: undefined as protoRoot.trip.ITrip | undefined,
     settingType: '',
@@ -58,7 +111,7 @@ export const layoutSlice = createSlice({
 
     loadModals: {} as {
       [type: string]: (() => void)[]
-    }
+    },
   },
   reducers: {
     setLoadModals: (
@@ -68,8 +121,33 @@ export const layoutSlice = createSlice({
         type: string
       }
     ) => {
-      console.log("TripHistory", params.payload)
+      console.log('TripHistory', params.payload)
       state.loadModals = params.payload
+    },
+    setOpenImagesWaterfallModalMediaList: (
+      state,
+      params: {
+        payload: {
+          mediaList: IWMediaItem[]
+          title: string
+        }
+        type: string
+      }
+    ) => {
+      state.openImagesWaterfallModal.mediaList = params.payload.mediaList
+      state.openImagesWaterfallModal.title = params.payload.title || ''
+    },
+    setOpenImagesWaterfallModal: (
+      state,
+      params: {
+        payload: boolean
+        type: string
+      }
+    ) => {
+      state.openImagesWaterfallModal.visible = params.payload
+      if (!params.payload) {
+        state.openImagesWaterfallModal.mediaList = []
+      }
     },
     setOpenJourneyMemoriesModal: (
       state,
@@ -85,9 +163,9 @@ export const layoutSlice = createSlice({
       state,
       params: {
         payload: {
-          visible: boolean,
-          title?: string,
-          tripIds?: string[],
+          visible: boolean
+          title?: string
+          tripIds?: string[]
         }
         type: string
       }
@@ -152,14 +230,39 @@ export const layoutSlice = createSlice({
     ) => {
       state.openTripFilterModal = params.payload
     },
-    setOpenMapLayerModal: (
+    setOpenMapLayerModalFeaturesList: (
       state,
       params: {
-        payload: boolean
+        payload: typeof defaultMapLayerModalFeaturesList
         type: string
       }
     ) => {
-      state.openMapLayerModal = params.payload
+      state.openMapLayerModal.featuresList = params.payload
+    },
+    setOpenMapLayerModal: (
+      state,
+      params: {
+        payload: {
+          visible: boolean
+          mapLayerType?: keyof protoRoot.configure.Configure.IMapLayer
+          mapLayerConfig?: protoRoot.configure.Configure.MapLayer.IMapLayerItem
+
+          modalConfig?: typeof state.openMapLayerModal.modalConfig
+        }
+        type: string
+      }
+    ) => {
+      if (params.payload.mapLayerType) {
+        state.openMapLayerModal.mapLayerType = params.payload.mapLayerType
+      }
+      if (params.payload.mapLayerConfig) {
+        state.openMapLayerModal.mapLayerConfig = params.payload.mapLayerConfig
+      }
+      if (params.payload.modalConfig) {
+        state.openMapLayerModal.modalConfig = params.payload.modalConfig
+      }
+
+      state.openMapLayerModal.visible = params.payload.visible
     },
     setOpenVehicleModal: (
       state,
@@ -294,8 +397,6 @@ export const layoutSlice = createSlice({
     },
   },
 })
-
-
 
 export const loadModal = (type: ModalType, onLoad: () => void) => {
   const { layout } = store.getState()

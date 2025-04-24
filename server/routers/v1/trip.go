@@ -12,6 +12,16 @@ func (r *Routerv1) InitTrip() {
 		BaseUrl: r.BaseUrl,
 	}
 	r.Group.POST(
+		role.SetRole("/trip/cities/clear", &middleware.RoleOptionsType{
+			CheckApp:           false,
+			Authorize:          true,
+			RequestEncryption:  false,
+			ResponseEncryption: false,
+			RequestDataType:    "protobuf",
+			ResponseDataType:   "protobuf",
+		}),
+		tc.ClearTripCities)
+	r.Group.POST(
 		role.SetRole("/trip/add", &middleware.RoleOptionsType{
 			CheckApp:           false,
 			Authorize:          true,
@@ -135,7 +145,7 @@ func (r *Routerv1) InitTrip() {
 	r.Group.GET(
 		role.SetRole("/trip/history/positions/get", &middleware.RoleOptionsType{
 			CheckApp:           false,
-			Authorize:          true,
+			Authorize:          false,
 			RequestEncryption:  false,
 			ResponseEncryption: false,
 			RequestDataType:    "protobuf",
@@ -165,16 +175,16 @@ func (r *Routerv1) InitTrip() {
 		}),
 		tc.GetTripStatistics)
 
-	r.Group.GET(
-		role.SetRole("/trip/historicalStatistics/get", &middleware.RoleOptionsType{
-			CheckApp:           false,
-			Authorize:          true,
-			RequestEncryption:  false,
-			ResponseEncryption: false,
-			RequestDataType:    "protobuf",
-			ResponseDataType:   "protobuf",
-		}),
-		tc.GetHistoricalStatistics)
+	// r.Group.GET(
+	// 	role.SetRole("/trip/historicalStatistics/get", &middleware.RoleOptionsType{
+	// 		CheckApp:           false,
+	// 		Authorize:          true,
+	// 		RequestEncryption:  false,
+	// 		ResponseEncryption: false,
+	// 		RequestDataType:    "protobuf",
+	// 		ResponseDataType:   "protobuf",
+	// 	}),
+	// 	tc.GetHistoricalStatistics)
 
 	r.Group.POST(
 		role.SetRole("/trip/resume", &middleware.RoleOptionsType{

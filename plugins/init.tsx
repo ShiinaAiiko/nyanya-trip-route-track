@@ -11,34 +11,42 @@ import { initPublic } from './public'
 nyanyalog.timer()
 
 const Init = () => {
-	const router = useRouter()
-	const dispatch = useDispatch<AppDispatch>()
-	const api = useSelector((state: RootState) => state.api)
-	const store = useStore()
+  const router = useRouter()
+  const dispatch = useDispatch<AppDispatch>()
+  const api = useSelector((state: RootState) => state.api)
+  const store = useStore()
 
-	useEffect(() => {
-		const init = async () => {
-			document.body.ontouchstart = () => {}
-			initPublic()
+  useEffect(() => {
+    const init = async () => {
+      document.body.ontouchstart = () => {}
+      initPublic()
 
-			await dispatch(methods.config.init()).unwrap()
-		}
-		init()
-	}, [])
+      // await dispatch(methods.config.init()).unwrap()
+    }
+    init()
+  }, [])
 
-	return (
-		<>
-			<Head>
-				<link rel='icon' href='/favicon.ico' />
-				<link rel='manifest' href={`/manifest.json`} />
-				<script src='/js/sw-register.js' defer></script>
-				<script noModule src={sakiui.jsurl}></script>
-				<script type='module' src={sakiui.esmjsurl}></script>
-				<script noModule src={meowApps.jsurl}></script>
-				<script type='module' src={meowApps.esmjsurl}></script>
-			</Head>
-		</>
-	)
+  return (
+    <>
+      <Head>
+        <link rel="icon" href="/favicon.ico" />
+        {/* <link rel='manifest' href={`/manifest.json`} /> */}
+        <link
+          rel="manifest"
+          href={`/manifest${
+            router.query.lang && router.query.lang !== 'en-US'
+              ? '.' + router.query.lang
+              : ''
+          }.json`}
+        />
+        <script src="/js/sw-register.js" defer></script>
+        <script noModule src={sakiui.jsurl}></script>
+        <script type="module" src={sakiui.esmjsurl}></script>
+        <script noModule src={meowApps.jsurl}></script>
+        <script type="module" src={meowApps.esmjsurl}></script>
+      </Head>
+    </>
+  )
 }
 
 export default Init

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math"
 	"os"
 	"sort"
@@ -13,6 +14,7 @@ import (
 	"github.com/ShiinaAiiko/nyanya-trip-route-track/server/models"
 	"github.com/ShiinaAiiko/nyanya-trip-route-track/server/protos"
 	"github.com/ShiinaAiiko/nyanya-trip-route-track/server/services/methods"
+	"github.com/cherrai/nyanyago-utils/cipher"
 	"github.com/cherrai/nyanyago-utils/narrays"
 	"github.com/cherrai/nyanyago-utils/ncommon"
 	"github.com/cherrai/nyanyago-utils/nlog"
@@ -32,22 +34,22 @@ type TripDbx struct {
 func (t *TripDbx) GetShortId(digits int) string {
 	str := nshortid.GetShortId(digits)
 
-	shortUrl, err := t.GetTrip(str, "", "")
+	shortUrl, err := t.GetTrip(str, "")
 	if shortUrl == nil || err != nil {
 		return str
 	}
 	return t.GetShortId(digits)
 }
 
-func (t *TripDbx) GetShareKey(digits int) string {
-	str := nshortid.GetShortId(digits)
+// func (t *TripDbx) GetShareKey(digits int) string {
+// 	str := nshortid.GetShortId(digits)
 
-	shareKey, err := t.GetTripByShareKey(str)
-	if shareKey == "" || err != nil {
-		return str
-	}
-	return t.GetShortId(digits)
-}
+// 	shareKey, err := t.GetTripByShareKey(str)
+// 	if shareKey == "" || err != nil {
+// 		return str
+// 	}
+// 	return t.GetShortId(digits)
+// }
 
 func (t *TripDbx) AddTrip(trip *models.Trip) (*models.Trip, error) {
 	// 1、插入数据
@@ -149,7 +151,7 @@ func (t *TripDbx) UpdateTripCities(id, authorId string,
 }
 
 func (t *TripDbx) UpdateTripPosition(authorId, id string, positions []*models.TripPosition, distance float64) error {
-	trip, err := t.GetTrip(id, authorId, "")
+	trip, err := t.GetTrip(id, authorId)
 	if err != nil {
 		return err
 	}
@@ -225,10 +227,11 @@ func (t *TripDbx) FinishTrip(authorId, id string,
 			},
 		}, bson.M{
 			"$set": bson.M{
-				"status":      1,
-				"statistics":  statistics,
-				"permissions": permissions,
-				"endTime":     endTime,
+				"status":         1,
+				"statistics":     statistics,
+				"permissions":    permissions,
+				"endTime":        endTime,
+				"lastUpdateTime": time.Now().Unix(),
 			},
 		}, options.Update().SetUpsert(false))
 
@@ -362,7 +365,7 @@ func (t *TripDbx) GetTripStatistics(
 	ts := new(models.TripStatistics)
 	// log.Info("GetStatistics", id)
 
-	trip, err := t.GetTripPositions(id, "", "")
+	trip, err := t.GetTripPositions(id, "")
 
 	if endTime == 0 {
 		endTime = trip.EndTime
@@ -443,7 +446,7 @@ func (t *TripDbx) GetTripStatistics(
 
 func (t *TripDbx) CheckEndTime(v *models.Trip) *models.Trip {
 	if v.EndTime < v.StartTime {
-		vTrip, err := t.GetTripPositions(v.Id, v.AuthorId, "")
+		vTrip, err := t.GetTripPositions(v.Id, v.AuthorId)
 		log.Info("vTrip", vTrip, err, v.Id, v.AuthorId, "")
 		if vTrip == nil {
 			return v
@@ -517,8 +520,9 @@ func (t *TripDbx) CorrectedTripData(authorId, id string,
 			},
 		}, bson.M{
 			"$set": bson.M{
-				"status":     1,
-				"statistics": statistics,
+				"status":         1,
+				"statistics":     statistics,
+				"lastUpdateTime": time.Now().Unix(),
 			},
 		}, options.Update().SetUpsert(false))
 
@@ -534,15 +538,14 @@ func (t *TripDbx) CorrectedTripData(authorId, id string,
 	return nil
 }
 
-func (t *TripDbx) UpdateTrip(authorId, id string, shareKey, name, typeStr, vehicleId string) error {
+func (t *TripDbx) UpdateTrip(authorId, id string, allowShare, name, typeStr, vehicleId string) error {
 	trip := new(models.Trip)
 
-	update := bson.M{}
-	if shareKey != "" {
-		update["permissions.shareKey"] = shareKey
-		if shareKey == "disable" {
-			update["permissions.shareKey"] = ""
-		}
+	update := bson.M{
+		"lastUpdateTime": time.Now().Unix(),
+	}
+	if allowShare != "" {
+		update["permissions.allowShare"] = allowShare == "Allow"
 	}
 	if name != "" {
 		update["name"] = name
@@ -730,7 +733,7 @@ func (t *TripDbx) DeleteTrip(authorId, id string) error {
 // 存储到temp文件夹里
 func (t *TripDbx) UpdateTripAllPositions(authorId, id string, positions []*models.TripPosition) error {
 	// trip := new(models.Trip)
-	trip, err := t.GetTrip(id, authorId, "")
+	trip, err := t.GetTrip(id, authorId)
 	if err != nil {
 		return err
 	}
@@ -747,7 +750,8 @@ func (t *TripDbx) UpdateTripAllPositions(authorId, id string, positions []*model
 			"$set": bson.M{
 				// "positions": positions,
 				// 已完成过的就不需要重新为0了
-				"status": 0,
+				"status":         0,
+				"lastUpdateTime": time.Now().Unix(),
 			},
 		}, options.Update().SetUpsert(false))
 
@@ -792,29 +796,29 @@ var tripProject = bson.M{
 	"deleteTime":  1,
 }
 
-func (t *TripDbx) GetTrip(id string, authorId string, shareKey string) (*models.Trip, error) {
+func (t *TripDbx) GetTrip(id string, authorId string) (*models.Trip, error) {
 	trip := new(models.Trip)
 
-	key := conf.Redisdb.GetKey("GetTrip")
-	err := conf.Redisdb.GetStruct(key.GetKey(id), trip)
-	// log.Info(trip)
-	// log.Info("trip.Permissions.ShareKey", trip.Permissions.ShareKey, shareKey)
+	fsdb := trip.GetFsDB()
+	log.Info("GetTrip", id, authorId)
 
-	dev := true
-	// dev := false
+	val, err := fsdb.Trip.Get(id)
 
-	if !dev && shareKey != "" && trip != nil && trip.Permissions != nil && trip.Permissions.ShareKey == shareKey {
-		return trip, nil
+	if err == nil {
+		tempTrip := val.Value()
+		log.Info("tempTrip", tempTrip)
+		if authorId != "" && tempTrip.AuthorId == authorId {
+			return tempTrip, err
+		} else {
+			trip = tempTrip
+		}
 	}
-	if !dev && authorId != "" && trip != nil && trip.AuthorId == authorId {
-		return trip, nil
-	}
-	if err != nil || dev {
+
+	log.Info("trip", trip)
+
+	if trip.Id == "" {
 		params := bson.M{
 			"_id": id,
-		}
-		if shareKey != "" {
-			params["permissions.shareKey"] = shareKey
 		}
 
 		if authorId != "" {
@@ -828,10 +832,10 @@ func (t *TripDbx) GetTrip(id string, authorId string, shareKey string) (*models.
 		if err != nil {
 			return nil, err
 		}
-	}
-	err = conf.Redisdb.SetStruct(key.GetKey(id), trip, key.GetExpiration())
-	if err != nil {
-		log.Info(err)
+
+		if err := fsdb.Trip.Set(id, trip, 61*time.Minute); err != nil {
+			log.Error(err)
+		}
 	}
 
 	return trip, nil
@@ -850,12 +854,12 @@ var tripPositionsProject = bson.M{
 	// "positions.speed":      1,
 	// "positions.heading":      1,
 	// "positions.timestamp":  1,
-	"permissions.shareKey": 1,
-	"authorId":             1,
-	"status":               1,
-	"createTime":           1,
-	"startTime":            1,
-	"endTime":              1,
+	"permissions": 1,
+	"authorId":    1,
+	"status":      1,
+	"createTime":  1,
+	"startTime":   1,
+	"endTime":     1,
 }
 
 func (t *TripDbx) TempDownloadTripPositionsToLocal(pageNum, pageSize int64) {
@@ -1122,7 +1126,7 @@ func readTempGPSFile(trip *models.Trip, tempFile bool) (*models.Trip, error) {
 	decoder := json.NewDecoder(jsonFile)
 
 	err := decoder.Decode(&tempTrip)
-	if err != nil {
+	if err != nil || len(*tempTrip) == 0 {
 		if tempFile {
 			return readTempGPSFile(trip, false)
 		}
@@ -1133,7 +1137,7 @@ func readTempGPSFile(trip *models.Trip, tempFile bool) (*models.Trip, error) {
 	return trip, nil
 }
 
-func (t *TripDbx) GetTripPositions(id string, authorId string, shareKey string) (*models.Trip, error) {
+func (t *TripDbx) GetTripPositions(id string, authorId string) (*models.Trip, error) {
 	trip := new(models.Trip)
 
 	// log.Info("redis1")
@@ -1150,29 +1154,39 @@ func (t *TripDbx) GetTripPositions(id string, authorId string, shareKey string) 
 	// // }
 	// if true || err != nil {
 
-	trip, err := t.GetTrip(id, authorId, "")
-	if err != nil {
+	getTrip, err := t.GetTrip(id, authorId)
+	if err != nil || getTrip == nil {
 		return nil, err
 	}
 
-	params := bson.M{
-		"_id": id,
-	}
-	if shareKey != "" {
-		params["permissions.shareKey"] = shareKey
-	}
+	// params := bson.M{
+	// 	"_id": id,
+	// }
+	// // if shareKey != "" {
+	// // 	params["permissions.shareKey"] = shareKey
+	// // }
 
-	if authorId != "" {
-		params["authorId"] = authorId
-	}
+	// if authorId != "" {
+	// 	params["authorId"] = authorId
+	// }
 
-	opts := options.FindOne().SetProjection(
-		tripPositionsProject,
-	)
+	// opts := options.FindOne().SetProjection(
+	// 	tripPositionsProject,
+	// )
 
-	if err := trip.GetCollection().FindOne(context.TODO(), params, opts).Decode(trip); err != nil {
-		return nil, err
-	}
+	// if err := trip.GetCollection().FindOne(context.TODO(), params, opts).Decode(trip); err != nil {
+	// 	return nil, err
+	// }
+	trip.Id = getTrip.Id
+	trip.Name = getTrip.Name
+	trip.Type = getTrip.Type
+	trip.VehicleId = getTrip.VehicleId
+	trip.Permissions = getTrip.Permissions
+	trip.AuthorId = getTrip.AuthorId
+	trip.Status = getTrip.Status
+	trip.CreateTime = getTrip.CreateTime
+	trip.StartTime = getTrip.StartTime
+	trip.EndTime = getTrip.EndTime
 
 	if _, err := readGPSFile(trip); err != nil {
 		return nil, err
@@ -1212,42 +1226,42 @@ func (t *TripDbx) GetTripById(id string) (*models.Trip, error) {
 	return trip, nil
 }
 
-func (t *TripDbx) GetTripByShareKey(shareKey string) (string, error) {
-	trip := new(models.Trip)
+// func (t *TripDbx) GetTripByShareKey(shareKey string) (string, error) {
+// 	trip := new(models.Trip)
 
-	key := conf.Redisdb.GetKey("GetTripByShareKey")
-	nv, err := conf.Redisdb.Get(key.GetKey(shareKey))
-	if err != nil {
-		return "", err
-	}
-	sk := nv.String()
-	if sk != "" {
-		return sk, nil
+// 	key := conf.Redisdb.GetKey("GetTripByShareKey")
+// 	nv, err := conf.Redisdb.Get(key.GetKey(shareKey))
+// 	if err != nil {
+// 		return "", err
+// 	}
+// 	sk := nv.String()
+// 	if sk != "" {
+// 		return sk, nil
 
-	}
-	params := bson.M{
-		"permissions.shareKey": shareKey,
-	}
+// 	}
+// 	params := bson.M{
+// 		"permissions.shareKey": shareKey,
+// 	}
 
-	opts := options.FindOne().SetProjection(
-		bson.D{
-			{"permissions", 1},
-		},
-	)
-	err = trip.GetCollection().FindOne(
-		context.TODO(), params, opts,
-	).Decode(trip)
+// 	opts := options.FindOne().SetProjection(
+// 		bson.D{
+// 			{"permissions", 1},
+// 		},
+// 	)
+// 	err = trip.GetCollection().FindOne(
+// 		context.TODO(), params, opts,
+// 	).Decode(trip)
 
-	if err != nil {
-		return "", err
-	}
-	err = conf.Redisdb.Set(key.GetKey(shareKey), trip.Permissions.ShareKey, key.GetExpiration())
-	if err != nil {
-		log.Info(err)
-	}
+// 	if err != nil {
+// 		return "", err
+// 	}
+// 	err = conf.Redisdb.Set(key.GetKey(shareKey), trip.Permissions.ShareKey, key.GetExpiration())
+// 	if err != nil {
+// 		log.Info(err)
+// 	}
 
-	return trip.Permissions.ShareKey, nil
-}
+// 	return trip.Permissions.ShareKey, nil
+// }
 
 func (t *TripDbx) GetTripAllPositions(authorId, typeStr string,
 	pageNum, pageSize int64, ids []string,
@@ -1374,7 +1388,7 @@ func (t *TripDbx) FormatTripStatistics(trips []*models.Trip) *protos.TripHistori
 		Id:  "",
 	}
 	minAltitude := &protos.TripHistoricalStatistics_NumItem{
-		Num: 0,
+		Num: 9999999999,
 		Id:  "",
 	}
 	maxClimbAltitude := &protos.TripHistoricalStatistics_NumItem{
@@ -1385,9 +1399,20 @@ func (t *TripDbx) FormatTripStatistics(trips []*models.Trip) *protos.TripHistori
 		Num: 0,
 		Id:  "",
 	}
+	maxTotalTripDuration := &protos.TripHistoricalStatistics_NumItem{
+		Num: 0,
+		Id:  "",
+	}
+	maxDrivingDuration := &protos.TripHistoricalStatistics_NumItem{
+		Num: 0,
+		Id:  "",
+	}
 	// trips := []*protos.Trip{}
 	for _, v := range trips {
 
+		if v.Permissions.CustomTrip {
+			continue
+		}
 		if maxDistance.Num <= v.Statistics.Distance {
 			maxDistance.Num = v.Statistics.Distance
 			maxDistance.Id = v.Id
@@ -1408,13 +1433,23 @@ func (t *TripDbx) FormatTripStatistics(trips []*models.Trip) *protos.TripHistori
 			minAltitude.Num = v.Statistics.MinAltitude
 			minAltitude.Id = v.Id
 		}
-		if maxClimbAltitude.Num >= v.Statistics.ClimbAltitude {
+		// log.Info("v.Statistics.ClimbAltitude", v.Id,
+		// 	v.Status,
+		// 	v.Statistics.ClimbAltitude, v.Statistics.DescendAltitude, v.Statistics.MinAltitude)
+		if maxClimbAltitude.Num <= v.Statistics.ClimbAltitude && v.Statistics.ClimbAltitude != 0 {
 			maxClimbAltitude.Num = v.Statistics.ClimbAltitude
 			maxClimbAltitude.Id = v.Id
 		}
-		if maxDescendAltitude.Num >= v.Statistics.DescendAltitude {
+		if maxDescendAltitude.Num <= v.Statistics.DescendAltitude && v.Statistics.DescendAltitude != 0 {
 			maxDescendAltitude.Num = v.Statistics.DescendAltitude
 			maxDescendAltitude.Id = v.Id
+		}
+
+		tempTime := v.EndTime - v.StartTime
+
+		if maxTotalTripDuration.Num <= float64(tempTime) {
+			maxTotalTripDuration.Num = float64(tempTime)
+			maxTotalTripDuration.Id = v.Id
 		}
 
 		if v.Status == 0 && v.Statistics.Distance < 50 {
@@ -1424,7 +1459,7 @@ func (t *TripDbx) FormatTripStatistics(trips []*models.Trip) *protos.TripHistori
 			continue
 		}
 		distance += v.Statistics.Distance
-		timeSec += v.EndTime - v.StartTime
+		timeSec += tempTime
 
 		t := time.Unix(v.StartTime, 0)
 		dateStr := t.Format("2006-01-02")
@@ -1436,6 +1471,9 @@ func (t *TripDbx) FormatTripStatistics(trips []*models.Trip) *protos.TripHistori
 		// trips = append(trips, formartTrip(v))
 	}
 
+	// log.Info(days)
+
+	ths.UselessData = uselessData
 	ths.Count = int32(len(trips))
 	ths.Time = timeSec
 	ths.Distance = distance
@@ -1447,6 +1485,8 @@ func (t *TripDbx) FormatTripStatistics(trips []*models.Trip) *protos.TripHistori
 	ths.MinAltitude = minAltitude
 	ths.MaxClimbAltitude = maxClimbAltitude
 	ths.MaxDescendAltitude = maxDescendAltitude
+	ths.MaxTotalTripDuration = maxTotalTripDuration
+	ths.MaxDrivingDuration = maxDrivingDuration
 
 	return &ths
 }
@@ -1456,12 +1496,61 @@ func (t *TripDbx) GetTripsBaseData(
 	ids []string,
 	authorId, typeStr string,
 	pageNum, pageSize int64,
-	startTime, endTime int64,
+	createTimeLimit []int64,
+	lastUpdateTimeLimit []int64,
 	vehicleLimit []string,
 	minDistance int64,
-	maxDistance int64) ([]*models.Trip, error) {
+	maxDistance int64, cache bool) ([]*models.Trip, error) {
 	trip := new(models.Trip)
 	var results []*models.Trip
+	k := authorId + cipher.MD5(
+		fmt.Sprint(ids)+
+			typeStr+
+			fmt.Sprint(pageNum)+
+			fmt.Sprint(pageSize)+
+			fmt.Sprint(createTimeLimit)+
+			fmt.Sprint(lastUpdateTimeLimit)+
+			fmt.Sprint(vehicleLimit)+
+			fmt.Sprint(minDistance)+
+			fmt.Sprint(maxDistance),
+	)
+	fsdb := trip.GetFsDB()
+
+	if cache {
+		l1 := log.Time()
+		val, err := fsdb.TripIds.Get(k)
+		// log.Info(k)
+
+		if err == nil {
+			tempIds := val.Value()
+
+			tempTrips := fsdb.Trip.MGet(tempIds)
+
+			for _, v := range tempTrips {
+				results = append(results, v.Val.Value())
+			}
+
+			if len(results) > 0 {
+				sort.SliceStable(results, func(i, j int) bool {
+					return results[i].CreateTime > results[j].CreateTime
+				})
+			}
+
+			// log.Info("GetTripsBaseData tempTrips", tempIds, tempTrips)
+		}
+		l1.TimeEnd("fsdb.TripIds.Get(k)")
+
+		log.Info("GetTripsBaseData", len(results), k, len(ids), err)
+	}
+	// log.Info("fsdb k", k, fmt.Sprint(ids)+
+	// 	authorId+typeStr+
+	// 	fmt.Sprint(pageNum)+
+	// 	fmt.Sprint(pageSize)+
+	// 	fmt.Sprint(createTimeLimit)+
+	// 	fmt.Sprint(lastUpdateTimeLimit)+
+	// 	fmt.Sprint(vehicleLimit)+
+	// 	fmt.Sprint(minDistance)+
+	// 	fmt.Sprint(maxDistance))
 
 	// key := conf.Redisdb.GetKey("GetTrips")
 	// err := conf.Redisdb.GetStruct(key.GetKey(
@@ -1471,89 +1560,133 @@ func (t *TripDbx) GetTripsBaseData(
 	// 		nstrings.ToString(startTime)+
 	// 		nstrings.ToString(endTime),
 	// ), results)
-	// if err != nil || true {
+	l2 := log.Time()
+	if len(results) == 0 || !cache {
 
-	match := bson.M{
-		"authorId": authorId,
-		"status": bson.M{
-			"$in": []int64{1, 0},
-		},
-		"createTime": bson.M{
-			"$gte": startTime,
-			"$lt":  endTime,
-		},
-		"statistics.distance": bson.M{
-			"$gte": minDistance,
-		},
-	}
-	if typeStr != "All" {
-		match["type"] = typeStr
-	}
-	if len(ids) > 0 {
-		match["_id"] = bson.M{
-			"$in": ids,
+		match := bson.M{
+			"authorId": authorId,
+			"status": bson.M{
+				"$in": []int64{1, 0},
+			},
+			"createTime": bson.M{
+				"$gte": 0,
+				"$lt":  time.Now().Unix(),
+			},
+			"lastUpdateTime": bson.M{
+				"$gte": 0,
+				"$lt":  time.Now().Unix(),
+			},
+			"statistics.distance": bson.M{
+				"$gte": minDistance,
+			},
 		}
-	}
-	if len(vehicleLimit) > 0 {
-		match["vehicleId"] = bson.M{
-			"$in": vehicleLimit,
+		if len(createTimeLimit) == 2 {
+			match["createTime"] = bson.M{
+				"$gte": createTimeLimit[0],
+				"$lt":  createTimeLimit[1],
+			}
 		}
-	}
+		if len(lastUpdateTimeLimit) == 2 {
+			match["lastUpdateTime"] = bson.M{
+				"$gte": lastUpdateTimeLimit[0],
+				"$lt":  lastUpdateTimeLimit[1],
+			}
+		}
+		if typeStr != "All" {
+			match["type"] = typeStr
+		}
+		if len(ids) > 0 {
+			match["_id"] = bson.M{
+				"$in": ids,
+			}
+		}
+		if len(vehicleLimit) > 0 {
+			match["vehicleId"] = bson.M{
+				"$in": vehicleLimit,
+			}
+		}
 
-	if maxDistance < 500*1000 {
-		match["statistics.distance"] = bson.M{
-			"$gte": minDistance,
-			"$lt":  maxDistance,
+		if maxDistance < 500*1000 {
+			match["statistics.distance"] = bson.M{
+				"$gte": minDistance,
+				"$lt":  maxDistance,
+			}
 		}
-	}
 
-	params := []bson.M{
-		{
-			"$match": bson.M{
-				"$and": []bson.M{
-					match,
+		params := []bson.M{
+			{
+				"$match": bson.M{
+					"$and": []bson.M{
+						match,
+					},
+				},
+			}, {
+				"$sort": bson.M{
+					"status":     1,
+					"createTime": -1,
+					// "lastUpdateTime": -1,
 				},
 			},
-		}, {
-			"$sort": bson.M{
-				"status":     1,
-				"createTime": -1,
+			{
+				"$skip": pageSize * (pageNum - 1),
 			},
-		},
-		{
-			"$skip": pageSize * (pageNum - 1),
-		},
-		{
-			"$limit": pageSize,
-		},
-		{
-			"$project": bson.M{
-				"_id":         1,
-				"name":        1,
-				"type":        1,
-				"authorId":    1,
-				"vehicleId":   1,
-				"cities":      1,
-				"status":      1,
-				"statistics":  1,
-				"permissions": 1,
-				"startTime":   1,
-				"endTime":     1,
-				"createTime":  1,
+			{
+				"$limit": pageSize,
 			},
-		},
-	}
+			{
+				"$project": bson.M{
+					"_id":            1,
+					"name":           1,
+					"type":           1,
+					"authorId":       1,
+					"vehicleId":      1,
+					"cities":         1,
+					"status":         1,
+					"statistics":     1,
+					"permissions":    1,
+					"startTime":      1,
+					"endTime":        1,
+					"createTime":     1,
+					"lastUpdateTime": 1,
+				},
+			},
+		}
 
-	opts, err := trip.GetCollection().Aggregate(context.TODO(), params)
-	if err != nil {
-		// log.Error(err)
-		return nil, err
+		opts, err := trip.GetCollection().Aggregate(context.TODO(), params)
+		if err != nil {
+			// log.Error(err)
+			return nil, err
+		}
+		if err = opts.All(context.TODO(), &results); err != nil {
+			// log.Error(err)
+			return nil, err
+		}
+
+		if cache {
+			l3 := log.Time()
+			tripIds := narrays.Map(results, func(v *models.Trip, i int) string {
+				return v.Id
+			})
+			err = fsdb.TripIds.Set(k, tripIds, 60*time.Minute)
+			if err != nil {
+				log.Error(err)
+			} else {
+
+				for _, v := range results {
+					if err := fsdb.Trip.Set(v.Id, v, 61*time.Minute); err != nil {
+						log.Error(err)
+					}
+				}
+			}
+			l3.TimeEnd(" fsdb.TripIds.Set(k, narray")
+		}
 	}
-	if err = opts.All(context.TODO(), &results); err != nil {
-		// log.Error(err)
-		return nil, err
-	}
-	// }
+	l2.TimeEnd("trip.GetCollection().Aggregate(context.TODO")
+
+	// log.Info(len(results))
+
+	// log.Info("GetTripsBaseData Set", k, err, len(tripIds))
+
 	// err = conf.Redisdb.SetStruct(key.GetKey(
 	// 	authorId+typeStr+
 	// 		nstrings.ToString(pageNum)+
@@ -1755,6 +1888,19 @@ func (t *TripDbx) GetHistoricalStatisticsData(authorId, typeStr, dataType string
 
 func (t *TripDbx) DeleteRedisData(authorId, id string) error {
 	log.Info("DeleteRedisData", authorId, id)
+
+	trip := new(models.Trip)
+	fsdb := trip.GetFsDB()
+
+	if err := fsdb.Trip.Delete(id); err != nil {
+		log.Error(err)
+	}
+
+	for _, v := range fsdb.TripIds.Keys(authorId) {
+		if err := fsdb.TripIds.Delete(v); err != nil {
+			log.Error(err)
+		}
+	}
 
 	key := conf.Redisdb.GetKey("GetTrip")
 	err := conf.Redisdb.Delete(key.GetKey(id))

@@ -1,6 +1,7 @@
 #__next {
   width: 100%;
   height: 100%;
+  // background-color: #f29cb24f;
 }
 
 .trip-layout {
@@ -154,7 +155,7 @@
   }
 
   &.tile_blackscale {
-    filter: invert(1) hue-rotate(.5turn);
+    filter: invert(1) hue-rotate(0.5turn);
   }
 }
 
@@ -186,7 +187,6 @@
 
   z-index: 474 !important;
 
-
   &.avatar {
     .map_current_position_icon-wrap {
       position: relative;
@@ -201,7 +201,8 @@
         height: calc(var(--height));
       }
 
-      &::before {}
+      &::before {
+      }
 
       .icon {
         &::after {
@@ -217,9 +218,7 @@
           box-shadow: 0 0 10px rgba(0, 0, 0, 0.7);
         }
       }
-
     }
-
   }
 
   &.noAvatar {
@@ -239,7 +238,6 @@
         }
       }
     }
-
   }
 
   .icon {
@@ -263,17 +261,16 @@
       transform: skew(5deg, 5deg) rotate(180deg);
       border: 3px solid #fff;
     }
-
   }
 
-  .map_current_position_icon-wrap {}
+  .map_current_position_icon-wrap {
+  }
 }
 
 .map-marker-realtime-position {
   width: 28px !important;
   height: 28px !important;
   z-index: 400 !important;
-
 
   &.Vehicle {
     .map-marker-realtime-position-avatar {
@@ -298,20 +295,14 @@
         justify-content: center;
         align-items: center;
         box-shadow: rgba(0, 0, 0, 0.2) 0px 0px 10px;
-
       }
     }
-
   }
-
-
-
 }
 
 .map-max-speed-marker {
   --max-speed-marker-pixel: 10px;
   --max-speed-marker-bg-color: var(--saki-default-color);
-
 
   position: relative;
   width: var(--max-speed-marker-pixel);
@@ -320,8 +311,6 @@
   margin: calc(-1 * var(--max-speed-marker-pixel) / 2) 0 0 calc(-1 * var(--max-speed-marker-pixel) / 2);
   border: 2px solid #fff;
   background-color: var(--max-speed-marker-bg-color);
-
-
 
   .map-max-speed-marker-wrap {
     position: absolute;
@@ -336,9 +325,8 @@
     border-radius: 16px;
     transform: scale(0.8) translate(42px, 15px);
 
-
     &::before {
-      content: "";
+      content: '';
       width: 50px;
       height: 50px;
       position: absolute;
@@ -352,7 +340,6 @@
       border-top: 50px solid var(--max-speed-marker-bg-color);
       border-left: 10px solid transparent;
       border-right: 10px solid transparent;
-
     }
 
     .msm-icon {
@@ -365,7 +352,8 @@
       align-items: center;
       position: relative;
 
-      saki-icon {}
+      saki-icon {
+      }
     }
 
     .msm-speed {
@@ -394,14 +382,14 @@
 .map-city-marker {
   --max-city-marker-bg-color: var(--saki-default-color);
 
-
   // position: relative;
   border-radius: 50%;
   // margin: calc(-1 * var(--max-city-marker-pixel) / 2) 0 0 calc(-1 * var(--max-speed-marker-pixel) / 2);
   border: 2px solid #fff;
   background-color: var(--max-city-marker-bg-color);
-
-
+  &.h5 {
+    border: none;
+  }
 
   .map-city-marker-wrap {
     position: absolute;
@@ -433,19 +421,18 @@
     }
 
     &.h5 {
-      top: 4px;
+      top: 0px;
+      // top: 4px;
     }
 
     span {
       color: #666;
+      // color: #666666bd;
       font-weight: 700;
       // -webkit-text-stroke: 2px black;
       /* 现代浏览器 */
       --text-shadow: rgba(255, 255, 255, 0.7);
-      text-shadow:
-        -1px -1px 0 var(--text-shadow),
-        1px -1px 0 var(--text-shadow),
-        -1px 1px 0 var(--text-shadow),
+      text-shadow: -1px -1px 0 var(--text-shadow), 1px -1px 0 var(--text-shadow), -1px 1px 0 var(--text-shadow),
         1px 1px 0 var(--text-shadow);
       /* 兼容 Firefox */
 
@@ -456,25 +443,29 @@
 
       &.h1 {
         font-size: 18px;
+        color: #222;
       }
 
       &.h2 {
-        font-size: 16px;
+        font-size: 17px;
+        color: #444;
       }
 
       &.h3 {
-        font-size: 14px;
+        font-size: 15px;
+        color: #666;
       }
 
       &.h4 {
         font-size: 13px;
+        color: #777;
       }
 
       &.h5 {
-        font-size: 12px;
+        font-size: 11px;
+        color: #888;
       }
     }
-
   }
 }
 
@@ -482,16 +473,14 @@
   .leaflet-tile-container {
     img {
       opacity: 0 !important;
-      transition: opacity .3s;
+      transition: opacity 0.3s;
 
       &.roadColorFade-active {
         opacity: 1 !important;
-
       }
     }
   }
 }
-
 
 .dp-menu-item {
   display: flex;
@@ -524,15 +513,15 @@
   }
 
   .ds-ruler {
-    width: attr("data-width");
+    width: attr('data-width');
     height: 1px;
     background-color: #333;
     position: relative;
-    transition: width .2s;
+    transition: width 0.2s;
 
     &::after,
     &::before {
-      content: "";
+      content: '';
       width: 1px;
       height: 4px;
       background-color: #333;
@@ -550,9 +539,17 @@
   }
 }
 
-
-
 .leaflet-top,
 .leaflet-bottom {
   z-index: 500;
+}
+
+.lg-thumb {
+  .lg-thumb-item {
+    img {
+      width: 100px !important;
+      height: 60px !important;
+      object-fit: cover;
+    }
+  }
 }

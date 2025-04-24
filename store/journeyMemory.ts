@@ -21,25 +21,30 @@ import { GeoJSON } from './city'
 import moment from 'moment'
 import { getAllTripPositions } from './trip'
 
-
 const modelName = 'journeyMemory'
 
-
-
-
 export const state = {
-  pageTypes: [] as ('AddJM' | 'EditJM' | 'AddTripHere' | "JMDetail" | "AddJMTimeline" | 'EditJMTimeline' | '')[],
+  pageTypes: [] as (
+    | 'AddJM'
+    | 'EditJM'
+    | 'AddTripHere'
+    | 'JMDetail'
+    | 'AddJMTimeline'
+    | 'EditJMTimeline'
+    | ''
+  )[],
   loadBaseDataStatus: '',
   startScroll: false,
-  loadStatus: "loaded",
-  loadTimelineDetailStatus: "loaded",
-  loadTimelineListStatus: "loaded",
+  loadStatus: 'loaded',
+  loadTimelineDetailStatus: 'loaded',
+  loadTimelineListStatus: 'loaded',
   editJMTL: {} as protoRoot.journeyMemory.IJourneyMemoryTimelineItem,
   editJM: {} as protoRoot.journeyMemory.IJourneyMemoryItem,
   addTheVehicleIdOfTripHere: '',
   pageNum: 1,
   pageSize: 15,
   list: [] as protoRoot.journeyMemory.IJourneyMemoryItem[],
+  jmBaseDataList: [] as protoRoot.journeyMemory.IJourneyMemoryItem[],
   tlList: [] as protoRoot.journeyMemory.IJourneyMemoryTimelineItem[],
   jmDetail: {} as protoRoot.journeyMemory.IJourneyMemoryItem,
   tlPageNum: 1,
@@ -50,22 +55,22 @@ export const state = {
     selectedVehicleIds: [] as string[],
     selectedTripTypes: [] as string[],
     selectedTripIds: [] as string[],
-    shortestDistance: 0,
-    longestDistance: 500,
     showCustomTrip: false,
-  } as protoRoot.configure.Configure.Filter.IFilterItem
-}
+    distanceRange: {
+      min: 0,
+      max: 500,
+    },
+  } as protoRoot.configure.Configure.Filter.IFilterItem,
 
+  tlSort: '' as 'ascending' | 'descending' | '',
+}
 
 type State = typeof state
 
-
-
 type SetStatePayload<K extends keyof State> = {
-  type: K;
-  value: State[K];
-};
-
+  type: K
+  value: State[K]
+}
 
 export const journeyMemorySlice = createSlice({
   name: modelName,
@@ -75,170 +80,229 @@ export const journeyMemorySlice = createSlice({
       state: State,
       action: PayloadAction<SetStatePayload<K>>
     ) => {
-      console.log("jmstate", action)
+      console.log('jmstate', action)
       state[action.payload.type] = action.payload.value
     },
   },
 })
 
 export const journeyMemoryMethods = {
-  GetJMList: createAsyncThunk(modelName + '/GetJMList', async (
-    { pageNum }: {
-      pageNum: number
-    }, thunkAPI) => {
-    const dispatch = thunkAPI.dispatch
-
-    const { user, trip, journeyMemory } = store.getState()
-
-
-    if (pageNum === 1) {
-      dispatch(
-        setJMState({
-          type: "list",
-          value: []
-        })
-      )
-    } else {
-      if (journeyMemory.loadStatus === "loading" || journeyMemory.loadStatus === "noMore") return
-    }
-
-    dispatch(
-      setJMState({
-        type: 'loadStatus',
-        value: "loading"
-      })
-    )
-    try {
-      const res = await httpApi.v1.GetJMList({
+  GetJMList: createAsyncThunk(
+    modelName + '/GetJMList',
+    async (
+      {
         pageNum,
-        pageSize: journeyMemory.pageSize,
-      })
-      console.log('GetJMList', res)
-      if (res.code === 200 && res?.data?.list?.length) {
+      }: {
+        pageNum: number
+      },
+      thunkAPI
+    ) => {
+      const dispatch = thunkAPI.dispatch
+
+      const { user, trip, journeyMemory } = store.getState()
+
+      if (pageNum === 1) {
         dispatch(
           setJMState({
             type: 'list',
-            value: res?.data?.list || [],
+            value: [],
           })
         )
-
-        if (res?.data?.list?.length === journeyMemory.pageSize) {
-          dispatch(
-            setJMState({
-              type: 'loadStatus',
-              value: "loaded"
-            })
-          )
-          dispatch(
-            setJMState({
-              type: "pageNum",
-              value: journeyMemory.pageNum + 1
-            })
-          )
-        } else {
-          dispatch(
-            setJMState({
-              type: 'loadStatus',
-              value: "noMore"
-            })
-          )
-        }
+      } else {
+        if (
+          journeyMemory.loadStatus === 'loading' ||
+          journeyMemory.loadStatus === 'noMore'
+        )
+          return
       }
-    } catch (error) {
-      console.error(error)
-    }
 
-  }),
-  GetJMTLList: createAsyncThunk(modelName + '/GetJMTLList', async (
-    { id, pageNum }: {
-      pageNum: number
-      id: string
-    }, thunkAPI) => {
-    const dispatch = thunkAPI.dispatch
-
-    const { user, trip, journeyMemory } = store.getState()
-
-
-    console.log('GetJMTimelineList', pageNum)
-    if (pageNum === 1) {
       dispatch(
         setJMState({
-          type: "tlList",
-          value: []
+          type: 'loadStatus',
+          value: 'loading',
         })
       )
-    } else {
-      if (journeyMemory.loadTimelineListStatus === "loading" || journeyMemory.loadTimelineListStatus === "noMore") return
+      try {
+        const res = await httpApi.v1.GetJMList({
+          pageNum,
+          pageSize: journeyMemory.pageSize,
+        })
+        console.log('GetJMList', res)
+        if (res.code === 200 && res?.data?.list?.length) {
+          dispatch(
+            setJMState({
+              type: 'list',
+              value: res?.data?.list || [],
+            })
+          )
+
+          if (res?.data?.list?.length === journeyMemory.pageSize) {
+            dispatch(
+              setJMState({
+                type: 'loadStatus',
+                value: 'loaded',
+              })
+            )
+            dispatch(
+              setJMState({
+                type: 'pageNum',
+                value: journeyMemory.pageNum + 1,
+              })
+            )
+          } else {
+            dispatch(
+              setJMState({
+                type: 'loadStatus',
+                value: 'noMore',
+              })
+            )
+          }
+        }
+      } catch (error) {
+        console.error(error)
+      }
     }
+  ),
+  GetJMBaseDataList: createAsyncThunk(
+    modelName + '/GetJMBaseDataList',
+    async (_, thunkAPI) => {
+      const dispatch = thunkAPI.dispatch
 
-    dispatch(
-      setJMState({
-        type: 'loadTimelineListStatus',
-        value: "loading"
+      const res = await httpApi.v1.GetJMList({
+        pageNum: 1,
+        pageSize: 100000,
+        simplifiedData: true,
       })
-    )
-
-
-
-
-    try {
-      const res = await httpApi.v1.GetJMTimelineList({
-        id,
-        pageNum,
-        pageSize: journeyMemory.tlPageSize,
-      })
-      console.log('GetJMTimelineList', res)
+      console.log('GetJMBaseDataList', res)
       if (res.code === 200 && res?.data?.list?.length) {
         dispatch(
           setJMState({
-            type: 'tlList',
-            value: sortTlList(res?.data?.list || []),
+            type: 'jmBaseDataList',
+            value: res?.data?.list || [],
           })
         )
-
-        const allPosRes = await getAllTripPositions({
-          ids: res.data?.list?.reduce((ids, v) => {
-            return ids.concat(v.tripIds || [])
-          }, [] as string[]),
-          pageSize: 15,
-          loadingSnackbar: true,
-        })
-        console.log("getAllTripPositions allres", allPosRes)
-
-
-        if (res?.data?.list?.length === journeyMemory.tlPageSize) {
-          dispatch(
-            setJMState({
-              type: 'loadTimelineListStatus',
-              value: "loaded"
-            })
-          )
-          dispatch(
-            setJMState({
-              type: "tlPageNum",
-              value: journeyMemory.tlPageNum = 1
-            })
-          )
-        }
       }
+    }
+  ),
+  GetJMTLList: createAsyncThunk(
+    modelName + '/GetJMTLList',
+    async (
+      {
+        id,
+        pageNum,
+      }: {
+        pageNum: number
+        id: string
+      },
+      thunkAPI
+    ) => {
+      const dispatch = thunkAPI.dispatch
+
+      const { user, trip, journeyMemory } = store.getState()
+
+      console.log('GetJMTimelineList', pageNum)
+      if (pageNum === 1) {
+        // dispatch(
+        //   setJMState({
+        //     type: 'tlList',
+        //     value: [],
+        //   })
+        // )
+      } else {
+        if (
+          journeyMemory.loadTimelineListStatus === 'loading' ||
+          journeyMemory.loadTimelineListStatus === 'noMore'
+        )
+          return
+      }
+
       dispatch(
         setJMState({
           type: 'loadTimelineListStatus',
-          value: "noMore"
+          value: 'loading',
         })
       )
-    } catch (error) {
-      console.error(error)
-    }
 
-  }),
+      try {
+        const res = await httpApi.v1.GetJMTimelineList({
+          id,
+          pageNum,
+          pageSize: journeyMemory.tlPageSize,
+        })
+        console.log('GetJMTimelineList', res)
+        if (res.code === 200 && res?.data?.list?.length) {
+          dispatch(
+            setJMState({
+              type: 'tlList',
+              value: sortTlList(res?.data?.list || [], journeyMemory.tlSort),
+            })
+          )
+
+          for (let i = 0; i < res.data?.list.length; i++) {
+            const v = res.data?.list[i]
+            for (let si = 0; si < (v.trips?.length || 0); si++) {
+              const sv = v.trips?.[si]
+              sv &&
+                (await storage.trips.getAndSet(sv.id || '', async (ssv) => {
+                  if (!ssv) {
+                    ssv = sv
+                  } else {
+                    ssv = {
+                      ...ssv,
+                      ...sv,
+                      statistics: sv.statistics,
+                    }
+                  }
+                  return ForEachLongToNumber(ssv)
+                }))
+            }
+          }
+
+          // const allPosRes = await getAllTripPositions({
+          //   ids: res.data?.list?.reduce((ids, v) => {
+          //     return ids.concat(v.tripIds || [])
+          //   }, [] as string[]),
+          //   pageSize: 15,
+          //   loadingSnackbar: true,
+          //   fullData: true,
+          // })
+          // console.log('getAllTripPositions allres', allPosRes)
+
+          if (res?.data?.list?.length === journeyMemory.tlPageSize) {
+            dispatch(
+              setJMState({
+                type: 'loadTimelineListStatus',
+                value: 'loaded',
+              })
+            )
+            dispatch(
+              setJMState({
+                type: 'tlPageNum',
+                value: (journeyMemory.tlPageNum = 1),
+              })
+            )
+          }
+        }
+        dispatch(
+          setJMState({
+            type: 'loadTimelineListStatus',
+            value: 'noMore',
+          })
+        )
+      } catch (error) {
+        console.error(error)
+      }
+    }
+  ),
 }
 
 export const { setJMState } = journeyMemorySlice.actions as {
-  setJMState: <K extends keyof State>(payload: SetStatePayload<K>) => PayloadAction<SetStatePayload<K>>;
-};
+  setJMState: <K extends keyof State>(
+    payload: SetStatePayload<K>
+  ) => PayloadAction<SetStatePayload<K>>
+}
 
-export const goPage = (pageType: typeof state["pageTypes"][number]) => {
+export const goPage = (pageType: (typeof state)['pageTypes'][number]) => {
   const jmState = store.getState().journeyMemory
   store.dispatch(
     setJMState({
@@ -250,10 +314,9 @@ export const goPage = (pageType: typeof state["pageTypes"][number]) => {
 
 export const getCurrentPageType = () => {
   const jmState = store.getState().journeyMemory
-  return jmState.pageTypes
-    .slice(
-      (jmState.pageTypes.length - 2, jmState.pageTypes.length - 1)
-    )?.[0]
+  return jmState.pageTypes.slice(
+    (jmState.pageTypes.length - 2, jmState.pageTypes.length - 1)
+  )?.[0]
 }
 
 export const backPage = (pageIndex: number) => {
@@ -263,43 +326,40 @@ export const backPage = (pageIndex: number) => {
       type: 'pageTypes',
       value: jmState.pageTypes.slice(
         0,
-        (jmState.pageTypes.length + pageIndex) < 0 ? 0 : (jmState.pageTypes.length + pageIndex)
+        jmState.pageTypes.length + pageIndex < 0
+          ? 0
+          : jmState.pageTypes.length + pageIndex
       ),
     })
   )
-
 }
 
-
-export const sortTlList = (list: protoRoot.journeyMemory.IJourneyMemoryTimelineItem[]) => {
-
-
-
-  const tempList = list.map(v => {
+export const sortTlList = (
+  list: protoRoot.journeyMemory.IJourneyMemoryTimelineItem[],
+  sort: 'ascending' | 'descending' | ''
+) => {
+  const tempList = list.map((v) => {
     let maxCreateTripTime = 0
     let minCreateTripTime = 9999999999
     v.trips?.forEach((sv) => {
-      maxCreateTripTime = Math.max(
-        maxCreateTripTime,
-        Number(sv.createTime)
-      )
-      minCreateTripTime = Math.min(
-        minCreateTripTime,
-        Number(sv.createTime)
-      )
+      maxCreateTripTime = Math.max(maxCreateTripTime, Number(sv.createTime))
+      minCreateTripTime = Math.min(minCreateTripTime, Number(sv.createTime))
     })
     return {
       maxCreateTripTime,
       minCreateTripTime,
-      tl: v
+      tl: v,
     }
   })
 
-  tempList.sort((a, b) => b.maxCreateTripTime - a.maxCreateTripTime)
+  if (sort === 'descending') {
+    tempList.sort((a, b) => a.maxCreateTripTime - b.maxCreateTripTime)
+  } else {
+    tempList.sort((a, b) => b.maxCreateTripTime - a.maxCreateTripTime)
+  }
 
-  return tempList.map(v => v.tl)
+  return tempList.map((v) => v.tl)
 }
-
 
 export const deleteJM = (id: string) => {
   alert({
@@ -315,7 +375,7 @@ export const deleteJM = (id: string) => {
     confirmText: t('delete', {
       ns: 'prompt',
     }),
-    onCancel() { },
+    onCancel() {},
     async onConfirm() {
       const jmState = store.getState().journeyMemory
       const res = await httpApi.v1.DeleteJM({
@@ -329,8 +389,8 @@ export const deleteJM = (id: string) => {
 
         store.dispatch(
           setJMState({
-            type: "jmDetail",
-            value: {}
+            type: 'jmDetail',
+            value: {},
           })
         )
         store.dispatch(

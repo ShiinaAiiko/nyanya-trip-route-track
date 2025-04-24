@@ -8,6 +8,7 @@ import (
 	conf "github.com/ShiinaAiiko/nyanya-trip-route-track/server/config"
 	mongodb "github.com/ShiinaAiiko/nyanya-trip-route-track/server/db/mongo"
 
+	"github.com/cherrai/nyanyago-utils/fileStorageDB"
 	"github.com/cherrai/nyanyago-utils/nshortid"
 	"github.com/cherrai/nyanyago-utils/validation"
 	"go.mongodb.org/mongo-driver/bson"
@@ -16,8 +17,11 @@ import (
 
 type (
 	JourneyMemoryMediaItem struct {
-		Type string `bson:"type" json:"type,omitempty"` // "image", "video", etc.
-		Url  string `bson:"url" json:"url,omitempty"`
+		// image / video / onlineVideo etc.
+		Type   string `bson:"type" json:"type,omitempty"`
+		Width  int    `bson:"width" json:"width,omitempty"`
+		Height int    `bson:"height" json:"height,omitempty"`
+		Url    string `bson:"url" json:"url,omitempty"`
 	}
 	JourneyMemoryTimeLineItem struct {
 		Id      string                    `bson:"id" json:"id,omitempty"`
@@ -31,6 +35,12 @@ type (
 		CreateTime     int64 `bson:"createTime" json:"createTime,omitempty"`
 		LastUpdateTime int64 `bson:"lastUpdateTime" json:"lastUpdateTime,omitempty"`
 	}
+	JourneyMemoryPermissions struct {
+		// 为空则不支持分享
+		// 传了则视为分享权限，可无视用户校验
+		AllowShare bool `bson:"allowShare" json:"allowShare,omitempty"`
+	}
+
 	JourneyMemory struct {
 		Id string `bson:"_id" json:"id,omitempty"`
 		// 城市名 多国语言
@@ -40,6 +50,8 @@ type (
 		Media []*JourneyMemoryMediaItem `bson:"media" json:"media,omitempty"`
 
 		Timeline []*JourneyMemoryTimeLineItem `bson:"timeline" json:"timeline,omitempty"`
+
+		Permissions *JourneyMemoryPermissions `bson:"permissions" json:"permissions,omitempty"`
 
 		AuthorId string `bson:"authorId" json:"authorId,omitempty"`
 		// 1 normal
@@ -57,6 +69,47 @@ type (
 
 func (m *JourneyMemory) GetCollectionName() string {
 	return "JourneyMemories"
+}
+
+type JMFsDB struct {
+	Jm         *fileStorageDB.Model[*JourneyMemory]
+	JmList     *fileStorageDB.Model[[]*JourneyMemory]
+	JmTlList   *fileStorageDB.Model[[]*JourneyMemoryTimeLineItem]
+	Expiration time.Duration
+}
+
+var jmFsDB *JMFsDB
+
+func (m *JourneyMemory) GetFsDB() *JMFsDB {
+	if jmFsDB != nil {
+		return jmFsDB
+	}
+
+	jmDB, err := fileStorageDB.CreateModel[*JourneyMemory](conf.FsDB, m.GetCollectionName())
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
+	jmListDB, err := fileStorageDB.CreateModel[[]*JourneyMemory](conf.FsDB, m.GetCollectionName()+"List")
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
+
+	jmTlListDB, err := fileStorageDB.CreateModel[[]*JourneyMemoryTimeLineItem](conf.FsDB, m.GetCollectionName()+"TlList")
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
+
+	db := new(JMFsDB)
+	db.Jm = jmDB
+	db.JmList = jmListDB
+	db.JmTlList = jmTlListDB
+	db.Expiration = 15 * 60 * time.Second
+
+	jmFsDB = db
+	return jmFsDB
 }
 
 func (m *JourneyMemory) CheckID(id string) bool {
@@ -119,6 +172,12 @@ func (m *JourneyMemory) Default() error {
 	}
 	if len(m.Timeline) == 0 {
 		m.Timeline = []*JourneyMemoryTimeLineItem{}
+	}
+
+	if m.Permissions == nil {
+		m.Permissions = &JourneyMemoryPermissions{
+			AllowShare: false,
+		}
 	}
 
 	if m.Status == 0 {

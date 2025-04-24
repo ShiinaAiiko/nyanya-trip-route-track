@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -12,6 +13,7 @@ import (
 	"github.com/ShiinaAiiko/nyanya-trip-route-track/server/models"
 	"github.com/ShiinaAiiko/nyanya-trip-route-track/server/protos"
 	"github.com/ShiinaAiiko/nyanya-trip-route-track/server/services/response"
+	"github.com/cherrai/nyanyago-utils/cipher"
 	"github.com/cherrai/nyanyago-utils/narrays"
 	"github.com/cherrai/nyanyago-utils/nint"
 	"github.com/cherrai/nyanyago-utils/nstrings"
@@ -113,8 +115,8 @@ func (t *CityDbx) GetCityCoords(fullName string) (*models.CityCoords, error) {
 }
 
 func (t *CityDbx) AddAndGetCity(name string, fullName string, parentCityId string, level int) (*models.City, error) {
-	city, err := t.GetCity("", name, fullName)
-	log.Warn("AddAndGetCity", city, err)
+	city, err := t.GetCity("", parentCityId, name, fullName)
+	// log.Warn("AddAndGetCity", city, err)
 	if err != nil {
 		return nil, err
 	}
@@ -218,7 +220,7 @@ func (t *CityDbx) UpdateCity(
 	return nil
 }
 
-func (t *CityDbx) GetCity(id string, name string, fullName string) (*models.City, error) {
+func (t *CityDbx) GetCity(id, parentCityId, name string, fullName string) (*models.City, error) {
 	city := new(models.City)
 
 	key := conf.Redisdb.GetKey("GetCity")
@@ -242,6 +244,11 @@ func (t *CityDbx) GetCity(id string, name string, fullName string) (*models.City
 			}
 			match = append(match, bson.M{
 				"$or": nameMatch,
+			})
+		}
+		if parentCityId != "" {
+			match = append(match, bson.M{
+				"parentCityId": parentCityId,
 			})
 		}
 
@@ -357,7 +364,7 @@ func (t *CityDbx) getCities(ids []string, lastResultIds []string) ([]*models.Cit
 	if len(ids) == 0 {
 		return nil, nil
 	}
-	log.Info(len(ids))
+	// log.Info(len(ids))
 
 	var err error
 	var results []*models.City
@@ -461,15 +468,65 @@ func (t *CityDbx) getCities(ids []string, lastResultIds []string) ([]*models.Cit
 
 // 缺redis
 func (t *CityDbx) GetCities(ids []string) ([]*models.City, error) {
-	cities, err := t.getCities(ids, []string{})
+	var cities []*models.City
 
-	if err != nil {
-		return nil, err
+	fsdb := t.city.GetFsDB()
+
+	k := cipher.MD5(strings.Join(ids, ","))
+
+	results, err := fsdb.Cities.Get(k)
+	if err == nil {
+
+		tempResult := results.Value()
+		if len(tempResult) > 0 {
+			cities = tempResult
+		}
 	}
 
-	cities, err = t.CitiesI18n(cities)
+	// results := fsdb.City.MGet(ids)
 
-	return cities, err
+	// tempIds := []string{}
+
+	// // log.Info(results)
+	// for _, val := range results {
+	// 	if val.Err == nil {
+	// 		tempVal := val.Val.Value()
+
+	// 		// log.Info(val.Key)
+	// 		// fsdb.City.Delete(val.Key)
+
+	// 		cities = append(cities, tempVal)
+	// 	} else {
+	// 	}
+	// 	tempIds = append(tempIds, val.Key)
+	// }
+
+	// log.Info(len(ids), len(cities), len(tempIds))
+	if len(cities) == 0 {
+		tempCities, err := t.getCities(ids, []string{})
+
+		if err != nil {
+			return nil, err
+		}
+
+		tempCities, err = t.CitiesI18n(tempCities)
+
+		if err != nil {
+			return nil, err
+		}
+
+		cities = tempCities
+
+		err = fsdb.Cities.Set(k, cities, 15*time.Minute)
+
+		if err != nil {
+			log.Error(err)
+		}
+
+	}
+	// log.Info(len(ids), len(cities), len(ids))
+
+	return cities, nil
 }
 
 func (t *CityDbx) DeleteRedisData(id string, fullName string) error {
@@ -496,7 +553,7 @@ func (t *CityDbx) InitTripPositionCity(tripId string) error {
 	if err != nil {
 		return err
 	}
-	tripPositions, err := tripDbx.GetTripPositions(trip.Id, trip.AuthorId, "")
+	tripPositions, err := tripDbx.GetTripPositions(trip.Id, trip.AuthorId)
 	if err != nil {
 		return err
 	}
@@ -630,6 +687,10 @@ func (t *CityDbx) GetAllCitiesVisitedByUser(authorId string, tripIds []string) (
 
 	}
 
+	sort.SliceStable(cities, func(i, j int) bool {
+		return cities[i].FirstEntryTime-cities[j].FirstEntryTime > 0
+	})
+
 	return cities, nil
 }
 
@@ -642,7 +703,7 @@ func (t *CityDbx) InitCityes() (cities *map[string]int64, err error) {
 		{
 			"$match": bson.M{
 				"$and": []bson.M{
-					bson.M{
+					{
 						// "_id": "T1HAZSw5G",
 						"_id": bson.M{
 							"$in": []string{"HjFiAGJwf"},
@@ -724,7 +785,7 @@ func (t *CityDbx) InitAddCityesForTrip() (cities *map[string]int64, err error) {
 		{
 			"$match": bson.M{
 				"$and": []bson.M{
-					bson.M{
+					{
 						"createTime": bson.M{
 							"$lte": 1736230041,
 							"$gte": 1735193241,
@@ -913,7 +974,7 @@ func (t *CityDbx) GetOsmInfo(fullName string) (*OsmInfo, error) {
 	key := conf.Redisdb.GetKey("GetOsmInfo")
 	err := conf.Redisdb.GetStruct(key.GetKey(fullName), result)
 
-	log.Info(err, result, fullName)
+	// log.Info(err, result, fullName)
 	if err != nil || result == nil || true {
 		resp, err := conf.RestyClient.R().SetQueryParams(map[string]string{
 			"q":      fullName,
@@ -1009,15 +1070,15 @@ func (t *CityDbx) FortmatNames(city *models.City, osmInfo *OsmInfo) *I18nInfo {
 	result.OsmInfo = osmInfo
 	result.Name = &models.CityName{
 		ZhCN: nstrings.StringOr(
-			osmInfo.Names["name:zh-Hans"],
 			osmInfo.Names["name:zh"],
+			osmInfo.Names["name:zh-Hans"],
 			osmInfo.Names["name"]),
 		En: nstrings.StringOr(
 			osmInfo.Names["name:en"],
 			osmInfo.Names["name"]),
 		ZhHans: nstrings.StringOr(
-			osmInfo.Names["name:zh-Hans"],
 			osmInfo.Names["name:zh"],
+			osmInfo.Names["name:zh-Hans"],
 			osmInfo.Names["name"]),
 		ZhHant: nstrings.StringOr(
 			osmInfo.Names["name:zh-Hant"],
@@ -1038,16 +1099,16 @@ func (t *CityDbx) CityI18n(city *models.City, cities []*models.City) (*I18nInfo,
 		city.Names = new(models.CityNames)
 	}
 
-	log.Info(len(city.Names.Names), city.Names.CreateTime >= timestamp)
+	// log.Info(city.Names.CreateTime >= timestamp && len(city.Names.Names) > 0)
 
-	if city.Names.CreateTime >= timestamp {
+	if city.Names.CreateTime >= timestamp && len(city.Names.Names) > 0 {
 		result = t.FortmatNames(city, &OsmInfo{
 			Names: city.Names.Names,
 		})
 		return result, nil
 	}
 	fn := t.getFullName(city.Id, cities)
-	log.Info(fn)
+	// log.Info(fn)
 
 	osmInfo, err := t.GetOsmInfo(fn)
 	if err != nil {
@@ -1083,13 +1144,13 @@ func (t *CityDbx) CityI18n(city *models.City, cities []*models.City) (*I18nInfo,
 
 func (t *CityDbx) CitiesI18n(cities []*models.City) ([]*models.City, error) {
 	// 1、插入数据
-	log.Info("i18n", len(cities))
+	// log.Info("i18n", len(cities))
 
 	// results := []*I18nInfo{}
 
 	for _, v := range cities {
 
-		log.Info(v, len(cities))
+		// log.Info(v, len(cities))
 		result, err := t.CityI18n(v, cities)
 		if err != nil {
 			return nil, err
@@ -1101,6 +1162,25 @@ func (t *CityDbx) CitiesI18n(cities []*models.City) ([]*models.City, error) {
 	}
 
 	return cities, nil
+}
+
+func (t *CityDbx) InitCityDistricts() {
+
+	log.Info("InitCityDistricts")
+
+	// resp, err := conf.RestyClient.R().SetQueryParams(map[string]string{}).
+	// 	Get(
+	// 		conf.Config.NominatimApiUrl + "/reverse?format=jsonv2&lat=" +
+	// 			// "https://nominatim.aiiko.club/reverse?format=jsonv2&lat=" +
+	// 			nstrings.ToString(lat) + "&lon=" +
+	// 			nstrings.ToString(lng) + "&zoom=" +
+	// 			nstrings.ToString(zoom) + "&addressdetails=1&accept-language=zh-CN",
+	// 	)
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	// https://tools.aiiko.club/api/v1/geocode/cityDistricts?country=China
 }
 
 // func (t *CityDbx) GetUserAllCities(authorId string) (cities *map[string]int64, err error) {

@@ -1,6 +1,6 @@
 {
 	"name": "nyanya-trip-route-track",
-	"version":"1.0.21",
+	"version": "1.0.21",
 	"private": true,
 	"scripts": {
 		"nodemon": "nodemon ./nodemon.js",
@@ -19,8 +19,9 @@
 		"@akaguny/open-meteo-wmo-to-emoji": "^0.1.0",
 		"@nyanyajs/utils": "^1.0.33",
 		"@reduxjs/toolkit": "^1.7.0",
-		"@saki-ui/core": "1.0.2",
+		"@saki-ui/core": "^1.0.6",
 		"@turf/area": "^7.2.0",
+		"@turf/turf": "^7.2.0",
 		"axios": "^0.24.0",
 		"blueimp-md5": "^2.19.0",
 		"chart.js": "^4.4.0",

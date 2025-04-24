@@ -4,6 +4,18 @@ option go_package = "./;protos";
 package configure;
 
 message Configure {
+  message MapKey {
+    string mapKey = 1;
+    // Normal / Gray / Black / Dark
+    string mapMode = 2;
+  }
+  message PolylineWidth {
+    int64 ongoingTrip = 1;
+    int64 historyTripTrack = 2;
+    // 历史行程里选中的行程
+    int64 historyTripTrackSelectedTrip = 3;
+    int64 reviewTrip = 4;
+  }
   message SpeedColorLimit {
     message SpeedColorLimitItem {
       double minSpeed = 1;
@@ -19,40 +31,48 @@ message Configure {
     SpeedColorLimitItem train = 8;
     SpeedColorLimitItem publictransport = 9;
   }
-  // Cloud
-  SpeedColorLimit speedColorLimit = 1;
+  message MapLayer {
+    message MapLayerItem {
+      string mapKey = 1;
+      // Normal / Gray / Black / Dark
+      string mapMode = 2;
+      bool roadColorFade = 3;
+      bool showAvatarAtCurrentPosition = 5;
+      bool showSpeedColor = 6;
+      bool cityName = 7;
+      string cityBoundaries = 8;
+      bool tripTrackRoute = 9;
+      bool speedAnimation = 10;
+      bool turnOnVoice = 11;
+      bool showPositionMarker = 12;
+      // RedGreen / PinkBlue
+      string trackSpeedColor = 13;
+      // Blue / Pink / Red
+      string trackRouteColor = 14;
+      int32 polylineWidth = 15;
+    }
 
-  message MapKey {
-    string mapKey = 1;
-    // Normal / Gray / Black / Dark
-    string mapMode = 2;
+    MapLayerItem indexPage = 1;
+    MapLayerItem trackRoutePage = 2;
+    MapLayerItem tripItemPage = 3;
+    MapLayerItem journeyMemoriesPage = 4;
+    MapLayerItem findLocationModal = 5;
+    MapLayerItem createCustomTripModal = 6;
+    MapLayerItem replayTripModal = 7;
+    MapLayerItem visitedCitiesModal = 8;
   }
-  // Local
-  MapKey baseMap = 2;
-  // Local
-  MapKey trackRouteMap = 3;
 
-  // Cloud
-  string trackSpeedColor = 4;
-  // Cloud
-  string trackRouteColor = 5;
+  MapLayer mapLayer = 1;
 
-  // Cloud
-  bool showAvatarAtCurrentPosition = 6;
-
-  message PolylineWidth {
-    int64 ongoingTrip = 1;
-    int64 historyTripTrack = 2;
-    // 历史行程里选中的行程
-    int64 historyTripTrackSelectedTrip = 3;
-    int64 reviewTrip = 4;
+  message General {
+    // Cloud
+    SpeedColorLimit speedColorLimit = 1;
+    // Cloud
+    // string trackSpeedColor = 4;
+    // Cloud
+    // string trackRouteColor = 5;
   }
-
-  // Cloud
-  PolylineWidth polylineWidth = 7;
-
-  //  Local
-  bool speedAnimation = 9;
+  General general = 2;
 
   // Filter Local
   message Filter {
@@ -64,26 +84,47 @@ message Configure {
       repeated string selectedTripTypes = 4;
       // 仅trackRoute Not stored
       repeated string selectedTripIds = 5;
-      int64 shortestDistance = 6;
+      repeated string selectedJmIds = 6;
+      // int64 shortestDistance = 6;
       // max ~100000km
-      int64 longestDistance = 7;
+      // int64 longestDistance = 7;
 
-      bool showCustomTrip = 8;
-      bool showFullData = 9;
+      bool showCustomTrip = 7;
+      bool showFullData = 8;
+
+      message RangeItem {
+        int32 min = 1;
+        int32 max = 2;
+      }
+      RangeItem distanceRange = 9;
+      RangeItem speedRange = 10;
+      RangeItem altitudeRange = 11;
     }
     // Local
     FilterItem tripHistory = 1;
     // Cloud
     FilterItem trackRoute = 2;
   }
-
-  Filter filter = 10;
-
+  Filter filter = 3;
+  int64 lastUpdateTime = 4;
   // Local
-  bool roadColorFade = 11;
+  //  bool roadColorFade = 11;
 
   // 谁新用谁
-  int64 lastUpdateTime = 8;
+
+  // Local
+  // MapKey baseMap = 2;
+  // Local
+  // MapKey trackRouteMap = 3;
+
+  // Cloud
+  // bool showAvatarAtCurrentPosition = 6;
+
+  // Cloud
+  //  PolylineWidth polylineWidth = 7;
+
+  //  Local
+  // bool speedAnimation = 9;
 }
 
 message GetConfigure {

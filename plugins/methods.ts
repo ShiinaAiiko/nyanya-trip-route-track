@@ -71,7 +71,8 @@ export const getRandomPassword = (
 export const getSpeedColor = (
   currentSpeed: number,
   minSpeed: number,
-  maxSpeed: number, speedColorRGBs: string[]
+  maxSpeed: number,
+  speedColorRGBs: string[]
 ) => {
   if (currentSpeed < minSpeed) {
     return speedColorRGBs[0]
@@ -86,6 +87,7 @@ export const getSpeedColor = (
 }
 
 // 单位米
+
 export const getDistance = (
   lat1: number,
   lon1: number,
@@ -101,7 +103,7 @@ export const getDistance = (
     Math.asin(
       Math.sqrt(
         Math.pow(Math.sin(a / 2), 2) +
-        Math.cos(radLat1) * Math.cos(radLat2) * Math.pow(Math.sin(b / 2), 2)
+          Math.cos(radLat1) * Math.cos(radLat2) * Math.pow(Math.sin(b / 2), 2)
       )
     )
   s = s * 6378.137
@@ -109,17 +111,34 @@ export const getDistance = (
   return s
 }
 
-export const formatTimestamp = (timestamp: number, full = true) => {
+export const formatTimestamp = (
+  timestamp: number,
+  full = true,
+  fields: string[] = ['h', 'm', 's']
+) => {
   const h = Math.floor(timestamp / 3600)
   const m = Math.floor(timestamp / 60) % 60
   const s = Math.floor(timestamp % 60)
-  if (full) return h + 'h ' + m + 'm ' + s + 's'
-  return (h === 0 ? "" : (h + 'h ')) + (m === 0 ? "" : (m + 'm ')) + (s === 0 ? "" : (s + 's '))
+  if (full)
+    return (
+      (fields.includes('h') ? h + 'h ' : '') +
+      (fields.includes('m') ? m + 'm ' : '') +
+      (fields.includes('s') ? s + 's ' : '')
+    )
+  return (
+    (h === 0 && fields.includes('h') ? '' : h + 'h ') +
+    (m === 0 && fields.includes('m') ? '' : m + 'm ') +
+    (s === 0 && fields.includes('s') ? '' : s + 's ')
+  )
 }
 
-export const formatTime = (startTime: number, endTime: number) => {
+export const formatTime = (
+  startTime: number,
+  endTime: number,
+  fields: string[] = ['h', 'm', 's']
+) => {
   const timestamp = Math.floor(endTime) - Math.floor(startTime)
-  return formatTimestamp(timestamp)
+  return formatTimestamp(timestamp, true, fields)
 }
 
 export const formatAvgPace = (
@@ -201,7 +220,6 @@ const latlngCache: {
   }
 } = {}
 
-
 // 转换坐标系
 export const getLatLng = (mapUrl: string, lat: number, lng: number) => {
   let key = String(lat) + String(lng)
@@ -238,8 +256,12 @@ export const getLatLng = (mapUrl: string, lat: number, lng: number) => {
   return [lat, lng]
 }
 
-export const getLatLngGcj02ToWgs84 = (mapUrl: string, lat: number, lng: number) => {
-  let key = String(lat) + String(lng) + "gcj02towgs84"
+export const getLatLngGcj02ToWgs84 = (
+  mapUrl: string,
+  lat: number,
+  lng: number
+) => {
+  let key = String(lat) + String(lng) + 'gcj02towgs84'
 
   if (latlngCache[mapUrl]?.[key]) return latlngCache[mapUrl][key]
 
@@ -284,15 +306,14 @@ const formatTripPositions = (
   let startLat = 0
   let startLon = 0
 
-  const { startTime,
-    positions, positionList } = trip
+  const { startTime, positions, positionList } = trip
 
   if (positionList?.length) {
     trip.positions = []
     return {
       ...trip,
       positionList: positionList,
-      positions: []
+      positions: [],
     }
   }
 
@@ -301,21 +322,21 @@ const formatTripPositions = (
       ...trip,
 
       positionList: positionList,
-      positions: []
+      positions: [],
     }
   }
 
-
-  const posList = formatPositionsStr(Number(trip?.startTime), trip?.positions || [])
+  const posList = formatPositionsStr(
+    Number(trip?.startTime),
+    trip?.positions || []
+  )
 
   return {
     ...trip,
     positionList: posList,
-    positions: []
+    positions: [],
   }
 }
-
-
 
 export const formatPositionsStr = (
   startTime: number,
@@ -353,8 +374,10 @@ export const formatPositionsStr = (
         longitude: lon,
         altitude: Number(vArr[2]),
         speed: Number(vArr[3]),
-        timestamp: Number(vArr[4]) > 1540915200 ? Number(vArr[4]) :
-          Number(startTime) + Number(vArr[4]),
+        timestamp:
+          Number(vArr[4]) > 1540915200
+            ? Number(vArr[4])
+            : Number(startTime) + Number(vArr[4]),
         heading: Number(vArr[5]),
         altitudeAccuracy: Number(vArr[8]),
         accuracy: Number(vArr[7]),
@@ -391,12 +414,29 @@ export const Query = (
   return url + (s ? '?' + s : '')
 }
 
+export const parseQuery = (url: string): Record<string, string> => {
+  const query: Record<string, string> = {}
+  // const url = location.href
+  const queryString = url.split('?')[1]
+
+  if (queryString) {
+    const pairs = queryString.split('&')
+    for (const pair of pairs) {
+      const [key, value] = pair.split('=')
+      if (key) {
+        query[decodeURIComponent(key)] = decodeURIComponent(value || '')
+      }
+    }
+  }
+
+  return query
+}
 
 export const getAngle = (
   lat_a: number,
   lng_a: number,
   lat_b: number,
-  lng_b: number,
+  lng_b: number
 ) => {
   let a = ((90 - lat_b) * Math.PI) / 180
   let b = ((90 - lat_a) * Math.PI) / 180
@@ -421,13 +461,13 @@ export const getAngle = (
 export const fullScreen = (el: HTMLElement) => {
   const ele = el as any
   if (ele.requestFullscreen) {
-    ele.requestFullscreen();
+    ele.requestFullscreen()
   } else if (ele.mozRequestFullScreen) {
-    ele.mozRequestFullScreen();
+    ele.mozRequestFullScreen()
   } else if (ele.webkitRequestFullscreen) {
-    ele.webkitRequestFullscreen();
+    ele.webkitRequestFullscreen()
   } else if (ele.msRequestFullscreen) {
-    ele.msRequestFullscreen();
+    ele.msRequestFullscreen()
   }
 }
 
@@ -435,13 +475,13 @@ export const exitFullscreen = (el: HTMLElement) => {
   const ele = el as any
   const docAny = document as any
   if (docAny.exitFullScreen) {
-    docAny.exitFullScreen();
+    docAny.exitFullScreen()
   } else if (docAny.mozCancelFullScreen) {
-    docAny.mozCancelFullScreen();
+    docAny.mozCancelFullScreen()
   } else if (docAny.webkitExitFullscreen) {
-    docAny.webkitExitFullscreen();
+    docAny.webkitExitFullscreen()
   } else if (ele.msExitFullscreen) {
-    ele.msExitFullscreen();
+    ele.msExitFullscreen()
   }
 }
 
@@ -459,11 +499,12 @@ export const isFullScreen = (el: HTMLElement) => {
     docAny.webkitIsFullScreen ||
     docAny.webkitFullScreen ||
     docAny.msFullScreen
-  );
+  )
 }
 
-
-export const getTimeLimit = (time: "All" | "Day" | "Week" | "Month" | "Year") => {
+export const getTimeLimit = (
+  time: 'All' | 'Day' | 'Week' | 'Month' | 'Year'
+) => {
   let startTime = 1540915200
   switch (time) {
     // 所有时间从2018年开始
@@ -471,8 +512,7 @@ export const getTimeLimit = (time: "All" | "Day" | "Week" | "Month" | "Year") =>
       break
     // 最近10年
     case 'Year':
-      startTime =
-        Math.floor(new Date().getTime() / 1000) - 365 * 10 * 24 * 3600
+      startTime = Math.floor(new Date().getTime() / 1000) - 365 * 10 * 24 * 3600
       break
     // 最近12个月
     case 'Month':
@@ -495,20 +535,29 @@ export const getTimeLimit = (time: "All" | "Day" | "Week" | "Month" | "Year") =>
   return startTime
 }
 
-export const isRoadColorFade = () => {
+export const isRoadColorFade = (
+  mapLayer:
+    | protoRoot.configure.Configure.MapLayer.IMapLayerItem
+    | null
+    | undefined
+) => {
   const { config } = store.getState()
-  const b = config.configure.roadColorFade && config.mapRecommend.roadColorFadeMap.filter((v => {
-    if (location.pathname.indexOf("trackRoute") >= 0) {
-      return config.configure.trackRouteMap?.mapKey === v.mapKey
-    }
-    return config.configure.baseMap?.mapKey === v.mapKey
-  }))?.length
-  return b
-
+  const b =
+    mapLayer?.roadColorFade &&
+    config.mapRecommend.roadColorFadeMap.filter((v) => {
+      return mapLayer?.mapKey === v.mapKey
+    })?.length
+  return !!b
 }
 
-export const roadColorFade = (layer: any) => {
-  const b = isRoadColorFade()
+export const roadColorFade = (
+  mapLayer:
+    | protoRoot.configure.Configure.MapLayer.IMapLayerItem
+    | null
+    | undefined,
+  layer: any
+) => {
+  const b = isRoadColorFade(mapLayer)
   layer.on('tileload', async (e: any) => {
     const imgEl = e.tile as HTMLImageElement
     // console.log('colorInversion', e, imgEl)
@@ -538,11 +587,17 @@ export const roadColorFade = (layer: any) => {
       // 81, 186, 209
 
       // 58, 177, 203
-      let result = await imageColorInversion({
-        imgEl,
-      },
+      let result = await imageColorInversion(
+        {
+          imgEl,
+        },
         [
-          [[180, 255], [90, 228], [0, 195], [1, 1]],
+          [
+            [180, 255],
+            [90, 228],
+            [0, 195],
+            [1, 1],
+          ],
           // 56, 176, 203
           // [[58, 189], [177, 227], [203, 241], [1, 1]],
           // [[146, 202], [122, 190], [190, 221], [1, 1]],
@@ -551,61 +606,71 @@ export const roadColorFade = (layer: any) => {
           // [[70, 216], [185, 237], [82, 209], [1, 1]],
         ],
         // [
-        [233, 233, 233, 1],
+        [233, 233, 233, 1]
         // [233, 233, 233, 1],
         // [233, 233, 233, 1],
         // ]
       )
 
       // console.log("result", result)
-      imgEl.src = result?.objectURL || ""
+      imgEl.src = result?.objectURL || ''
       imgEl.classList.add('roadColorFade-active')
     }
   })
 }
 
-
 export const isResumeTrip = (trip: protoRoot.trip.ITrip) => {
-  return (Number(trip.createTime) + 3 * 3600) >= Math.floor(new Date().getTime() / 1000)
+  return (
+    Number(trip.createTime) + 3 * 3600 >=
+    Math.floor(new Date().getTime() / 1000)
+  )
 }
 
-export const removePolylinePointByIndex = (polyline: Leaflet.Polyline<any>, targetIndex: number) => {
+export const removePolylinePointByIndex = (
+  polyline: Leaflet.Polyline<any>,
+  targetIndex: number
+) => {
   const L: typeof Leaflet = (window as any).L
   if (L) {
-    let latlngs = polyline.getLatLngs();
-    if (!Array.isArray(latlngs)) return;
+    let latlngs = polyline.getLatLngs()
+    if (!Array.isArray(latlngs)) return
 
     if (targetIndex >= 0) {
-      latlngs.splice(targetIndex, 1);
-      polyline.setLatLngs(latlngs);
+      latlngs.splice(targetIndex, 1)
+      polyline.setLatLngs(latlngs)
     }
   }
 }
-export const removePolylinePointByLatLng = (polyline: Leaflet.Polyline<any>, targetLatLng: number[]) => {
+export const removePolylinePointByLatLng = (
+  polyline: Leaflet.Polyline<any>,
+  targetLatLng: number[]
+) => {
   const L: typeof Leaflet = (window as any).L
   if (L) {
-    let latlngs = polyline.getLatLngs();
-    if (!Array.isArray(latlngs)) return;
+    let latlngs = polyline.getLatLngs()
+    if (!Array.isArray(latlngs)) return
 
-    let targetIndex = -1;
+    let targetIndex = -1
 
     latlngs.forEach((latlng, index) => {
-      if ((latlng as any)["lat"] === targetLatLng[0] && (latlng as any)["lng"] === targetLatLng[1]) {
+      if (
+        (latlng as any)['lat'] === targetLatLng[0] &&
+        (latlng as any)['lng'] === targetLatLng[1]
+      ) {
         targetIndex = index
       }
-    });
+    })
 
     if (targetIndex !== -1) {
-      latlngs.splice(targetIndex, 1);
-      polyline.setLatLngs(latlngs);
+      latlngs.splice(targetIndex, 1)
+      polyline.setLatLngs(latlngs)
     }
   }
 }
 
 function normalizeLng(lng: number) {
-  return ((lng + 180) % 360 + 360) % 360 - 180;
+  return ((((lng + 180) % 360) + 360) % 360) - 180
 }
-
 
 export const toFixed = (num: number, fractionDigits: number = 10) => {
   const n = Math.pow(10, fractionDigits)
@@ -613,10 +678,10 @@ export const toFixed = (num: number, fractionDigits: number = 10) => {
 }
 
 export function stripHtmlTags(html: string): string {
-  if (typeof html !== 'string') return '';
+  if (typeof html !== 'string') return ''
 
   // 移除 HTML 标签
-  let text = html.replace(/<[^>]*>/g, '');
+  let text = html.replace(/<[^>]*>/g, '')
 
-  return text;
+  return text
 }

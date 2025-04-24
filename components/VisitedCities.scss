@@ -74,14 +74,10 @@
         z-index: 592;
       }
 
-
       .vc-m-tabs {
-
         overflow: hidden;
 
         .timeline-item {
-
-
           .vc-m-header {
             display: flex;
             justify-content: space-between;
@@ -135,10 +131,8 @@
   stroke-dasharray: 10;
 }
 
-
 .city-list-modal {
   width: 100%;
-
 
   .cl-header {
     display: flex;
@@ -154,6 +148,9 @@
       }
 
       .item-cities {
+        // saki-menu-item {
+        //   flex: 1;
+        // }
         .cities-item {
           padding: 6px 10px;
           border: 2px solid #eee;
@@ -162,7 +159,7 @@
 
           background-color: #eee;
 
-          transition: background-color .2s;
+          transition: background-color 0.2s;
 
           &.active {
             border: 2px solid var(--saki-default-color);
@@ -190,7 +187,6 @@
   }
 }
 
-
 .city-timeline-component {
   background-color: #fff;
 
@@ -200,7 +196,6 @@
     .th-left {
       font-size: 20px;
       font-weight: 700;
-
     }
   }
 

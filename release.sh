@@ -1,14 +1,14 @@
 #! /bin/bash
 name="nyanya-trip-route-track"
 port=23202
-version="v1.0.34"
-sakiuiVersion="v1.0.8"
+version="v1.0.44"
+sakiuiVersion="v1.0.9"
 branch="main"
 # configFilePath="config.dev.json"
 configFilePath="config.pro.json"
 registryUrl="https://registry.npmmirror.com/"
 DIR=$(cd $(dirname $0) && pwd)
-allowMethods=("download:saki-ui-react copySakiUIReactTypes unzip zip protos stop rm npmconfig install gitpull dockerremove start logs")
+allowMethods=("download:saki-ui-react download:saki-ui copySakiUIReactTypes unzip zip protos stop rm npmconfig install gitpull dockerremove start logs")
 
 copySakiUIReactTypes() {
   sakiUIPath="/home/shiina_aiiko/Workspace/Development/@Aiiko/ShiinaAiikoDevWorkspace/@OpenSourceProject/saki-ui/saki-ui"
@@ -51,13 +51,14 @@ dockerremove() {
 setVersion() {
   echo "-> $version"
   sed -i "s/\"version\":.*$/\"version\":\"${version:1}\",/" ./config.dev.json
-  sed -i "s/\"version\":.*$/\"version\":\"${version:1}\",/" ./config.pro.json
+  # sed -i "s/\"version\":.*$/\"version\":\"${version:1}\",/" ./config.pro.json
 
-  jsurl='https:\/\/saki-ui.aiiko.club\/packages\/'$sakiuiVersion'\/saki-ui\/saki-ui.js'
-  sed -i "10,13s/\"jsurl\":.*$/\"jsurl\": \"$jsurl\",/" ./config.pro.json
+  # jsurl='https:\/\/saki-ui.aiiko.club\/packages\/'$sakiuiVersion'\/saki-ui\/saki-ui.js'
+  # sed -i "10,13s/\"jsurl\":.*$/\"jsurl\": \"$jsurl\",/" ./config.pro.json
 
-  esmjsurl='https:\/\/saki-ui.aiiko.club\/packages\/'$sakiuiVersion'\/saki-ui\/saki-ui.esm.js'
-  sed -i "10,13s/\"esmjsurl\":.*$/\"esmjsurl\": \"$esmjsurl\"/" ./config.pro.json
+  # esmjsurl='https:\/\/saki-ui.aiiko.club\/packages\/'$sakiuiVersion'\/saki-ui\/saki-ui.esm.js'
+  # sed -i "10,13s/\"esmjsurl\":.*$/\"esmjsurl\": \"$esmjsurl\"/" ./config.pro.json
+
   # INPUT_FILE="./config.pro.web.json"
   # OUTPUT_FILE="./config.pro.web1.json"
   # FIELD_TO_MODIFY="jsurl" # 要修改的字段名称
@@ -133,6 +134,11 @@ download:saki-ui-react() {
   mkdir -p ./components
   wget https://saki-ui.aiiko.club/packages/saki-ui-react-${sakiuiVersion}.tgz -O saki-ui-react.tgz
   tar zxvf ./saki-ui-react.tgz -C ./components
+  rm -rf ./saki-ui*
+}
+download:saki-ui() {
+  wget https://saki-ui.aiiko.club/packages/saki-ui-${sakiuiVersion}.tgz -O saki-ui.tgz
+  tar zxvf ./saki-ui.tgz -C ./out
   rm -rf ./saki-ui*
 }
 

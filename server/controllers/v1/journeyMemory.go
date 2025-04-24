@@ -1,18 +1,21 @@
 package controllersV1
 
 import (
-	"time"
+	"strings"
 
 	dbxV1 "github.com/ShiinaAiiko/nyanya-trip-route-track/server/dbx/v1"
 	"github.com/ShiinaAiiko/nyanya-trip-route-track/server/models"
 	"github.com/ShiinaAiiko/nyanya-trip-route-track/server/protos"
+	"github.com/ShiinaAiiko/nyanya-trip-route-track/server/services/middleware"
 	"github.com/ShiinaAiiko/nyanya-trip-route-track/server/services/response"
 	"github.com/cherrai/nyanyago-utils/narrays"
 	"github.com/cherrai/nyanyago-utils/nint"
 	"github.com/cherrai/nyanyago-utils/validation"
 	sso "github.com/cherrai/saki-sso-go"
+	"github.com/fatih/structs"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
+	"github.com/mitchellh/mapstructure"
 )
 
 // "github.com/cherrai/nyanyago-utils/validation"
@@ -71,8 +74,10 @@ func (fc *JourneyMemoryController) AddJM(c *gin.Context) {
 		Desc: data.Desc,
 		Media: narrays.Map(data.Media, func(v *protos.JourneyMemoryMediaItem, index int) *models.JourneyMemoryMediaItem {
 			return &models.JourneyMemoryMediaItem{
-				Type: v.Type,
-				Url:  v.Url,
+				Type:   v.Type,
+				Url:    v.Url,
+				Width:  int(v.Width),
+				Height: int(v.Height),
 			}
 		}),
 		AuthorId: authorId,
@@ -136,6 +141,18 @@ func (fc *JourneyMemoryController) UpdateJM(c *gin.Context) {
 		return
 	}
 
+	if data.AllowShare != "" {
+		if err = validation.ValidateStruct(
+			data,
+			validation.Parameter(&data.AllowShare, validation.Required(), validation.Enum([]string{"Allow", "NotAllow"})),
+		); err != nil {
+			res.Errors(err)
+			res.Code = 10002
+			res.Call(c)
+			return
+		}
+	}
+
 	userInfoAny, exists := c.Get("userInfo")
 	if !exists {
 		res.Errors(err)
@@ -149,11 +166,14 @@ func (fc *JourneyMemoryController) UpdateJM(c *gin.Context) {
 	// log.Info("userInfo", userInfo)
 
 	if err = jmDbx.UpdateJM(data.Id, authorId, data.Name, data.Desc,
+		data.AllowShare,
 
 		narrays.Map(data.Media, func(v *protos.JourneyMemoryMediaItem, index int) *models.JourneyMemoryMediaItem {
 			return &models.JourneyMemoryMediaItem{
-				Type: v.Type,
-				Url:  v.Url,
+				Type:   v.Type,
+				Url:    v.Url,
+				Width:  int(v.Width),
+				Height: int(v.Height),
 			}
 		}),
 	); err != nil {
@@ -189,6 +209,7 @@ func (fc *JourneyMemoryController) GetJMDetail(c *gin.Context) {
 	if err = validation.ValidateStruct(
 		data,
 		validation.Parameter(&data.Id, validation.Type("string"), validation.Required()),
+		// validation.Parameter(&data.ShareKey, validation.Type("string")),
 	); err != nil {
 		res.Errors(err)
 		res.Code = 10002
@@ -196,26 +217,56 @@ func (fc *JourneyMemoryController) GetJMDetail(c *gin.Context) {
 		return
 	}
 
-	userInfoAny, exists := c.Get("userInfo")
-	if !exists {
+	// userInfoAny, exists := c.Get("userInfo")
+	// if !exists {
+	// 	res.Errors(err)
+	// 	res.Code = 10004
+	// 	res.Call(c)
+	// 	return
+	// }
+	// userInfo := userInfoAny.(*sso.UserInfo)
+
+	authorId := ""
+	code := middleware.CheckAuthorize(c)
+	// log.Info("code", data.Id, code)
+	if code == 200 {
+		userInfoAny, exists := c.Get("userInfo")
+		if !exists {
+			res.Errors(err)
+			res.Code = 10004
+			res.Call(c)
+			return
+		}
+		authorId = userInfoAny.(*sso.UserInfo).Uid
+	}
+
+	jm, err := jmDbx.GetJM(
+		data.Id, authorId,
+	)
+	// log.Info(jm, err)
+	if err != nil || jm == nil {
 		res.Errors(err)
-		res.Code = 10004
+		res.Code = 10006
 		res.Call(c)
 		return
 	}
-	userInfo := userInfoAny.(*sso.UserInfo)
 
-	jm, err := jmDbx.GetJM(
-		data.Id, userInfo.Uid,
-	)
-	if err != nil {
-		res.Errors(err)
-		res.Code = 10016
-		res.Call(c)
-		return
+	if authorId == "" {
+		authorId = jm.AuthorId
 	}
 
 	jmProto := new(protos.JourneyMemoryItem)
+
+	tripIds := []string{}
+	media := []*models.JourneyMemoryMediaItem{}
+	for _, sv := range jm.Timeline {
+		tripIds = append(tripIds, sv.TripIds...)
+		media = append(media, sv.Media...)
+		sv.Media = []*models.JourneyMemoryMediaItem{}
+	}
+	if len(jm.Media) == 0 {
+		jm.Media = media[len(media)-1:]
+	}
 
 	if err := copier.Copy(jmProto, jm); err != nil {
 		res.Errors(err)
@@ -223,22 +274,16 @@ func (fc *JourneyMemoryController) GetJMDetail(c *gin.Context) {
 		res.Call(c)
 		return
 	}
-
-	tripIds := []string{}
-	for _, sv := range jmProto.Timeline {
-		tripIds = append(tripIds, sv.TripIds...)
-	}
-
 	if len(tripIds) != 0 {
 		trips, err := tripDbx.GetTripsBaseData(
 			tripIds,
-			userInfo.Uid, "All",
+			authorId, "All",
 			1, 100000,
-			0,
-			time.Now().Unix(),
+			[]int64{},
+			[]int64{},
 			[]string{},
 			0,
-			500*1000,
+			500*1000, true,
 		)
 		if err != nil {
 			res.Errors(err)
@@ -246,6 +291,8 @@ func (fc *JourneyMemoryController) GetJMDetail(c *gin.Context) {
 			res.Call(c)
 			return
 		}
+
+		log.Info(trips, len(tripIds))
 
 		ts := tripDbx.FormatTripStatistics(trips)
 		jmProto.Statistics = ts
@@ -299,6 +346,7 @@ func (fc *JourneyMemoryController) GetJMList(c *gin.Context) {
 	userInfo := userInfoAny.(*sso.UserInfo)
 
 	jmList, err := jmDbx.GetJMList(
+		[]string{},
 		userInfo.Uid,
 		data.PageNum, data.PageSize,
 	)
@@ -319,41 +367,84 @@ func (fc *JourneyMemoryController) GetJMList(c *gin.Context) {
 
 	// // authorId := c.MustGet("userInfo").(*sso.UserInfo).Uid
 	jmListProto := []*protos.JourneyMemoryItem{}
+
+	tripIds := []string{}
 	for _, v := range jmList {
-		jmProto := new(protos.JourneyMemoryItem)
-
-		copier.Copy(jmProto, v)
-
-		tripIds := []string{}
 		for _, sv := range v.Timeline {
 			tripIds = append(tripIds, sv.TripIds...)
 		}
+	}
+
+	trips := []*models.Trip{}
+
+	if len(tripIds) != 0 {
+		trips, err = tripDbx.GetTripsBaseData(
+			tripIds,
+			userInfo.Uid, "All",
+			1, 100000,
+			[]int64{},
+			[]int64{},
+			[]string{},
+			0,
+			500*1000, true,
+		)
+		if err != nil {
+			res.Errors(err)
+			res.Code = 10001
+			res.Call(c)
+			return
+		}
+	}
+
+	for _, v := range jmList {
+		jmProto := new(protos.JourneyMemoryItem)
+
+		tripIds := []string{}
+		media := []*models.JourneyMemoryMediaItem{}
+		for _, sv := range v.Timeline {
+			tripIds = append(tripIds, sv.TripIds...)
+
+			media = append(media, sv.Media...)
+		}
+
+		if len(v.Media) == 0 {
+			v.Media = media[len(media)-1:]
+		}
+
+		copier.Copy(jmProto, v)
 
 		log.Info("tripIds", tripIds)
 
 		if len(tripIds) != 0 {
-			trips, err := tripDbx.GetTripsBaseData(
-				tripIds,
-				userInfo.Uid, "All",
-				1, 100000,
-				0,
-				time.Now().Unix(),
-				[]string{},
-				0,
-				500*1000,
-			)
-			if err != nil {
-				res.Errors(err)
-				res.Code = 10001
-				res.Call(c)
-				return
-			}
 
-			ts := tripDbx.FormatTripStatistics(trips)
+			ts := tripDbx.FormatTripStatistics(narrays.Filter(trips, func(value *models.Trip, index int) bool {
+				return narrays.Includes(tripIds, (value.Id))
+			}))
 			jmProto.Statistics = ts
 		}
 
-		jmListProto = append(jmListProto, jmProto)
+		if len(data.Fields) == 0 {
+			jmListProto = append(jmListProto, jmProto)
+
+			continue
+		}
+
+		protoMap := structs.Map(jmProto)
+		newProtoMap := map[string]interface{}{}
+		for _, v := range data.Fields {
+			field := strings.ToUpper(string(v[0])) + v[1:]
+			newProtoMap[field] = protoMap[field]
+		}
+		tempJmProto := new(protos.JourneyMemoryItem)
+
+		err := mapstructure.Decode(newProtoMap, tempJmProto)
+		if err != nil {
+			log.Error(err)
+			jmListProto = append(jmListProto, jmProto)
+		} else {
+			jmListProto = append(jmListProto, tempJmProto)
+		}
+
 	}
 	protoData := &protos.GetJMList_Response{
 		List:  jmListProto,
@@ -468,8 +559,10 @@ func (fc *JourneyMemoryController) AddJMTimeline(c *gin.Context) {
 		Desc: data.Desc,
 		Media: narrays.Map(data.Media, func(v *protos.JourneyMemoryMediaItem, index int) *models.JourneyMemoryMediaItem {
 			return &models.JourneyMemoryMediaItem{
-				Type: v.Type,
-				Url:  v.Url,
+				Type:   v.Type,
+				Url:    v.Url,
+				Width:  int(v.Width),
+				Height: int(v.Height),
 			}
 		}),
 		TripIds: data.TripIds,
@@ -551,8 +644,10 @@ func (fc *JourneyMemoryController) UpdateJMTimeline(c *gin.Context) {
 		data.Id, authorId, data.TimelineId,
 		data.Name, data.Desc, narrays.Map(data.Media, func(v *protos.JourneyMemoryMediaItem, index int) *models.JourneyMemoryMediaItem {
 			return &models.JourneyMemoryMediaItem{
-				Type: v.Type,
-				Url:  v.Url,
+				Type:   v.Type,
+				Url:    v.Url,
+				Width:  int(v.Width),
+				Height: int(v.Height),
 			}
 		}), data.TripIds); err != nil {
 		res.Errors(err)
@@ -589,6 +684,7 @@ func (fc *JourneyMemoryController) GetJMTimelineList(c *gin.Context) {
 		validation.Parameter(&data.Id, validation.Type("string"), validation.Required()),
 		validation.Parameter(&data.PageNum, validation.GreaterEqual(int32(1)), validation.Required()),
 		validation.Parameter(&data.PageSize, validation.NumRange(int32(1), int32(100000)), validation.Required()),
+		// validation.Parameter(&data.ShareKey, validation.Type("string")),
 	); err != nil {
 		res.Errors(err)
 		res.Code = 10002
@@ -596,18 +692,43 @@ func (fc *JourneyMemoryController) GetJMTimelineList(c *gin.Context) {
 		return
 	}
 
-	userInfoAny, exists := c.Get("userInfo")
-	if !exists {
+	// userInfoAny, exists := c.Get("userInfo")
+	// if !exists {
+	// 	res.Errors(err)
+	// 	res.Code = 10004
+	// 	res.Call(c)
+	// 	return
+	// }
+	// userInfo := userInfoAny.(*sso.UserInfo)
+	// authorId := userInfo.Uid
+
+	authorId := ""
+	code := middleware.CheckAuthorize(c)
+	// log.Info("code", data.Id, code)
+	if code == 200 {
+		userInfoAny, exists := c.Get("userInfo")
+		if !exists {
+			res.Errors(err)
+			res.Code = 10004
+			res.Call(c)
+			return
+		}
+		authorId = userInfoAny.(*sso.UserInfo).Uid
+	}
+
+	jm, err := jmDbx.GetJM(
+		data.Id, authorId,
+	)
+	// log.Info(jm, err)
+	if err != nil || jm == nil {
 		res.Errors(err)
-		res.Code = 10004
+		res.Code = 10016
 		res.Call(c)
 		return
 	}
-	userInfo := userInfoAny.(*sso.UserInfo)
-	authorId := userInfo.Uid
 
 	results, err := jmDbx.GetJMTimelineList(
-		data.Id, authorId, data.PageNum, data.PageSize)
+		data.Id, jm.AuthorId, data.PageNum, data.PageSize)
 
 	log.Info("GetJMTimelineList", results, err)
 	if err != nil {
@@ -626,6 +747,34 @@ func (fc *JourneyMemoryController) GetJMTimelineList(c *gin.Context) {
 
 	cityIds := []string{}
 
+	tripIds := []string{}
+	for _, v := range results {
+		tripIds = append(tripIds, v.TripIds...)
+	}
+
+	trips := []*models.Trip{}
+
+	if len(tripIds) != 0 {
+		trips, err = tripDbx.GetTripsBaseData(
+			tripIds,
+			jm.AuthorId, "All",
+			1, 100000,
+
+			[]int64{},
+			[]int64{},
+			[]string{},
+			0,
+			500*1000, true,
+		)
+		log.Info("trips, err", trips, err)
+		if err != nil {
+			res.Errors(err)
+			res.Code = 10001
+			res.Call(c)
+			return
+		}
+	}
+
 	for _, v := range results {
 		jmProto := new(protos.JourneyMemoryTimelineItem)
 
@@ -637,29 +786,17 @@ func (fc *JourneyMemoryController) GetJMTimelineList(c *gin.Context) {
 		}
 
 		if len(v.TripIds) != 0 {
-			trips, err := tripDbx.GetTripsBaseData(
-				v.TripIds,
-				userInfo.Uid, "All",
-				1, 100000,
-				0,
-				time.Now().Unix(),
-				[]string{},
-				0,
-				500*1000,
-			)
-			if err != nil {
-				res.Errors(err)
-				res.Code = 10001
-				res.Call(c)
-				return
-			}
 
-			ts := tripDbx.FormatTripStatistics(trips)
+			tempTrips := narrays.Filter(trips, func(value *models.Trip, index int) bool {
+				return narrays.Includes(v.TripIds, (value.Id))
+			})
+
+			ts := tripDbx.FormatTripStatistics(tempTrips)
 
 			jmProto.Statistics = ts
 
 			jmProto.Trips = []*protos.Trip{}
-			for _, sv := range trips {
+			for _, sv := range tempTrips {
 				tripProto := new(protos.Trip)
 				if err := copier.Copy(tripProto, sv); err != nil {
 					res.Errors(err)
@@ -681,6 +818,7 @@ func (fc *JourneyMemoryController) GetJMTimelineList(c *gin.Context) {
 	}
 
 	cities, err := cityDbx.GetCities(cityIds)
+	// log.Info(len(cities), err, cityIds)
 	if err != nil {
 		res.Errors(err)
 		res.Code = 10006
@@ -692,10 +830,11 @@ func (fc *JourneyMemoryController) GetJMTimelineList(c *gin.Context) {
 	for _, v := range cities {
 		cityProto := new(protos.CityItem)
 		if err := copier.Copy(cityProto, v); err != nil {
-			res.Errors(err)
-			res.Code = 10001
-			res.Call(c)
-			return
+			// res.Errors(err)
+			// res.Code = 10001
+			// res.Call(c)
+			// return
+			log.Error(err)
 		}
 
 		citiesProto = append(citiesProto, cityProto)
@@ -708,10 +847,11 @@ func (fc *JourneyMemoryController) GetJMTimelineList(c *gin.Context) {
 			for _, ssv := range sv.Cities {
 				cityProto := new(protos.CityItem)
 				if err := copier.Copy(cityProto, sv); err != nil {
-					res.Errors(err)
-					res.Code = 10001
-					res.Call(c)
-					return
+					// res.Errors(err)
+					// res.Code = 10001
+					// res.Call(c)
+					// return
+					log.Error(err)
 				}
 
 				fullCities := cityDbx.GetFullCityForCitiesProto(ssv.CityId, citiesProto)

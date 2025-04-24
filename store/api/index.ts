@@ -26,6 +26,7 @@ export const apiSlice = createSlice({
         getHistoricalStatistics: '/trip/historicalStatistics/get',
         getTripList: '/trip/list/get',
         getTripStatistics: '/trip/statistics/get',
+        clearTripCities: '/trip/cities/clear',
 
         addVehicle: '/vehicle/add',
         getVehicles: '/vehicle/get/list',

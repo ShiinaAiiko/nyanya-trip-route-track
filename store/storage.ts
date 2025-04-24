@@ -1,9 +1,4 @@
-import {
-  createSlice,
-  createAsyncThunk,
-  combineReducers,
-  configureStore,
-} from '@reduxjs/toolkit'
+import { createSlice, createAsyncThunk, combineReducers, configureStore } from '@reduxjs/toolkit'
 import md5 from 'blueimp-md5'
 import store, { ActionParams } from '.'
 import { WebStorage } from '@nyanyajs/utils'
@@ -29,6 +24,10 @@ export let storage = {
     storage: 'IndexedDB',
     baseLabel: 'tripPositions',
   }),
+  simplifyTripPositions: new WebStorage<string, protoRoot.trip.ITripPosition[]>({
+    storage: 'IndexedDB',
+    baseLabel: 'simplifyTripPositions',
+  }),
   cityDetails: new WebStorage<string, protoRoot.trip.ITripCity>({
     storage: 'IndexedDB',
     baseLabel: 'cityDetails',
@@ -52,10 +51,10 @@ export const storageSlice = createSlice({
 })
 
 export const storageMethods = {
-  init: createAsyncThunk('storage/init', async ({ }, thunkAPI) => {
+  init: createAsyncThunk('storage/init', async ({}, thunkAPI) => {
     return
   }),
-  clearCache: createAsyncThunk('storage/clearCache', async ({ }, thunkAPI) => {
+  clearCache: createAsyncThunk('storage/clearCache', async ({}, thunkAPI) => {
     console.log('storageMethods ')
     // storage.tripPositions.deleteAll()
   }),

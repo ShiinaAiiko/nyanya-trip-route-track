@@ -7,7 +7,9 @@ import (
 
 	conf "github.com/ShiinaAiiko/nyanya-trip-route-track/server/config"
 	mongodb "github.com/ShiinaAiiko/nyanya-trip-route-track/server/db/mongo"
+	"github.com/ShiinaAiiko/nyanya-trip-route-track/server/protos"
 
+	"github.com/cherrai/nyanyago-utils/fileStorageDB"
 	"github.com/cherrai/nyanyago-utils/nshortid"
 	"github.com/cherrai/nyanyago-utils/validation"
 	"go.mongodb.org/mongo-driver/bson"
@@ -59,6 +61,46 @@ type City struct {
 
 func (m *City) GetCollectionName() string {
 	return "Cities"
+}
+
+type CityFsDB struct {
+	City        *fileStorageDB.Model[*City]
+	Cities      *fileStorageDB.Model[[]*City]
+	CitiesProto *fileStorageDB.Model[[]*protos.CityItem]
+	Expiration  time.Duration
+}
+
+var cityFsDB *CityFsDB
+
+func (m *City) GetFsDB() *CityFsDB {
+	if cityFsDB != nil {
+		return cityFsDB
+	}
+
+	cityDB, err := fileStorageDB.CreateModel[*City](conf.FsDB, m.GetCollectionName())
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
+	citiesDB, err := fileStorageDB.CreateModel[[]*City](conf.FsDB, m.GetCollectionName()+"list")
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
+	citiesProtoDB, err := fileStorageDB.CreateModel[[]*protos.CityItem](conf.FsDB, m.GetCollectionName()+"listproto")
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
+
+	db := new(CityFsDB)
+	db.City = cityDB
+	db.Cities = citiesDB
+	db.CitiesProto = citiesProtoDB
+	db.Expiration = 24 * time.Hour
+
+	cityFsDB = db
+	return db
 }
 
 func (m *City) CheckID(id string) bool {

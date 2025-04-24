@@ -37,7 +37,7 @@ func (r *Routerv1) InitJourneyMemory() {
 	r.Group.GET(
 		role.SetRole("/journeyMemory/detail/get", &middleware.RoleOptionsType{
 			CheckApp:           false,
-			Authorize:          true,
+			Authorize:          false,
 			RequestEncryption:  false,
 			ResponseEncryption: false,
 			RequestDataType:    "protobuf",
@@ -93,7 +93,7 @@ func (r *Routerv1) InitJourneyMemory() {
 	r.Group.GET(
 		role.SetRole(conf.ApiNames.JourneyMemoryTimeline["GetJMTimelineList"], &middleware.RoleOptionsType{
 			CheckApp:           false,
-			Authorize:          true,
+			Authorize:          false,
 			RequestEncryption:  false,
 			ResponseEncryption: false,
 			RequestDataType:    "protobuf",

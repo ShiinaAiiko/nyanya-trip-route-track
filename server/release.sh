@@ -57,6 +57,7 @@ start() {
     -v $DIR/appList.json:/appList.json \
     -v $DIR/client:/client \
     -v $DIR/static:/static \
+    -v $DIR/fsdb:/fsdb \
     -v /etc/timezone:/etc/timezone:ro \
     -v /etc/localtime:/etc/localtime:ro \
     --name=$name \
@@ -106,6 +107,7 @@ run() {
     -v $DIR/appList.json:/appList.json \
     -v $DIR/client:/client \
     -v $DIR/static:/static \
+    -v $DIR/fsdb:/fsdb \
     -v /etc/timezone:/etc/timezone:ro \
     -v /etc/localtime:/etc/localtime:ro \
     --name=$runName \

@@ -8,6 +8,8 @@ import "trip.proto";
 message JourneyMemoryMediaItem {
   string type = 1; // "image", "video", etc.
   string url = 2;
+  int32 width = 3;
+  int32 height = 4;
 }
 
 // JourneyMemoryTimeLineItem 表示时间线中的一个条目
@@ -24,6 +26,8 @@ message JourneyMemoryTimelineItem {
   repeated trip.Trip trips = 8;
 }
 
+message JourneyMemoryPermissions { bool allowShare = 1; }
+
 message JourneyMemoryItem {
   string id = 1;
   string name = 2;
@@ -31,6 +35,8 @@ message JourneyMemoryItem {
   repeated JourneyMemoryMediaItem media = 11;
 
   repeated JourneyMemoryTimelineItem timeline = 4;
+
+  JourneyMemoryPermissions permissions = 12;
 
   string authorId = 9;
   // 1、-1
@@ -47,7 +53,7 @@ message AddJM {
   message Request {
     string name = 1;
     string desc = 2;
-  repeated JourneyMemoryMediaItem media = 3;
+    repeated JourneyMemoryMediaItem media = 3;
   }
   message Response { JourneyMemoryItem journeyMemory = 1; }
 }
@@ -57,13 +63,18 @@ message UpdateJM {
     string id = 1;
     string name = 2;
     string desc = 3;
-  repeated JourneyMemoryMediaItem media = 4;
+    repeated JourneyMemoryMediaItem media = 4;
+    // Allow / NotAllow
+    string allowShare = 5;
   }
   message Response {}
 }
 
 message GetJMDetail {
-  message Request { string id = 1; }
+  message Request {
+    string id = 1;
+    // bool allowShare = 2;
+  }
   message Response { JourneyMemoryItem journeyMemory = 1; }
 }
 
@@ -71,6 +82,9 @@ message GetJMList {
   message Request {
     int32 pageNum = 1;
     int32 pageSize = 2;
+    // 为空则全部，否则筛选
+    repeated string fields = 3;
+    bool simplifiedData = 4;
   }
   message Response {
     repeated JourneyMemoryItem list = 1;
@@ -113,6 +127,7 @@ message GetJMTimelineList {
     string id = 1;
     int32 pageNum = 2;
     int32 pageSize = 3;
+    // string shareKey = 4;
   }
   message Response {
     repeated JourneyMemoryTimelineItem list = 1;

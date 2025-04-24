@@ -6,15 +6,28 @@ import {
 } from '@reduxjs/toolkit'
 import { getI18n } from 'react-i18next'
 import store, { ActionParams } from '.'
-import { WebStorage, NRequest, SAaSS, NEventListener, deepCopy, Debounce } from '@nyanyajs/utils'
+import {
+  WebStorage,
+  NRequest,
+  SAaSS,
+  NEventListener,
+  deepCopy,
+  Debounce,
+} from '@nyanyajs/utils'
 
-import { Languages, languages, defaultLanguage } from '../plugins/i18n/i18n'
+import {
+  Languages,
+  languages,
+  defaultLanguage,
+  changeLanguage,
+} from '../plugins/i18n/i18n'
 import { storage } from './storage'
 import { set } from 'nprogress'
 import { exitFullscreen, fullScreen, isFullScreen } from '../plugins/methods'
 import { httpApi } from '../plugins/http/api'
 import { protoRoot } from '../protos'
 import screenfull from 'screenfull'
+import { config } from 'process'
 
 export const R = new NRequest()
 
@@ -44,6 +57,11 @@ export type TabsTripType =
   | 'Plane'
   | 'PublicTransport'
   | 'Local'
+
+export type MapColorMode = 'Normal' | 'Gray' | 'Dark' | 'Black'
+export type CityBoundariesType = 'country' | 'state' | 'region' | 'city'
+export type TrackSpeedColorType = 'RedGreen' | 'PinkBlue'
+export type TrackRouteColorType = 'Blue' | 'Pink' | 'Red'
 
 export type DeviceType = 'Mobile' | 'Pad' | 'PC'
 export type LanguageType = Languages | 'system'
@@ -91,15 +109,15 @@ export let maps = [
   },
   {
     key: 'AmapArea',
-    url: "https://wprd02.is.autonavi.com/appmaptile?x={x}&y={y}&z={z}&lang=zh_cn&style=7&ltype=1&scl=0&size=0"
+    url: 'https://wprd02.is.autonavi.com/appmaptile?x={x}&y={y}&z={z}&lang=zh_cn&style=7&ltype=1&scl=0&size=0',
   },
   {
     key: 'AmapAreaMark',
-    url: "https://wprd02.is.autonavi.com/appmaptile?x={x}&y={y}&z={z}&lang=zh_cn&style=7&ltype=5&scl=0&size=0",
+    url: 'https://wprd02.is.autonavi.com/appmaptile?x={x}&y={y}&z={z}&lang=zh_cn&style=7&ltype=5&scl=0&size=0',
   },
   {
     key: 'AmapAreaRoad',
-    url: "https://wprd02.is.autonavi.com/appmaptile?x={x}&y={y}&z={z}&lang=zh_cn&style=7&ltype=3&scl=0&size=0"
+    url: 'https://wprd02.is.autonavi.com/appmaptile?x={x}&y={y}&z={z}&lang=zh_cn&style=7&ltype=3&scl=0&size=0',
   },
   {
     key: 'AmapSatellite',
@@ -137,7 +155,7 @@ let speedColorRGBs: string[] = []
 
 export let eventListener = new NEventListener()
 
-export const getTrackSpeedColors = (type: 'RedGreen' | 'PinkBlue') => {
+export const getTrackSpeedColorRGBs = (type: TrackSpeedColorType) => {
   let speedColorRGBs = []
   if (type === 'PinkBlue') {
     let r = 88
@@ -195,71 +213,77 @@ export const getTrackRouteColor = (
   return '#e66e46'
 }
 
-const getMapUrlAuto = (type: "Normal" | "TrackRoute", mapKey: string) => {
-  setTimeout(() => {
-    const { config } = store.getState()
+export const getMapUrlAuto = (
+  mapKey: string,
+  country: string,
+  connectionOSM: number
+) => {
+  // setTimeout(() => {
+  // const { config } = store.getState()
+  if (!mapKey) return ''
 
-    if (!config.configure?.baseMap?.mapKey) return
-
-    let key = ''
-    if (mapKey === 'AutoSelect') {
-      if (config.country && config.connectionOSM !== 0) {
-        if (config.country === 'China') {
-          key = 'AmapSatellite'
-        } else {
-          if (config.connectionOSM === 1) {
-            key = 'GoogleSatellite'
-          } else {
-            key = 'AmapSatellite'
-          }
-        }
+  let key = ''
+  // console.log('dddddd mapKey', mapKey, country, connectionOSM !== 0)
+  if (mapKey === 'AutoSelect') {
+    if (country && connectionOSM !== 0) {
+      if (country === 'China') {
+        key = 'AmapSatellite'
       } else {
-        return
+        if (connectionOSM === 1) {
+          key = 'GoogleSatellite'
+        } else {
+          key = 'AmapSatellite'
+        }
       }
     } else {
-      key = mapKey
+      return ''
     }
-    // console.log(
-    // 	'getMapUrlAuto',
-    // 	config.map.key,
-    // 	config.country,
-    // 	config.connectionOSM,
-    // 	key
-    // )
-    const v = maps.filter((v) => {
-      return v.key === key
-    })[0]
-    // console.log('v?.url', v?.url)
-    if (type === 'TrackRoute') {
-      store.dispatch(configSlice.actions.setTrackRouteMapUrl(v?.url))
-      return
-    }
-    store.dispatch(configSlice.actions.setMapUrl(v?.url))
-  }, 0)
+  } else {
+    key = mapKey
+  }
+  // console.log(
+  // 	'getMapUrlAuto',
+  // 	config.map.key,
+  // 	config.country,
+  // 	config.connectionOSM,
+  // 	key
+  // )
+  const v = maps.filter((v) => {
+    return v.key === key
+  })[0]
+
+  // console.log('dddddd mapKey', mapKey, v)
+  // console.log('v?.url', v?.url)
+  // if (type === 'TrackRoute') {
+  //   // store.dispatch(configSlice.actions.setTrackRouteMapUrl(v?.url))
+  //   return v?.url || ''
+  // }
+  // store.dispatch(configSlice.actions.setMapUrl(v?.url))
+
+  return v?.url || ''
+
+  // }, 0)
 }
 
 export const getSpeedColorSliderRange = (type: string) => {
   switch (type) {
-    case "plane":
+    case 'plane':
       return [50, 500]
-    case "train":
+    case 'train':
       return [50, 300]
-    case "running":
+    case 'running':
       return [3, 40]
-    case "walking":
+    case 'walking':
       return [3, 40]
-    case "powerwalking":
+    case 'powerwalking':
       return [3, 40]
-    case "bike":
+    case 'bike':
       return [5, 60]
 
     default:
       return [20, 120]
-
   }
 }
-
-
 
 export const defaultSpeedColorLimit = {
   running: {
@@ -300,102 +324,254 @@ export const defaultSpeedColorLimit = {
   },
 } as {
   [k: string]: {
-    minSpeed: number,
-    maxSpeed: number,
+    minSpeed: number
+    maxSpeed: number
   }
 }
-const configure: protoRoot.configure.IConfigure = {
-  speedColorLimit: defaultSpeedColorLimit,
-  baseMap: {
-    mapKey: "AutoSelect",
-    mapMode: "Normal"
-  },
-  trackRouteMap: {
-    mapKey: "AutoSelect",
-    mapMode: "Normal"
-  },
-  trackSpeedColor: 'RedGreen' as 'RedGreen' | 'PinkBlue',
-  trackRouteColor: 'Red' as 'Blue' | 'Pink' | 'Red',
 
+export const defaultMapLayerItem = {
+  mapKey: 'AutoSelect',
+  mapMode: 'Normal' as MapColorMode,
+  roadColorFade: true,
   showAvatarAtCurrentPosition: true,
+  showSpeedColor: true,
+  cityName: true,
+  cityBoundaries: '' as CityBoundariesType | '',
+  tripTrackRoute: true,
+  speedAnimation: true,
+  turnOnVoice: true,
+  showPositionMarker: true,
+  trackSpeedColor: 'RedGreen' as TrackSpeedColorType,
+  trackRouteColor: 'Red' as TrackRouteColorType,
+  polylineWidth: 4,
+}
 
-  polylineWidth: {
-    ongoingTrip: 4,
-    historyTripTrack: 1,
-    historyTripTrackSelectedTrip: 2,
-    reviewTrip: 6,
+export const defaultMapLayer = {
+  indexPage: {
+    ...defaultMapLayerItem,
+    polylineWidth: 4,
+    speedAnimation: false,
+  },
+  trackRoutePage: {
+    ...defaultMapLayerItem,
+    showSpeedColor: false,
+    polylineWidth: 2,
+  },
+  tripItemPage: {
+    ...defaultMapLayerItem,
+    polylineWidth: 4,
+    cityBoundaries: '',
+  },
+  journeyMemoriesPage: {
+    ...defaultMapLayerItem,
+    polylineWidth: 2,
+    cityBoundaries: '',
+  },
+  findLocationModal: {
+    ...defaultMapLayerItem,
+  },
+  createCustomTripModal: {
+    ...defaultMapLayerItem,
+    polylineWidth: 4,
+  },
+  replayTripModal: {
+    ...defaultMapLayerItem,
+    polylineWidth: 4,
+    speedAnimation: false,
+    cityBoundaries: '',
+  },
+  visitedCitiesModal: {
+    ...defaultMapLayerItem,
+    cityBoundaries: 'region',
+  },
+}
+const defaultConfigure: protoRoot.configure.IConfigure = {
+  general: {
+    speedColorLimit: defaultSpeedColorLimit,
   },
 
-  speedAnimation: false,
+  mapLayer: defaultMapLayer,
+
   filter: {
     tripHistory: {
-      startDate: "",
-      endDate: "",
+      startDate: '',
+      endDate: '',
       selectedVehicleIds: [],
       selectedTripTypes: [],
-      shortestDistance: 0,
-      longestDistance: 0,
+      distanceRange: {
+        min: 0,
+        max: 500,
+      },
+      speedRange: {
+        min: 0,
+        max: 380,
+      },
+      altitudeRange: {
+        min: 0,
+        max: 8848,
+      },
+      // shortestDistance: 0,
+      // longestDistance: 0,
     },
     // 还没搞
     trackRoute: {
-      startDate: "",
-      endDate: "",
+      startDate: '',
+      endDate: '',
       selectedVehicleIds: [] as string[],
       selectedTripTypes: [] as string[],
       selectedTripIds: [] as string[],
-      shortestDistance: 0,
-      longestDistance: 500,
+      distanceRange: {
+        min: 0,
+        max: 500,
+      },
+      speedRange: {
+        min: 0,
+        max: 380,
+      },
+      altitudeRange: {
+        min: 0,
+        max: 8848,
+      },
+      // shortestDistance: 0,
+      // longestDistance: 500,
       showCustomTrip: false,
-      showFullData: false
+      showFullData: false,
     },
   },
-  roadColorFade: false,
   lastUpdateTime: -1,
+}
+
+export const checkMapUrl = async (mapUrl: string) => {
+  if (!mapUrl) return
+
+  // console.log('checkMapUrl', mapUrl)
+  const xyz = [812, 421, 10]
+
+  let url = mapUrl
+    .replace('{s}', 'a')
+    .replace('{x}', String(xyz[0]))
+    .replace('{y}', String(xyz[1]))
+    .replace('{z}', String(xyz[2]))
+
+  // console.log('checkMapUrl', type, url)
+  try {
+    const res = await fetch(url)
+    // console.log('checkMapUrl res', res, type)
+    // console.log('checkMapUrl', url, type, router, res)
+    store.dispatch(configSlice.actions.setConnectionMapUrl(res.ok))
+    // if (type === 'BaseMap') {
+    // 	dispatch(configSlice.actions.setConnectionBaseMapUrl(res.ok))
+    // 	return
+    // }
+    // dispatch(configSlice.actions.setConnectionTrackRouteMapUrl(res.ok))
+  } catch (error) {
+    // console.log('checkMapUrl error', error, type)
+    store.dispatch(configSlice.actions.setConnectionMapUrl(false))
+    // if (type === 'BaseMap') {
+    // 	dispatch(configSlice.actions.setConnectionBaseMapUrl(false))
+    // 	return
+    // }
+    // dispatch(configSlice.actions.setConnectionTrackRouteMapUrl(false))
+  }
+}
+
+const mapLayerDeb = new Debounce()
+
+export const getMapLayer = (
+  mapLayerType: keyof protoRoot.configure.Configure.IMapLayer
+) => {
+  const { config } = store.getState()
+  const { configure, country, connectionOSM } = config
+
+  const mapLayer = configure.mapLayer?.[mapLayerType]
+
+  const speedColorRGBs = getTrackSpeedColorRGBs(
+    (mapLayer?.trackSpeedColor as TrackSpeedColorType) ||
+      defaultMapLayerItem.trackSpeedColor
+  )
+  // console.log(
+  //   'dddddd getMapLayer',
+  //   mapLayer,
+  //   config.country,
+  //   config.connectionOSM,
+  //   configure
+  // )
+
+  const mapUrl = getMapUrlAuto(
+    mapLayer?.mapKey || defaultMapLayerItem.mapKey,
+    country,
+    connectionOSM
+  )
+  mapUrl &&
+    mapLayerDeb.increase(() => {
+      checkMapUrl(mapUrl)
+    }, 1000)
+
+  return {
+    mapLayerType,
+    mapLayer,
+    speedColorRGBs,
+    mapUrl,
+  }
 }
 
 export const configSlice = createSlice({
   name: 'config',
   initialState: {
-    configure,
+    configure: defaultConfigure,
     initConfigure: false,
     mapRecommend: {
-      baseMap: [{
-        mapKey: "AmapSatellite",
-        mapMode: "Normal"
-      }, {
-        mapKey: "AmapArea",
-        mapMode: "Normal"
-      }, {
-        mapKey: "AmapArea",
-        mapMode: "Black"
-      }, {
-        mapKey: "AmapAreaRoad",
-        mapMode: "Gray"
-      }, {
-        mapKey: "GoogleSatellite",
-        mapMode: "Normal"
-      },],
-      trackRouteMap: [{
-        mapKey: "AmapArea",
-        mapMode: "Normal"
-      }, {
-        mapKey: "AmapArea",
-        mapMode: "Black"
-      }, {
-        mapKey: "AmapSatellite",
-        mapMode: "Normal"
-      }, {
-        mapKey: "AmapAreaRoad",
-        mapMode: "Gray"
-      },],
-      roadColorFadeMap: [{
-        mapKey: "AmapAreaRoad"
-      }, {
-        mapKey: "AmapFull"
-      }]
+      baseMap: [
+        {
+          mapKey: 'AmapSatellite',
+          mapMode: 'Normal',
+        },
+        {
+          mapKey: 'AmapArea',
+          mapMode: 'Normal',
+        },
+        {
+          mapKey: 'AmapArea',
+          mapMode: 'Black',
+        },
+        {
+          mapKey: 'AmapAreaRoad',
+          mapMode: 'Gray',
+        },
+        {
+          mapKey: 'GoogleSatellite',
+          mapMode: 'Normal',
+        },
+      ],
+      trackRouteMap: [
+        {
+          mapKey: 'AmapArea',
+          mapMode: 'Normal',
+        },
+        {
+          mapKey: 'AmapArea',
+          mapMode: 'Black',
+        },
+        {
+          mapKey: 'AmapSatellite',
+          mapMode: 'Normal',
+        },
+        {
+          mapKey: 'AmapAreaRoad',
+          mapMode: 'Gray',
+        },
+      ],
+      roadColorFadeMap: [
+        {
+          mapKey: 'AmapAreaRoad',
+        },
+        {
+          mapKey: 'AmapFull',
+        },
+      ],
     },
 
-    speedColorRGBs,
+    // speedColorRGBs,
     language: language,
     lang: '',
     languages: ['system', ...languages],
@@ -408,9 +584,9 @@ export const configSlice = createSlice({
     connectionOSM: 0,
     fullScreen: false,
     // mapKey: 'AutoSelect',
-    mapUrl: '',
+    // mapUrl: '',
     // trackRouteMapKey: 'AutoSelect',
-    trackRouteMapUrl: '',
+    // trackRouteMapUrl: '',
     // map: {
     // 	key: 'AutoSelect',
     // 	url: '',
@@ -441,20 +617,17 @@ export const configSlice = createSlice({
 
     updateTimeForTripHistoryList: 0,
 
-
     showDetailedDataForMultipleHistoricalTrips: true,
 
     hideLoading: false,
-
 
     userPositionShare: -1,
 
     showIndexPageButton: true,
     syncLocationWhileTraveling: true,
 
-
     connectionMapUrl: true,
-    turnOnCityVoice: true
+    turnOnCityVoice: true,
     // connectionBaseMapUrl: true,
     // connectionTrackRouteMapUrl: true,
   },
@@ -462,18 +635,18 @@ export const configSlice = createSlice({
     setTurnOnCityVoice: (
       state,
       params: {
-        payload: typeof state["turnOnCityVoice"]
+        payload: (typeof state)['turnOnCityVoice']
         type: string
       }
     ) => {
       state.turnOnCityVoice = params.payload
 
-      storage.global.setSync("turnOnCityVoice", params.payload ? 1 : -1)
+      storage.global.setSync('turnOnCityVoice', params.payload ? 1 : -1)
     },
     setConnectionMapUrl: (
       state,
       params: {
-        payload: typeof state["connectionMapUrl"]
+        payload: (typeof state)['connectionMapUrl']
         type: string
       }
     ) => {
@@ -500,7 +673,7 @@ export const configSlice = createSlice({
     setSyncLocationWhileTraveling: (
       state,
       params: {
-        payload: typeof state["syncLocationWhileTraveling"]
+        payload: (typeof state)['syncLocationWhileTraveling']
         type: string
       }
     ) => {
@@ -510,60 +683,76 @@ export const configSlice = createSlice({
     setConfigure: (
       state,
       params: {
-        payload: typeof state["configure"]
+        payload: (typeof state)['configure']
         type: string
       }
     ) => {
-      let obj: typeof state["configure"] = deepCopy({
-        ...configure,
-        ...params.payload
+      let obj: (typeof state)['configure'] = deepCopy({
+        ...defaultConfigure,
+        ...params.payload,
       })
 
       if (obj.filter?.trackRoute) {
-        if (!obj?.filter?.trackRoute?.shortestDistance) {
-          obj.filter.trackRoute.shortestDistance = configure.filter?.trackRoute?.shortestDistance
+        if (!obj?.filter?.trackRoute?.distanceRange) {
+          obj.filter.trackRoute.distanceRange =
+            defaultConfigure.filter?.trackRoute?.distanceRange
         }
-        if (!obj?.filter?.trackRoute?.longestDistance) {
-          obj.filter.trackRoute.longestDistance = configure.filter?.trackRoute?.longestDistance
+        if (!obj?.filter?.trackRoute?.speedRange) {
+          obj.filter.trackRoute.speedRange =
+            defaultConfigure.filter?.trackRoute?.speedRange
+        }
+        if (!obj?.filter?.trackRoute?.altitudeRange) {
+          obj.filter.trackRoute.altitudeRange =
+            defaultConfigure.filter?.trackRoute?.altitudeRange
         }
       }
 
-      !obj.speedColorLimit &&
-        (obj.speedColorLimit = configure.speedColorLimit)
-      !obj.trackSpeedColor &&
-        (obj.trackSpeedColor = configure.trackSpeedColor)
-      !obj.trackRouteColor &&
-        (obj.trackRouteColor = configure.trackRouteColor)
+      // console.log(
+      //   'objobj FilterTrips',
+      //   params.payload.filter?.trackRoute,
+      //   obj.filter?.trackRoute
+      // )
 
-      if (obj.polylineWidth) {
-        !obj.polylineWidth?.ongoingTrip &&
-          (obj.polylineWidth.ongoingTrip = configure.polylineWidth?.ongoingTrip)
-        !obj.polylineWidth?.historyTripTrack &&
-          (obj.polylineWidth.historyTripTrack = configure.polylineWidth?.historyTripTrack)
-        !obj.polylineWidth?.historyTripTrackSelectedTrip &&
-          (obj.polylineWidth.historyTripTrackSelectedTrip = configure.polylineWidth?.historyTripTrackSelectedTrip)
-        !obj.polylineWidth?.reviewTrip &&
-          (obj.polylineWidth.reviewTrip = configure.polylineWidth?.reviewTrip)
+      if (!obj.general) {
+        obj.general = defaultConfigure.general
+      } else {
+        !obj.general?.speedColorLimit &&
+          (obj.general.speedColorLimit =
+            defaultConfigure.general?.speedColorLimit)
       }
+
+      if (!obj.mapLayer) {
+        obj.mapLayer = defaultMapLayer
+      } else {
+        Object.keys(defaultMapLayer).forEach((k: string) => {
+          const key: keyof typeof defaultMapLayer = k as any
+          if (!obj.mapLayer?.[key]) {
+            ;(obj.mapLayer as any)[key] = defaultMapLayer[key]
+          }
+        })
+      }
+
+      // console.log('dddddd obj', obj)
 
       state.configure = obj
 
-      state.speedColorRGBs = getTrackSpeedColors((String(obj?.trackSpeedColor) || "RedGreen") as any)
+      // state.speedColorRGBs = getTrackSpeedColors(
+      //   (String(obj?.trackSpeedColor) || 'RedGreen') as any
+      // )
 
-      getMapUrlAuto("Normal", obj.baseMap?.mapKey || "AutoSelect")
-      getMapUrlAuto("TrackRoute", obj.trackRouteMap?.mapKey || "AutoSelect")
+      // getMapUrlAuto('Normal', obj.baseMap?.mapKey || 'AutoSelect')
+      // getMapUrlAuto('TrackRoute', obj.trackRouteMap?.mapKey || 'AutoSelect')
 
       storage.global.setSync('configure', {
         ...obj,
         filter: {
-          ...obj["filter"],
+          ...obj['filter'],
           trackRoute: {
-            ...obj["filter"]?.["trackRoute"],
-            selectedTripIds: []
-          }
-        }
+            ...obj['filter']?.['trackRoute'],
+            selectedTripIds: [],
+          },
+        },
       })
-
     },
     setInitConfigure: (
       state,
@@ -700,36 +889,40 @@ export const configSlice = createSlice({
       state.country = params.payload
       country = state.country
 
-      getMapUrlAuto("Normal", state.configure?.baseMap?.mapKey || "AutoSelect")
-      getMapUrlAuto("TrackRoute", state.configure?.trackRouteMap?.mapKey || "AutoSelect")
-
+      // getMapUrlAuto('Normal', state.configure?.baseMap?.mapKey || 'AutoSelect')
+      // getMapUrlAuto(
+      //   'TrackRoute',
+      //   state.configure?.trackRouteMap?.mapKey || 'AutoSelect'
+      // )
     },
     setConnectionOSM: (state, params: ActionParams<number>) => {
       state.connectionOSM = params.payload
 
-      getMapUrlAuto("Normal", state.configure?.baseMap?.mapKey || "AutoSelect")
-      getMapUrlAuto("TrackRoute", state.configure?.trackRouteMap?.mapKey || "AutoSelect")
-
+      // getMapUrlAuto('Normal', state.configure?.baseMap?.mapKey || 'AutoSelect')
+      // getMapUrlAuto(
+      //   'TrackRoute',
+      //   state.configure?.trackRouteMap?.mapKey || 'AutoSelect'
+      // )
     },
-    setMapUrl: (
-      state,
-      params: {
-        payload: string
-        type: string
-      }
-    ) => {
-      // console.log('v?.url initMap params.payload', params.payload)
-      state.mapUrl = params.payload
-    },
-    setTrackRouteMapUrl: (
-      state,
-      params: {
-        payload: string
-        type: string
-      }
-    ) => {
-      state.trackRouteMapUrl = params.payload
-    },
+    // setMapUrl: (
+    //   state,
+    //   params: {
+    //     payload: string
+    //     type: string
+    //   }
+    // ) => {
+    //   // console.log('v?.url initMap params.payload', params.payload)
+    //   state.mapUrl = params.payload
+    // },
+    // setTrackRouteMapUrl: (
+    //   state,
+    //   params: {
+    //     payload: string
+    //     type: string
+    //   }
+    // ) => {
+    //   state.trackRouteMapUrl = params.payload
+    // },
     setFullScreen: (
       state,
       params: {
@@ -744,26 +937,25 @@ export const configSlice = createSlice({
 
 export const configMethods = {
   init: createAsyncThunk('config/init', async (_, thunkAPI) => {
-
-    let configureTemp = (await storage.global.get('configure')) || configure
+    let configureTemp =
+      (await storage.global.get('configure')) || defaultConfigure
     // configureTemp = configure
-    thunkAPI.dispatch(configSlice.actions.setConfigure(
-      configureTemp
-    ))
-
+    thunkAPI.dispatch(configSlice.actions.setConfigure(configureTemp))
 
     const slwt = await storage.global.get('syncLocationWhileTraveling')
-    thunkAPI.dispatch(configSlice.actions.setSyncLocationWhileTraveling(
-      typeof slwt === "boolean" ? slwt : true))
+    thunkAPI.dispatch(
+      configSlice.actions.setSyncLocationWhileTraveling(
+        typeof slwt === 'boolean' ? slwt : true
+      )
+    )
 
+    // const language = (await storage.global.get('language')) || 'system'
+    // thunkAPI.dispatch(configMethods.setLanguage(language))
 
-    const language = (await storage.global.get('language')) || 'system'
-    thunkAPI.dispatch(configMethods.setLanguage(language))
-
-
-    const turnOnCityVoice = await storage.global.get('turnOnCityVoice') || 1
-    thunkAPI.dispatch(configSlice.actions.setTurnOnCityVoice(turnOnCityVoice === 1))
-
+    const turnOnCityVoice = (await storage.global.get('turnOnCityVoice')) || 1
+    thunkAPI.dispatch(
+      configSlice.actions.setTurnOnCityVoice(turnOnCityVoice === 1)
+    )
 
     // const showDetailedDataForMultipleHistoricalTrips =
     //   (await storage.global.get(
@@ -775,91 +967,82 @@ export const configMethods = {
     //   )
     // )
 
-
-    console.log(" isFullScreen(document.body)", isFullScreen(document.body))
+    console.log(' isFullScreen(document.body)', isFullScreen(document.body))
     thunkAPI.dispatch(
-      configSlice.actions.setFullScreen(
-        isFullScreen(document.body)
-      )
+      configSlice.actions.setFullScreen(isFullScreen(document.body))
     )
 
-
+    // console.log('dddddd', 22222222222)
     // thunkAPI.dispatch(configSlice.actions.setUserPositionShare(Number(await storage.global.get('userPositionShare')) || -1))
-
-
-
   }),
 
-  GetConfigure: createAsyncThunk(
-    'config/GetConfigure',
-    async (_, thunkAPI) => {
-      const { config } = store.getState()
+  GetConfigure: createAsyncThunk('config/GetConfigure', async (_, thunkAPI) => {
+    const { config } = store.getState()
 
-      const res = await httpApi.v1.GetConfigure({
-      })
+    const res = await httpApi.v1.GetConfigure({})
 
-      // console.log("filter1 GetConfigure", res,
-      //   res.code === 200 && res.data.configure,
-      //   Number(res.data.configure?.lastUpdateTime), Number(config.configure?.lastUpdateTime),
-      //   Number(res.data.configure?.lastUpdateTime) > Number(config.configure?.lastUpdateTime),
-      // )
-      if (res.code === 200 && res.data.configure) {
-        if (Number(res.data.configure?.lastUpdateTime) >= Number(config.configure?.lastUpdateTime)) {
+    // console.log("filter1 GetConfigure", res,
+    //   res.code === 200 && res.data.configure,
+    //   Number(res.data.configure?.lastUpdateTime), Number(config.configure?.lastUpdateTime),
+    //   Number(res.data.configure?.lastUpdateTime) > Number(config.configure?.lastUpdateTime),
+    // )
+    if (res.code === 200 && res.data.configure) {
+      if (
+        Number(res.data.configure?.lastUpdateTime) >=
+        Number(config.configure?.lastUpdateTime)
+      ) {
+        const c = res.data.configure
+        const conf = {
+          ...config.configure,
 
-          const c = res.data.configure
-          const conf = {
-            ...config.configure,
-            speedColorLimit: c.speedColorLimit || configure.speedColorLimit,
-            trackSpeedColor: c.trackSpeedColor || configure.trackSpeedColor,
-            trackRouteColor: c.trackRouteColor || configure.trackRouteColor,
-            showAvatarAtCurrentPosition: c.showAvatarAtCurrentPosition || configure.showAvatarAtCurrentPosition,
-            polylineWidth: c.polylineWidth || configure.polylineWidth,
-            filter: {
-              ...(config.configure.filter || configure.filter),
-              trackRoute: c.filter?.trackRoute || configure.filter?.trackRoute,
-            },
-            lastUpdateTime: c.lastUpdateTime
-          }
-          console.log("filter1 GetConfigure", conf, config.configure)
-          thunkAPI.dispatch(configSlice.actions.setConfigure(
-            conf
-          ))
+          filter: {
+            ...(config.configure.filter || defaultConfigure.filter),
+            trackRoute:
+              c.filter?.trackRoute || defaultConfigure.filter?.trackRoute,
+          },
+          general: {
+            ...(config.configure.general || defaultConfigure.general),
+            speedColorLimit:
+              c.general?.speedColorLimit ||
+              defaultConfigure.general?.speedColorLimit,
+          },
+          mapLayer: {
+            ...(config.configure.mapLayer || defaultConfigure.mapLayer),
+          },
+          lastUpdateTime: c.lastUpdateTime,
         }
+        console.log('filter1 GetConfigure', conf, config.configure)
+        thunkAPI.dispatch(configSlice.actions.setConfigure(conf))
       }
-
     }
-  ),
+  }),
   SetConfigure: createAsyncThunk(
     'config/SetConfigure',
     async (configure: protoRoot.configure.IConfigure, thunkAPI) => {
-
       const { config } = store.getState()
-      console.log("SyncConfigure", config.initConfigure)
+      // console.log('SyncConfigure FilterTrips', configure, config.initConfigure)
       if (!config.initConfigure) return
 
       configure.lastUpdateTime = Math.floor(new Date().getTime() / 1000)
-      thunkAPI.dispatch(configSlice.actions.setConfigure(
-        configure
-      ))
+      thunkAPI.dispatch(configSlice.actions.setConfigure(configure))
 
       const obj = {
         ...configure,
         filter: {
-          ...configure["filter"],
+          ...configure['filter'],
           trackRoute: {
-            ...configure["filter"]?.["trackRoute"],
+            ...configure['filter']?.['trackRoute'],
             // selectedTripIds: []
-          }
-        }
+          },
+        },
       }
       await storage.global.set('configure', obj)
       d.increase(async () => {
-        const res = await (httpApi).v1.SyncConfigure({
-          configure: obj
+        const res = await httpApi.v1.SyncConfigure({
+          configure: obj,
         })
         console.log('filter1', res, obj)
       }, 700)
-
     }
   ),
   setLanguage: createAsyncThunk(
@@ -871,23 +1054,23 @@ export const configMethods = {
       if (language === 'system') {
         const languages = ['zh-CN', 'zh-TW', 'en-US']
         if (languages.indexOf(navigator.language) >= 0) {
-          getI18n().changeLanguage(navigator.language)
+          changeLanguage(navigator.language)
         } else {
           switch (navigator.language.substring(0, 2)) {
             case 'zh':
-              getI18n().changeLanguage('zh-CN')
+              changeLanguage('zh-CN')
               break
             case 'en':
-              getI18n().changeLanguage('en-US')
+              changeLanguage('en-US')
               break
 
             default:
-              getI18n().changeLanguage('en-US')
+              changeLanguage('en-US')
               break
           }
         }
       } else {
-        getI18n().changeLanguage(language)
+        changeLanguage(language)
       }
 
       store.dispatch(configSlice.actions.setLang(getI18n().language))
@@ -926,24 +1109,26 @@ export const configMethods = {
   updateUserPositionShare: createAsyncThunk(
     'config/updateUserPositionShare',
     async (b: number, thunkAPI) => {
-
       const res = await httpApi.v1.UpdateUserPositionShare({
-        positionShare: b
+        positionShare: b,
       })
-      console.log("UpdateUserPositionShare", res)
+      console.log('UpdateUserPositionShare', res)
       if (res.code === 200) {
         thunkAPI.dispatch(configSlice.actions.setUserPositionShare(b))
       }
-
     }
   ),
   getUserPositionShare: createAsyncThunk(
     'config/getUserPositionShare',
     async (_, thunkAPI) => {
       const res = await httpApi.v1.GetUserPositionShare({})
-      console.log("GetUserPositionShare", res)
+      console.log('GetUserPositionShare', res)
       if (res.code === 200) {
-        thunkAPI.dispatch(configSlice.actions.setUserPositionShare(Number(res.data.positionShare) || -1))
+        thunkAPI.dispatch(
+          configSlice.actions.setUserPositionShare(
+            Number(res.data.positionShare) || -1
+          )
+        )
         return
       }
 

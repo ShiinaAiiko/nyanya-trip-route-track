@@ -2,8 +2,22 @@ import { protoRoot, PARAMS, Request } from '../../../../protos'
 import store from '../../../../store'
 import { getUrl } from '..'
 
-
 export const tripApi = {
+  async ClearTripCities(params: protoRoot.trip.ClearTripCities.IRequest) {
+    const { apiUrls } = store.getState().api
+
+    return await Request<protoRoot.trip.ClearTripCities.IResponse>(
+      {
+        method: 'POST',
+        data: PARAMS<protoRoot.trip.ClearTripCities.IRequest>(
+          params,
+          protoRoot.trip.ClearTripCities.Request
+        ),
+        url: getUrl(apiUrls.v1.baseUrl, apiUrls.v1.clearTripCities),
+      },
+      protoRoot.trip.ClearTripCities.Response
+    )
+  },
   async AddTrip(params: protoRoot.trip.AddTrip.IRequest) {
     const { apiUrls } = store.getState().api
 
@@ -239,21 +253,21 @@ export const tripApi = {
     )
   },
 
-  async GetHistoricalStatistics(
-    params: protoRoot.trip.GetHistoricalStatistics.IRequest
-  ) {
-    const { apiUrls } = store.getState().api
+  // async GetHistoricalStatistics(
+  //   params: protoRoot.trip.GetHistoricalStatistics.IRequest
+  // ) {
+  //   const { apiUrls } = store.getState().api
 
-    return await Request<protoRoot.trip.GetHistoricalStatistics.IResponse>(
-      {
-        method: 'GET',
-        data: PARAMS<protoRoot.trip.GetHistoricalStatistics.IRequest>(
-          params,
-          protoRoot.trip.GetHistoricalStatistics.Request
-        ),
-        url: getUrl(apiUrls.v1.baseUrl, apiUrls.v1.getHistoricalStatistics),
-      },
-      protoRoot.trip.GetHistoricalStatistics.Response
-    )
-  },
+  //   return await Request<protoRoot.trip.GetHistoricalStatistics.IResponse>(
+  //     {
+  //       method: 'GET',
+  //       data: PARAMS<protoRoot.trip.GetHistoricalStatistics.IRequest>(
+  //         params,
+  //         protoRoot.trip.GetHistoricalStatistics.Request
+  //       ),
+  //       url: getUrl(apiUrls.v1.baseUrl, apiUrls.v1.getHistoricalStatistics),
+  //     },
+  //     protoRoot.trip.GetHistoricalStatistics.Response
+  //   )
+  // },
 }

@@ -1,9 +1,4 @@
-import {
-  createSlice,
-  createAsyncThunk,
-  combineReducers,
-  configureStore,
-} from '@reduxjs/toolkit'
+import { createSlice, createAsyncThunk, combineReducers, configureStore } from '@reduxjs/toolkit'
 import { storage } from './storage'
 import { deepCopy, SAaSS, AsyncQueue } from '@nyanyajs/utils'
 import { httpApi } from '../plugins/http/api'
@@ -11,7 +6,6 @@ import { progressBar } from '@saki-ui/core'
 // import { AsyncQueue } from './asyncQueue'
 import { protoRoot } from '../protos'
 import i18n from '../plugins/i18n/i18n'
-
 
 export const saass = new SAaSS({})
 
@@ -25,7 +19,6 @@ export const selectFiles = () => {
 
       input.oninput = () => {
         resolve(input.files)
-
       }
       input.onblur = () => {
         console.log('close')
@@ -39,37 +32,34 @@ export const selectFiles = () => {
       reject(error)
     }
   })
-
 }
 
-export const getSAaSSImageUrl = (url: string, type?: "" | "big" | "mid" | "small" | "thumbnail") => {
-
-  if (url.includes("https://saass.aiiko.club")) {
-    if (type === "big") {
-      return url + "?x-saass-process=image/resize,1200,70"
+export const getSAaSSImageUrl = (url: string, type?: '' | 'big' | 'mid' | 'midOrSmall' | 'small' | 'thumbnail') => {
+  if (url.includes('https://saass.aiiko.club')) {
+    if (type === 'big') {
+      return url + '?x-saass-process=image/resize,1200,70'
     }
-    if (type === "mid") {
-      return url + "?x-saass-process=image/resize,700,70"
+    if (type === 'mid') {
+      return url + '?x-saass-process=image/resize,700,70'
     }
-    if (type === "small") {
-      return url + "?x-saass-process=image/resize,120,70"
+    if (type === 'midOrSmall') {
+      return url + '?x-saass-process=image/resize,400,70'
     }
-    if (type === "thumbnail") {
-      return url + "?x-saass-process=image/resize,80,70"
+    if (type === 'small') {
+      return url + '?x-saass-process=image/resize,250,70'
     }
-
+    if (type === 'thumbnail') {
+      return url + '?x-saass-process=image/resize,80,70'
+    }
   }
 
   return url
-
 }
-
 
 export interface MediaItem extends protoRoot.journeyMemory.IJourneyMemoryMediaItem {
   file?: File
   id: string
 }
-
 
 export const uploadFiles = async (media: MediaItem[]) => {
   // console.log('uploadFile', media)
@@ -79,9 +69,7 @@ export const uploadFiles = async (media: MediaItem[]) => {
 
   let total = media.filter((v) => v.file).length
 
-
   if (total) {
-
     const t = i18n.t
 
     let count = 0
@@ -98,7 +86,6 @@ export const uploadFiles = async (media: MediaItem[]) => {
         count: 0,
       }),
     })
-
 
     for (let i = 0; i < media.length; i++) {
       aq.increase(async () => {

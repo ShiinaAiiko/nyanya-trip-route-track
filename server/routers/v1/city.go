@@ -11,6 +11,7 @@ func (r *Routerv1) InitCity() {
 	role := middleware.RoleMiddlewareOptions{
 		BaseUrl: r.BaseUrl,
 	}
+
 	r.Group.POST(
 		role.SetRole("/city/update", &middleware.RoleOptionsType{
 			CheckApp:           false,
@@ -24,8 +25,9 @@ func (r *Routerv1) InitCity() {
 
 	r.Group.GET(
 		role.SetRole("/city/details/list/get", &middleware.RoleOptionsType{
-			CheckApp:           false,
-			Authorize:          true,
+			CheckApp:  false,
+			Authorize: false,
+			// Authorize:          false,
 			RequestEncryption:  false,
 			ResponseEncryption: false,
 			RequestDataType:    "protobuf",
@@ -36,7 +38,7 @@ func (r *Routerv1) InitCity() {
 	r.Group.GET(
 		role.SetRole("/city/user/list/get", &middleware.RoleOptionsType{
 			CheckApp:  false,
-			Authorize: true,
+			Authorize: false,
 			// Authorize:          false,
 			RequestEncryption:  false,
 			ResponseEncryption: false,
@@ -44,5 +46,17 @@ func (r *Routerv1) InitCity() {
 			ResponseDataType:   "protobuf",
 		}),
 		c.GetAllCitiesVisitedByUser)
+
+	// r.Group.GET(
+	// 	role.SetRole("/city/list/byJmShareKey/get", &middleware.RoleOptionsType{
+	// 		CheckApp:  false,
+	// 		Authorize: false,
+	// 		// Authorize:          false,
+	// 		RequestEncryption:  false,
+	// 		ResponseEncryption: false,
+	// 		RequestDataType:    "protobuf",
+	// 		ResponseDataType:   "protobuf",
+	// 	}),
+	// 	c.GetAllCitiesVisitedByJMShareKey)
 
 }
