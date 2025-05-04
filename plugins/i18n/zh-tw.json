@@ -110,7 +110,10 @@
 
     "trip404": "未找到行程數據，換個行程嘗試？",
 
-    "voiceBroadcastText": "你已進入 {{city}}"
+    "voiceBroadcastText": "你已進入 {{city}}",
+
+    "screen_always_on_and_background_gps_enabled": "已開啟螢幕常亮；行程開始後，應用進入後台依然可以記錄GPS",
+    "screen_always_on_and_background_gps_disabled": "已關閉螢幕常亮及後台定位"
   },
   "replayTripPage": {
     "title": "回放行程",

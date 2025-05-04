@@ -38,3 +38,5 @@ ssh.sh
 build.tgz
 
 /components/saki-ui-react/
+
+/rnApp/crash.log

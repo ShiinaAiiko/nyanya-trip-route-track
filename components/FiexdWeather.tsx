@@ -216,7 +216,7 @@ const FiexdWeatherComponent = ({
       className={'fiexd-weather-component ' + config.deviceType}
       onClick={() => {
         if (!cityInfo.address) return
-        voiceBroadcast(cityInfo.address)
+        // voiceBroadcast(cityInfo.address)
         // let msg = `祝贺汝喵进入「${cityInfo.address}」！`
         // // // 创建语音对象
         // ;(window as any).responsiveVoice.speak(

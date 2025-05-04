@@ -240,7 +240,11 @@ const MapLayerModal = () => {
       width="100%"
       height="100%"
       max-width={config.deviceType === 'Mobile' ? '100%' : '360px'}
-      max-height={config.deviceType === 'Mobile' ? '70%' : '600px'}
+      max-height={
+        config.deviceType === 'Mobile'
+          ? '70%'
+          : Math.min(600, config.deviceWH.h) + 'px'
+      }
       vertical={
         config.deviceType === 'Mobile'
           ? 'Bottom'
@@ -259,7 +263,9 @@ const MapLayerModal = () => {
       offset-y={
         config.deviceType === 'Mobile'
           ? '0px'
-          : layout.openMapLayerModal.modalConfig.offsetY
+          : config.deviceWH.h > 600
+          ? layout.openMapLayerModal.modalConfig.offsetY
+          : '0px'
       }
       mask={config.deviceType === 'Mobile'}
       mask-closable={config.deviceType === 'Mobile'}

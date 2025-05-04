@@ -47,6 +47,7 @@ import {
   eventListener,
   getMapLayer,
   osmMap,
+  rnJSBridge,
 } from '../../store/config'
 import { storage } from '../../store/storage'
 import NoSSR from '../../components/NoSSR'
@@ -774,6 +775,22 @@ const TripPage = () => {
     dispatch(positionSlice.actions.setSelectRealTimeMarkerId(''))
 
     if (startTrip) {
+      if (config.appConfig.version) {
+        snackbar({
+          message: t('screen_always_on_and_background_gps_enabled', {
+            ns: 'tripPage',
+          }),
+          autoHideDuration: 5000,
+          vertical: 'center',
+          horizontal: 'center',
+          backgroundColor: 'var(--saki-default-color)',
+          color: '#fff',
+        }).open()
+
+        rnJSBridge.enableLocation(true)
+        rnJSBridge.enableBackgroundTasks(true)
+        rnJSBridge.keepScreenOn(true)
+      }
       dispatch(configSlice.actions.setShowIndexPageButton(true))
 
       dispatch(layoutSlice.actions.setLayoutHeader(false))
@@ -885,6 +902,20 @@ const TripPage = () => {
       // console.log('该浏览器不支持获取地理位置')
       return
     }
+    if (config.appConfig.version) {
+      snackbar({
+        message: t('screen_always_on_and_background_gps_disabled', {
+          ns: 'tripPage',
+        }),
+        autoHideDuration: 4000,
+        vertical: 'center',
+        horizontal: 'center',
+        backgroundColor: 'var(--saki-default-color)',
+        color: '#fff',
+      }).open()
+      rnJSBridge.keepScreenOn(false)
+      rnJSBridge.enableBackgroundTasks(false)
+    }
 
     statistics.current = {
       speed: 0,
@@ -926,6 +957,10 @@ const TripPage = () => {
 
       // 30秒一次初始化容器
       if (Math.floor(listenTime / 1000) % 30 === 0) {
+        if (config.appConfig.version) {
+          rnJSBridge.keepScreenOn(true)
+          rnJSBridge.enableBackgroundTasks(true)
+        }
         refreshMapSizeDebounce.current.increase(() => {
           map.current?.invalidateSize(true)
         }, 400)

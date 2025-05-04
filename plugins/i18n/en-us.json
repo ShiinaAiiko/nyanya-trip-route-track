@@ -110,7 +110,10 @@
 
     "trip404": "No trip data found, try another trip?",
 
-    "voiceBroadcastText": "You have entered {{city}}"
+    "voiceBroadcastText": "You have entered {{city}}",
+
+    "screen_always_on_and_background_gps_enabled": "Screen always on enabled; GPS tracking continues in the background after the trip starts",
+    "screen_always_on_and_background_gps_disabled": "Screen always on and background GPS tracking disabled"
   },
   "replayTripPage": {
     "title": "Replay Trip",

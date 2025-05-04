@@ -41,7 +41,7 @@ import Leaflet from 'leaflet'
 import { useRouter } from 'next/router'
 import { storage } from '../store/storage'
 import { isFullScreen } from '../plugins/methods'
-import { eventListener } from '../store/config'
+import { eventListener, initRnJSBridge, rnJSBridge } from '../store/config'
 import FindLocationComponent from '../components/FindLocation'
 import screenfull from 'screenfull'
 import Script from 'next/script'
@@ -53,6 +53,7 @@ import LoadModalComponent, {
 } from '../components/LoadModal'
 import { loadPwaNewVersion } from '../plugins/loadPwaNewVersion'
 import { SakiI18n } from '../components/saki-ui-react/components'
+import { ReactNativeWebJSBridge } from '../plugins/reactNativeWebJsBridge'
 
 // import { testGpsData } from '../plugins/methods'
 // import parserFunc from 'ua-parser-js'
@@ -60,8 +61,6 @@ import { SakiI18n } from '../components/saki-ui-react/components'
 // const NonSSRWrapper = (props) => (
 // 	<React.Fragment>{props.children}</React.Fragment>
 // )
-
-let watchPosTimer: NodeJS.Timeout
 
 const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
   const { t, i18n } = useTranslation()
@@ -157,6 +156,7 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
 
   useEffect(() => {
     console.log('dddddd 1', 111)
+
     const L: typeof Leaflet = (window as any).L
 
     if (L) {
@@ -336,8 +336,34 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
   //   router.pathname.indexOf('trackRoute') >= 0 && checkMapUrl(config.trackRouteMapUrl, 'TrackRoute')
   // }, [config.trackRouteMapUrl])
 
+  const d = useRef(new Debounce())
+  // const rnJSBridge = useRef<ReactNativeWebJSBridge>()
+
   useEffect(() => {
     try {
+      if (!rnJSBridge) {
+        initRnJSBridge()
+      }
+      if (rnJSBridge?.isInReactNative()) {
+        rnJSBridge.enableLocation(true)
+
+        rnJSBridge.removeEvent('location')
+        rnJSBridge.on('location', (val: any) => {
+          console.log('location', val)
+          dispatch(geoSlice.actions.setPosition(val))
+          // 5秒内不更新，就重新获取GPS
+
+          d.current.increase(() => {
+            dispatch(geoSlice.actions.setWatchUpdateTime(new Date().getTime()))
+          }, 10 * 1000)
+        })
+        rnJSBridge.on('appConfig', (val) => {
+          console.log('appConfig', val)
+          dispatch(configSlice.actions.setAppConfig(val))
+        })
+        return
+      }
+
       if (navigator.geolocation) {
         navigator.geolocation.clearWatch(watchId.current)
 
@@ -348,9 +374,7 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
 
             dispatch(geoSlice.actions.setPosition(pos))
 
-            clearInterval(watchPosTimer)
-            // 5秒内不更新，就重新获取GPS
-            watchPosTimer = setInterval(() => {
+            d.current.increase(() => {
               dispatch(
                 geoSlice.actions.setWatchUpdateTime(new Date().getTime())
               )

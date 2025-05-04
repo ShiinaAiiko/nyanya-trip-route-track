@@ -264,7 +264,7 @@ func (fc *JourneyMemoryController) GetJMDetail(c *gin.Context) {
 		media = append(media, sv.Media...)
 		sv.Media = []*models.JourneyMemoryMediaItem{}
 	}
-	if len(jm.Media) == 0 {
+	if len(jm.Media) == 0 && len(media) != 0 {
 		jm.Media = media[len(media)-1:]
 	}
 
@@ -407,7 +407,7 @@ func (fc *JourneyMemoryController) GetJMList(c *gin.Context) {
 			media = append(media, sv.Media...)
 		}
 
-		if len(v.Media) == 0 {
+		if len(v.Media) == 0 && len(media) != 0 {
 			v.Media = media[len(media)-1:]
 		}
 

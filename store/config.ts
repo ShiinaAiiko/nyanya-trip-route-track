@@ -28,6 +28,7 @@ import { httpApi } from '../plugins/http/api'
 import { protoRoot } from '../protos'
 import screenfull from 'screenfull'
 import { config } from 'process'
+import { ReactNativeWebJSBridge } from '../plugins/reactNativeWebJsBridge'
 
 export const R = new NRequest()
 
@@ -154,6 +155,15 @@ export let connectionOSM = true
 let speedColorRGBs: string[] = []
 
 export let eventListener = new NEventListener()
+
+export let rnJSBridge: ReactNativeWebJSBridge
+
+export let initRnJSBridge = () => {
+  if (typeof window !== 'undefined') {
+    rnJSBridge = new ReactNativeWebJSBridge()
+  }
+}
+initRnJSBridge()
 
 export const getTrackSpeedColorRGBs = (type: TrackSpeedColorType) => {
   let speedColorRGBs = []
@@ -518,6 +528,10 @@ export const getMapLayer = (
 export const configSlice = createSlice({
   name: 'config',
   initialState: {
+    appConfig: {
+      version: '',
+      system: '',
+    },
     configure: defaultConfigure,
     initConfigure: false,
     mapRecommend: {
@@ -632,6 +646,15 @@ export const configSlice = createSlice({
     // connectionTrackRouteMapUrl: true,
   },
   reducers: {
+    setAppConfig: (
+      state,
+      params: {
+        payload: (typeof state)['appConfig']
+        type: string
+      }
+    ) => {
+      state.appConfig = params.payload
+    },
     setTurnOnCityVoice: (
       state,
       params: {

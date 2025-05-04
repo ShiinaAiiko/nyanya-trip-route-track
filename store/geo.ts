@@ -26,12 +26,13 @@ export const geoSlice = createSlice({
         type: string
       }
     ) => {
-      const v = (params.payload)
+      const v = params.payload
       // const v = deepCopy(params.payload)
       // if (v?.coords?.longitude) {
       //   v.coords.longitude = Number(v.coords.longitude.toFixed(3))
       // }
       state.position = v
+
       // state.position = {
       // 	coords: {
       // 		accuracy: v.coords.accuracy,
@@ -85,11 +86,11 @@ export const geoMethods = {
         cp?.coords?.latitude
           ? cp
           : {
-            coords: {
-              latitude: 29.556324,
-              longitude: 106.57882,
-            },
-          }
+              coords: {
+                latitude: 29.556324,
+                longitude: 106.57882,
+              },
+            }
       )
     )
   }),

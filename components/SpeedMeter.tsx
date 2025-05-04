@@ -161,6 +161,7 @@ const SpeedMeterComponent = ({
     const res = await httpApi.v1.GetTripStatistics({
       type: type,
       timeLimit: [sd, ed],
+      distanceLimit: [0, 500],
     })
     console.log('GetHistoricalStatistics', res, type)
     if (res.code === 200 && res.data?.statistics?.maxSpeed?.num) {
