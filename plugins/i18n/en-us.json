@@ -96,6 +96,7 @@
     "parkTime": "Parking time {{time}}",
     "trafficLightTime": "Waiting time {{time}}",
     "tripTimeline": "Trip timeline",
+    "statisticalCharts": "Statistical charts",
     "temporaryPark": "Temporary parking",
     "All": "All",
     "Driving": "Driving",
@@ -113,7 +114,13 @@
     "voiceBroadcastText": "You have entered {{city}}",
 
     "screen_always_on_and_background_gps_enabled": "Screen always on enabled; GPS tracking continues in the background after the trip starts",
-    "screen_always_on_and_background_gps_disabled": "Screen always on and background GPS tracking disabled"
+    "screen_always_on_and_background_gps_disabled": "Screen always on and background GPS tracking disabled",
+
+    "realDrivingTime": "Real driving time  {{time}}",
+
+    "slope": "Slope",
+
+    "totalMileage": "Total: {{distance}}"
   },
   "replayTripPage": {
     "title": "Replay Trip",
@@ -233,7 +240,9 @@
     "onlineVideo": "Online video",
     "addOnlineVideo": "Add online video",
     "onlineVideoDesc": "External link code of platforms such as Bilibili, Youtube, etc.",
-    "addedOnelineVideoCount": "{{length}} online videos have been added"
+    "addedOnelineVideoCount": "{{length}} online videos have been added",
+
+    "shareContent": "{{name}}, {{days}} days, {{tripCount}} trips, {{distance}}km, spanning {{minAlt}}m to {{maxAlt}}m elevation\n{{url}}"
   },
   "imagesWaterfallModal": {
     "title": "Photo Album",
@@ -324,7 +333,10 @@
     "cityBoundaries": "City boundaries",
     "tripTrackRoute": "Trip track",
     "showPositionMarker": "Location sharing marker",
-    "appearanceSettings": "Appearance settings"
+    "appearanceSettings": "Appearance settings",
+
+    "openVConsole": "Open vConsole",
+    "closeVConsole": "Close vConsole"
   },
   "prompt": {
     "next": "Next",
@@ -385,7 +397,15 @@
     "descending": "Descending order",
     "save": "Save",
     "doNotShowAgainTitle": "Don't Show Again",
-    "doNotShowAgainContent": "You won't see this prompt again. You can re-enable it in settings"
+    "doNotShowAgainContent": "You won't see this prompt again. You can re-enable it in settings",
+
+    "stop_recording_trip": "Stop Recording Trip",
+    "stop_recording_immediately": "Recording will stop immediately after confirmation",
+    "trip_stopped_view_history": "Trip stopped, you can view it in trip history",
+
+    "hourTime": "h ",
+    "minuteTime": "m ",
+    "secondTime": "s "
   },
   "weather": {
     "weather0": "Sunny",

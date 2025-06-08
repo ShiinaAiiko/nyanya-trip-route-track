@@ -35,7 +35,6 @@ import {
   formatAvgPace,
   formatDistance,
   formatTime,
-  formatTimestamp,
   fullScreen,
   getAngle,
   getDistance,
@@ -49,11 +48,11 @@ import {
   roadColorFade,
 } from '../plugins/methods'
 import TripItemComponent from './TripItem'
-import { Chart } from 'chart.js'
+
 import { Debounce, deepCopy, getShortId, NEventListener } from '@nyanyajs/utils'
 import StatisticsComponent from './Statistics'
 import Leaflet, { latLng } from 'leaflet'
-import SpeedMeterComponent from './SpeedMeter'
+import SpeedMeterComponent from './Dashboard'
 import { Statistics } from '../store/trip'
 import { eventListener, getMapLayer, getTrackRouteColor } from '../store/config'
 import { UserInfo } from '@nyanyajs/utils/dist/sakisso'

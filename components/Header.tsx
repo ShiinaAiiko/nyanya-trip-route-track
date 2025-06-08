@@ -2,7 +2,14 @@ import Head from 'next/head'
 import Link from 'next/link'
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
-import { RootState, userSlice, AppDispatch, layoutSlice, methods, configSlice } from '../store'
+import {
+  RootState,
+  userSlice,
+  AppDispatch,
+  layoutSlice,
+  methods,
+  configSlice,
+} from '../store'
 import { useTranslation } from 'react-i18next'
 import { alert, bindEvent, snackbar } from '@saki-ui/core'
 import { useSelector, useStore, useDispatch } from 'react-redux'
@@ -36,7 +43,11 @@ const HeaderComponent = ({
   const [openUserDropDownMenu, setOpenUserDropDownMenu] = useState(false)
 
   return (
-    <div className={'tb-header ' + (fixed ? ' fixed' : '') + (!visible ? ' hide' : '')}>
+    <div
+      className={
+        'tb-header ' + (fixed ? ' fixed' : '') + (!visible ? ' hide' : '')
+      }
+    >
       <div className="tb-h-bg"></div>
       <div
         style={{
@@ -98,6 +109,11 @@ const HeaderComponent = ({
                   nickname={user.userInfo.nickname}
                   src={user.userInfo.avatar}
                   alt=""
+                  // mark
+                  mark={!user.isLogin}
+                  // mark-background-color={user.isLogin ? '#8ec646' : ''}
+                  mark-status={user.isLogin ? 'Online' : 'Offline'}
+                  lazyload="false"
                 />
               </div>
               <div slot="main">
@@ -108,12 +124,16 @@ const HeaderComponent = ({
                       switch (e.detail.value) {
                         case 'Settings':
                           loadModal('Settings', () => {
-                            dispatch(layoutSlice.actions.setOpenSettingsModal(true))
+                            dispatch(
+                              layoutSlice.actions.setOpenSettingsModal(true)
+                            )
                           })
                           break
                         case 'Login':
                           loadModal('Login', () => {
-                            dispatch(layoutSlice.actions.setOpenLoginModal(true))
+                            dispatch(
+                              layoutSlice.actions.setOpenLoginModal(true)
+                            )
                           })
 
                           break
@@ -124,7 +144,9 @@ const HeaderComponent = ({
                           // router.push('/tripHistory')
 
                           loadModal('TripHistory', () => {
-                            dispatch(layoutSlice.actions.setOpenTripHistoryModal(true))
+                            dispatch(
+                              layoutSlice.actions.setOpenTripHistoryModal(true)
+                            )
                           })
                           break
                         case 'Vehicle':
@@ -133,7 +155,9 @@ const HeaderComponent = ({
                             return
                           }
                           loadModal('AddVehicle', () => {
-                            dispatch(layoutSlice.actions.setOpenVehicleModal(true))
+                            dispatch(
+                              layoutSlice.actions.setOpenVehicleModal(true)
+                            )
                           })
                           break
                         case 'CreateCustomTrip':
@@ -142,7 +166,11 @@ const HeaderComponent = ({
                             return
                           }
                           loadModal('CreateCustomTrip', () => {
-                            dispatch(layoutSlice.actions.setOpenCreateCustomTripModal(true))
+                            dispatch(
+                              layoutSlice.actions.setOpenCreateCustomTripModal(
+                                true
+                              )
+                            )
                           })
                           break
                         case 'JourneyMemories':
@@ -151,7 +179,11 @@ const HeaderComponent = ({
                             return
                           }
                           loadModal('JourneyMemories', () => {
-                            dispatch(layoutSlice.actions.setOpenJourneyMemoriesModal(true))
+                            dispatch(
+                              layoutSlice.actions.setOpenJourneyMemoriesModal(
+                                true
+                              )
+                            )
                           })
                           break
                         case 'VisitedCities':
@@ -168,14 +200,31 @@ const HeaderComponent = ({
                           })
                           break
                         case 'Account':
-                          dispatch(layoutSlice.actions.setSettingType('Account'))
-                          dispatch(layoutSlice.actions.setOpenSettingsModal(true))
+                          dispatch(
+                            layoutSlice.actions.setSettingType('Account')
+                          )
+                          dispatch(
+                            layoutSlice.actions.setOpenSettingsModal(true)
+                          )
                           break
                         case 'Route':
-                          location.replace((router.query.lang ? '/' + (router.query.lang || '') : '') + '/trackRoute')
+                          location.replace(
+                            (router.query.lang
+                              ? '/' + (router.query.lang || '')
+                              : '') + '/trackRoute'
+                          )
                           break
                         case 'IndexPage':
-                          location.replace((router.query.lang ? '/' + (router.query.lang || '') : '') + '/')
+                          location.replace(
+                            (router.query.lang
+                              ? '/' + (router.query.lang || '')
+                              : '') + '/'
+                          )
+                          break
+                        case 'VConsole':
+                          dispatch(
+                            configSlice.actions.setVConsole(!config.vConsole)
+                          )
                           break
 
                         default:
@@ -220,7 +269,9 @@ const HeaderComponent = ({
                             src={user.userInfo.avatar}
                             alt=""
                           />
-                          <span className="text-elipsis">{user.userInfo.nickname}</span>
+                          <span className="text-elipsis">
+                            {user.userInfo.nickname}
+                          </span>
                         </div>
                       </saki-menu-item>
                       <saki-menu-item padding="10px 18px" value={'TripHistory'}>
@@ -282,7 +333,10 @@ const HeaderComponent = ({
                     </saki-menu-item>
                   )}
                   {user.isLogin ? (
-                    <saki-menu-item padding="10px 18px" value={'CreateCustomTrip'}>
+                    <saki-menu-item
+                      padding="10px 18px"
+                      value={'CreateCustomTrip'}
+                    >
                       <div className="tb-h-r-user-item">
                         <saki-icon color="#666" type="Add"></saki-icon>
                         <span>
@@ -298,7 +352,10 @@ const HeaderComponent = ({
                   {user.isLogin ? (
                     <saki-menu-item padding="10px 18px" value={'VisitedCities'}>
                       <div className="tb-h-r-user-item">
-                        <saki-icon color="#666" type="MapFootprints"></saki-icon>
+                        <saki-icon
+                          color="#666"
+                          type="MapFootprints"
+                        ></saki-icon>
                         <span>
                           {t('title', {
                             ns: 'visitedCitiesModal',
@@ -313,7 +370,9 @@ const HeaderComponent = ({
                     <saki-menu-item
                       padding="10px 18px"
                       value={'JourneyMemories'}
-                      disabled={router.pathname.includes('/journeyMemories/detail')}
+                      disabled={router.pathname.includes(
+                        '/journeyMemories/detail'
+                      )}
                     >
                       <div className="tb-h-r-user-item">
                         <saki-icon color="#666" type="Camera2Fill"></saki-icon>
@@ -334,6 +393,20 @@ const HeaderComponent = ({
                         {t('title', {
                           ns: 'settings',
                         })}
+                      </span>
+                    </div>
+                  </saki-menu-item>
+                  <saki-menu-item padding="10px 18px" value={'VConsole'}>
+                    <div className="tb-h-r-user-item">
+                      <saki-icon color="#666" type="Code"></saki-icon>
+                      <span>
+                        {config.vConsole
+                          ? t('closeVConsole', {
+                              ns: 'settings',
+                            })
+                          : t('openVConsole', {
+                              ns: 'settings',
+                            })}
                       </span>
                     </div>
                   </saki-menu-item>

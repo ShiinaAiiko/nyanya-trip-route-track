@@ -1,0 +1,47 @@
+package com.rnapp
+
+import com.facebook.react.uimanager.SimpleViewManager
+import com.facebook.react.uimanager.ThemedReactContext
+import com.facebook.react.uimanager.annotations.ReactProp
+import org.mozilla.geckoview.GeckoSession
+import org.mozilla.geckoview.GeckoSessionSettings
+import org.mozilla.geckoview.GeckoRuntime
+import org.mozilla.geckoview.GeckoView
+
+private const val GECKO_SESSION_TAG = 12345678  // 任意唯一整数代替 R.id
+
+class GeckoViewManager : SimpleViewManager<GeckoView>() {
+
+    override fun getName(): String {
+        return "GeckoView"
+    }
+
+    override fun createViewInstance(reactContext: ThemedReactContext): GeckoView {
+        val geckoView = GeckoView(reactContext)
+
+        // 初始化 GeckoRuntime 和 GeckoSession
+        val runtime = GeckoRuntime.create(reactContext)
+        val session = GeckoSession()
+
+        // 创建 session 设置
+        val settings = GeckoSessionSettings.Builder().build()
+
+        // 打开 session
+        session.open(runtime, settings)
+
+        // 将 session 绑定到 GeckoView
+        geckoView.setSession(session)
+
+        // 存储 session 以便后续访问
+        geckoView.setTag(GECKO_SESSION_TAG, session)
+
+        return geckoView
+    }
+
+    @ReactProp(name = "url")
+    fun setUrl(view: GeckoView, url: String) {
+        // 获取之前存储的 session
+        val session = view.getTag(GECKO_SESSION_TAG) as? GeckoSession
+        session?.loadUri(url)  // 加载 URL
+    }
+}

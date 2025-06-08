@@ -46,9 +46,9 @@ import {
   exitFullscreen,
   formatAvgPace,
   formatDistance,
+  formatDurationI18n,
   formatPositionsStr,
   formatTime,
-  formatTimestamp,
   fullScreen,
   getAngle,
   getLatLng,
@@ -60,7 +60,7 @@ import {
   stripHtmlTags,
 } from '../plugins/methods'
 import TripItemComponent from './TripItem'
-import { Chart } from 'chart.js'
+
 import {
   Debounce,
   deepCopy,
@@ -70,7 +70,7 @@ import {
 } from '@nyanyajs/utils'
 import StatisticsComponent from './Statistics'
 import Leaflet, { map } from 'leaflet'
-import SpeedMeterComponent from './SpeedMeter'
+import SpeedMeterComponent from './Dashboard'
 import { eventListener, getMapLayer, getTrackRouteColor } from '../store/config'
 import { UserInfo } from '@nyanyajs/utils/dist/sakisso'
 import { getIconType } from './Vehicle'
@@ -80,6 +80,7 @@ import {
 } from '../store/position'
 import {
   CityInfo,
+  citySlice,
   convertCityLevelToTypeString,
   createCityBoundaries,
   createCityMarker,
@@ -118,9 +119,9 @@ import {
   SakiScrollLoading,
   SakiScrollView,
 } from './saki-ui-react/components'
-import { Swiper, SwiperSlide } from 'swiper/react'
+// import { Swiper, SwiperSlide } from 'swiper/react'
 
-import 'swiper/css'
+// import 'swiper/css'
 import { TripListItemComponent } from './TripHistory'
 import { clear } from 'console'
 import {
@@ -134,6 +135,7 @@ import { IWMediaItem, loadModal } from '../store/layout'
 import { useRouter } from 'next/router'
 import { MultipleInput } from '@saki-ui/core/dist/dialog'
 import { LayerButtons } from './MapLayer'
+import i18n from '../plugins/i18n/i18n'
 
 interface ImageDimensions {
   url: string
@@ -185,7 +187,7 @@ async function getImageDimensionsBatched(
 }
 
 const copyJMUrl = (id: string) => {
-  const { config } = store.getState()
+  const { config, journeyMemory } = store.getState()
   snackbar({
     message: t('copySuccessfully', {
       ns: 'prompt',
@@ -197,11 +199,25 @@ const copyJMUrl = (id: string) => {
     color: '#fff',
   }).open()
 
+  const jmItem = journeyMemory.list.filter((v) => v.id === id)?.[0]
+
   window.navigator.clipboard.writeText(
-    location.origin +
-      (config.language === 'system' ? '' : '/' + config.language) +
-      '/journeyMemories/detail?id=' +
-      id
+    t('shareContent', {
+      ns: 'journeyMemoriesModal',
+      name: jmItem?.name || '',
+      days: jmItem.statistics?.days || 0,
+      tripCount: jmItem.statistics?.count || 0,
+      minAlt:
+        Math.round((jmItem.statistics?.minAltitude?.num || 0) * 100) / 100,
+      maxAlt:
+        Math.round((jmItem.statistics?.maxAltitude?.num || 0) * 100) / 100,
+      distance: Math.round((jmItem.statistics?.distance || 0) / 10) / 100,
+      url:
+        location.origin +
+        (config.language === 'system' ? '' : '/' + config.language) +
+        '/journeyMemories/detail?id=' +
+        id,
+    })
   )
 }
 
@@ -834,7 +850,7 @@ const JourneyMemoriesModal = () => {
                                         {`${t('durationFull', {
                                           ns: 'tripPage',
                                           days: `${v.statistics?.days}天`,
-                                          time: `${formatTimestamp(
+                                          time: `${formatDurationI18n(
                                             Number(v.statistics?.time),
                                             true
                                           )}`,
@@ -1084,120 +1100,127 @@ const AddJourneyMemoriesPage = () => {
   }, [jmState.pageTypes])
 
   const addJM = async () => {
-    if (loadStatus === 'loading') return
-    setLoadStatus('loading')
+    try {
+      if (loadStatus === 'loading') return
+      setLoadStatus('loading')
 
-    const mediaList = await uploadFiles(media)
+      const mediaList = await uploadFiles(media)
 
-    const params: protoRoot.journeyMemory.AddJM.IRequest = {
-      name,
-      desc,
-      media: mediaList.map((v) => {
-        return {
-          type: v.type,
-          url: v.url,
-          width: v.width || 0,
-          height: v.height || 0,
-        }
-      }),
-    }
-    const res = await httpApi.v1.AddJM({
-      ...params,
-    })
-    console.log('AddJM', res, {
-      name,
-      desc,
-      media,
-    })
-    if (res.code === 200) {
-      setLoadStatus('loaded')
-      backPage(-1)
-
-      await dispatch(
-        journeyMemoryMethods.GetJMList({
-          pageNum: 1,
-        })
-      ).unwrap()
-
-      snackbar({
-        message: t('createdSuccessfully', {
-          ns: 'prompt',
+      const params: protoRoot.journeyMemory.AddJM.IRequest = {
+        name,
+        desc,
+        media: mediaList.map((v) => {
+          return {
+            type: v.type,
+            url: v.url,
+            width: v.width || 0,
+            height: v.height || 0,
+          }
         }),
-        autoHideDuration: 2000,
-        vertical: 'top',
-        horizontal: 'center',
-        backgroundColor: 'var(--saki-default-color)',
-        color: '#fff',
-      }).open()
+      }
+      const res = await httpApi.v1.AddJM({
+        ...params,
+      })
+      console.log('AddJM', res, {
+        name,
+        desc,
+        media,
+      })
+      if (res.code === 200) {
+        backPage(-1)
+
+        await dispatch(
+          journeyMemoryMethods.GetJMList({
+            pageNum: 1,
+          })
+        ).unwrap()
+
+        snackbar({
+          message: t('createdSuccessfully', {
+            ns: 'prompt',
+          }),
+          autoHideDuration: 2000,
+          vertical: 'top',
+          horizontal: 'center',
+          backgroundColor: 'var(--saki-default-color)',
+          color: '#fff',
+        }).open()
+      }
+      setLoadStatus('loaded')
+    } catch (error) {
+      setLoadStatus('loaded')
     }
   }
 
   const updateJM = async () => {
-    if (loadStatus === 'loading') return
-    setLoadStatus('loading')
+    try {
+      if (loadStatus === 'loading') return
+      setLoadStatus('loading')
 
-    const mediaList = await uploadFiles(media)
+      const mediaList = await uploadFiles(media)
 
-    const params: protoRoot.journeyMemory.UpdateJM.IRequest = {
-      name,
-      desc,
-      media: mediaList.map((v) => {
-        return {
-          type: v.type,
-          url: v.url,
-          width: v.width || 0,
-          height: v.height || 0,
-        }
-      }),
-    }
-
-    const res = await httpApi.v1.UpdateJM({
-      id: jmState.editJM.id,
-      ...params,
-      // tripIds,
-    })
-    console.log('UpdateJM', res)
-    if (res.code === 200) {
-      setLoadStatus('loaded')
-
-      backPage(-1)
-
-      dispatch(
-        setJMState({
-          type: 'jmDetail',
-          value: {
-            ...jmState.jmDetail,
-            ...params,
-          },
-        })
-      )
-
-      dispatch(
-        setJMState({
-          type: 'list',
-          value: jmState.list.map((v) => {
-            if (v.id === jmState.editJM.id) {
-              return {
-                ...v,
-                ...params,
-              }
-            }
-
-            return v
-          }),
-        })
-      )
-
-      snackbar({
-        message: t('updatedSuccessfully', {
-          ns: 'prompt',
+      const params: protoRoot.journeyMemory.UpdateJM.IRequest = {
+        name,
+        desc,
+        media: mediaList.map((v) => {
+          return {
+            type: v.type,
+            url: v.url,
+            width: v.width || 0,
+            height: v.height || 0,
+          }
         }),
-        autoHideDuration: 2000,
-        vertical: 'top',
-        horizontal: 'center',
-        backgroundColor: 'var(--saki-default-color)',
-        color: '#fff',
-      }).open()
+      }
+
+      const res = await httpApi.v1.UpdateJM({
+        id: jmState.editJM.id,
+        ...params,
+        // tripIds,
+      })
+      console.log('UpdateJM', res)
+      if (res.code === 200) {
+        backPage(-1)
+
+        dispatch(
+          setJMState({
+            type: 'jmDetail',
+            value: {
+              ...jmState.jmDetail,
+              ...params,
+            },
+          })
+        )
+
+        dispatch(
+          setJMState({
+            type: 'list',
+            value: jmState.list.map((v) => {
+              if (v.id === jmState.editJM.id) {
+                return {
+                  ...v,
+                  ...params,
+                }
+              }
+
+              return v
+            }),
+          })
+        )
+
+        snackbar({
+          message: t('updatedSuccessfully', {
+            ns: 'prompt',
+          }),
+          autoHideDuration: 2000,
+          vertical: 'top',
+          horizontal: 'center',
+          backgroundColor: 'var(--saki-default-color)',
+          color: '#fff',
+        }).open()
+      }
+      setLoadStatus('loaded')
+    } catch (error) {
+      setLoadStatus('loaded')
     }
   }
 
@@ -1872,17 +1895,17 @@ export const JourneyMemoriesItemPage = ({
         jmState.tlList.length
       )
       if (m?.map && jmState.tlList.length) {
-        let ids = [] as string[]
-        jmState.tlList.forEach((v) => {
-          if (viewMomentMapTrackId && v.id !== viewMomentMapTrackId) {
-            return
-          }
-          ids = ids.concat(v?.tripIds || [])
-        })
+        // let ids = [] as string[]
+        // jmState.tlList.forEach((v) => {
+        //   if (viewMomentMapTrackId && v.id !== viewMomentMapTrackId) {
+        //     return
+        //   }
+        //   ids = ids.concat(v?.tripIds || [])
+        // })
         // const tripPositions = await storage.tripPositions.mget(ids)
         // console.log('llllll,positions1', tripPositions, ids)
 
-        console.log('GetJMTimelineList', jmState.tlList)
+        // console.log('GetJMTimelineList', ids, jmState.tlList)
 
         const tripPositions = await getTripHistoryPositions({
           ids: tripIds,
@@ -2086,7 +2109,9 @@ export const JourneyMemoriesItemPage = ({
     jmState.tlList.forEach((v) => {
       const cityName: string[] = []
 
-      tripIds = tripIds.concat(v?.tripIds || [])
+      if (!viewMomentMapTrackId || v.id === viewMomentMapTrackId) {
+        tripIds = tripIds.concat(v?.tripIds || [])
+      }
 
       v.trips?.forEach((sv) => {
         sv.cities?.reverse()
@@ -2121,7 +2146,7 @@ export const JourneyMemoriesItemPage = ({
       return [...new Set(cityNames.concat(cityNamesMap[v]))]
     }, [] as string[])
     return { cityNamesMap, cityNamesList, tripIds }
-  }, [jmState.tlList])
+  }, [jmState.tlList, viewMomentMapTrackId])
 
   // console.log('router', router)
 
@@ -2562,7 +2587,7 @@ export const JourneyMemoriesItemPage = ({
                   {`${t('durationFull', {
                     ns: 'tripPage',
                     days: `${jmState.jmDetail?.statistics?.days}天`,
-                    time: `${formatTimestamp(
+                    time: `${formatDurationI18n(
                       Number(jmState.jmDetail?.statistics?.time),
                       true
                     )}`,
@@ -2940,7 +2965,7 @@ export const JourneyMemoriesItemPage = ({
                                 {`${t('durationFull', {
                                   ns: 'tripPage',
                                   days: `${v.statistics?.days}天`,
-                                  time: `${formatTimestamp(
+                                  time: `${formatDurationI18n(
                                     Number(v.statistics?.time),
                                     true
                                   )}`,
@@ -3565,134 +3590,141 @@ const AddJourneyMemoriesTimelinePage = () => {
   }, [jmState.pageTypes])
 
   const addJMTL = async () => {
-    if (loadStatus === 'loading') return
-    setLoadStatus('loading')
+    try {
+      if (loadStatus === 'loading') return
+      setLoadStatus('loading')
 
-    const mediaList = await uploadFiles(media)
+      const mediaList = await uploadFiles(media)
 
-    const params: protoRoot.journeyMemory.AddJMTimeline.IRequest = {
-      desc,
-      media: mediaList.map((v) => {
-        return {
-          type: v.type,
-          url: v.url,
-          width: v.width || 0,
-          height: v.height || 0,
-        }
-      }),
-      tripIds,
-    }
-
-    const res = await httpApi.v1.AddJMTimeline({
-      id: jmState.jmDetail.id,
-      name,
-      ...params,
-    })
-
-    console.log('AddJMTimeline', res.data.journeyMemoryTimeline, params)
-    if (res.code === 200 && res.data.journeyMemoryTimeline) {
-      setLoadStatus('loaded')
-      backPage(-1)
-
-      dispatch(
-        setJMState({
-          type: 'loadTimelineDetailStatus',
-          value: 'loaded',
-        })
-      )
-      dispatch(
-        methods.journeyMemory.GetJMTLList({
-          id: jmState.jmDetail.id || '',
-          pageNum: 1,
-        })
-      ).unwrap()
-
-      snackbar({
-        message: t('createdSuccessfully', {
-          ns: 'prompt',
+      const params: protoRoot.journeyMemory.AddJMTimeline.IRequest = {
+        desc,
+        media: mediaList.map((v) => {
+          return {
+            type: v.type,
+            url: v.url,
+            width: v.width || 0,
+            height: v.height || 0,
+          }
         }),
-        autoHideDuration: 2000,
-        vertical: 'top',
-        horizontal: 'center',
-        backgroundColor: 'var(--saki-default-color)',
-        color: '#fff',
-      }).open()
+        tripIds,
+      }
+
+      const res = await httpApi.v1.AddJMTimeline({
+        id: jmState.jmDetail.id,
+        name,
+        ...params,
+      })
+
+      console.log('AddJMTimeline', res.data.journeyMemoryTimeline, params)
+      if (res.code === 200 && res.data.journeyMemoryTimeline) {
+        backPage(-1)
+
+        dispatch(
+          setJMState({
+            type: 'loadTimelineDetailStatus',
+            value: 'loaded',
+          })
+        )
+        dispatch(
+          methods.journeyMemory.GetJMTLList({
+            id: jmState.jmDetail.id || '',
+            pageNum: 1,
+          })
+        ).unwrap()
+
+        snackbar({
+          message: t('createdSuccessfully', {
+            ns: 'prompt',
+          }),
+          autoHideDuration: 2000,
+          vertical: 'top',
+          horizontal: 'center',
+          backgroundColor: 'var(--saki-default-color)',
+          color: '#fff',
+        }).open()
+      }
+      setLoadStatus('loaded')
+    } catch (error) {
+      setLoadStatus('loaded')
     }
   }
 
   const updateJMTL = async () => {
-    if (loadStatus === 'loading') return
-    setLoadStatus('loading')
+    try {
+      if (loadStatus === 'loading') return
+      setLoadStatus('loading')
 
-    const mediaList = await uploadFiles(media)
+      const mediaList = await uploadFiles(media)
 
-    const params: protoRoot.journeyMemory.UpdateJMTimeline.IRequest = {
-      name,
-      desc,
-      media: mediaList.map((v) => {
-        return {
-          type: v.type,
-          url: v.url,
-          width: v.width || 0,
-          height: v.height || 0,
-        }
-      }),
-      tripIds,
-    }
-
-    const res = await httpApi.v1.UpdateJMTimeline({
-      id: jmState.jmDetail.id,
-      timelineId: jmState.editJMTL.id,
-      ...params,
-    })
-
-    console.log('UpdateJMTimeline', res, params)
-    if (res.code === 200) {
-      setLoadStatus('loaded')
-
-      dispatch(
-        setJMState({
-          type: 'loadTimelineDetailStatus',
-          value: 'loaded',
-        })
-      )
-      backPage(-1)
-      dispatch(
-        setJMState({
-          type: 'tlList',
-          value: sortTlList(
-            [
-              ...jmState.tlList.map((v) => {
-                if (v.id === jmState.editJMTL.id) {
-                  return {
-                    ...v,
-                    ...params,
-                  }
-                }
-
-                return v
-              }),
-            ],
-            jmState.tlSort
-          ),
-        })
-      )
-      // await dispatch(
-      // 	journeyMemoryMethods.GetJMList({
-      // 		pageNum: 1,
-      // 	})
-      // ).unwrap()
-
-      snackbar({
-        message: t('updatedSuccessfully', {
-          ns: 'prompt',
+      const params: protoRoot.journeyMemory.UpdateJMTimeline.IRequest = {
+        name,
+        desc,
+        media: mediaList.map((v) => {
+          return {
+            type: v.type,
+            url: v.url,
+            width: v.width || 0,
+            height: v.height || 0,
+          }
         }),
-        autoHideDuration: 2000,
-        vertical: 'top',
-        horizontal: 'center',
-        backgroundColor: 'var(--saki-default-color)',
-        color: '#fff',
-      }).open()
+        tripIds,
+      }
+
+      const res = await httpApi.v1.UpdateJMTimeline({
+        id: jmState.jmDetail.id,
+        timelineId: jmState.editJMTL.id,
+        ...params,
+      })
+
+      console.log('UpdateJMTimeline', res, params)
+      if (res.code === 200) {
+        dispatch(
+          setJMState({
+            type: 'loadTimelineDetailStatus',
+            value: 'loaded',
+          })
+        )
+        backPage(-1)
+        dispatch(
+          setJMState({
+            type: 'tlList',
+            value: sortTlList(
+              [
+                ...jmState.tlList.map((v) => {
+                  if (v.id === jmState.editJMTL.id) {
+                    return {
+                      ...v,
+                      ...params,
+                    }
+                  }
+
+                  return v
+                }),
+              ],
+              jmState.tlSort
+            ),
+          })
+        )
+        // await dispatch(
+        // 	journeyMemoryMethods.GetJMList({
+        // 		pageNum: 1,
+        // 	})
+        // ).unwrap()
+
+        snackbar({
+          message: t('updatedSuccessfully', {
+            ns: 'prompt',
+          }),
+          autoHideDuration: 2000,
+          vertical: 'top',
+          horizontal: 'center',
+          backgroundColor: 'var(--saki-default-color)',
+          color: '#fff',
+        }).open()
+      }
+      setLoadStatus('loaded')
+    } catch (error) {
+      setLoadStatus('loaded')
     }
   }
 
@@ -4083,7 +4115,7 @@ export const CoverListComponent = ({
                     height="80px"
                     objectFit={'cover'}
                     borderRadius="10px"
-                    src={getSAaSSImageUrl(v.url || '', 'thumbnail')}
+                    src={getSAaSSImageUrl(v.url || '', 'small')}
                   ></SakiImages>
                 ) : (
                   ''

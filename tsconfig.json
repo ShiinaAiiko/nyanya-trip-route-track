@@ -1,14 +1,15 @@
 {
   "compilerOptions": {
-    "target": "esnext",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "target": "ES2018", // 生成 ES2017 语法
+    "lib": ["ES2019", "DOM"], // 添加 ES2019 类型定义
+    "downlevelIteration": true, // 确保迭代器兼容
+    "module": "ESNext",
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
     "forceConsistentCasingInFileNames": true,
     "noEmit": true,
     "esModuleInterop": true,
-    "module": "esnext",
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "isolatedModules": true,
@@ -16,5 +17,11 @@
     "incremental": true
   },
   "include": ["next-env.d.ts", "global.d.ts", "**/*.ts", "**/*.tsx"],
-  "exclude": ["rnApp", "node_modules", "**/*.js"]
+  "exclude": [
+    "rnApp",
+    "node_modules",
+    "**/*.js",
+    "components/saki-ui-react/**/*",
+    "components/saki-ui-react/components/react-component-lib/createOverlayComponent.tsx"
+  ]
 }

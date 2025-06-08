@@ -22,12 +22,12 @@ import { storage } from '../store/storage'
 import { useTranslation } from 'react-i18next'
 import { httpApi } from '../plugins/http/api'
 import { protoRoot } from '../protos'
-import { Chart } from 'chart.js/auto'
+import Chart from 'chart.js/auto'
 import {
   formatAvgPace,
   formatDistance,
+  formatDurationI18n,
   formatTime,
-  formatTimestamp,
   getDistance,
   getLatLng,
   getSpeedColor,
@@ -169,6 +169,7 @@ const TripItemComponent = memo(
     // }, [trip])
 
     const speedChart = useRef<Chart<'line', any[], unknown>>()
+    const speedDistanceChart = useRef<Chart<'bar', any[], unknown>>()
     const map = useRef<Leaflet.Map>()
     const getTripDebounce = useRef(new Debounce())
     const outSpeedLineChartDebounce = useRef(new Debounce())
@@ -303,6 +304,8 @@ const TripItemComponent = memo(
 
       speedChart.current?.destroy()
       speedChart.current = undefined
+      speedDistanceChart.current?.destroy()
+      speedDistanceChart.current = undefined
       map.current?.remove()
       map.current = undefined
       loadedMap.current = false
@@ -316,10 +319,11 @@ const TripItemComponent = memo(
     }, [isShare, map])
 
     useEffect(() => {
-      if (tripId && trip?.id && map.current && !speedChart.current) {
-        outSpeedLineChart()
+      if (tripId && trip?.id && map.current) {
+        !speedChart.current && outSpeedLineChart()
+        !speedDistanceChart.current && renderSpeedDistanceChart()
       }
-    }, [trip?.id, map.current, speedChart.current])
+    }, [trip?.id, map.current, speedChart.current, speedDistanceChart.current])
 
     useEffect(() => {
       layer.current?.setGrayscale?.(mapLayer?.mapMode === 'Gray')
@@ -916,7 +920,7 @@ const TripItemComponent = memo(
                   grid: {
                     color: speedColorRGBs[0],
                     lineWidth: 1,
-                    drawOnChartArea: false, // only want the grid lines for one axis to show up
+                    drawOnChartArea: false,
                   },
                   // min: 30,   // 最小值
                   // max: 80  // 最大值
@@ -928,7 +932,7 @@ const TripItemComponent = memo(
                   min: -60,
                   max: Math.max(120, Math.max(...speedData) + 10),
                   ticks: {
-                    stepSize: 10, // 可选：设置刻度间隔
+                    stepSize: 10,
                   },
                   title: {
                     display: true,
@@ -937,13 +941,288 @@ const TripItemComponent = memo(
                         ns: 'tripPage',
                       }) + ' (km/h)',
                   },
-
-                  // grid line settings
                   grid: {
                     color: speedColorRGBs[speedColorRGBs.length - 1],
                     lineWidth: 1,
-                    drawOnChartArea: false, // only want the grid lines for one axis to show up
+                    drawOnChartArea: false,
                   },
+                },
+              },
+            },
+          })
+        }
+      } catch (error) {
+        console.error(error)
+      }
+    }
+
+    function generateSpeedIntervals(
+      speedLimit: { minSpeed: number; maxSpeed: number },
+      options: {
+        intervalCount?: number // 区间数量，默认 6
+        roundTo?: number // 取整规则（如 5、2、3），默认 5
+      } = {}
+    ): { minSpeed: number; maxSpeed: number }[] {
+      // 默认参数
+      const { intervalCount = 6, roundTo = 5 } = options
+
+      // 1. 转换 m/s → km/h
+      const minKmh = speedLimit.minSpeed * 3.6
+      const maxKmh = speedLimit.maxSpeed * 3.6
+
+      // 2. 调整 min 和 max 为 roundTo 的倍数
+      const roundValue = (value: number, roundTo: number) => {
+        return Math.round(value / roundTo) * roundTo
+      }
+
+      const adjustedMin = roundValue(minKmh, roundTo)
+      const adjustedMax = roundValue(maxKmh, roundTo)
+
+      // 3. 计算中间区间的大小（总共有 intervalCount-2 个中间区间）
+      const middleRange = adjustedMax - adjustedMin
+      const middleIntervalSize = middleRange / (intervalCount - 2)
+
+      // 4. 构建区间数组
+      const intervals: { minSpeed: number; maxSpeed: number }[] = []
+
+      // 第 1 个区间：0 → adjustedMin
+      intervals.push({ minSpeed: 0, maxSpeed: adjustedMin })
+
+      // 中间 intervalCount-2 个区间
+      for (let i = 1; i < intervalCount - 1; i++) {
+        const min = adjustedMin + (i - 1) * middleIntervalSize
+        const max = min + middleIntervalSize
+
+        // 确保 min 和 max 是 roundTo 的倍数
+        const roundedMin = roundValue(min, roundTo)
+        const roundedMax = roundValue(max, roundTo)
+
+        intervals.push({ minSpeed: roundedMin, maxSpeed: roundedMax })
+      }
+
+      // 最后 1 个区间：adjustedMax → Infinity
+      intervals.push({ minSpeed: adjustedMax, maxSpeed: 1000000 })
+
+      return intervals
+    }
+
+    const renderSpeedDistanceChart = () => {
+      try {
+        // const startTime = Number(trip?.startTime)
+        // const endTime = Number(trip?.endTime)
+        // console.log(
+        // 	'outSpeedLineChart',
+        // 	startTime,
+        // 	endTime,
+        // 	endTime - startTime,
+        // 	trip?.positions
+        // )
+
+        console.log('idddddd', trip)
+        if (speedDistanceChart.current) return
+
+        // return
+        // 示例数据
+        const speedColorLimit = (
+          config.configure.general?.speedColorLimit as any
+        )[trip?.type?.toLowerCase() || ('running' as any)]
+
+        console.log('speedColorLimit', speedColorLimit)
+        // 示例用法
+        const ranges = generateSpeedIntervals(speedColorLimit, {
+          intervalCount: speedColorLimit.maxSpeed * 3.6 > 240 ? 8 : 6,
+          roundTo:
+            speedColorLimit.maxSpeed * 3.6 > 50
+              ? 5
+              : speedColorLimit.maxSpeed * 3.6 > 30
+              ? 3
+              : speedColorLimit.maxSpeed * 3.6 > 10
+              ? 2
+              : 1,
+        }).reverse()
+
+        const speedRanges: string[] = []
+        const barColors: string[] = []
+        const distanceData = new Array(ranges.length).fill(0)
+        const timeData = new Array(ranges.length).fill(0)
+
+        ranges.forEach((v, i) => {
+          speedRanges.push(
+            i === 0 ? `${v.minSpeed}+ km/h` : `${v.minSpeed}~${v.maxSpeed} km/h`
+          )
+
+          barColors.push(
+            getSpeedColor(
+              (v.maxSpeed + v.minSpeed) / 2 / 3.6,
+              speedColorLimit.minSpeed,
+              speedColorLimit.maxSpeed,
+              speedColorRGBs
+            )
+          )
+        })
+
+        console.log(
+          'speedColorLimit',
+          ranges,
+          speedRanges,
+          barColors,
+          distanceData,
+          timeData
+        )
+        trip?.positions?.forEach((v, i) => {
+          if (i === 0 || !trip?.positions?.length) return
+
+          const pos = trip.positions[i - 1]
+          const nextPos = trip.positions[i]
+
+          const time = Number(pos.timestamp)
+          const nextTime = Number(nextPos.timestamp)
+
+          let distance = getDistance(
+            Number(pos.latitude),
+            Number(pos.longitude),
+            Number(nextPos.latitude),
+            Number(nextPos.longitude)
+          )
+
+          const curPos = (((nextPos.speed || 0) + (pos.speed || 0)) / 2) * 3.6
+
+          ranges.some((v, i) => {
+            if (v.minSpeed < curPos && curPos < v.maxSpeed) {
+              distanceData[i] += distance
+              timeData[i] += nextTime - time
+              return true
+            }
+          })
+        })
+
+        console.log(
+          'speedColorLimit',
+          ranges,
+          speedRanges,
+          barColors,
+          distanceData,
+          timeData
+        )
+
+        const el = document.body.querySelector(
+          '#speed-distance-chart'
+        ) as HTMLCanvasElement
+
+        if (el) {
+          // el.style.height = '300px'
+          const barHeight = 20 // 每条柱子的高度（像素）
+          const gap = 20 // 柱子间的间距
+          const paddingTop = 24 // 顶部留白
+          const paddingBottom = 20 // 底部留白
+          const canvasHeight =
+            (barHeight + gap) * speedRanges.length + paddingTop + paddingBottom
+
+          let isRenderText = false
+
+          el.height = canvasHeight
+
+          speedDistanceChart.current = new Chart(el.getContext('2d') as any, {
+            type: 'bar',
+            data: {
+              labels: speedRanges,
+              datasets: [
+                {
+                  label: '行驶距离',
+                  data: distanceData,
+                  backgroundColor: barColors,
+                  borderColor: 'rgba(52, 152, 219, 0.8)',
+                  borderWidth: 0,
+                  borderSkipped: 'end',
+                  barPercentage: 0.8, // 更紧凑
+                  categoryPercentage: 0.8,
+                },
+              ],
+            },
+            plugins: [
+              {
+                id: 'customLabels', // 插件 ID
+                afterDraw: (chart) => {
+                  const ctx = chart.ctx
+                  const meta = chart.getDatasetMeta(0)
+
+                  meta.data.forEach((bar, index) => {
+                    // 绘制距离标签
+                    ctx.fillStyle = '#000'
+                    ctx.font = 'bold 12px Arial'
+                    ctx.textAlign = 'left'
+                    ctx.fillText(
+                      `${formatDistance(distanceData[index])}`,
+                      bar.x + 10,
+                      bar.y - 3
+                    )
+
+                    // 绘制时间标签
+                    ctx.fillStyle = '#666'
+                    ctx.font = '12px Arial'
+                    ctx.fillText(
+                      `${formatDurationI18n(timeData[index], false, [
+                        'h',
+                        'm',
+                      ])}`,
+                      bar.x + 10,
+                      bar.y + 10
+                    )
+                  })
+                },
+              },
+            ],
+
+            options: {
+              indexAxis: 'y',
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { display: false },
+                title: {
+                  display: true,
+                  text: '各速度区间行驶距离与耗费时间',
+                },
+                tooltip: {
+                  callbacks: {
+                    label: function (context) {
+                      let label = context.dataset.label || ''
+                      // let label = context.dataset.label || ''
+                      if (label) {
+                        label += ': '
+                      }
+                      if (context.datasetIndex === 0) {
+                        label += formatDistance(Number(context.raw))
+                      } else {
+                        label += context.raw + ' 分钟'
+                      }
+                      return label
+                    },
+                  },
+                },
+              },
+              scales: {
+                x: {
+                  beginAtZero: true,
+                  max: Math.max(...distanceData) * 1.15,
+                  grid: { display: false },
+                  ticks: { display: false },
+                  display: false,
+                },
+                y: {
+                  grid: { display: false },
+                  ticks: {
+                    font: { size: 13, weight: 500 },
+                    color: '#34495e',
+                    padding: 8,
+                  },
+                  // barPercentage: 0.6, // 更紧凑
+                  // categoryPercentage: 0.8,
+                },
+              },
+              elements: {
+                bar: {
+                  borderRadius: { topRight: 8, bottomRight: 8 },
                 },
               },
             },
@@ -1424,6 +1703,7 @@ const TripItemComponent = memo(
       }, [] as protoRoot.city.ICityItem[])
 
       let totalDistance = 0
+      let realDrivingTime = 0
       let distance = 0
       let tempDistance = 0
       let addedCitiIdMap = [] as string[]
@@ -1473,6 +1753,7 @@ const TripItemComponent = memo(
             maxSpeed,
             avgSpeed: tempDistance / (time - drivingTime),
           })
+          realDrivingTime += time - drivingTime
           console.log(
             'ttttttt',
             timestamp,
@@ -1490,6 +1771,7 @@ const TripItemComponent = memo(
               maxSpeed,
               avgSpeed: distance / timestamp,
             })
+            realDrivingTime += timestamp
           } else {
             tripProgress.push({
               type:
@@ -1556,12 +1838,13 @@ const TripItemComponent = memo(
           maxSpeed,
           avgSpeed: tempDistance / (lastTime - drivingTime),
         })
+        realDrivingTime += lastTime - drivingTime
       }
 
       tripProgress.push({
         type: 'EndTrip',
         time: lastTime,
-        drivingTime: 0,
+        drivingTime: realDrivingTime,
         distance: totalDistance,
         distanceProgress: totalDistance,
       })
@@ -1575,7 +1858,14 @@ const TripItemComponent = memo(
     // }, [tripId])
 
     return (
-      <div className="trip-item-component">
+      <div
+        style={{
+          ...({
+            '--map-height': Math.min(500, config.deviceWH.h - 220) + 'px',
+          } as any),
+        }}
+        className="trip-item-component"
+      >
         {trip?.id ? (
           trip?.id === '404' ? (
             <span className="ti-loading">
@@ -2251,6 +2541,18 @@ const TripItemComponent = memo(
 ''
 )} */}
 
+                      <SakiRow
+                        margin="35px 0 0"
+                        alignItems="flex-end"
+                        justifyContent="flex-start"
+                      >
+                        <SakiTitle color="#000" level={2} margin="0 0 0 0">
+                          {t('statisticalCharts', {
+                            ns: 'tripPage',
+                          })}
+                        </SakiTitle>
+                      </SakiRow>
+
                       <canvas
                         id="speed-chart"
                         // width={
@@ -2268,6 +2570,10 @@ const TripItemComponent = memo(
                         // }
                         // height='200'
                       ></canvas>
+                    </div>
+
+                    <div className="ti-speed-distance-chart">
+                      <canvas id="speed-distance-chart"></canvas>
                     </div>
 
                     <SakiRow
@@ -2444,7 +2750,7 @@ const TripItemComponent = memo(
                                       distance: getFullDistance(distance),
                                     })} · ${t('driveTime', {
                                       ns: 'tripPage',
-                                      time: formatTimestamp(
+                                      time: formatDurationI18n(
                                         v.drivingTime,
                                         false,
                                         ['h', 'm', 's']
@@ -2462,7 +2768,7 @@ const TripItemComponent = memo(
                                       distance: getFullDistance(distance),
                                     })} · ${t('driveTime', {
                                       ns: 'tripPage',
-                                      time: formatTimestamp(
+                                      time: formatDurationI18n(
                                         v.drivingTime,
                                         false,
                                         ['h', 'm', 's']
@@ -2480,11 +2786,28 @@ const TripItemComponent = memo(
                                         ((v?.avgSpeed || 0) * 3600) / 100
                                       ) / 10
                                     } km/h`}</span>
+                                  ) : v.type === 'EndTrip' ? (
+                                    <span>{`${t('driveDistance', {
+                                      ns: 'tripPage',
+                                      distance: getFullDistance(distance),
+                                    })}${
+                                      v.drivingTime
+                                        ? ' · ' +
+                                          t('realDrivingTime', {
+                                            ns: 'tripPage',
+                                            time: formatDurationI18n(
+                                              v.drivingTime || 0,
+                                              false,
+                                              ['h', 'm', 's']
+                                            ),
+                                          })
+                                        : ''
+                                    }`}</span>
                                   ) : v.type === 'Park' ||
                                     v.type === 'TemporaryPark' ? (
                                     <span>{`${t('parkTime', {
                                       ns: 'tripPage',
-                                      time: formatTimestamp(
+                                      time: formatDurationI18n(
                                         v.drivingTime,
                                         false,
                                         ['h', 'm', 's']
@@ -2493,7 +2816,7 @@ const TripItemComponent = memo(
                                   ) : v.type === 'TrafficLight' ? (
                                     <span>{`${t('trafficLightTime', {
                                       ns: 'tripPage',
-                                      time: formatTimestamp(
+                                      time: formatDurationI18n(
                                         v.drivingTime,
                                         false,
                                         ['h', 'm', 's']

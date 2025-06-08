@@ -1,6 +1,5 @@
 import { baselog } from 'nyanyajs-log'
-baselog.Info('Env:', process.env.CLIENT_ENV)
-
+baselog.Info('Env:', process.env.NODE_ENV, process.env.CLIENT_ENV)
 
 // if (process.env.CLIENT_ENV === 'production') {
 //   console.log = () => { }
@@ -10,12 +9,14 @@ baselog.Info('Env:', process.env.CLIENT_ENV)
 //   console.timeEnd = () => { }
 // }
 
-let toolApiUrl = ""
-let nominatimUrl = ""
+let isDev = process.env.CLIENT_ENV === 'development'
 
+let toolApiUrl = ''
+let toolUrl = ''
+let nominatimUrl = ''
 
 if (process.env.CLIENT_ENV === 'development') {
-  toolApiUrl = "http://192.168.204.132:23201"
+  toolApiUrl = 'http://192.168.204.132:23201'
 }
 
 let version = ''
@@ -38,6 +39,7 @@ let meowApps = {
 let appListUrl = ''
 
 interface Config {
+  isDev: typeof isDev
   version: typeof version
   server: typeof server
   sakisso: typeof sakisso
@@ -46,6 +48,7 @@ interface Config {
   meowApps: typeof meowApps
   toolApiUrl: typeof toolApiUrl
   nominatimUrl: typeof nominatimUrl
+  toolUrl: typeof toolUrl
 }
 
 try {
@@ -55,7 +58,7 @@ try {
   if (configJson) {
     version = configJson.version
 
-    baselog.Info("New version:", configJson.version)
+    baselog.Info('New version:', configJson.version)
     server = configJson.server
     sakisso = configJson.sakisso
     sakiui = configJson.sakiui
@@ -63,9 +66,32 @@ try {
     appListUrl = configJson.appListUrl
     toolApiUrl = configJson.toolApiUrl
     nominatimUrl = configJson.nominatimUrl
+    toolUrl = configJson.toolUrl
   }
 } catch (error) {
   console.error(error)
 }
-export { version, sakiui, sakisso, appListUrl, meowApps, server, toolApiUrl, nominatimUrl }
-export default { version, sakiui, sakisso, appListUrl, meowApps, server, toolApiUrl, nominatimUrl }
+export {
+  isDev,
+  version,
+  sakiui,
+  sakisso,
+  appListUrl,
+  meowApps,
+  server,
+  toolApiUrl,
+  nominatimUrl,
+  toolUrl,
+}
+export default {
+  isDev,
+  version,
+  sakiui,
+  sakisso,
+  appListUrl,
+  meowApps,
+  server,
+  toolApiUrl,
+  nominatimUrl,
+  toolUrl,
+}

@@ -36,7 +36,7 @@ import {
   formatAvgPace,
   formatDistance,
   formatTime,
-  formatTimestamp,
+  formatDurationI18n,
   fullScreen,
   getAngle,
   getDistance,
@@ -48,14 +48,13 @@ import {
   roadColorFade,
 } from '../plugins/methods'
 import TripItemComponent from './TripItem'
-import { Chart } from 'chart.js'
+
 import { Debounce, deepCopy, NEventListener } from '@nyanyajs/utils'
 import StatisticsComponent from './Statistics'
 import Leaflet from 'leaflet'
-import SpeedMeterComponent from './SpeedMeter'
+import { DashboardComponent } from './Dashboard'
 import { Statistics } from '../store/trip'
 import { eventListener, getMapLayer, getTrackRouteColor } from '../store/config'
-import screenfull from 'screenfull'
 import { createIconMarker, renderPolyline } from '../store/map'
 import { SakiScrollView } from './saki-ui-react/components'
 import {
@@ -703,21 +702,21 @@ const ReplayTripPage = ({
     // 		  }
     // 		: undefined
     // )
-    console.log(
-      'lllllll',
-      dur,
-      {
-        coords: nextPosition,
-      } as any,
-      startTrip,
-      index !== 0
-        ? {
-            animate: true,
-            duration: dur,
-            easeLinearity: 1,
-          }
-        : undefined
-    )
+    // console.log(
+    //   'lllllll',
+    //   dur,
+    //   {
+    //     coords: nextPosition,
+    //   } as any,
+    //   startTrip,
+    //   index !== 0
+    //     ? {
+    //         animate: true,
+    //         duration: dur,
+    //         easeLinearity: 1,
+    //       }
+    //     : undefined
+    // )
     panToMap(
       {
         coords: nextPosition,
@@ -1526,7 +1525,7 @@ const ReplayTripPage = ({
       </div>
 
       {trip?.positions && (startTrip || listenTime >= 0) ? (
-        <SpeedMeterComponent
+        <DashboardComponent
           tripId={tripId || ''}
           gpsSignalStatus={gpsSignalStatus.current}
           stopped={false}
@@ -1573,12 +1572,12 @@ const ReplayTripPage = ({
               {tunnelDistance.current >= 35
                 ? t('goThroughTunnelSkip', {
                     ns: 'tripPage',
-                    parkingTime: formatTimestamp(parkingTime.current, false),
+                    parkingTime: formatDurationI18n(parkingTime.current, false),
                     distance: tunnelDistance.current.toFixed(0),
                   })
                 : t('parkingLongTimeSkip', {
                     ns: 'tripPage',
-                    parkingTime: formatTimestamp(parkingTime.current, false),
+                    parkingTime: formatDurationI18n(parkingTime.current, false),
                   })}
             </span>
           </saki-button>

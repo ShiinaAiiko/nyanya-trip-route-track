@@ -1091,6 +1091,7 @@ export const tripMethods = {
               ...(v.positions?.map((v) => v.altitude || 0) || [0])
             )
           }
+          dispatch(tripSlice.actions.setTripForDetailPage(v))
           return v
         }
         return undefined
@@ -1759,8 +1760,12 @@ export const tripMethods = {
 
             obj[v.value.type].count += 1
             obj[v.value.type].distance += v.value.statistics?.distance || 0
-            obj[v.value.type].time +=
+            const time =
               (Number(v.value.endTime) || 0) - (Number(v.value.startTime) || 0)
+
+            if (time > 0) {
+              obj[v.value.type].time += time
+            }
           })
 
           dispatch(

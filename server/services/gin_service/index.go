@@ -1,6 +1,8 @@
 package gin_service
 
 import (
+	"net/http"
+
 	conf "github.com/ShiinaAiiko/nyanya-trip-route-track/server/config"
 	"github.com/ShiinaAiiko/nyanya-trip-route-track/server/routers"
 	"github.com/ShiinaAiiko/nyanya-trip-route-track/server/services/middleware"
@@ -50,7 +52,7 @@ func InitRouter() {
 	// 	//fmt.Println(index, "\t",value)
 	// 	Router.Use(midFunc)
 	// }
-	// Router.StaticFS("/static", http.Dir("./client/out"))
+	Router.StaticFS("/s", http.Dir("./static/public"))
 	// Router.StaticFile("/favicon.ico", "./client/out/favicon.ico")
 	// Router.StaticFile("/", "./client/out/index.html")
 	routers.InitRouter(Router)

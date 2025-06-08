@@ -38,6 +38,9 @@ export class ReactNativeWebJSBridge extends NEventListener<{
   enableLocation(b: boolean = true) {
     this.sendMessage('enableLocation', b)
   }
+  setLanguage(lang: string) {
+    this.sendMessage('setLanguage', lang)
+  }
   enableBackgroundTasks(b: boolean = true) {
     this.sendMessage('enableBackgroundTasks', b)
   }
@@ -46,7 +49,12 @@ export class ReactNativeWebJSBridge extends NEventListener<{
   }
 
   sendMessage(
-    type: 'keepScreenOn' | 'enableLocation' | 'enableBackgroundTasks' | 'load',
+    type:
+      | 'setLanguage'
+      | 'keepScreenOn'
+      | 'enableLocation'
+      | 'enableBackgroundTasks'
+      | 'load',
     payload: any
   ) {
     this.rnWebView?.postMessage(
@@ -70,7 +78,7 @@ export class ReactNativeWebJSBridge extends NEventListener<{
 
       this.dispatch(data.type, data.payload)
     } catch (e) {
-      console.error(e)
+      // console.error(e)
     }
   }
   isInReactNative() {

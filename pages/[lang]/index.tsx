@@ -16,7 +16,7 @@ import store, {
 } from '../../store'
 import { useSelector, useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
-import { bindEvent, snackbar, progressBar } from '@saki-ui/core'
+import { bindEvent, snackbar, progressBar, alert } from '@saki-ui/core'
 import { Debounce, deepCopy, NyaNyaWasm, QueueLoop } from '@nyanyajs/utils'
 import {
   getRegExp,
@@ -59,7 +59,7 @@ import {
   languages,
 } from '../../plugins/i18n/i18n'
 import { initTripCity, Statistics, tripSlice } from '../../store/trip'
-import SpeedMeterComponent from '../../components/SpeedMeter'
+import DashboardComponent, { DashboardLayer } from '../../components/Dashboard'
 
 import * as geolib from 'geolib'
 import { getIconType } from '../../components/Vehicle'
@@ -207,7 +207,7 @@ const TripPage = () => {
 
   const { speedColorRGBs, mapLayer, mapLayerType, mapUrl } = useMemo(() => {
     const ml = getMapLayer('indexPage')
-    console.log('dddddd', ml)
+    // console.log('dddddd', ml)
 
     // const tempFeaturesList = {
     //   ...mapLayerFeaturesList,
@@ -234,7 +234,20 @@ const TripPage = () => {
   ])
 
   useEffect(() => {
+    mapLayer &&
+      dispatch(
+        configSlice.actions.setTurnOnCityVoice(mapLayer?.turnOnVoice || false)
+      )
+  }, [mapLayer])
+
+  const dashboardDataHeight = useRef(0)
+
+  useEffect(() => {
     setMounted(true)
+
+    eventListener.on('dashboardDataHeight', (val) => {
+      dashboardDataHeight.current = val
+    })
 
     const init = async () => {
       // setTimeout(async () => {
@@ -276,9 +289,21 @@ const TripPage = () => {
       // 	getDistance(29.87242648, 106.38138641, 29.86577082, 106.40077541)
       // )
 
-      // const getTestData = await axios('/testData1.json')
-      // console.log('testData', getTestData.data.positions.reverse())
-      // setTestData(getTestData.data)
+      if (config.devTrip) {
+        const getTestData = await axios(
+          // 'http://192.168.204.132:23203/s//testData1.json'
+          'http://192.168.204.132:23203/s//KTmESZzS4.json'
+          // 'http://192.168.204.132:23203/s//xfHtQxa4s.json'
+          // 'http://192.168.204.132:23203/s//rhcMglTZW.json'
+          // 'http://192.168.204.132:23203/s//ykMRlTUd2.json'
+          // 'http://192.168.204.132:23203/s//lRzQNG8Pq.json'
+        )
+        // console.log('testData', getTestData.data)
+        // console.log('testData', getTestData.data.reverse())
+        setTestData({
+          positions: getTestData.data,
+        })
+      }
     }
     init()
   }, [])
@@ -681,7 +706,7 @@ const TripPage = () => {
 
   useEffect(() => {
     if (!startTrip) return clearInterval(tempTimer)
-    if (testData && startTrip) {
+    if (config.devTrip && testData && startTrip) {
       setTimeout(() => {
         setStartCountdown(0)
 
@@ -697,12 +722,12 @@ const TripPage = () => {
 
         tempTimer = setInterval(() => {
           if (!testData?.positions) return
-          if (i > testData.positions?.length - 1 || i > 500) {
+          if (i > testData.positions?.length - 1 || i > 50000) {
             clearInterval(tempTimer)
             return
           }
 
-          // console.log('oooooo', testData.positions[i])
+          console.log('oooooo', testData.positions[i])
 
           dispatch(
             geoSlice.actions.setSelectPosition({
@@ -727,7 +752,7 @@ const TripPage = () => {
           // 	true
           // )
           i++
-        }, 1000)
+        }, 500)
       }, 1000)
     }
   }, [testData, startTrip])
@@ -797,7 +822,9 @@ const TripPage = () => {
       dispatch(layoutSlice.actions.setBottomNavigator(false))
 
       console.log(map, marker, map)
-      !trip && addTrip()
+      if (!config.devTrip) {
+        !trip && addTrip()
+      }
 
       // map.current && marker.current && marker.current.removeFrom(map.current)
       // if (navigator.geolocation) {
@@ -1245,6 +1272,7 @@ const TripPage = () => {
   const bindMapClickEvent = () => {
     map.current?.removeEventListener('click')
     map.current?.on('click', (e) => {
+      hideButtons()
       // console.log('bindMapClickEvent click', !!selectRealTimeMarkkerId, e)
       let popLocation = e.latlng
       const { config } = store.getState()
@@ -1301,7 +1329,11 @@ const TripPage = () => {
 
       if (!disablePanTo || allowPanto) {
         map.current.panTo([lat, lon], {
-          animate: false,
+          // animate: false,
+
+          animate: true,
+          duration: 1,
+          easeLinearity: 1,
         })
       }
       // map.current.panInside([v.latitude, v.longitude], {
@@ -1708,6 +1740,29 @@ const TripPage = () => {
     console.error(res)
   }
 
+  const showButtons = useRef(true)
+
+  const showButtonsDeb = useRef(new Debounce())
+  useEffect(() => {
+    if (!startTrip) {
+      showButtons.current = true
+      return
+    }
+
+    hideButtons()
+  }, [startTrip])
+
+  const hideButtons = () => {
+    if (showButtons.current) {
+      showButtons.current = false
+      return
+    }
+    showButtons.current = true
+    showButtonsDeb.current.increase(() => {
+      showButtons.current = false
+    }, 5000)
+  }
+
   return (
     <>
       <Head>
@@ -1736,13 +1791,31 @@ const TripPage = () => {
         style={
           {
             '--position-heading': (heading.current || 0) + 'deg',
-            '--position-transition': '0s',
+            '--position-transition': '1s',
+            '--dashboard-data-h': dashboardDataHeight.current + 'px',
           } as any
         }
-        className={'trip-page '}
+        className={'trip-page ' + (startTrip ? 'startTrip' : '')}
       >
-        <div className="tp-main">
+        <div
+          // onClick={() => {
+          //   console.log('showButtons')
+          //   hideButtons()
+          // }}
+          className="tp-main"
+        >
           <ButtonsComponent
+            position={
+              startTrip
+                ? {
+                    right: 10,
+                    top: 0,
+                  }
+                : {
+                    right: 10,
+                    bottom: 90,
+                  }
+            }
             currentPosition={!startTrip}
             aichat={config.showIndexPageButton}
             trackRoute={!startTrip && config.showIndexPageButton}
@@ -1750,7 +1823,7 @@ const TripPage = () => {
             mark={startTrip}
             markCount={tripMarks.length}
             // layer={false}
-            // layer={startTrip && config.deviceType === 'Mobile'}
+            layer={startTrip}
             featuresList={mapLayerFeaturesList}
             mapLayerType={mapLayerType}
             // layer={!startTrip && config.showIndexPageButton}
@@ -1774,69 +1847,187 @@ const TripPage = () => {
               await addMark()
             }}
           ></ButtonsComponent>
-          <div
-            id="tp-map"
-            className={
-              (startTrip ? 'start ' : ' ') +
-              config.deviceType +
-              ' ' +
-              (zoomOutSpeedMeter ? 'zoomOutSpeedMeter' : '') +
-              ' ' +
-              (mapLayer && isRoadColorFade(mapLayer) ? 'roadColorFade' : '')
+
+          <DashboardLayer
+            enable={!!(startTrip || position.selectRealTimeMarkerId)}
+            mapUrl={mapUrl}
+            mapMode={mapLayer?.mapMode || 'Normal'}
+            type={type}
+            tripId={trip?.id || ''}
+            gpsSignalStatus={
+              !position.selectRealTimeMarkerId ? gpsSignalStatus : 1
             }
+            stopped={!position.selectRealTimeMarkerId ? stopped : false}
+            position={
+              !position.selectRealTimeMarkerId
+                ? tempPositions.current[tempPositions.current.length - 1]
+                : realTimePositionList.current.filter(
+                    (v) =>
+                      (v.vehicleInfo?.id || v.userInfo?.uid || '') ===
+                      position.selectRealTimeMarkerId
+                  )?.[0]?.position ||
+                  tempPositions.current[tempPositions.current.length - 1]
+            }
+            startTime={startTime}
+            listenTime={listenTime}
+            statistics={statistics.current}
+            updatedPositionsLength={updatedPositionIndex.current + 1}
+            positionsLength={tempPositions.current.length}
+            selectVehicle={!position.selectRealTimeMarkerId}
+            live={!position.selectRealTimeMarkerId}
+            markerPosition={!!position.selectRealTimeMarkerId}
+            onZoom={(v) => {
+              setZoomOutSpeedMeter(v === 'zoomOut')
+            }}
+            runTime={1000}
+            weatherInfo={weatherInfo}
+            cityInfo={cityInfo}
+            markerInfo={
+              realTimePositionList.current.filter(
+                (v) =>
+                  (v.vehicleInfo?.id || v.userInfo?.uid || '') ===
+                  position.selectRealTimeMarkerId
+              )?.[0]
+            }
+            cities={cities.current}
+            zIndex={500}
+            speedAnimation={mapLayer?.speedAnimation || false}
           >
-            <LayerButtons
-              mapLayer={mapLayer}
-              show={!startTrip}
-              style={
-                startTrip
-                  ? config.deviceType === 'Mobile'
-                    ? {
-                        left: '20px',
-                        bottom: '140px',
-                      }
-                    : {
-                        right: '20px',
-                        top: '60px',
-                      }
-                  : {
-                      left: '20px',
-                      bottom: '50px',
-                    }
+            <div
+              id="tp-map"
+              className={
+                (startTrip ? 'start ' : ' ') +
+                config.deviceType +
+                ' ' +
+                (zoomOutSpeedMeter ? 'zoomOutSpeedMeter' : '') +
+                ' ' +
+                (mapLayer && isRoadColorFade(mapLayer) ? 'roadColorFade' : '')
               }
-              modalConfig={
-                startTrip
-                  ? config.deviceType === 'Mobile'
-                    ? {
-                        vertical: 'Top',
+            >
+              <LayerButtons
+                mapLayer={mapLayer}
+                show={!startTrip}
+                style={
+                  startTrip
+                    ? config.deviceType === 'Mobile'
+                      ? {
+                          left: '20px',
+                          bottom: '140px',
+                        }
+                      : {
+                          right: '20px',
+                          top: '60px',
+                        }
+                    : {
+                        left: '20px',
+                        bottom: '50px',
+                      }
+                }
+                modalConfig={
+                  startTrip
+                    ? config.deviceType === 'Mobile'
+                      ? {
+                          vertical: 'Top',
+                          horizontal: 'Left',
+                          offsetX: '20px',
+                          offsetY: '160px',
+                        }
+                      : {
+                          vertical: 'Top',
+                          horizontal: 'Right',
+                          offsetX: '20px',
+                          offsetY: '140px',
+                        }
+                    : {
+                        vertical: 'Bottom',
                         horizontal: 'Left',
                         offsetX: '20px',
-                        offsetY: '160px',
+                        offsetY: '50px',
                       }
-                    : {
-                        vertical: 'Top',
-                        horizontal: 'Right',
-                        offsetX: '20px',
-                        offsetY: '140px',
-                      }
-                  : {
-                      vertical: 'Bottom',
-                      horizontal: 'Left',
-                      offsetX: '20px',
-                      offsetY: '50px',
-                    }
+                }
+                featuresList={mapLayerFeaturesList}
+                mapLayerType={mapLayerType}
+              ></LayerButtons>
+            </div>
+          </DashboardLayer>
+          {config.showIndexPageButton ? (
+            <div
+              className={
+                'tp-m-trip-buttons ' +
+                (showButtons.current ? 'show' : 'hide') +
+                ' ' +
+                (startTrip ? 'starting' : 'waiting')
               }
-              featuresList={mapLayerFeaturesList}
-              mapLayerType={mapLayerType}
-            ></LayerButtons>
-          </div>
+            >
+              <div
+                onClick={async () => {
+                  if (startTrip) {
+                    alert({
+                      title: t('stop_recording_trip', {
+                        ns: 'prompt',
+                      }),
+                      content: t('stop_recording_immediately', {
+                        ns: 'prompt',
+                      }),
+                      cancelText: t('cancel', {
+                        ns: 'prompt',
+                      }),
+                      confirmText: t('confirm', {
+                        ns: 'prompt',
+                      }),
+                      onCancel() {},
+                      async onConfirm() {
+                        dispatch(tripSlice.actions.setStartTrip(false))
+
+                        snackbar({
+                          message: t('trip_stopped_view_history', {
+                            ns: 'prompt',
+                          }),
+                          vertical: 'bottom',
+                          horizontal: 'center',
+                          backgroundColor: 'var(--saki-default-color)',
+                          color: '#fff',
+                          autoHideDuration: 2000,
+                        }).open()
+                      },
+                    }).open()
+                    return
+                  }
+                  setStartCountdown(3)
+                }}
+                className={
+                  'tp-b-item start ' +
+                  (startCountdown !== -1 ? 'startCountdown ' : '') +
+                  (startTrip ? 'starting' : '')
+                }
+              >
+                {startCountdown === -1
+                  ? startTrip
+                    ? t('stop', {
+                        ns: 'tripPage',
+                      })
+                    : t('start', {
+                        ns: 'tripPage',
+                      })
+                  : startCountdown}
+              </div>
+            </div>
+          ) : (
+            ''
+          )}
           <FiexdWeatherComponent
             showCoords={!startTrip}
             coords={geo.position.coords}
             full={startTrip || geo.selectPosition.latitude === -10000}
+            mapUrl={mapUrl}
+            mapMode={mapLayer?.mapMode || 'Normal'}
+            style={{
+              right: '10px',
+              bottom: (startTrip ? 40 + dashboardDataHeight.current : 4) + 'px',
+            }}
           ></FiexdWeatherComponent>
-          {startTrip || position.selectRealTimeMarkerId ? (
-            <SpeedMeterComponent
+          {/* {startTrip || position.selectRealTimeMarkerId ? (
+            <DashboardComponent
               type={type}
               tripId={trip?.id || ''}
               gpsSignalStatus={
@@ -1879,7 +2070,7 @@ const TripPage = () => {
             />
           ) : (
             ''
-          )}
+          )} */}
           <div
             style={{
               display:
@@ -2027,36 +2218,6 @@ const TripPage = () => {
             驾车
           </div> */}
           </div>
-          {config.showIndexPageButton ? (
-            <div
-              className={'tp-m-trip-buttons ' + (startTrip ? 'starting' : '')}
-            >
-              <div
-                onClick={async () => {
-                  if (startTrip) {
-                    dispatch(tripSlice.actions.setStartTrip(false))
-                    return
-                  }
-                  setStartCountdown(3)
-                }}
-                className={
-                  'tp-b-item start ' + (startCountdown !== -1 ? 'starting' : '')
-                }
-              >
-                {startCountdown === -1
-                  ? startTrip
-                    ? t('stop', {
-                        ns: 'tripPage',
-                      })
-                    : t('start', {
-                        ns: 'tripPage',
-                      })
-                  : startCountdown}
-              </div>
-            </div>
-          ) : (
-            ''
-          )}
           <div
             className={
               'tp-m-trip-right-buttons ' + (startTrip ? 'starting' : '')
@@ -2100,6 +2261,7 @@ const TripPage = () => {
     </>
   )
 }
+
 TripPage.getLayout = getLayout
 
 export async function getStaticPaths() {

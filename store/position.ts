@@ -311,6 +311,7 @@ export const createOtherPositionMarker = (
       nickname='${positionItem.userInfo?.nickname}'
       src='${positionItem.userInfo?.avatar}'
       alt=''
+        lazyload="false"
     ></saki-avatar>
     ${
       positionItem.type === 'Vehicle'
@@ -425,6 +426,7 @@ export const createMyPositionMarker = (
         nickname='${user.userInfo?.nickname}'
         src='${user.userInfo?.avatar}'
         alt=''
+        lazyload="false"
       ></saki-avatar></div>`
           : ''
       }

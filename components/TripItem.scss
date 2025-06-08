@@ -17,7 +17,7 @@
 
   .ti-map-wrap {
     width: 100%;
-    height: 380px;
+    height: var(--map-height);
     position: absolute;
     left: 0;
     top: 0;
@@ -55,7 +55,7 @@
     width: 100%;
     background-color: #fff;
     border-radius: 10px 10px 0 0;
-    margin: 380px 0 0;
+    margin: var(--map-height) 0 0;
     transition: margin 0.3s;
 
     &.startScroll {
@@ -274,9 +274,6 @@
         }
       }
 
-      .ti-trip-progress {
-      }
-
       .ti-marks {
         padding: 10px 20px 20px;
 
@@ -306,6 +303,10 @@
             }
           }
         }
+      }
+
+      .ti-speed-distance-chart {
+        padding: 10px 20px 10px;
       }
 
       .ti-tripProgress-types {

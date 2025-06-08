@@ -6,7 +6,7 @@ import {
 } from '@reduxjs/toolkit'
 import { protoRoot } from '../protos'
 import { TabsTripType } from './config'
-import store, { methods } from '.'
+import store, { citySlice, methods } from '.'
 import { alert } from '@saki-ui/core'
 // import { MediaItem } from './file'
 
@@ -25,6 +25,7 @@ export type ModalType =
   | 'FindLocation'
   | 'ImagesWaterfall'
   | 'MapLayer'
+  | 'WeatherApp'
 
 export interface IWMediaItem
   extends protoRoot.journeyMemory.IJourneyMemoryMediaItem {
@@ -112,6 +113,14 @@ export const layoutSlice = createSlice({
     loadModals: {} as {
       [type: string]: (() => void)[]
     },
+    openWeatherAppModal: {
+      visible: false,
+      latlng: {
+        lat: 0,
+        lng: 0,
+        alt: 0,
+      },
+    },
   },
   reducers: {
     setLoadModals: (
@@ -173,6 +182,10 @@ export const layoutSlice = createSlice({
       state.openVisitedCitiesModal.visible = params.payload.visible
       state.openVisitedCitiesModal.title = params.payload?.title || ''
       state.openVisitedCitiesModal.tripIds = params.payload?.tripIds || []
+
+      setTimeout(() => {
+        store.dispatch(citySlice.actions.setCities([]))
+      }, 0)
     },
     setOpenCreateCustomTripModal: (
       state,
@@ -263,6 +276,22 @@ export const layoutSlice = createSlice({
       }
 
       state.openMapLayerModal.visible = params.payload.visible
+    },
+    setOpenWeatherAppModal: (
+      state,
+      params: {
+        payload: {
+          visible: boolean
+          latlng?: typeof state.openWeatherAppModal.latlng
+        }
+        type: string
+      }
+    ) => {
+      if (params.payload.latlng) {
+        state.openWeatherAppModal.latlng = params.payload.latlng
+      }
+
+      state.openWeatherAppModal.visible = params.payload.visible
     },
     setOpenVehicleModal: (
       state,

@@ -35,7 +35,6 @@ import {
   formatAvgPace,
   formatDistance,
   formatTime,
-  formatTimestamp,
   fullScreen,
   getAngle,
   getLatLng,
@@ -46,11 +45,11 @@ import {
   roadColorFade,
 } from '../plugins/methods'
 import TripItemComponent from './TripItem'
-import { Chart } from 'chart.js'
+
 import { Debounce, deepCopy, NEventListener } from '@nyanyajs/utils'
 import StatisticsComponent from './Statistics'
 import Leaflet from 'leaflet'
-import SpeedMeterComponent from './SpeedMeter'
+import SpeedMeterComponent from './Dashboard'
 import { eventListener, getMapLayer, getTrackRouteColor } from '../store/config'
 import { UserInfo } from '@nyanyajs/utils/dist/sakisso'
 import { getIconType } from './Vehicle'
@@ -473,6 +472,14 @@ const VisitedCitiesModal = () => {
     deleteAllCityGeojsonMap('VisitedCitiesModal')
   }
 
+  const mapInvalidateSizeD = useRef(new Debounce())
+
+  useEffect(() => {
+    mapInvalidateSizeD.current.increase(() => {
+      map.current?.invalidateSize(true)
+    }, 400)
+  }, [config.deviceWH.w, config.deviceWH.h])
+
   const initMap = () => {
     const L: typeof Leaflet = (window as any).L
 
@@ -503,9 +510,9 @@ const VisitedCitiesModal = () => {
           attributionControl: false,
         })
 
-        eventListener.on('resize_vcm', () => {
-          map.current?.invalidateSize(true)
-        })
+        // eventListener.on('resize_vcm', () => {
+        //   map.current?.invalidateSize(true)
+        // })
 
         // 检测地址如果在中国就用高德地图
         map.current.setView([lat, lon], zoom)
@@ -552,21 +559,6 @@ const VisitedCitiesModal = () => {
         })
   }
 
-  let cityCount = 0
-  let townCount = 0
-  selectCity?.id &&
-    cityDistricts['city']?.forEach((v) => {
-      if (v.parentCityId === selectCity?.id) {
-        cityCount += 1
-
-        cityDistricts['town'].forEach((sv) => {
-          if (sv.parentCityId === v.id) {
-            townCount += 1
-          }
-        })
-      }
-    })
-
   useEffect(() => {
     const init = async () => {
       let cityBoundaries: {
@@ -587,11 +579,17 @@ const VisitedCitiesModal = () => {
                 (v) => v.parentCityId === selectCity?.id
               )
             )
+
+            if (!cityBoundaries.length) {
+              cityBoundaries = await loadCityBoundaries(
+                cityDistricts['region'].filter((v) => v.id === selectCity?.id)
+              )
+            }
           }
 
           break
       }
-      console.log('area', cityBoundaries)
+      // console.log('area', timelineType, cityBoundaries)
       if (!cityBoundaries.length) return setArea(0)
       // console.log('area', cities)
 
@@ -602,26 +600,48 @@ const VisitedCitiesModal = () => {
     init()
   }, [timelineType, selectCity])
 
-  const tempTownTimeline = useMemo(() => {
+  const { tempTownTimeline, cityCount, townCount } = useMemo(() => {
     const tempCities: protoRoot.city.ICityItem[] = []
 
+    let cityCount = 0
+    let townCount = 0
+
     if (selectCity?.id) {
-      cityDistricts['city']?.forEach((v) => {
+      console.log('tempTownTimeline', cityDistricts['city'], selectCity.id)
+      cityDistricts['city'].forEach((v) => {
         if (v.parentCityId === selectCity?.id) {
+          cityCount += 1
           cityDistricts['town'].forEach((sv) => {
             if (sv.parentCityId === v.id) {
+              townCount += 1
               tempCities.push(sv)
             }
           })
         }
       })
 
+      if (!tempCities.length) {
+        if (cityCount === 0) {
+          cityCount += 1
+        }
+        cityDistricts['town'].forEach((sv) => {
+          if (sv.parentCityId === selectCity?.id) {
+            townCount += 1
+            tempCities.push(sv)
+          }
+        })
+      }
+
       tempCities.sort(
         (a, b) => Number(b.firstEntryTime) - Number(a.firstEntryTime)
       )
     }
 
-    return formatTimeLineCities(tempCities)
+    return {
+      tempTownTimeline: formatTimeLineCities(tempCities),
+      cityCount,
+      townCount,
+    }
   }, [cityDistricts, selectCity])
 
   const tempCitiesTimeline = useMemo(() => {
@@ -1028,29 +1048,29 @@ const CityListModal = ({
 }) => {
   const { t, i18n } = useTranslation('visitedCitiesModal')
   const config = useSelector((state: RootState) => state.config)
-  // console.log('cityDistricts', cityDistricts)
+  console.log('cityDistricts', cityDistricts)
 
   const list = useMemo(() => {
+    interface CitiesItem {
+      name: string
+      id: string
+      active: boolean
+      firstEntryTime: number
+    }
+
     const list: {
       name: string
-      cities: {
-        name: string
-        id: string
-        active: boolean
-      }[]
+      cities: CitiesItem[]
     }[] = []
     if (visible) {
       if (type === 'region') {
-        const cities: {
-          name: string
-          id: string
-          active: boolean
-        }[] = []
+        const cities: CitiesItem[] = []
         cityDistricts['country'].forEach((v) => {
           cities.push({
             name: getCityName(v.name) || '',
             id: v.id || '',
             active: v.id === selectCountry?.id,
+            firstEntryTime: Number(v.firstEntryTime) || 0,
           })
         })
         list.push({
@@ -1060,11 +1080,7 @@ const CityListModal = ({
       }
       if (type === 'town') {
         cityDistricts['country'].forEach((v) => {
-          const cities: {
-            name: string
-            id: string
-            active: boolean
-          }[] = []
+          const cities: CitiesItem[] = []
           cityDistricts['region'].forEach((sv) => {
             if (
               getCityName(sv.fullName)?.split(',')[0] === getCityName(v.name)
@@ -1076,6 +1092,7 @@ const CityListModal = ({
                 ),
                 id: sv.id || '',
                 active: sv.id === selectCity?.id,
+                firstEntryTime: Number(sv.firstEntryTime) || 0,
               })
             }
           })
@@ -1088,6 +1105,13 @@ const CityListModal = ({
         })
       }
     }
+
+    list.forEach((v) => {
+      v.cities.sort((a, b) => {
+        return b.firstEntryTime - a.firstEntryTime
+      })
+    })
+
     return list
   }, [type, cityDistricts, visible])
 

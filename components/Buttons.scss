@@ -1,25 +1,26 @@
 .map-buttons-component {
   position: absolute;
-  right: 20px;
-  bottom: 50px;
+  // right: 20px;
+  // bottom: 50px;
   z-index: 500;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  transition: all 0.3s;
 
   .realTimePosition-button {
     position: relative;
 
     &::after {
-      content: "";
-      width: 16px;
-      height: 16px;
+      content: '';
+      width: 14px;
+      height: 14px;
       border: 3px solid #fff;
       border-radius: 50%;
       position: absolute;
-      left: 0px;
-      top: 14px;
+      left: -2px;
+      top: 12px;
     }
 
     &.start {
@@ -29,7 +30,6 @@
       &::after {
         background-color: var(--anima-bg-color);
       }
-
     }
 
     &.close {
@@ -46,7 +46,6 @@
         background-color: var(--anima-bg-color);
       }
     }
-
 
     &.start {
       @keyframes anima {
@@ -65,12 +64,9 @@
         animation: anima infinite alternate-reverse 1s;
       }
     }
-
-
   }
 
   .mark-button {
-
     .mark-content {
       font-weight: 700;
       display: flex;

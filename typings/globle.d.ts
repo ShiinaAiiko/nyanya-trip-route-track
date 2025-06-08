@@ -61,6 +61,8 @@ declare global {
       'saki-viewer': any
       'saki-waterfall-layout': any
       'saki-waterfall-layout-item': any
+      'saki-circle-progress-bar': any
+      'saki-app-portal': any
     }
   }
   namespace Window {

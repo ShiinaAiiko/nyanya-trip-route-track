@@ -26,7 +26,7 @@ import { set } from 'nprogress'
 import { exitFullscreen, fullScreen, isFullScreen } from '../plugins/methods'
 import { httpApi } from '../plugins/http/api'
 import { protoRoot } from '../protos'
-import screenfull from 'screenfull'
+// import screenfull from 'screenfull'
 import { config } from 'process'
 import { ReactNativeWebJSBridge } from '../plugins/reactNativeWebJsBridge'
 
@@ -644,8 +644,21 @@ export const configSlice = createSlice({
     turnOnCityVoice: true,
     // connectionBaseMapUrl: true,
     // connectionTrackRouteMapUrl: true,
+
+    vConsole: false,
+
+    devTrip: process.env.CLIENT_ENV === 'production' ? false : true,
   },
   reducers: {
+    setVConsole: (
+      state,
+      params: {
+        payload: (typeof state)['vConsole']
+        type: string
+      }
+    ) => {
+      state.vConsole = params.payload
+    },
     setAppConfig: (
       state,
       params: {
@@ -889,6 +902,8 @@ export const configSlice = createSlice({
       }
     ) => {
       state.language = params.payload
+
+      rnJSBridge?.setLanguage(params.payload)
     },
     setLang: (
       state,
@@ -972,13 +987,17 @@ export const configMethods = {
       )
     )
 
+    thunkAPI.dispatch(
+      configSlice.actions.setVConsole(location.search.includes('debug=true'))
+    )
+
     // const language = (await storage.global.get('language')) || 'system'
     // thunkAPI.dispatch(configMethods.setLanguage(language))
 
-    const turnOnCityVoice = (await storage.global.get('turnOnCityVoice')) || 1
-    thunkAPI.dispatch(
-      configSlice.actions.setTurnOnCityVoice(turnOnCityVoice === 1)
-    )
+    // const turnOnCityVoice = (await storage.global.get('turnOnCityVoice')) || 1
+    // thunkAPI.dispatch(
+    //   configSlice.actions.setTurnOnCityVoice(turnOnCityVoice === 1)
+    // )
 
     // const showDetailedDataForMultipleHistoricalTrips =
     //   (await storage.global.get(

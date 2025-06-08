@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>圆形速度仪表盘 - 固定渐变色边框（黄到绿）</title>
+    <style>
+      body {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        margin: 0;
+        background: #f5f5f5;
+        font-family: Arial, sans-serif;
+      }
+
+      .speedometer {
+        position: relative;
+        width: 200px;
+        height: 200px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        --progress: 0; /* CSS 变量，控制进度 */
+      }
+
+      .outer-circle {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        background: conic-gradient(
+          from 360deg,
+          rgb(140, 200, 70) 0%,
+          rgb(230, 110, 70) 100%
+        );
+        -webkit-mask: radial-gradient(
+          circle,
+          transparent 40%,
+          black 41%
+        ); /* 创建固定宽度的圆环 */
+        mask: radial-gradient(circle, transparent 40%, black 41%);
+        clip-path: url(#progress-clip); /* 使用动态 clip-path 裁剪 */
+        transform: rotate(180deg);
+      }
+
+      .inner-circle {
+        position: absolute;
+        width: 80%;
+        height: 80%;
+        background: #fff;
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 24px;
+        font-weight: bold;
+        color: #333;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      }
+
+      /* 平滑过渡效果 */
+      .outer-circle {
+        transition: clip-path 0.5s ease;
+      }
+
+      /* 滑块样式 */
+      input[type='range'] {
+        margin-top: 20px;
+        width: 200px;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <svg width="0" height="0">
+      <defs>
+        <clipPath id="progress-clip">
+          <path id="clip-path" d="M100,100 L100,0 A100,100 0 0 1 100,0 Z" />
+        </clipPath>
+      </defs>
+    </svg>
+    <div class="speedometer">
+      <div class="outer-circle"></div>
+      <div class="inner-circle">0 km/h</div>
+    </div>
+    <input type="range" id="speedInput" min="0" max="100" value="0" />
+
+    <script>
+      const speedInput = document.getElementById('speedInput')
+      const speedometer = document.querySelector('.speedometer')
+      const speedDisplay = document.querySelector('.inner-circle')
+      const clipPath = document.getElementById('clip-path')
+
+      function updateClipPath(progress) {
+        const angle = progress * 3.6 // 100对应360度
+        const radians = (angle * Math.PI) / 180
+        const x = 100 + 100 * Math.cos(radians - Math.PI / 2) // 从底部开始（-90度）
+        const y = 100 + 100 * Math.sin(radians - Math.PI / 2)
+        const largeArcFlag = angle > 180 ? 1 : 0
+        // 动态生成 SVG 路径：从中心到顶部，顺时针到目标角度
+        const path = `M100,100 L100,0 A100,100 0 ${largeArcFlag} 1 ${x},${y} Z`
+        clipPath.setAttribute('d', path)
+      }
+
+      speedInput.addEventListener('input', () => {
+        const speed = speedInput.value
+        // 更新 CSS 变量 --progress（用于过渡效果）
+        speedometer.style.setProperty('--progress', speed)
+        // 更新速度显示
+        speedDisplay.textContent = `${speed} km/h`
+        // 更新 clip-path
+        updateClipPath(speed)
+      })
+
+      // 初始化
+      updateClipPath(0)
+    </script>
+  </body>
+</html>

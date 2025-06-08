@@ -66,7 +66,7 @@ export const clearLayer = ({
 
         // map.removeLayer(layer)
 
-        // console.log("clearLayer Polyline", layer)
+        console.log('clearLayer Polyline', layer)
         removeLayer(map, layer)
       }
     }
@@ -855,9 +855,12 @@ export const renderPolylineItem = async ({
       }).addTo(map)
     }
 
-    speedColor !== 'auto' &&
-      clickFunc &&
+    // console.log('layer', layer)
+
+    // speedColor !== 'auto' &&
+    clickFunc &&
       layer?.addEventListener('click', () => {
+        console.log('clickFunc params', params)
         clickFunc({
           params,
           reRender: async (params) => {

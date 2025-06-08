@@ -36,7 +36,7 @@ import {
   getLatLng,
   formatDistance,
   formatPositionsStr,
-  formatTimestamp,
+  formatDurationI18n,
   getZoom,
   roadColorFade,
   isRoadColorFade,
@@ -1500,7 +1500,7 @@ const TrackRoutePage = () => {
 																(historicalStatistic.time / 3600) * 100
 														  ) / 100 || 0,
 											})} */}
-                        {formatTimestamp(
+                        {formatDurationI18n(
                           historicalStatistic.time <= 0
                             ? 0
                             : historicalStatistic.time || 0
@@ -1650,7 +1650,7 @@ const TrackRoutePage = () => {
                   <div className="ti-d-item time">
                     <span className="value">
                       {historicalStatistic.time > 0
-                        ? formatTimestamp(historicalStatistic.time)
+                        ? formatDurationI18n(historicalStatistic.time)
                         : t('unfinished', {
                             ns: 'tripPage',
                           })}

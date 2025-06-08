@@ -3,6 +3,22 @@
   height: 100%;
   overflow: hidden;
 
+  &.startTrip {
+    .custom-distance-scale {
+      // transform: translate(0px, calc(4px - var(--dashboard-data-h))) !important;
+      // transition: transform 0.3s;
+      position: fixed;
+      right: 10px;
+      bottom: calc(6px + var(--dashboard-data-h));
+      transition: all 0.3s;
+    }
+    .fiexd-weather-component {
+      display: none;
+      // bottom: calc(var(--dashboard-data-h)) !important;
+      // transition: bottom 0.3s;
+    }
+  }
+
   .tp-main {
     width: 100%;
     height: 100%;
@@ -12,23 +28,22 @@
       width: 100%;
       height: 100%;
 
-      &.Mobile.start {
-        height: calc(100% - 280px);
-        transform: translateY(280px);
+      // &.Mobile.start {
+      //   height: calc(100% - 280px);
+      //   transform: translateY(280px);
 
-        @media screen and (min-width: 500px) {
-          height: calc(100% - 230px);
-          transform: translateY(230px);
-        }
+      //   @media screen and (min-width: 500px) {
+      //     height: calc(100% - 230px);
+      //     transform: translateY(230px);
+      //   }
 
-        transition: all .3s;
+      //   transition: all .3s;
 
-        &.zoomOutSpeedMeter {
-          height: 100%;
-          transform: translateY(0px);
-        }
-      }
-
+      //   &.zoomOutSpeedMeter {
+      //     height: 100%;
+      //     transform: translateY(0px);
+      //   }
+      // }
     }
 
     .tp-m-type-buttons {
@@ -121,8 +136,7 @@
     .tp-m-trip-buttons,
     .tp-m-trip-right-buttons {
       position: absolute;
-      bottom: 60px;
-      z-index: 400;
+      z-index: 600;
       border-radius: 6px;
       display: flex;
       justify-content: space-between;
@@ -130,10 +144,10 @@
       // overflow: hidden;
       transition: all 0.3s;
 
-      &:nth-last-child(1) {}
+      &:nth-last-child(1) {
+      }
 
       .tp-b-item {
-
         &.start {
           background-color: var(--saki-default-color);
           font-weight: 700;
@@ -157,8 +171,16 @@
             background-color: #dd5174;
           }
 
-          &.starting {
+          &.startCountdown {
             font-size: 28px;
+          }
+          &.starting {
+            width: 50px;
+            height: 50px;
+            // width: 40px;
+            // height: 40px;
+            font-size: 12px;
+            padding: 0 0 4px 0;
           }
         }
 
@@ -166,7 +188,8 @@
           display: flex;
           padding: 0 20px;
 
-          .button {}
+          .button {
+          }
         }
 
         width: 150px;
@@ -179,12 +202,19 @@
     }
 
     .tp-m-trip-buttons {
-      left: 50%;
-      transform: translate(-50%, 0);
-
+      &.hide {
+        // display: none;
+      }
+      &.waiting {
+        bottom: 60px;
+        left: 50%;
+        transform: translate(-50%, 0);
+      }
       &.starting {
-        left: 20px;
-        bottom: 30px;
+        right: 4px;
+        // right: 10px;
+        top: 222px;
+        // bottom: calc(90px + var(--dashboard-data-h));
         transform: translate(0, 0);
       }
     }
@@ -194,7 +224,6 @@
       transform: translate(-50%, 0);
       display: none;
       opacity: 0;
-
 
       &.starting {
         display: block;

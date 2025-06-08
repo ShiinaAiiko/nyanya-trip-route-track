@@ -30,7 +30,7 @@ import {
   isResumeTrip,
 } from '../plugins/methods'
 import TripItemComponent from './TripItem'
-import { Chart } from 'chart.js'
+import Chart from 'chart.js/auto'
 import { deepCopy } from '@nyanyajs/utils'
 import StatisticsComponent from './Statistics'
 import FilterComponent from './Filter'
@@ -452,11 +452,13 @@ const TripHistoryPage = ({
       ['All', ...config.tripTypes].map((v, i) => {
         return {
           type: v as any,
-          count: 0,
-          uselessData: [],
-          distance: 0,
-          time: 0,
           list: [],
+          statistics: {
+            count: 0,
+            uselessData: [],
+            distance: 0,
+            time: 0,
+          },
         }
       })
     )
@@ -926,7 +928,9 @@ const TripHistoryPage = ({
   }
 
   const getLocalTrips = async () => {
-    const trips = await storage.trips.getAll()
+    const trips = (await storage.trips.getAll()).filter((v) =>
+      v.key.includes('IDB_')
+    )
     console.log('getLocalTrips', trips)
     // if (trips?.length) {
     let distance = 0
@@ -952,11 +956,19 @@ const TripHistoryPage = ({
     if (type === 'Local') {
       setPageNum(2)
       setTrips(list)
+      setLoadStatus('noMore')
     }
 
     console.log(
       'getLocalTrips1',
-      type
+      type,
+      {
+        count: list?.length,
+        distance: distance,
+        uselessDataCount: uselessDataCount,
+        time: time,
+        list: list || [],
+      }
       // tripStatistics
       // 	.map((v) => {
       // 		if (v.type === 'Local') {
@@ -983,17 +995,20 @@ const TripHistoryPage = ({
         if (v.type === 'Local') {
           return {
             ...v,
-            count: list?.length,
-            distance: distance,
-            uselessDataCount: uselessDataCount,
-            time: time,
             list: list || [],
+            statistics: {
+              count: list?.length,
+              distance: distance,
+              uselessDataCount: uselessDataCount,
+              time: time,
+            },
           }
         }
         return v
       })
     )
     setIsLoadLocal(true)
+
     // }
   }
 
@@ -1063,11 +1078,20 @@ const TripHistoryPage = ({
             >
               {tripStatistics
                 .filter((v) => {
-                  // console.log('filter', v)
+                  // console.log(
+                  //   'getLocalTrips1 filter',
+                  //   v,
+                  //   user.isLogin
+                  //     ? v.type === 'Local'
+                  //       ? !!v?.statistics?.count
+                  //       : true
+                  //     : v.type === 'Local'
+                  // )
                   return user.isLogin
-                    ? v.type === 'Local'
-                      ? !!v?.statistics?.count
-                      : true
+                    ? // v.type === 'Local'
+                      //   ? !!v?.statistics?.count
+                      //   :
+                      true
                     : v.type === 'Local'
                 })
                 .map((v, i) => {

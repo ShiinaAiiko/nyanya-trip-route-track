@@ -22,7 +22,7 @@ import { storage } from '../store/storage'
 import { useTranslation } from 'react-i18next'
 import { httpApi } from '../plugins/http/api'
 import { protoRoot } from '../protos'
-import { formatDistance, formatTime, formatTimestamp } from '../plugins/methods'
+import { formatDistance, formatTime } from '../plugins/methods'
 import TripItemComponent from './TripItem'
 
 const StatisticsComponent = ({
@@ -176,7 +176,7 @@ const StatisticsComponent = ({
                 num = num / 3600
               }
 
-              // console.log('num', num, formatTimestamp(num))
+              // console.log('num', num, formatDurationI18nnum))
 
               return (
                 <div

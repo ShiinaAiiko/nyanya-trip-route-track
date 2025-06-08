@@ -1,0 +1,5 @@
+<resources>
+  <!-- <string name="app_name">rnapp</string> -->
+  <string name="app_name">Trip Route Track</string>
+  <string name="app_name_debug">Trip Route Track Debug</string>
+</resources>

@@ -29,6 +29,11 @@ import { SakiButton, SakiIcon } from './saki-ui-react/components'
 import { deepCopy } from '@nyanyajs/utils'
 
 const ButtonsComponent = ({
+  position = {
+    right: 20,
+    bottom: 50,
+    // top: 50,
+  },
   indexPage = false,
   trackRoute = false,
   currentPosition = false,
@@ -40,7 +45,7 @@ const ButtonsComponent = ({
   markCount = 0,
   mapLayerModalConfig = {
     vertical: 'Bottom',
-    horizontal: 'Left',
+    horizontal: 'Right',
     offsetX: '20px',
     offsetY: '50px',
   },
@@ -50,6 +55,12 @@ const ButtonsComponent = ({
   onMark,
   onFilter,
 }: {
+  position?: {
+    left?: number
+    right?: number
+    bottom?: number
+    top?: number
+  }
   indexPage?: boolean
   trackRoute?: boolean
   currentPosition?: boolean
@@ -93,7 +104,19 @@ const ButtonsComponent = ({
     useState(false)
 
   return (
-    <div className="map-buttons-component">
+    <div
+      style={{
+        // right: position.right + 'px',
+        // bottom: position.bottom + 'px',
+        // top: position.top + 'px',
+
+        ...(['left', 'right', 'bottom', 'top'].reduce((fin, cur) => {
+          const pos: any = position
+          return pos[cur] ? { ...fin, [cur]: pos[cur] + 'px' } : fin
+        }, {}) as any),
+      }}
+      className="map-buttons-component"
+    >
       <NoSSR>
         {indexPage && (
           <>
@@ -104,15 +127,17 @@ const ButtonsComponent = ({
                   location.replace('/' + (router.query.lang || ''))
                 },
               })}
-              padding="24px"
+              width="40px"
+              height="40px"
+              // padding="24px"
               margin="16px 0 0 0"
               type="CircleIconGrayHover"
               box-shadow="0 0 10px rgba(0, 0, 0, 0.3)"
             >
               <saki-icon
                 color="var(--saki-default-color)"
-                width="22px"
-                height="22px"
+                width="18px"
+                height="18px"
                 type="Index"
               ></saki-icon>
             </saki-button>
@@ -129,15 +154,17 @@ const ButtonsComponent = ({
                 // dispatch(layoutSlice.actions.setOpenTripTrackRoute(true))
               },
             })}
-            padding="24px"
+            width="40px"
+            height="40px"
+            // padding="24px"
             margin="16px 0 0 0"
             type="CircleIconGrayHover"
             box-shadow="0 0 10px rgba(0, 0, 0, 0.3)"
           >
             <saki-icon
               color="var(--saki-default-color)"
-              width="22px"
-              height="22px"
+              width="18px"
+              height="18px"
               type="Route"
             ></saki-icon>
           </saki-button>
@@ -170,17 +197,17 @@ const ButtonsComponent = ({
                     setOpenUserPositionShareDropdown(true)
                   },
                 })}
-                width="48px"
-                height="48px"
-                padding="24px"
-                margin="16px 0 0 0"
+                width="40px"
+                height="40px"
+                // padding="24px"
+                margin="12px 0 0 0"
                 type="CircleIconGrayHover"
                 box-shadow="0 0 10px rgba(0, 0, 0, 0.3)"
               >
                 <saki-icon
                   color="var(--saki-default-color)"
-                  width="22px"
-                  height="22px"
+                  width="18px"
+                  height="18px"
                   type="PositionShare"
                 ></saki-icon>
               </saki-button>
@@ -273,15 +300,17 @@ const ButtonsComponent = ({
                   onFilter?.()
                 },
               })}
-              padding="24px"
+              width="40px"
+              height="40px"
+              // padding="24px"
               margin="16px 0 0 0"
               type="CircleIconGrayHover"
               box-shadow="0 0 10px rgba(0, 0, 0, 0.3)"
             >
               <saki-icon
                 color="var(--saki-default-color)"
-                width="26px"
-                height="26px"
+                width="22px"
+                height="22px"
                 type="FilterFill"
               ></saki-icon>
             </saki-button>
@@ -307,15 +336,17 @@ const ButtonsComponent = ({
                 })
               },
             })}
-            padding="24px"
-            margin="16px 0 0 0"
+            width="40px"
+            height="40px"
+            // padding="24px"
+            margin="12px 0 0 0"
             type="CircleIconGrayHover"
             box-shadow="0 0 10px rgba(0, 0, 0, 0.3)"
           >
             <saki-icon
               color="var(--saki-default-color)"
-              width="28px"
-              height="28px"
+              width="18px"
+              height="18px"
               type="Layer"
             ></saki-icon>
           </saki-button>
@@ -328,15 +359,17 @@ const ButtonsComponent = ({
                 dispatch(layoutSlice.actions.setOpenSettingsModal(true))
               })
             }}
-            padding="24px"
-            margin="16px 0 0 0"
+            width="40px"
+            height="40px"
+            // padding="24px"
+            margin="12px 0 0 0"
             type="CircleIconGrayHover"
             box-shadow="0 0 10px rgba(0, 0, 0, 0.3)"
           >
             <SakiIcon
               color="var(--saki-default-color)"
-              width="22px"
-              height="22px"
+              width="18px"
+              height="18px"
               type="ChatFill"
             ></SakiIcon>
           </SakiButton>
@@ -348,24 +381,26 @@ const ButtonsComponent = ({
                 onCurrentPosition()
               },
             })}
-            padding="24px"
-            margin="16px 0 0 0"
+            width="40px"
+            height="40px"
+            // padding="24px"
+            margin="12px 0 0 0"
             type="CircleIconGrayHover"
             box-shadow="0 0 10px rgba(0, 0, 0, 0.3)"
           >
             <saki-icon
               color="var(--saki-default-color)"
-              width="30px"
-              height="30px"
+              width="22px"
+              height="22px"
               type="CurrentPosition"
             ></saki-icon>
           </saki-button>
         )}
         {mark && (
           <div
-            style={{
-              transform: 'translate(0,20px)',
-            }}
+            // style={{
+            //   transform: 'translate(0,20px)',
+            // }}
             className="mark-button"
           >
             {/* {realTimePosition ? (
@@ -394,10 +429,10 @@ const ButtonsComponent = ({
                   onMark?.()
                 },
               })}
-              width="80px"
-              height="80px"
-              padding="24px"
-              margin="0px 0 0 0"
+              width="40px"
+              height="40px"
+              // padding="24px"
+              margin="12px 0 0 0"
               type="CircleIconGrayHover"
               bg-color="#58c8f2"
               bg-hover-color="#4eb2d6"
@@ -406,8 +441,8 @@ const ButtonsComponent = ({
             >
               <div className="mark-content">
                 <saki-icon
-                  width="30px"
-                  height="30px"
+                  width="18px"
+                  height="18px"
                   color="#fff"
                   type="Flag"
                 ></saki-icon>

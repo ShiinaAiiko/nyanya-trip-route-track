@@ -1,0 +1,5 @@
+<resources>
+  <!-- <string name="app_name">rnapp</string> -->
+  <string name="app_name">行程路線軌跡</string>
+  <string name="app_name_debug">行程路線軌跡 Debug</string>
+</resources>

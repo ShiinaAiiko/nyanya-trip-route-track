@@ -71,7 +71,7 @@ const modelName = 'city'
 
 export type CityDistrictsType = 'country' | 'state' | 'region' | 'city' | 'town'
 
-export const state = {
+export const cityState = {
   cities: [] as protoRoot.city.ICityItem[],
   cityDistricts: {} as Record<string, protoRoot.city.ICityItem[]>,
   updateCitiesTime: 0,
@@ -325,7 +325,7 @@ export const formartCities = (cities: protoRoot.city.ICityItem[]) => {
   return citiesArr
 }
 
-// export const getFullCityHierarchyIdsItem = (cities: typeof state.cities, ids: string[] = [], id: string) => {
+// export const getFullCityHierarchyIdsItem = (cities: typeof cityState.cities, ids: string[] = [], id: string) => {
 //   cities.forEach((v) => {
 //     if (v.id === id) {
 //       ids.push(id)
@@ -340,7 +340,7 @@ export const formartCities = (cities: protoRoot.city.ICityItem[]) => {
 // }
 
 export const getFullCityHierarchyIds = (
-  cities: typeof state.cities,
+  cities: typeof cityState.cities,
   cityIds: string[]
 ) => {
   let tempCityIds: string[] = []
@@ -782,7 +782,7 @@ const getCenterCityD = new Debounce()
 export const getCenterCity = async (
   lat: number,
   lng: number,
-  f: (cityInfo: (typeof state)['cityInfo']) => void
+  f: (cityInfo: (typeof cityState)['cityInfo']) => void
 ) => {
   const res = await regeo({
     lat,
@@ -795,7 +795,7 @@ export const getCenterCity = async (
 
 export const watchCenterCity = async (
   map: Leaflet.Map,
-  f: (cityInfo: (typeof state)['cityInfo']) => void
+  f: (cityInfo: (typeof cityState)['cityInfo']) => void
 ) => {
   const center: L.LatLng = map.getCenter()
   getCenterCity(center.lat, center.lng, f)
@@ -815,12 +815,21 @@ export const watchCenterCity = async (
 
 export const citySlice = createSlice({
   name: modelName,
-  initialState: state,
+  initialState: cityState,
   reducers: {
+    setUpdateCitiesTime: (
+      state,
+      params: {
+        payload: number
+        type: string
+      }
+    ) => {
+      state.updateCitiesTime = params.payload
+    },
     setCities: (
       state,
       params: {
-        payload: typeof state.cities
+        payload: typeof cityState.cities
         type: string
       }
     ) => {
@@ -828,7 +837,7 @@ export const citySlice = createSlice({
       state.updateCitiesTime = Math.floor(new Date().getTime() / 1000) + 10 * 60
 
       console.log('renderPolyline cityDistricts', params.payload)
-      const tempCityDistricts: typeof state.cityDistricts = {
+      const tempCityDistricts: typeof cityState.cityDistricts = {
         country: [],
         state: [],
         region: [],
@@ -875,7 +884,7 @@ export const citySlice = createSlice({
     setCityInfo: (
       state,
       params: {
-        payload: typeof state.cityInfo
+        payload: typeof cityState.cityInfo
         type: string
       }
     ) => {
@@ -910,9 +919,9 @@ export const regeo = async ({ lat, lng }: { lat: number; lng: number }) => {
   //   return
   // }
   const data = res.data.data as any
-  console.log('GetCity', data)
+  // console.log('GetCity', toolApiUrl, data)
   if (!data?.country || res?.data?.code !== 200) return
-  let newCi: (typeof state)['cityInfo'] = {
+  let newCi: (typeof cityState)['cityInfo'] = {
     country: data.country,
     state: data.state,
     region: data.region,
@@ -1044,7 +1053,7 @@ export const cityMethods = {
 
       try {
         const { city, config, user } = store.getState()
-        let ci: typeof state.cityInfo = {
+        let ci: typeof cityState.cityInfo = {
           ...city.cityInfo,
         }
         let newCi = await regeo({
@@ -1052,12 +1061,16 @@ export const cityMethods = {
           lng,
         })
 
+        // console.log('regeo', newCi)
+
         if (!newCi) return
 
         if (!customGPS && config.turnOnCityVoice) {
           // 不包括国家
           let msg = ''
-          if (ci.state && newCi.state && newCi.state !== ci.state) {
+          if (ci.country && newCi.country && newCi.country !== ci.country) {
+            msg = `${newCi.country}·${newCi.state}·${newCi.region}·${newCi.city}·${newCi.town}`
+          } else if (ci.state && newCi.state && newCi.state !== ci.state) {
             msg = `${newCi.state}·${newCi.region || newCi.city} `
           } else if (ci.region && newCi.region && newCi.region !== ci.region) {
             msg = `${newCi.region || newCi.state}·${newCi.city} `
@@ -1065,7 +1078,7 @@ export const cityMethods = {
             (ci.city && newCi.city && newCi.city !== ci.city) ||
             (ci.town && newCi.town && newCi.town !== ci.town)
           ) {
-            msg = `${newCi.city}·${newCi.town} `
+            msg = `${newCi.city || newCi.region}·${newCi.town} `
           }
 
           // msg = "贵州省安顺市镇宁布依族苗族自治县黄果树瀑布景区"
@@ -1139,12 +1152,12 @@ export const cityMethods = {
 
       const { city } = store.getState()
 
-      if (
-        city.cities.length &&
-        city.updateCitiesTime > Math.floor(new Date().getTime() / 1000)
-      ) {
-        return city.cities
-      }
+      // if (
+      //   city.cities.length &&
+      //   city.updateCitiesTime > Math.floor(new Date().getTime() / 1000)
+      // ) {
+      //   return city.cities
+      // }
       try {
         let jmId = ''
         const urlQuery = parseQuery(location.href)

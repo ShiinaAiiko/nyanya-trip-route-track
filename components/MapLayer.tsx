@@ -604,7 +604,7 @@ const Maps = ({
                 }
                 key={i}
               >
-                {subLayers.map((v, i) => {
+                {subLayers.map((v, si) => {
                   return v.mapKey !== 'none' ? (
                     <SakiButton
                       // ref={
@@ -630,7 +630,7 @@ const Maps = ({
                       bgActiveColor="none"
                       border="none"
                       border-radius="10px"
-                      key={i}
+                      key={si}
                     >
                       <div
                         className={

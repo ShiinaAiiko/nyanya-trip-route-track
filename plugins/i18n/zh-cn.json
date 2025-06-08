@@ -96,6 +96,7 @@
     "parkTime": "停车时长 {{time}}",
     "trafficLightTime": "等待时长 {{time}}",
     "tripTimeline": "行程时间线",
+    "statisticalCharts": "統計圖表",
     "temporaryPark": "临时停车",
     "All": "全部",
     "Driving": "行驶中",
@@ -114,7 +115,13 @@
     "voiceBroadcastText": "你已进入 {{city}}",
 
     "screen_always_on_and_background_gps_enabled": "已开启屏幕常亮；行程开始后，应用进入后台依然可以记录GPS",
-    "screen_always_on_and_background_gps_disabled": "已关闭屏幕常亮及后台定位"
+    "screen_always_on_and_background_gps_disabled": "已关闭屏幕常亮及后台定位",
+
+    "realDrivingTime": "真实行驶时间  {{time}}",
+
+    "slope": "坡度",
+
+    "totalMileage": "总里程 {{distance}}"
   },
   "replayTripPage": {
     "title": "回放行程",
@@ -234,7 +241,9 @@
     "onlineVideo": "在线视频",
     "addOnlineVideo": "添加在线视频",
     "onlineVideoDesc": "如Bilibili、Youtube等平台的外链代码",
-    "addedOnelineVideoCount": "已添加{{length}}个在线视频"
+    "addedOnelineVideoCount": "已添加{{length}}个在线视频",
+
+    "shareContent": "{{name}}，{{days}}天{{tripCount}}次行程{{distance}}km，跨越{{minAlt}}米~{{maxAlt}}米海拔\n{{url}}"
   },
   "imagesWaterfallModal": {
     "title": "相册",
@@ -325,7 +334,10 @@
     "cityBoundaries": "城市边界",
     "tripTrackRoute": "行程轨迹",
     "showPositionMarker": "位置分享标记",
-    "appearanceSettings": "外观设置"
+    "appearanceSettings": "外观设置",
+
+    "openVConsole": "打开 vConsole",
+    "closeVConsole": "关闭 vConsole"
   },
   "prompt": {
     "next": "下一步",
@@ -386,7 +398,15 @@
     "descending": "倒序",
     "save": "保存",
     "doNotShowAgainTitle": "不再提示",
-    "doNotShowAgainContent": "您将不再收到此类提示，可在设置中重新开启"
+    "doNotShowAgainContent": "您将不再收到此类提示，可在设置中重新开启",
+
+    "stop_recording_trip": "停止记录行程",
+    "stop_recording_immediately": "确认后，将会立即停止记录",
+    "trip_stopped_view_history": "已停止行程，可前往历史行程里查看",
+
+    "hourTime": "时",
+    "minuteTime": "分",
+    "secondTime": "秒"
   },
   "weather": {
     "weather0": "晴",

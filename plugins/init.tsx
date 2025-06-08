@@ -5,7 +5,7 @@ import { RootState, AppDispatch, methods, apiSlice } from '../store'
 import { useSelector, useStore, useDispatch } from 'react-redux'
 
 import * as nyanyalog from 'nyanyajs-log'
-import { sakiui, meowApps } from '../config'
+import { sakiui, meowApps, isDev } from '../config'
 import './i18n/i18n'
 import { initPublic } from './public'
 nyanyalog.timer()
@@ -26,6 +26,7 @@ const Init = () => {
     init()
   }, [])
 
+  console.log('isDev', isDev)
   return (
     <>
       <Head>
@@ -39,7 +40,16 @@ const Init = () => {
               : ''
           }.json`}
         />
-        <script src="/js/sw-register.js" defer></script>
+
+        {!isDev ? (
+          <>
+            <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=IntersectionObserver,ResizeObserver"></script>
+            <script src="/js/sw-register.js" defer type="module"></script>
+          </>
+        ) : (
+          ''
+        )}
+
         <script noModule src={sakiui.jsurl}></script>
         <script type="module" src={sakiui.esmjsurl}></script>
         <script noModule src={meowApps.jsurl}></script>

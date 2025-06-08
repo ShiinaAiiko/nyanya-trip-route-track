@@ -1,3 +1,6 @@
+import 'core-js/stable'
+import 'regenerator-runtime/runtime'
+
 import Head from 'next/head'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
@@ -43,7 +46,7 @@ import { storage } from '../store/storage'
 import { isFullScreen } from '../plugins/methods'
 import { eventListener, initRnJSBridge, rnJSBridge } from '../store/config'
 import FindLocationComponent from '../components/FindLocation'
-import screenfull from 'screenfull'
+// import screenfull from 'screenfull'
 import Script from 'next/script'
 import CreateCustomTripComponent from '../components/CreateCustomTrip'
 import VisitedCitiesModal from '../components/VisitedCities'
@@ -115,7 +118,7 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
   const [progressBar, setProgressBar] = useState(0.01)
 
   useEffect(() => {
-    console.log('debug', debug, router.query)
+    console.log('debug', debug, router.query, !!nativeConsole)
 
     const lf = console.log
     const wf = console.warn
@@ -123,7 +126,7 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
     const tf = console.time
     const tef = console.timeEnd
 
-    if (process.env.CLIENT_ENV === 'production' && debug !== 'true') {
+    if (process.env.CLIENT_ENV === 'production' && !config.vConsole) {
       console.log = () => {}
       console.warn = () => {}
       // console.error = () => {}
@@ -132,7 +135,7 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
     }
 
     let vConsole: any
-    if (debug === 'true' && !nativeConsole) {
+    if (config.vConsole && !nativeConsole) {
       const sc = document.createElement('script')
       sc.src = 'https://unpkg.com/vconsole@latest/dist/vconsole.min.js'
 
@@ -152,7 +155,7 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
 
       vConsole?.destroy()
     }
-  }, [router])
+  }, [router, config.vConsole])
 
   useEffect(() => {
     console.log('dddddd 1', 111)
@@ -179,7 +182,7 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
 
     dispatch(methods.config.getDeviceType())
 
-    dispatch(configSlice.actions.setFullScreen(screenfull.isFullscreen))
+    dispatch(configSlice.actions.setFullScreen(isFullScreen(document.body)))
 
     window.addEventListener('keydown', function (e) {
       e = e || window.event
@@ -218,30 +221,13 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          // const t = setTimeout(() => {
-          // const L: typeof Leaflet = (window as any).L
-          // if (L) {
-
           dispatch(
             geoSlice.actions.setSelectPosition({
               longitude: pos.coords.longitude,
               latitude: pos.coords.latitude,
             })
           )
-
           dispatch(geoSlice.actions.setPosition(pos))
-
-          // setPosition({
-          // 	...pos,
-          // 	// coords: {
-          // 	// 	...pos.coords,
-          // 	// 	latitude: 29.417266,
-          // 	// 	longitude: 105.594791,
-          // 	// },
-          // })
-          // clearTimeout(t)
-          // }
-          // }, 500)
         },
         (error) => {
           if (error.code === 1) {
@@ -319,6 +305,13 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
           await dispatch(methods.config.getUserPositionShare())
 
           await dispatch(methods.config.GetConfigure())
+
+          dispatch(
+            methods.vehicle.GetVehicles({
+              type: 'All',
+              pageNum: 1,
+            })
+          )
         }
         dispatch(configSlice.actions.setInitConfigure(true))
       }
@@ -369,16 +362,17 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
 
         watchId.current = navigator.geolocation.watchPosition(
           (pos) => {
-            console.log('watchPosition', pos)
-            // setListenTime(new Date().getTime())
+            // console.log('watchPosition', pos)
 
-            dispatch(geoSlice.actions.setPosition(pos))
+            if (!config.devTrip) {
+              dispatch(geoSlice.actions.setPosition(pos))
 
-            d.current.increase(() => {
-              dispatch(
-                geoSlice.actions.setWatchUpdateTime(new Date().getTime())
-              )
-            }, 10 * 1000)
+              d.current.increase(() => {
+                dispatch(
+                  geoSlice.actions.setWatchUpdateTime(new Date().getTime())
+                )
+              }, 10 * 1000)
+            }
           },
           (error) => {
             console.log('GetCurrentPosition Error', error)
@@ -426,6 +420,7 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
     // 	})
     // }
   }
+
   return (
     <>
       <Head>

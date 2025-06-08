@@ -12,6 +12,7 @@ import { connectionOSM, country } from '../store/config'
 import { protoRoot } from '../protos'
 // import { imageColorInversion } from './imageColorInversion'
 import { imageColorInversion } from '@nyanyajs/utils/dist/images/imageColorInversion'
+import { t } from './i18n/i18n'
 
 export const getRegExp = (type: 'email') => {
   return /^\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$/
@@ -111,7 +112,7 @@ export const getDistance = (
   return s
 }
 
-export const formatTimestamp = (
+export const formatDurationI18n = (
   timestamp: number,
   full = true,
   fields: string[] = ['h', 'm', 's']
@@ -119,18 +120,67 @@ export const formatTimestamp = (
   const h = Math.floor(timestamp / 3600)
   const m = Math.floor(timestamp / 60) % 60
   const s = Math.floor(timestamp % 60)
-  if (full)
-    return (
-      (fields.includes('h') ? h + 'h ' : '') +
-      (fields.includes('m') ? m + 'm ' : '') +
-      (fields.includes('s') ? s + 's ' : '')
-    )
-  return (
-    (h === 0 && fields.includes('h') ? '' : h + 'h ') +
-    (m === 0 && fields.includes('m') ? '' : m + 'm ') +
-    (s === 0 && fields.includes('s') ? '' : s + 's ')
-  )
+
+  let str = ''
+  if (full) {
+    str =
+      h +
+      t('hourTime', {
+        ns: 'prompt',
+      }) +
+      (m +
+        t('minuteTime', {
+          ns: 'prompt',
+        })) +
+      (s +
+        t('secondTime', {
+          ns: 'prompt',
+        }))
+  } else {
+    str =
+      (h === 0 && fields.includes('h')
+        ? ''
+        : h +
+          t('hourTime', {
+            ns: 'prompt',
+          })) +
+      (m === 0 && fields.includes('m')
+        ? ''
+        : m +
+          t('minuteTime', {
+            ns: 'prompt',
+          })) +
+      (s === 0 && fields.includes('s')
+        ? ''
+        : s +
+          t('secondTime', {
+            ns: 'prompt',
+          }))
+  }
+
+  return str.trim()
 }
+
+// export const formatTimestamp = (
+//   timestamp: number,
+//   full = true,
+//   fields: string[] = ['h', 'm', 's']
+// ) => {
+//   const h = Math.floor(timestamp / 3600)
+//   const m = Math.floor(timestamp / 60) % 60
+//   const s = Math.floor(timestamp % 60)
+//   if (full)
+//     return (
+//       (fields.includes('h') ? h + 'h ' : '') +
+//       (fields.includes('m') ? m + 'm ' : '') +
+//       (fields.includes('s') ? s + 's ' : '')
+//     )
+//   return (
+//     (h === 0 && fields.includes('h') ? '' : h + 'h ') +
+//     (m === 0 && fields.includes('m') ? '' : m + 'm ') +
+//     (s === 0 && fields.includes('s') ? '' : s + 's ')
+//   )
+// }
 
 export const formatTime = (
   startTime: number,
@@ -138,7 +188,7 @@ export const formatTime = (
   fields: string[] = ['h', 'm', 's']
 ) => {
   const timestamp = Math.floor(endTime) - Math.floor(startTime)
-  return formatTimestamp(timestamp, true, fields)
+  return formatDurationI18n(timestamp, false, fields)
 }
 
 export const formatAvgPace = (
@@ -149,6 +199,130 @@ export const formatAvgPace = (
   const pace = (Number(endTime) - Number(startTime)) / ((distance || 0) / 1000)
 
   return `${Math.floor(pace / 60) % 60}'${Math.floor(pace % 60)}"`
+}
+
+// 定义 GPS 数据点接口
+interface GPSPoint {
+  latitude: number // 纬度（度）
+  longitude: number // 经度（度）
+  timestamp: number // 时间戳（毫秒）
+}
+
+// 地球重力加速度常数 (m/s²)
+const GRAVITY = 9.81
+
+// 计算 G 值的函数
+export function calculateGValue(points: GPSPoint[]): number | null {
+  if (points.length < 2) {
+    console.error('需要至少两个 GPS 数据点来计算 G 值')
+    return null
+  }
+
+  // 取最后两个点（假设最新点为刹车或加速度变化点）
+  const point1 = points[points.length - 2]
+  const point2 = points[points.length - 1]
+
+  // 计算时间差（秒）
+  const deltaTime = (point2.timestamp - point1.timestamp) / 1000
+  if (deltaTime <= 0) {
+    console.error('时间戳无效或时间差为零')
+    return null
+  }
+
+  // 计算距离（米）
+  const distance = getDistance(
+    point1.latitude,
+    point1.longitude,
+    point2.latitude,
+    point2.longitude
+  )
+
+  // 计算速度 (m/s)
+  const velocity = distance / deltaTime
+
+  // 如果有更多点，可以计算速度变化来得到加速度
+  let acceleration: number
+  if (points.length >= 3) {
+    const point0 = points[points.length - 3]
+    const prevDeltaTime = (point1.timestamp - point0.timestamp) / 1000
+    if (prevDeltaTime <= 0) {
+      console.error('前一时间戳无效')
+      return null
+    }
+    const prevDistance = getDistance(
+      point0.latitude,
+      point0.longitude,
+      point1.latitude,
+      point1.longitude
+    )
+    const prevVelocity = prevDistance / prevDeltaTime
+
+    // 计算加速度 (m/s²)
+    acceleration = (velocity - prevVelocity) / deltaTime
+  } else {
+    // 只有两点时，假设初速度为 0（仅粗略估计）
+    acceleration = velocity / deltaTime
+  }
+
+  // 计算 G 值
+  const gValue = acceleration / GRAVITY
+
+  return Math.abs(gValue) // 返回绝对值，避免负值（视方向而定）
+}
+
+// // 示例：两个 GPS 点
+// const pointA = { lat: 39.9042, lon: 116.4074, elev: 50 } // 北京某点
+// const pointB = { lat: 39.9142, lon: 116.4174, elev: 100 } // 附近某点
+// console.log(
+//   calculateSlope(
+//     pointA.lat,
+//     pointA.lon,
+//     pointA.elev,
+//     pointB.lat,
+//     pointB.lon,
+//     pointB.elev
+//   )
+// )
+export const calculateSlope = (
+  lat1: number,
+  lon1: number,
+  elev1: number,
+  lat2: number,
+  lon2: number,
+  elev2: number
+) => {
+  // 转换为弧度
+  const toRadians = (degrees: number) => (degrees * Math.PI) / 180
+  lat1 = toRadians(lat1)
+  lon1 = toRadians(lon1)
+  lat2 = toRadians(lat2)
+  lon2 = toRadians(lon2)
+
+  // Haversine 公式计算水平距离
+  const R = 6371000 // 地球半径（米）
+  const dLat = lat2 - lat1
+  const dLon = lon2 - lon1
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+  const horizontalDistance = R * c || 0
+
+  // 计算高度差
+  const verticalDistance = elev2 - elev1 || 0
+
+  // 计算坡度
+  // const slopePercent = 30
+  const slopePercent = (verticalDistance / horizontalDistance) * 100 || 0
+  const slopeDegrees =
+    Math.atan(verticalDistance / horizontalDistance) * (180 / Math.PI) || 0
+
+  return {
+    horizontalDistance: horizontalDistance, // 水平距离（米）
+    verticalDistance: verticalDistance, // 高度差（米）
+    slopePercent: slopePercent || 0, // 百分比坡度
+    slopeDegrees: slopeDegrees, // 角度坡度
+  }
 }
 
 export const formatDistance = (distance: number) => {

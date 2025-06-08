@@ -1,0 +1,17 @@
+package com.rnapp
+
+import com.facebook.react.ReactPackage
+import com.facebook.react.bridge.NativeModule
+import com.facebook.react.bridge.ReactApplicationContext
+import com.facebook.react.uimanager.ViewManager
+
+class GeckoViewPackage : ReactPackage {
+
+    override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> {
+        return emptyList()  // 没有需要暴露的原生模块
+    }
+
+    override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> {
+        return listOf(GeckoViewManager())  // 返回自定义的 ViewManager
+    }
+}

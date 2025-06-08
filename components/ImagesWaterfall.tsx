@@ -28,7 +28,6 @@ import {
   formatAvgPace,
   formatDistance,
   formatTime,
-  formatTimestamp,
   fullScreen,
   getAngle,
   getLatLng,
@@ -40,16 +39,19 @@ import {
   stripHtmlTags,
 } from '../plugins/methods'
 import TripItemComponent from './TripItem'
-import { Chart } from 'chart.js'
+
 import { Debounce, deepCopy, NEventListener } from '@nyanyajs/utils'
 import StatisticsComponent from './Statistics'
 import Leaflet from 'leaflet'
-import SpeedMeterComponent from './SpeedMeter'
+import SpeedMeterComponent from './Dashboard'
 import { Statistics } from '../store/trip'
 import { eventListener, getTrackRouteColor } from '../store/config'
 import { UserInfo } from '@nyanyajs/utils/dist/sakisso'
 import { getIconType } from './Vehicle'
-import { createMyPositionMarker, createOtherPositionMarker } from '../store/position'
+import {
+  createMyPositionMarker,
+  createOtherPositionMarker,
+} from '../store/position'
 import { getSAaSSImageUrl } from '../store/file'
 import { SakiImages } from './saki-ui-react/components'
 
@@ -71,8 +73,10 @@ const ImagesWaterfallComponent = () => {
   const marker = useRef<Leaflet.Marker<any>>()
   const polyline = useRef<Leaflet.Polyline<any>>()
 
-  const [targetPosition, setTargetPosition] = useState<protoRoot.trip.ITripPosition>()
-  const [targetVehicle, setTargetVehicle] = useState<protoRoot.trip.IVehicleItem>()
+  const [targetPosition, setTargetPosition] =
+    useState<protoRoot.trip.ITripPosition>()
+  const [targetVehicle, setTargetVehicle] =
+    useState<protoRoot.trip.IVehicleItem>()
   const [targetUserInfo, setTargetUserInfo] = useState<UserInfo>()
 
   const [myPosition, setMyPosition] = useState<protoRoot.trip.ITripPosition>()
@@ -105,7 +109,13 @@ const ImagesWaterfallComponent = () => {
       background-color="#fff"
       visible={layout.openImagesWaterfallModal.visible}
     >
-      <div className={'images-waterfall-component ' + config.deviceType + (config.fullScreen ? ' enlarge ' : '')}>
+      <div
+        className={
+          'images-waterfall-component ' +
+          config.deviceType +
+          (config.fullScreen ? ' enlarge ' : '')
+        }
+      >
         <div className="th-header">
           <saki-modal-header
             // border
@@ -190,7 +200,10 @@ const ImagesWaterfallComponent = () => {
                               objectFit={'cover'}
                               src={getSAaSSImageUrl(v?.url || '', 'midOrSmall')}
                             ></SakiImages>
-                            <div className="im-i-name text-two-elipsis"> {v.tlItem.name}</div>
+                            <div className="im-i-name text-two-elipsis">
+                              {' '}
+                              {v.tlItem.name}
+                            </div>
                           </a>
                         </saki-waterfall-layout-item>
                       )

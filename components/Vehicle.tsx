@@ -37,7 +37,7 @@ import { httpApi } from '../plugins/http/api'
 import { protoRoot } from '../protos'
 import { formatAvgPace, formatDistance, formatTime } from '../plugins/methods'
 import TripItemComponent from './TripItem'
-import { Chart } from 'chart.js'
+
 import { deepCopy, validation } from '@nyanyajs/utils'
 import StatisticsComponent from './Statistics'
 import FilterComponent from './Filter'

@@ -1,3 +1,6 @@
+import 'core-js/stable' // 全量 Polyfill
+import 'regenerator-runtime/runtime' // 支持 async/await
+
 import React, { useEffect, useState } from 'react'
 import Head from 'next/head'
 import { Router } from 'next/router'
@@ -18,7 +21,7 @@ import '../components/MapTrackRoute.scss'
 import '../components/Buttons.scss'
 import '../components/Statistics.scss'
 import '../components/ReplayTrip.scss'
-import '../components/SpeedMeter.scss'
+import '../components/Dashboard.scss'
 import '../components/Filter.scss'
 import '../components/Vehicle.scss'
 import '../components/FindLocation.scss'
@@ -28,6 +31,7 @@ import '../components/VisitedCities.scss'
 import '../components/JourneyMemories.scss'
 import '../components/ImagesWaterfall.scss'
 import '../components/MapLayer.scss'
+import '../components/WeatherApp.scss'
 
 import { useRouter } from 'next/router'
 import { Provider } from 'react-redux'

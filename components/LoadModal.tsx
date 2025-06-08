@@ -21,6 +21,7 @@ import { eventListener } from '../store/config'
 import { Debounce } from '@nyanyajs/utils'
 import ImagesWaterfallComponent from './ImagesWaterfall'
 import MapLayerModal from './MapLayer'
+import WeatherAppModal from './WeatherApp'
 
 const d = new Debounce()
 
@@ -88,7 +89,13 @@ const LoadModalComponent: React.FC<Props> = ({ children, type, name }) => {
   }
 
   const loadFunc = () => {
-    console.log(type, 'loadFunc', loadModals[type], isChildLoaded, loadModalRef.current)
+    console.log(
+      type,
+      'loadFunc',
+      loadModals[type],
+      isChildLoaded,
+      loadModalRef.current
+    )
     if (!isChildLoaded) {
       clearInterval(timer.current)
       pb.current.setProgress({
@@ -118,7 +125,11 @@ const LoadModalComponent: React.FC<Props> = ({ children, type, name }) => {
 
   useEffect(() => {
     eventListener.on('loadModal:' + type, () => {
-      console.log(type, 'loadModal1 子组件已加载完成 loadFunc ', loadModalRef.current)
+      console.log(
+        type,
+        'loadModal1 子组件已加载完成 loadFunc ',
+        loadModalRef.current
+      )
       // setTimeout(() => {
       loadFunc()
       // d.increase(loadFunc, 300)
@@ -247,6 +258,13 @@ export const LoadModalsComponent = () => {
         ns: 'mapLayerModal',
       }),
       component: <MapLayerModal />,
+    },
+    {
+      type: 'WeatherApp',
+      name: t('title', {
+        ns: 'weatherAppModal',
+      }),
+      component: <WeatherAppModal />,
     },
   ]
 
