@@ -484,6 +484,9 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
                 const r = await e.target.getResources()
                 console.log('SakiI18n1', r)
                 initI18n(r)
+                setTimeout(() => {
+                  dispatch(configSlice.actions.setSakiuiI18n(true))
+                }, 50)
               }}
               language={config.language}
               lang={i18n.language}

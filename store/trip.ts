@@ -1571,7 +1571,7 @@ export const tripMethods = {
           visibility: data?.current?.visibility || 0,
           weatherCode: data?.current?.weather_code || '',
           weather: t('weather' + (data?.current?.weather_code || 0), {
-            ns: 'weather',
+            ns: 'sakiuiWeather',
           }),
           daysTemperature: [
             Math.min(...data.hourly?.temperature_2m),
@@ -1589,52 +1589,52 @@ export const tripMethods = {
 
         if (wd >= 337.5 || wd < 22.5) {
           wi.windDirection = t('windDirection1', {
-            ns: 'weather',
+            ns: 'sakiuiWeather',
           })
         }
         if (wd >= 22.5 && wd < 67.5) {
           wi.windDirection = t('windDirection2', {
-            ns: 'weather',
+            ns: 'sakiuiWeather',
           })
         }
         if (wd >= 67.5 && wd < 112.5) {
           wi.windDirection = t('windDirection3', {
-            ns: 'weather',
+            ns: 'sakiuiWeather',
           })
         }
         if (wd >= 112.5 && wd < 157.5) {
           wi.windDirection = t('windDirection4', {
-            ns: 'weather',
+            ns: 'sakiuiWeather',
           })
         }
         if (wd >= 157.5 && wd < 202.5) {
           wi.windDirection = t('windDirection5', {
-            ns: 'weather',
+            ns: 'sakiuiWeather',
           })
         }
         if (wd >= 202.5 && wd < 247.5) {
           wi.windDirection = t('windDirection6', {
-            ns: 'weather',
+            ns: 'sakiuiWeather',
           })
         }
         if (wd >= 247.5 && wd < 292.5) {
           wi.windDirection = t('windDirection7', {
-            ns: 'weather',
+            ns: 'sakiuiWeather',
           })
         }
         if (wd >= 292.5 && wd < 337.5) {
           wi.windDirection = t('windDirection8', {
-            ns: 'weather',
+            ns: 'sakiuiWeather',
           })
         }
         if (wd === -999) {
           wi.windDirection = t('windDirection9', {
-            ns: 'weather',
+            ns: 'sakiuiWeather',
           })
         }
         if (wd === -1) {
           wi.windDirection = t('windDirection10', {
-            ns: 'weather',
+            ns: 'sakiuiWeather',
           })
         }
 

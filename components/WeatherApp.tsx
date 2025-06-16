@@ -115,24 +115,28 @@ const WeatherAppModal = () => {
       >
         {/* <span>  {'openWeatherAppModal'}</span> */}
 
-        <saki-app-portal
-          ref={bindEvent({
-            closeApp: () => {
-              dispatch(
-                layoutSlice.actions.setOpenWeatherAppModal({
-                  visible: false,
-                })
-              )
-            },
-          })}
-          entry-url={Query(`${toolUrl}/zh-CN/weather`, {
-            lat: layout.openWeatherAppModal.latlng.lat.toString(),
-            lng: layout.openWeatherAppModal.latlng.lng.toString(),
-            alt: layout.openWeatherAppModal.latlng.alt.toString(),
-            header: 'false',
-          })}
-          // header={false}
-        ></saki-app-portal>
+        {layout.openWeatherAppModal.visible ? (
+          <saki-app-portal
+            ref={bindEvent({
+              closeApp: () => {
+                dispatch(
+                  layoutSlice.actions.setOpenWeatherAppModal({
+                    visible: false,
+                  })
+                )
+              },
+            })}
+            entry-url={Query(`${toolUrl}/zh-CN/weather`, {
+              lat: layout.openWeatherAppModal.latlng.lat.toString(),
+              lng: layout.openWeatherAppModal.latlng.lng.toString(),
+              alt: layout.openWeatherAppModal.latlng.alt.toString(),
+              header: 'false',
+            })}
+            // header={false}
+          ></saki-app-portal>
+        ) : (
+          ''
+        )}
       </div>
     </SakiAsideModal>
   )

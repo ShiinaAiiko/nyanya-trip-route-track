@@ -2,7 +2,7 @@
 name="nyanya-trip-route-track"
 port=23202
 version="v1.0.44"
-sakiuiVersion="v1.0.9"
+sakiuiVersion="v1.0.10"
 branch="main"
 # configFilePath="config.dev.json"
 configFilePath="config.pro.json"

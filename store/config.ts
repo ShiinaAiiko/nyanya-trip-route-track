@@ -648,8 +648,24 @@ export const configSlice = createSlice({
     vConsole: false,
 
     devTrip: process.env.CLIENT_ENV === 'production' ? false : true,
+
+    connectionStatus: {
+      openMeteo: false,
+      airQualityAPI: false,
+      openStreetMap: false,
+      sakiuiI18n: false,
+    },
   },
   reducers: {
+    setSakiuiI18n: (
+      state,
+      params: {
+        payload: boolean
+        type: string
+      }
+    ) => {
+      state.connectionStatus.sakiuiI18n = params.payload
+    },
     setVConsole: (
       state,
       params: {

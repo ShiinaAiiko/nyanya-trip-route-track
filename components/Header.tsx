@@ -75,6 +75,7 @@ const HeaderComponent = ({
               bg-color="rgba(255,255,255,0.7)"
               language={config.lang}
               z-index="1001"
+              weather={false}
             ></meow-apps-dropdown>
 
             <saki-dropdown

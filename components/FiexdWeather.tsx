@@ -131,7 +131,7 @@ const FiexdWeatherComponent = ({
   useEffect(() => {
     d.current.increase(() => {
       const { geo } = store.getState()
-      if (loadWeather) {
+      if (loadWeather && config.connectionStatus.sakiuiI18n) {
         if (geo.position?.coords?.latitude) {
           dispatch(
             methods.trip.GetWeather({
@@ -177,7 +177,7 @@ const FiexdWeatherComponent = ({
     return () => {
       clearInterval(timer.current)
     }
-  }, [loadWeather, config.lang])
+  }, [loadWeather, config.lang, config.connectionStatus.sakiuiI18n])
 
   useEffect(() => {
     if (geo.position?.coords?.latitude) {
@@ -495,7 +495,7 @@ const FiexdWeatherComponent = ({
   //                   <span>
   //                     {(fullWeather
   //                       ? t('daysTemperature', {
-  //                           ns: 'weather',
+  //                           ns: 'sakiuiWeather',
   //                         }) + ' '
   //                       : '') +
   //                       (weatherInfo.daysTemperature[1] +
@@ -514,7 +514,7 @@ const FiexdWeatherComponent = ({
   //                 <span>
   //                   {(fullWeather
   //                     ? t('daysTemperature', {
-  //                         ns: 'weather',
+  //                         ns: 'sakiuiWeather',
   //                       }) + ' '
   //                     : '') +
   //                     (weatherInfo.daysTemperature[1] +
@@ -529,7 +529,7 @@ const FiexdWeatherComponent = ({
   //             <span>
   //               {(fullWeather
   //                 ? t('temperature', {
-  //                     ns: 'weather',
+  //                     ns: 'sakiuiWeather',
   //                   }) + ' '
   //                 : '') +
   //                 (weatherInfo.temperature + '℃')}
@@ -538,7 +538,7 @@ const FiexdWeatherComponent = ({
   //             <span>
   //               {(fullWeather
   //                 ? t('apparentTemperature', {
-  //                     ns: 'weather',
+  //                     ns: 'sakiuiWeather',
   //                   }) + ' '
   //                 : '') +
   //                 (weatherInfo.apparentTemperature + '℃')}
@@ -556,7 +556,7 @@ const FiexdWeatherComponent = ({
   //             <span>
   //               {(fullWeather
   //                 ? t('humidity', {
-  //                     ns: 'weather',
+  //                     ns: 'sakiuiWeather',
   //                   }) + ' '
   //                 : '') +
   //                 (weatherInfo.humidity + '%')}
@@ -565,7 +565,7 @@ const FiexdWeatherComponent = ({
   // 				<span>
   // 					{(showWeatherTip
   // 						? t('visibility', {
-  // 								ns: 'weather',
+  // 								ns: 'sakiuiWeather',
   // 						  }) + ' '
   // 						: '') + (weatherInfo.visibility / 1000).toFixed(1)}
   // 					km
