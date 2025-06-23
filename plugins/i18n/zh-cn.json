@@ -406,6 +406,15 @@
 
     "hourTime": "时",
     "minuteTime": "分",
-    "secondTime": "秒"
+    "secondTime": "秒",
+
+    "turnOnPovMode": "开启POV模式",
+    "turnOnPovModeContent": "接下来，将会以POV视频素材的形式展示，为您的行车记录视频提供素材之用。还需在下面设置素材参考分辨率：",
+    "turnOffPovMode": "关闭POV模式",
+    "turnOffPovModeContent": "关闭后，将会回到行程回放普通模式",
+    "turnOn": "开启",
+    "turnOff": "关闭",
+    "width": "宽度",
+    "height": "高度"
   }
 }

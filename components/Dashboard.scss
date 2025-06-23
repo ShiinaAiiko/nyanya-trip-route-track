@@ -15,9 +15,19 @@
 }
 
 .dashboard-component {
-  position: relative;
+  // position: relative;
   width: 100%;
   height: 100%;
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 410;
+
+  pointer-events: none;
+
+  & > div {
+    pointer-events: auto;
+  }
 
   @font-face {
     font-family: 'Verdana';
@@ -42,6 +52,44 @@
     --bg-color: rgba(255, 255, 255, 0.7);
     --text-color: #000;
     --h2-text-color: #666;
+
+    &.dark-text {
+      --dark-text-color: #000;
+      --dark-text-h2-color: #666;
+      --dark-text-shadow: transparent;
+    }
+    &.light-text {
+      --dark-text-color: #000;
+      --dark-text-h2-color: #666;
+      --dark-text-shadow: transparent;
+    }
+    .dashboard-time {
+      --bg-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .dashboard-alt,
+    .dashboard-distance,
+    .dashboard-slope {
+      background-color: rgba(255, 255, 255, 0.3);
+    }
+    .dashboard-speed,
+    .dashboard-g {
+      background-color: rgba(255, 255, 255, 0.2);
+      .speedometer {
+        background-color: rgba(255, 255, 255, 0.3);
+        .sm-text {
+          color: #000;
+          .sm-t-g {
+            color: #222;
+          }
+          .sm-t-speed {
+          }
+          .sm-t-unit {
+            color: #444;
+          }
+        }
+      }
+    }
   }
 
   --text-shadow-dark: rgba(0, 0, 0, 0.2);
@@ -56,6 +104,130 @@
     --dark-text-color: #444;
     --dark-text-h2-color: #666;
     --dark-text-shadow: var(--text-shadow-light);
+  }
+
+  &.pov {
+    --bg-color: #000;
+    // --dark-text-shadow: #eee;
+    // background-color: #222;
+    --dark-text-shadow: transparent;
+    .dashboard-time {
+      // background-color: rgba(0, 0, 0, 0.5);
+      background-color: #000;
+      left: 10px;
+      transform: translate(0, 0);
+      .dt-text {
+        & > span {
+          // text-shadow: -1px -1px 0 rgba(0, 0, 0, 0.2),
+          //   1px -1px 0 rgba(0, 0, 0, 0.2), -1px 1px 0 rgba(0, 0, 0, 0.2),
+          //   1px 1px 0 rgba(0, 0, 0, 0.2);
+        }
+      }
+    }
+    .dashboard-alt {
+      top: 148px;
+    }
+    .dashboard-distance {
+      top: 56px;
+    }
+
+    .dashboard-alt,
+    .dashboard-distance,
+    .dashboard-slope {
+      // background-color: #000;
+      .da-progress {
+        width: calc(var(--progress-width) + 0px);
+        background-color: #000;
+      }
+      .da-val {
+        & > span {
+          color: var(--dark-text-color);
+          font-size: 14px;
+          text-shadow: -1px -1px 0 var(--dark-text-shadow),
+            1px -1px 0 var(--dark-text-shadow),
+            -1px 1px 0 var(--dark-text-shadow),
+            1px 1px 0 var(--dark-text-shadow);
+        }
+      }
+    }
+
+    .dashboard-speed,
+    .dashboard-g {
+      background-color: #222;
+      .speedometer {
+        background-color: #000;
+      }
+    }
+
+    .dashboard-data {
+      &.hide {
+        .data-position {
+          position: absolute;
+          top: 7px;
+          left: 10px;
+          transform: translate(0%, 0);
+          // display: none;
+          width: calc(100% - 00px);
+        }
+        .data-bottom {
+          position: absolute;
+          top: 0;
+          right: 40px;
+          margin: 5px 0;
+          width: calc(100% - 00px);
+          .data-b-item {
+            display: flex;
+            flex-direction: row-reverse;
+            .di-value {
+              font-size: 14px;
+              font-weight: 700;
+              font-variant-numeric: tabular-nums;
+              color: var(--text-color);
+              transition: color 0.2s;
+              white-space: nowrap;
+              display: flex;
+              justify-content: center;
+              align-items: flex-end;
+
+              .di-v-unit {
+                font-size: 12px;
+                color: var(--text-color);
+                margin: 0 0 0 2px;
+              }
+            }
+            .di-unit {
+              margin: 0 6px 0 0;
+            }
+          }
+        }
+      }
+    }
+
+    // .dashboard-alt,
+    // .dashboard-distance,
+    // .dashboard-slope {
+    //   .da-progress {
+    //     background-color: #222;
+    //   }
+    // }
+    // .dashboard-speed,
+    // .dashboard-g {
+    //   background-color: #222;
+    //   .speedometer {
+    //     background-color: #000;
+    //     .sm-text {
+    //       color: #eee;
+    //       .sm-t-g {
+    //         color: #eee;
+    //       }
+    //       .sm-t-speed {
+    //       }
+    //       .sm-t-unit {
+    //         color: #bbb;
+    //       }
+    //     }
+    //   }
+    // }
   }
   // &.Dark {
   //   --bg-color: #010101;
@@ -91,7 +263,7 @@
 
       .da-val {
         & > span {
-          color: #fff;
+          // color: #fff;
           font-size: 14px;
           &:nth-child(2) {
             font-size: 26px;
@@ -184,8 +356,9 @@
       &::after {
         content: '';
         position: absolute;
-        left: 0px;
+        left: 50%;
         bottom: 0px;
+        transform: translateX(-50%);
         width: var(--progress-width);
         height: calc(var(--progress-height) * var(--progress));
         border-radius: 5px;
@@ -264,7 +437,9 @@
     min-width: 128px;
     z-index: calc(var(--z-index) + 10);
     display: flex;
-    background-color: rgba(0, 0, 0, 0.3);
+    justify-content: center;
+    align-items: center;
+    background-color: var(--bg-color);
     padding: 10px 10px;
     border-radius: 10px;
     margin: 0 0 14px 0;
@@ -274,7 +449,7 @@
       justify-content: center;
       align-items: center;
       & > span {
-        color: #fff;
+        color: var(--text-color);
         font-size: 14px;
         // font-weight: 700;
       }
@@ -475,6 +650,8 @@
 
     transition: background-color 0.2s;
 
+    transition: bottom 0.3s;
+
     &.Mobile {
       width: 100%;
       // height: 250px;
@@ -517,30 +694,21 @@
           }
         }
       }
+    }
+    &.hide {
+      bottom: calc(-1 * var(--dashboard-data-cur-height) + 30px);
+    }
 
-      // background-color: #111111;
-      // .data-speed {
-      // 	.ds-value {
-      // 		color: #fff;
-      // 	}
-      // 	.ds-unit {
-      // 		color: #ddd;
-      // 	}
-      // }
-
-      // .data-bottom {
-      // 	.data-b-item {
-      // 		.di-value {
-      // 			color: #fff;
-      // 		}
-      // 		.di-unit {
-      // 			color: #ddd;
-      // 		}
-      // 	}
-      // }
-      // .data-position {
-      // 	color: #999;
-      // }
+    .dashboard-mindata {
+      width: calc(100% - 40px);
+      height: 30px;
+      position: absolute;
+      top: 0;
+      left: 0;
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
 
     .data-theme {

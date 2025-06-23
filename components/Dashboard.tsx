@@ -61,6 +61,7 @@ const NewDashboardComponent = ({
   cities = [],
   zIndex = 400,
   speedAnimation = false,
+  povMode = false,
 }: {
   enable: boolean
   mapUrl: string
@@ -86,7 +87,12 @@ const NewDashboardComponent = ({
   cityInfo?: (typeof cityState)['cityInfo']
   zIndex?: number
   speedAnimation?: boolean
+  povMode?: boolean
 }) => {
+  if (!enable) {
+    return <div></div>
+  }
+
   const { t, i18n } = useTranslation('tripPage')
   const [mounted, setMounted] = useState(false)
   const { config, vehicle, trip } = useSelector((state: RootState) => {
@@ -124,6 +130,11 @@ const NewDashboardComponent = ({
     }
     init()
   }, [])
+
+  useEffect(() => {
+    console.log('dashboardDataTheme', dataTheme)
+    eventListener.dispatch('dashboardDataTheme', dataTheme)
+  }, [dataTheme])
 
   useEffect(() => {
     onZoom?.(zoomOutSpeedMeter ? 'zoomOut' : 'zoomIn')
@@ -306,6 +317,7 @@ const NewDashboardComponent = ({
     //   Number(lastPosition.current?.altitude)
     // )
     // console.log('slope', slope)
+    // console.log('calculateGValue position', position)
     if (position) {
       lastPosition.current = [...lastPosition.current, position]
       if (lastPosition.current.length > 3) {
@@ -390,12 +402,14 @@ const NewDashboardComponent = ({
     }
   }, [mapUrl, mapMode])
 
+  const [showDashboardData, setShowDashboardData] = useState(true)
+
   return (
     <div
       style={
         {
           '--z-index': zIndex,
-          // '--dashboard-data-h': dashboardDataHeight.current + 'px',
+          '--dashboard-data-cur-height': dashboardDataHeight.current + 'px',
         } as any
       }
       className={
@@ -406,19 +420,25 @@ const NewDashboardComponent = ({
         ' ' +
         (markerPosition ? 'markerPosition' : '') +
         ' ' +
-        textTheme
+        textTheme +
+        ' ' +
+        (povMode ? 'pov' : '')
       }
     >
       {/* <div className="dashboard-lefttop-layer">
       </div> */}
 
       <div className="dashboard-time custom-font">
-        <SakiIcon color="#fff" margin="0 6px 0 0" type="Time"></SakiIcon>
+        <SakiIcon
+          color={'var(--text-color)'}
+          margin="0 6px 0 0"
+          type="Time"
+        ></SakiIcon>
         <div className="dt-text">
           <span>
             {markerPosition
               ? '-- -- --'
-              : formatTime(startTime / 1000, listenTime / 1000)}
+              : formatTime(startTime / 1000, listenTime / 1000, true)}
           </span>
         </div>
       </div>
@@ -465,10 +485,7 @@ const NewDashboardComponent = ({
           </span>
           <span>
             {gpsSignalStatus === 1
-              ? (altitude <= 0
-                  ? 0
-                  : Math.round((altitude || 0) * 10) / 10
-                ).toFixed(1)
+              ? (Math.round((altitude || 0) * 10) / 10).toFixed(1)
               : '---'}
           </span>
           <span>
@@ -548,9 +565,7 @@ const NewDashboardComponent = ({
             </span>
             <span className="sm-t-speed">
               {gpsSignalStatus === 1
-                ? stopped
-                  ? 0
-                  : speed <= 0
+                ? speed <= 0
                   ? 0
                   : Math.round(((speed || 0) * 3600) / 100) / 10
                 : 0}
@@ -587,18 +602,31 @@ const NewDashboardComponent = ({
       <div
         ref={(e) => {
           // console.log('ddddd', dashboardDataHeight.current, e?.offsetHeight)
+
           dashboardDataHeight.current = e?.offsetHeight || 0
-          // ;(document.body.style as any)['--dashboard-data-h'] =
-          //   dashboardDataHeight.current + 'px'
 
           eventListener.dispatch(
             'dashboardDataHeight',
-            dashboardDataHeight.current
+            showDashboardData ? dashboardDataHeight.current : 30
           )
         }}
-        className={'dashboard-data ' + config.deviceType}
+        className={
+          'dashboard-data ' +
+          config.deviceType +
+          ' ' +
+          (showDashboardData ? 'show' : 'hide')
+        }
       >
-        {dataTheme ? (
+        {/* {!showDashboardData ? (
+          <div className="dashboard-mindata">
+            <span>sa ,</span>
+            <span>{String(povMode)}</span>
+          </div>
+        ) : (
+          ''
+        )} */}
+
+        {dataTheme && !povMode ? (
           <div className="data-theme">
             <saki-dropdown
               visible={openDataThemeDropDown}
@@ -718,10 +746,12 @@ const NewDashboardComponent = ({
                           icon={defaultVehicle?.type || ''}
                           style={{
                             width: '26px',
+                            // height: '26px',
                             padding: '0 6px',
                             transform: 'translateY(1px)',
-                            backgroundColor:
-                              dataTheme === 'Dark' ? '#010101' : '#ffffff',
+                            backgroundColor: 'rgba(0,0,0,0)',
+                            // backgroundColor:
+                            //   dataTheme === 'Dark' ? '#010101' : '#ffffff',
                             color: dataTheme === 'Dark' ? '#fff' : '#010101',
                           }}
                         ></VehicleLogo>
@@ -736,7 +766,7 @@ const NewDashboardComponent = ({
                   <saki-menu
                     ref={bindEvent({
                       selectvalue: async (e) => {
-                        console.log(e.detail.value)
+                        // console.log('setDefaultVehicleId', e.detail.value)
                         dispatch(
                           vehicleSlice.actions.setDefaultVehicleId(
                             e.detail.value === 'cancelDefault'
@@ -1066,7 +1096,7 @@ const NewDashboardComponent = ({
           <div>
             <span>{position?.latitude?.toFixed(6)}° N</span>
             <span> - </span>
-            <span>{position?.longitude?.toFixed(7)}° E</span>
+            <span>{position?.longitude?.toFixed(6)}° E</span>
             {/* {weatherInfo && weatherInfo?.weather && live ? (
 								<>
 									<span>
@@ -1114,7 +1144,15 @@ const NewDashboardComponent = ({
             {!live && position?.timestamp ? (
               <>
                 <span> - </span>
-                <span>{moment(listenTime).format('YY.MM.DD HH:mm:ss')}</span>
+                <span>
+                  {/* {moment(Number(position?.timestamp)).format(
+                    'YY.MM.DD HH:mm:ss'
+                  )}
+                  <span> - {Number(position?.timestamp)}</span>
+
+                  <span> - </span> */}
+                  {moment(Number(listenTime)).format('YY.MM.DD HH:mm:ss')}
+                </span>
               </>
             ) : (
               ''
@@ -1201,17 +1239,45 @@ const NewDashboardComponent = ({
 								''
 							)}
 						</div> */}
-          <saki-icon
-            margin="6px 4px 0 6px"
-            color={
-              gpsSignalStatus === 1
-                ? 'var(--saki-default-color)'
-                : gpsSignalStatus === 0
-                ? '#eccb56'
-                : '#b0aa93'
-            }
-            type="GPSFill"
-          ></saki-icon>
+          {!povMode ? (
+            <saki-icon
+              margin="0px 4px 0 6px"
+              color={
+                gpsSignalStatus === 1
+                  ? 'var(--saki-default-color)'
+                  : gpsSignalStatus === 0
+                  ? '#eccb56'
+                  : '#b0aa93'
+              }
+              type="GPSFill"
+            ></saki-icon>
+          ) : (
+            ''
+          )}
+          {(povMode ? stopped : true) ? (
+            <saki-button
+              ref={bindEvent({
+                tap: () => {
+                  setShowDashboardData(!showDashboardData)
+                },
+              })}
+              bg-color="transparent"
+              bg-hover-color="transparent"
+              bg-active-color="transparent"
+              border="none"
+              type="Normal"
+              margin="3px 0 0 6px"
+            >
+              <saki-icon
+                width="16px"
+                height="18px"
+                color={dataTheme === 'Dark' ? '#fff' : '#000'}
+                type={showDashboardData ? 'Bottom' : 'Top'}
+              ></saki-icon>
+            </saki-button>
+          ) : (
+            ''
+          )}
           {/* <saki-button
             ref={bindEvent({
               tap: () => {
@@ -1836,6 +1902,7 @@ export const DashboardComponent = ({
                             icon={defaultVehicle?.type || ''}
                             style={{
                               width: '26px',
+                              // height: '26px',
                               padding: '0 6px',
                               transform: 'translateY(1px)',
                               backgroundColor:
@@ -1854,7 +1921,8 @@ export const DashboardComponent = ({
                     <saki-menu
                       ref={bindEvent({
                         selectvalue: async (e) => {
-                          console.log(e.detail.value)
+                          // console.log('setDefaultVehicleId', e.detail.value)
+                          // console.log(e.detail.value)
                           dispatch(
                             vehicleSlice.actions.setDefaultVehicleId(
                               e.detail.value === 'cancelDefault'
@@ -2005,7 +2073,7 @@ export const DashboardComponent = ({
                 <span>
                   {markerPosition
                     ? '-- -- --'
-                    : formatTime(startTime / 1000, listenTime / 1000)}
+                    : formatTime(startTime / 1000, listenTime / 1000, true)}
                 </span>
               </div>
               <div className="di-unit">
@@ -2017,9 +2085,7 @@ export const DashboardComponent = ({
             <div className="data-b-item">
               <div className="di-value">
                 {gpsSignalStatus === 1
-                  ? (altitude <= 0
-                      ? 0
-                      : Math.round((altitude || 0) * 10) / 10) + '  m'
+                  ? (Math.round((altitude || 0) * 10) / 10).toFixed(1)
                   : '---'}
               </div>
               <div className="di-unit">

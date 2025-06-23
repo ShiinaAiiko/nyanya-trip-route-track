@@ -176,6 +176,7 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
     dispatch(methods.user.Init()).unwrap()
     dispatch(methods.geo.Init()).unwrap()
     dispatch(methods.sso.Init()).unwrap()
+    dispatch(methods.vehicle.Init()).unwrap()
     dispatch(methods.user.InitUser()).unwrap()
 
     initNyaNyaWasm()

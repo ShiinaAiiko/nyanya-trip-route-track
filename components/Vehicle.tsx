@@ -165,6 +165,13 @@ const VehiclePage = () => {
       dispatch(methods.vehicle.Init())
 
       dispatch(
+        methods.vehicle.GetVehicles({
+          type: 'All',
+          pageNum: 1,
+        })
+      ).unwrap()
+
+      dispatch(
         methods.trip.GetTripHistoryData({
           loadCloudData: true,
         })

@@ -383,6 +383,7 @@
   // left: 20px;
   // bottom: 50px;
   z-index: 401;
+  transition: all 0.3s;
   &.hide {
     display: none;
   }

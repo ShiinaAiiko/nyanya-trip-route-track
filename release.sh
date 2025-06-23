@@ -11,7 +11,7 @@ DIR=$(cd $(dirname $0) && pwd)
 allowMethods=("download:saki-ui-react download:saki-ui copySakiUIReactTypes unzip zip protos stop rm npmconfig install gitpull dockerremove start logs")
 
 copySakiUIReactTypes() {
-  sakiUIPath="/home/shiina_aiiko/Workspace/Development/@Aiiko/ShiinaAiikoDevWorkspace/@OpenSourceProject/saki-ui/saki-ui"
+  sakiUIPath="/media/shiina_aiiko/CodeDisk/Workspace/Development/@Aiiko/ShiinaAiikoDevWorkspace/@OpenSourceProject/saki-ui/saki-ui"
   sakiUITypesPath=$sakiUIPath"/dist/types"
   typesPath=$DIR/components/saki-ui-react
 

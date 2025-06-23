@@ -33,6 +33,7 @@ import {
   toFixed,
   getLatLngGcj02ToWgs84,
   isRoadColorFade,
+  normalizeLeafletCoordinates,
   // testGpsData,
 } from '../../plugins/methods'
 import { getGeoInfo } from 'findme-js'
@@ -77,6 +78,7 @@ import {
 } from '../../plugins/map'
 import { loadModal } from '../../store/layout'
 import { LayerButtons } from '../../components/MapLayer'
+import NewDashboardComponent from '../../components/Dashboard'
 
 let tempTimer: any
 
@@ -742,6 +744,7 @@ const TripPage = () => {
               timestamp: new Date().getTime(),
               coords: {
                 ...(testData.positions[i] as any),
+                altitude: Number(testData.positions[i].altitude),
               },
             } as any)
           )
@@ -816,6 +819,7 @@ const TripPage = () => {
         rnJSBridge.enableBackgroundTasks(true)
         rnJSBridge.keepScreenOn(true)
       }
+
       dispatch(configSlice.actions.setShowIndexPageButton(true))
 
       dispatch(layoutSlice.actions.setLayoutHeader(false))
@@ -1216,14 +1220,20 @@ const TripPage = () => {
         // customLayer.addTo(map)
 
         layer.current = (L.tileLayer as any)
-          .colorScale(mapUrl, {
-            // isDarkscale: true,
-            // isGrayscale: true,
-            // isBlackscale: true,
-            // className:""
-            // errorTileUrl: osmMap,
-            // attribution: `&copy;`,
-          })
+          .colorScale(
+            mapUrl,
+            // 'http://cdn.rainviewer.com/v2/radar/1750178400/256/{z}/{x}/{y}/255/1_1_1_0.png',
+            // 'http://tilecache.rainviewer.com/v2/radar/1750144800/256/{z}/{x}/{y}/0/0_0.png',
+            {
+              time: Date.now(), // 使用最新雷达图
+              // isDarkscale: true,
+              // isGrayscale: true,
+              // isBlackscale: true,
+              // className:""
+              // errorTileUrl: osmMap,
+              // attribution: `&copy;`,
+            }
+          )
           .addTo(map.current)
 
         console.log('mapUrl', config, mapUrl)
@@ -1293,8 +1303,10 @@ const TripPage = () => {
         popLocation.lng
       )
 
-      let lat = Math.round(latlng[0] * 1000000) / 1000000
-      let lng = Math.round(latlng[1] * 1000000) / 1000000
+      const latlng2 = normalizeLeafletCoordinates(latlng[0], latlng[1])
+
+      let lat = Math.round(latlng2.lat * 1000000) / 1000000
+      let lng = Math.round(latlng2.lng * 1000000) / 1000000
       dispatch(
         geoSlice.actions.setSelectPosition({
           latitude: lat,
@@ -1813,7 +1825,7 @@ const TripPage = () => {
                   }
                 : {
                     right: 10,
-                    bottom: 90,
+                    bottom: 110,
                   }
             }
             currentPosition={!startTrip}
@@ -1848,108 +1860,110 @@ const TripPage = () => {
             }}
           ></ButtonsComponent>
 
-          <DashboardLayer
-            enable={!!(startTrip || position.selectRealTimeMarkerId)}
-            mapUrl={mapUrl}
-            mapMode={mapLayer?.mapMode || 'Normal'}
-            type={type}
-            tripId={trip?.id || ''}
-            gpsSignalStatus={
-              !position.selectRealTimeMarkerId ? gpsSignalStatus : 1
+          <div
+            id="tp-map"
+            className={
+              (startTrip ? 'start ' : ' ') +
+              config.deviceType +
+              ' ' +
+              (zoomOutSpeedMeter ? 'zoomOutSpeedMeter' : '') +
+              ' ' +
+              (mapLayer && isRoadColorFade(mapLayer) ? 'roadColorFade' : '')
             }
-            stopped={!position.selectRealTimeMarkerId ? stopped : false}
-            position={
-              !position.selectRealTimeMarkerId
-                ? tempPositions.current[tempPositions.current.length - 1]
-                : realTimePositionList.current.filter(
-                    (v) =>
-                      (v.vehicleInfo?.id || v.userInfo?.uid || '') ===
-                      position.selectRealTimeMarkerId
-                  )?.[0]?.position ||
-                  tempPositions.current[tempPositions.current.length - 1]
-            }
-            startTime={startTime}
-            listenTime={listenTime}
-            statistics={statistics.current}
-            updatedPositionsLength={updatedPositionIndex.current + 1}
-            positionsLength={tempPositions.current.length}
-            selectVehicle={!position.selectRealTimeMarkerId}
-            live={!position.selectRealTimeMarkerId}
-            markerPosition={!!position.selectRealTimeMarkerId}
-            onZoom={(v) => {
-              setZoomOutSpeedMeter(v === 'zoomOut')
-            }}
-            runTime={1000}
-            weatherInfo={weatherInfo}
-            cityInfo={cityInfo}
-            markerInfo={
-              realTimePositionList.current.filter(
-                (v) =>
-                  (v.vehicleInfo?.id || v.userInfo?.uid || '') ===
-                  position.selectRealTimeMarkerId
-              )?.[0]
-            }
-            cities={cities.current}
-            zIndex={500}
-            speedAnimation={mapLayer?.speedAnimation || false}
           >
-            <div
-              id="tp-map"
-              className={
-                (startTrip ? 'start ' : ' ') +
-                config.deviceType +
-                ' ' +
-                (zoomOutSpeedMeter ? 'zoomOutSpeedMeter' : '') +
-                ' ' +
-                (mapLayer && isRoadColorFade(mapLayer) ? 'roadColorFade' : '')
-              }
-            >
-              <LayerButtons
-                mapLayer={mapLayer}
-                show={!startTrip}
-                style={
-                  startTrip
-                    ? config.deviceType === 'Mobile'
-                      ? {
-                          left: '20px',
-                          bottom: '140px',
-                        }
-                      : {
-                          right: '20px',
-                          top: '60px',
-                        }
-                    : {
+            <LayerButtons
+              mapLayer={mapLayer}
+              show={!startTrip}
+              style={
+                startTrip
+                  ? config.deviceType === 'Mobile'
+                    ? {
                         left: '20px',
-                        bottom: '50px',
+                        bottom: '140px',
                       }
-                }
-                modalConfig={
-                  startTrip
-                    ? config.deviceType === 'Mobile'
-                      ? {
-                          vertical: 'Top',
-                          horizontal: 'Left',
-                          offsetX: '20px',
-                          offsetY: '160px',
-                        }
-                      : {
-                          vertical: 'Top',
-                          horizontal: 'Right',
-                          offsetX: '20px',
-                          offsetY: '140px',
-                        }
                     : {
-                        vertical: 'Bottom',
+                        right: '20px',
+                        top: '60px',
+                      }
+                  : {
+                      left: '20px',
+                      bottom: '50px',
+                    }
+              }
+              modalConfig={
+                startTrip
+                  ? config.deviceType === 'Mobile'
+                    ? {
+                        vertical: 'Top',
                         horizontal: 'Left',
                         offsetX: '20px',
-                        offsetY: '50px',
+                        offsetY: '160px',
                       }
-                }
-                featuresList={mapLayerFeaturesList}
-                mapLayerType={mapLayerType}
-              ></LayerButtons>
-            </div>
-          </DashboardLayer>
+                    : {
+                        vertical: 'Top',
+                        horizontal: 'Right',
+                        offsetX: '20px',
+                        offsetY: '140px',
+                      }
+                  : {
+                      vertical: 'Bottom',
+                      horizontal: 'Left',
+                      offsetX: '20px',
+                      offsetY: '50px',
+                    }
+              }
+              featuresList={mapLayerFeaturesList}
+              mapLayerType={mapLayerType}
+            ></LayerButtons>
+          </div>
+          <NoSSR>
+            <NewDashboardComponent
+              enable={!!(startTrip || position.selectRealTimeMarkerId)}
+              mapUrl={mapUrl}
+              mapMode={mapLayer?.mapMode || 'Normal'}
+              type={type}
+              tripId={trip?.id || ''}
+              gpsSignalStatus={
+                !position.selectRealTimeMarkerId ? gpsSignalStatus : 1
+              }
+              stopped={!position.selectRealTimeMarkerId ? stopped : false}
+              position={
+                !position.selectRealTimeMarkerId
+                  ? tempPositions.current[tempPositions.current.length - 1]
+                  : realTimePositionList.current.filter(
+                      (v) =>
+                        (v.vehicleInfo?.id || v.userInfo?.uid || '') ===
+                        position.selectRealTimeMarkerId
+                    )?.[0]?.position ||
+                    tempPositions.current[tempPositions.current.length - 1]
+              }
+              startTime={startTime}
+              listenTime={listenTime}
+              statistics={statistics.current}
+              updatedPositionsLength={updatedPositionIndex.current + 1}
+              positionsLength={tempPositions.current.length}
+              selectVehicle={!position.selectRealTimeMarkerId}
+              live={!position.selectRealTimeMarkerId}
+              markerPosition={!!position.selectRealTimeMarkerId}
+              onZoom={(v) => {
+                setZoomOutSpeedMeter(v === 'zoomOut')
+              }}
+              runTime={1000}
+              weatherInfo={weatherInfo}
+              cityInfo={cityInfo}
+              markerInfo={
+                realTimePositionList.current.filter(
+                  (v) =>
+                    (v.vehicleInfo?.id || v.userInfo?.uid || '') ===
+                    position.selectRealTimeMarkerId
+                )?.[0]
+              }
+              cities={cities.current}
+              zIndex={500}
+              speedAnimation={mapLayer?.speedAnimation || false}
+            ></NewDashboardComponent>
+          </NoSSR>
+
           {config.showIndexPageButton ? (
             <div
               className={

@@ -25,7 +25,7 @@ import { sakisso, version } from '../config'
 
 import moment from 'moment'
 
-import { alert, snackbar, bindEvent } from '@saki-ui/core'
+import { alert, snackbar, bindEvent, multiplePrompts } from '@saki-ui/core'
 // console.log(sakiui.bindEvent)
 import { storage } from '../store/storage'
 import { useTranslation } from 'react-i18next'
@@ -52,17 +52,24 @@ import TripItemComponent from './TripItem'
 import { Debounce, deepCopy, NEventListener } from '@nyanyajs/utils'
 import StatisticsComponent from './Statistics'
 import Leaflet from 'leaflet'
-import { DashboardComponent } from './Dashboard'
+import NewDashboardComponent, {
+  DashboardComponent,
+  DashboardLayer,
+} from './Dashboard'
 import { Statistics } from '../store/trip'
 import { eventListener, getMapLayer, getTrackRouteColor } from '../store/config'
 import { createIconMarker, renderPolyline } from '../store/map'
-import { SakiScrollView } from './saki-ui-react/components'
+import {
+  SakiLinearProgressBar,
+  SakiScrollView,
+} from './saki-ui-react/components'
 import {
   convertCityLevelToTypeString,
   getCityName,
   getSimpleCityName,
 } from '../store/city'
 import { LayerButtons } from './MapLayer'
+import { MultipleInput } from '@saki-ui/core/dist/dialog'
 
 const ReplayTripComponent = () => {
   const { t, i18n } = useTranslation('replayTripPage')
@@ -71,9 +78,23 @@ const ReplayTripComponent = () => {
 
   const dispatch = useDispatch<AppDispatch>()
 
+  const [pov, setPov] = useState({
+    povMode: false,
+    povWH: {
+      w: 1920,
+      h: 1080,
+    },
+  })
+
+  // useEffect(() => {
+  //   ;(document.body.style as any)['--pov-h'] =
+  //     (!povWH.h ? config.deviceWH.w : config.deviceWH.w / (povWH.w / povWH.h)) +
+  //     'px'
+  // }, [povWH])
+
   const clearEvent = useRef(new NEventListener())
 
-  const zIndex = 2000
+  const zIndex = 1000
 
   return (
     <saki-modal
@@ -85,13 +106,19 @@ const ReplayTripComponent = () => {
           eventListener.dispatch('loadModal:ReplayTrip', true)
         },
       })}
-      width="100%"
-      height="100%"
+      width={config.deviceWH.w + 'px'}
+      height={
+        (!pov.povWH.h
+          ? config.deviceWH.w
+          : config.deviceWH.w / (pov.povWH.w / pov.povWH.h)) + 'px'
+      }
       max-width={'100%'}
       max-height={'100%'}
       mask
-      border-radius={config.deviceType === 'Mobile' ? '0px' : ''}
-      border={config.deviceType === 'Mobile' ? 'none' : ''}
+      border-radius={
+        config.deviceType === 'Mobile' ? '0px' : pov.povMode ? '0px' : '0px'
+      }
+      border={config.deviceType === 'Mobile' ? 'none' : 'none'}
       mask-closable="false"
       background-color="#fff"
       visible={layout.openReplayTripModal}
@@ -161,7 +188,17 @@ const ReplayTripComponent = () => {
 						</div>
 					</saki-modal-header> */}
         </div>
-        <ReplayTripPage zIndex={zIndex} clearEvent={clearEvent.current} />
+        <ReplayTripPage
+          onPovWH={(povMode, povWH) => {
+            setPov({
+              povMode,
+              povWH,
+            })
+            // console.log('povWH', povWH)
+          }}
+          zIndex={zIndex}
+          clearEvent={clearEvent.current}
+        />
       </div>
     </saki-modal>
   )
@@ -172,9 +209,11 @@ const forceUpdateReducer = (state: number) => state + 1
 const ReplayTripPage = ({
   zIndex,
   clearEvent,
+  onPovWH,
 }: {
   zIndex: number
   clearEvent: NEventListener
+  onPovWH: (povMode: boolean, povWH: { w: number; h: number }) => void
 }) => {
   const { t, i18n } = useTranslation('replayTripPage')
   const layout = useSelector((state: RootState) => state.layout)
@@ -337,14 +376,51 @@ const ReplayTripPage = ({
   ])
 
   const showeProgressBar = useRef(true)
+  const [updateTime, setUpdateTime] = useState(0)
 
   const [openRunningSpeedDropDown, setOpenRunningSpeedDropDown] =
     useState(false)
 
-  const [povMode, setPovMode] = useState(true)
+  const [povMode, setPovMode] = useState(false)
+  const [povWH, setPovWH] = useState({
+    w: 1920,
+    h: 1080,
+  })
+
+  // const dashboardDataHeight = useRef(0)
+
+  const [dashboardDataHeight, setDashboardDataHeight] = useState(0)
+  const [dashboardDataTheme, setDashboardDataTheme] = useState('Dark')
 
   useEffect(() => {
     const init = async () => {
+      eventListener.on('dashboardDataHeight', (val) => {
+        setDashboardDataHeight(val)
+      })
+      eventListener.on('dashboardDataTheme', (val) => {
+        console.log('dashboardDataTheme', val)
+        setDashboardDataTheme(val)
+
+        // cityStyle.current = val
+      })
+
+      const RTPov = await storage.global.get('RTPov')
+
+      // setPovMode(false)
+      setPovMode(!!RTPov?.povMode)
+
+      setPovWH(
+        RTPov?.w > 0 && RTPov.h > 0
+          ? {
+              w: RTPov?.w || 1920,
+              h: RTPov?.h || 1080,
+            }
+          : {
+              w: 1920,
+              h: 1080,
+            }
+      )
+
       // setEnlarge(isFullScreen(document.body))
 
       // if (screenfull.isEnabled) {
@@ -367,6 +443,28 @@ const ReplayTripPage = ({
     }
     init()
   }, [])
+
+  useEffect(() => {
+    onPovWH(
+      povMode,
+      !povMode
+        ? {
+            w: 0,
+            h: 0,
+          }
+        : povWH
+    )
+    storage.global.set('RTPov', {
+      povMode: !!povMode,
+      w: povWH.w,
+      h: povWH.h,
+    })
+    setTimeout(() => {
+      map.current?.invalidateSize(true)
+      zoom.current = povMode ? 13 : config.deviceType === 'Mobile' ? 14 : 15
+      map.current?.setZoom(zoom.current)
+    }, 500)
+  }, [povWH, povMode])
 
   useEffect(() => {
     if (tripId && layout.openReplayTripModal) {
@@ -400,7 +498,7 @@ const ReplayTripPage = ({
           updatingPositionIndex.current === 0)
       ) {
         // if (!isSetZoom.current) {
-        zoom.current = config.deviceType === 'Mobile' ? 14 : 15
+        zoom.current = povMode ? 13 : config.deviceType === 'Mobile' ? 14 : 15
         isSetZoom.current = true
         // }
         map.current?.setZoom(zoom.current)
@@ -791,13 +889,13 @@ const ReplayTripPage = ({
         return true
       }
     })
-    console.log(
-      progress,
-      Number(trip?.positions?.[trip?.positions?.length - 1]?.timestamp),
-      Number(trip?.startTime),
-      listenTime,
-      index
-    )
+    // console.log(
+    //   progress,
+    //   Number(trip?.positions?.[trip?.positions?.length - 1]?.timestamp),
+    //   Number(trip?.startTime),
+    //   listenTime,
+    //   index
+    // )
 
     setListenTime(listenTime)
     gpsSignalStatus.current = 1
@@ -807,7 +905,7 @@ const ReplayTripPage = ({
       start(listenTime)
     }
 
-    console.log('updatePositionTimer.current', updatePositionTimer.current)
+    // console.log('updatePositionTimer.current', updatePositionTimer.current)
 
     if (!trip?.positions[index]) return
 
@@ -960,6 +1058,8 @@ const ReplayTripPage = ({
           // 		}`
           // 	)
           // 	.openOn(map.current)
+
+          console.log('showeProgressBar')
 
           showeProgressBar.current = !showeProgressBar.current
 
@@ -1454,18 +1554,32 @@ const ReplayTripPage = ({
 
   const [isStarted, setIsStarted] = useState(false)
 
+  const povMapWidth = 240
+
   return (
     <div
-      className="rt-main"
+      className={'rt-main ' + dashboardDataTheme + ' ' + (povMode ? 'pov' : '')}
       style={
         {
           '--window-h': config.deviceWH.h + 'px',
 
           '--position-heading': (heading.current || 0) + 'deg',
           '--position-transition': (duration || 0) + 's',
+          '--dashboard-data-h': dashboardDataHeight + 'px',
         } as any
       }
     >
+      <div
+        ref={
+          bindEvent({
+            click: () => {
+              showeProgressBar.current = !showeProgressBar.current
+              setUpdateTime(new Date().getTime())
+            },
+          }) as any
+        }
+        className="rt-bg"
+      ></div>
       <div
         id={'rt-map'}
         className={
@@ -1477,64 +1591,82 @@ const ReplayTripPage = ({
           ' ' +
           (isStarted ? speedMeterZoom : '')
         }
-      >
-        <LayerButtons
-          mapLayer={mapLayer}
-          show={showeProgressBar.current}
-          style={
-            startTrip
-              ? config.deviceType === 'Mobile'
-                ? {
-                    left: '20px',
-                    bottom: '140px',
-                  }
-                : {
-                    right: '20px',
-                    top: '60px',
-                  }
-              : {
-                  left: '20px',
-                  bottom: '80px',
+      ></div>
+      <LayerButtons
+        mapLayer={mapLayer}
+        show={showeProgressBar.current}
+        style={
+          startTrip
+            ? config.deviceType === 'Mobile'
+              ? {
+                  // left: '20px',
+                  // bottom: '140px',
+                  right: '20px',
+                  top: povMode ? '260px' : '20px',
+                  // top: '60px',
                 }
-          }
-          modalConfig={
-            startTrip
-              ? config.deviceType === 'Mobile'
-                ? {
-                    vertical: 'Top',
-                    horizontal: 'Left',
-                    offsetX: '20px',
-                    offsetY: '160px',
-                  }
-                : {
-                    vertical: 'Top',
-                    horizontal: 'Right',
-                    offsetX: '20px',
-                    offsetY: '140px',
-                  }
               : {
-                  vertical: 'Bottom',
-                  horizontal: 'Left',
-                  offsetX: '20px',
-                  offsetY: '80px',
+                  right: '20px',
+                  top: povMode ? '260px' : '20px',
                 }
-          }
-          mapLayerType={mapLayerType}
-          featuresList={mapLayerFeaturesList}
-        ></LayerButtons>
-      </div>
+            : {
+                // left: '20px',
+                // bottom: '80px',
 
-      {trip?.positions && (startTrip || listenTime >= 0) ? (
-        <DashboardComponent
+                right: '20px',
+                top: povMode ? '260px' : '20px',
+              }
+        }
+        modalConfig={
+          startTrip
+            ? config.deviceType === 'Mobile'
+              ? {
+                  vertical: 'Top',
+                  horizontal: 'Right',
+                  offsetX: '20px',
+                  offsetY: '160px',
+                }
+              : {
+                  vertical: 'Top',
+                  horizontal: 'Right',
+                  offsetX: '20px',
+                  offsetY: '140px',
+                }
+            : {
+                vertical: 'Bottom',
+                horizontal: 'Right',
+                offsetX: '20px',
+                offsetY: '80px',
+              }
+        }
+        mapLayerType={mapLayerType}
+        featuresList={mapLayerFeaturesList}
+      ></LayerButtons>
+
+      {trip?.positions ? (
+        <NewDashboardComponent
+          enable={trip?.positions && (startTrip || listenTime >= 0)}
+          povMode={povMode}
+          mapUrl={mapUrl}
+          mapMode={mapLayer?.mapMode || 'Normal'}
+          type={trip?.type || 'Drive'}
           tripId={tripId || ''}
           gpsSignalStatus={gpsSignalStatus.current}
-          stopped={false}
-          position={trip.positions[updatingPositionIndex.current]}
+          stopped={stopped}
+          position={{
+            ...trip.positions[updatingPositionIndex.current],
+            timestamp:
+              (Number(
+                trip.positions[updatingPositionIndex.current]?.timestamp
+              ) || 0) * 1000,
+          }}
           startTime={(Number(trip.startTime) || 0) * 1000}
           listenTime={((Number(trip.startTime) || 0) + listenTime) * 1000}
           statistics={statistics.current}
           updatedPositionsLength={updatingPositionIndex.current}
           positionsLength={trip.positions.length}
+          selectVehicle={false}
+          live={false}
           runTime={startTrip ? 1000 * runningSpeed : 1}
           cities={visitedCities.current || []}
           onZoom={(v) => {
@@ -1549,6 +1681,29 @@ const ReplayTripPage = ({
           zIndex={zIndex}
         />
       ) : (
+        // <DashboardComponent
+        //   tripId={tripId || ''}
+        //   gpsSignalStatus={gpsSignalStatus.current}
+        //   stopped={false}
+        //   position={trip.positions[updatingPositionIndex.current]}
+        //   startTime={(Number(trip.startTime) || 0) * 1000}
+        //   listenTime={((Number(trip.startTime) || 0) + listenTime) * 1000}
+        //   statistics={statistics.current}
+        //   updatedPositionsLength={updatingPositionIndex.current}
+        //   positionsLength={trip.positions.length}
+        //   runTime={startTrip ? 1000 * runningSpeed : 1}
+        //   cities={visitedCities.current || []}
+        //   onZoom={(v) => {
+        //     console.log(v)
+        //     setZoomSpeedMeter(v)
+
+        //     map.current?.invalidateSize(true)
+        //     setTimeout(() => {
+        //       map.current?.invalidateSize(true)
+        //     }, 500)
+        //   }}
+        //   zIndex={zIndex}
+        // />
         ''
       )}
 
@@ -1601,7 +1756,10 @@ const ReplayTripPage = ({
             }) as any
           }
           className={
-            'rt-city ' + cityStyle.current + ' ' + (povMode ? 'pov' : '')
+            'rt-city newdashboard ' +
+            dashboardDataTheme +
+            ' ' +
+            (povMode ? 'pov' : '')
           }
         >
           {/* <span>贵州·黔西南·兴义·万峰湖</span> */}
@@ -1616,7 +1774,7 @@ const ReplayTripPage = ({
                     convertCityLevelToTypeString(v.level || 1)
                   )
                 }
-                return name
+                return name.trim()
               })
               .join('·')}
           </span>
@@ -1628,6 +1786,8 @@ const ReplayTripPage = ({
         className={
           'rt-processbar ' +
           config.deviceType +
+          ' ' +
+          dashboardDataTheme +
           ' ' +
           (showeProgressBar.current ? 'show' : 'hide')
         }
@@ -1650,26 +1810,28 @@ const ReplayTripPage = ({
             <saki-icon
               width="26px"
               height="26px"
-              color="#fff"
+              color={'var(--text-color)'}
               type={'Pause'}
             ></saki-icon>
           ) : (
             <saki-icon
               width="26px"
               height="26px"
-              color="#fff"
+              color={'var(--text-color)'}
               type={'Play'}
             ></saki-icon>
           )}
         </saki-button>
 
         <div className="rt-p">
-          <saki-linear-progress-bar
-            ref={bindEvent({
-              jump: (e) => {
-                jump(e.detail)
-              },
-            })}
+          <SakiLinearProgressBar
+            ref={
+              bindEvent({
+                jump: (e) => {
+                  jump(e.detail)
+                },
+              }) as any
+            }
             width="100%"
             height="10px"
             progress={
@@ -1684,7 +1846,7 @@ const ReplayTripPage = ({
             }
             border-radius={'5px'}
             transition={'width ' + duration + 's linear'}
-          ></saki-linear-progress-bar>
+          ></SakiLinearProgressBar>
           {maxSpeedPosition?.speed ? (
             <div
               ref={
@@ -1746,12 +1908,13 @@ const ReplayTripPage = ({
             type="Normal"
             height="26px"
             padding="4px 4px 4px 0"
+            margin="0 0 0 10px"
           >
             <span
               style={{
-                lineHeight: '14px',
-                fontSize: runningSpeed === 1 ? '15px' : '16px',
-                color: '#fff',
+                lineHeight: '12px',
+                fontSize: runningSpeed === 1 ? '13px' : '14px',
+                color: 'var(--text-color)',
               }}
             >
               {runningSpeed === 1
@@ -1816,17 +1979,137 @@ const ReplayTripPage = ({
             <saki-icon
               width="18px"
               height="18px"
-              color="#fff"
+              color="var(--text-color)"
               type="ZoomIn"
             ></saki-icon>
           ) : (
             <saki-icon
               width="18px"
               height="18px"
-              color="#fff"
+              color="var(--text-color)"
               type="ZoomOut"
             ></saki-icon>
           )}
+        </saki-button>
+
+        <saki-button
+          ref={bindEvent({
+            tap: () => {
+              let width = povWH.w
+              let height = povWH.h
+              let multipleInputs: MultipleInput[] = []
+
+              if (!povMode) {
+                multipleInputs = [
+                  {
+                    label: 'Width',
+                    value: `${width}`,
+                    placeholder: `${t('width', {
+                      ns: 'prompt',
+                    })}`,
+                    type: 'Number',
+                    // border: '1px solid #eee',
+                    placeholderAnimation: 'MoveUp',
+                    margin: '4px 0',
+                    borderRadius: '4px',
+                    closeIcon: true,
+                    onClear() {
+                      console.log('clear')
+                      width = 0
+                    },
+                    onChange(value) {
+                      if (!value) {
+                        width = 0
+                        return
+                      }
+                      width = Number(value.trim())
+
+                      return
+                    },
+                  },
+                  {
+                    label: 'Height',
+                    value: `${height}`,
+                    placeholder: `${t('height', {
+                      ns: 'prompt',
+                    })}`,
+                    type: 'Number',
+                    // border: '1px solid #eee',
+                    placeholderAnimation: 'MoveUp',
+                    borderRadius: '4px',
+                    closeIcon: true,
+                    onClear() {
+                      console.log('clear')
+                      height = 0
+                    },
+                    onChange(value) {
+                      if (!value) {
+                        height = 0
+                        return
+                      }
+                      height = Number(value.trim())
+
+                      return
+                    },
+                  },
+                ]
+              }
+
+              const mp1 = multiplePrompts({
+                title: t(povMode ? 'turnOffPovMode' : 'turnOnPovMode', {
+                  ns: 'prompt',
+                }),
+                content: t(
+                  povMode ? 'turnOffPovModeContent' : 'turnOnPovModeContent',
+                  {
+                    ns: 'prompt',
+                  }
+                ),
+                multipleInputs: multipleInputs,
+                closeIcon: true,
+                flexButton: false,
+                buttons: [
+                  {
+                    label: 'Save',
+                    text: t(povMode ? 'turnOff' : 'turnOn', {
+                      ns: 'prompt',
+                    }),
+                    type: 'Primary',
+                    async onTap() {
+                      console.log('multipleInputs', width, height)
+
+                      setPovWH({
+                        w: width,
+                        h: height,
+                      })
+                      setPovMode(!povMode)
+                      mp1.close()
+                    },
+                  },
+                ],
+              })
+              mp1.open()
+            },
+          })}
+          bg-color="transparent"
+          bg-hover-color="transparent"
+          bg-active-color="transparent"
+          border="none"
+          type="Normal"
+          height="26px"
+          padding="4px 4px 4px 0"
+        >
+          <span
+            style={{
+              lineHeight: '14px',
+              fontSize: '14px',
+              color: povMode
+                ? 'var(--saki-default-color)'
+                : 'var(--text-color)',
+            }}
+          >
+            {'POV'}
+          </span>
         </saki-button>
         {trip?.positions && (startTrip || listenTime >= 0) ? (
           <saki-button
@@ -1846,7 +2129,7 @@ const ReplayTripPage = ({
             <saki-icon
               width="18px"
               height="18px"
-              color="#fff"
+              color="var(--text-color)"
               type="Shutdown"
             ></saki-icon>
             {/* {!enlarge ? (

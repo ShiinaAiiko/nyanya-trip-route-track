@@ -185,10 +185,11 @@ export const formatDurationI18n = (
 export const formatTime = (
   startTime: number,
   endTime: number,
+  full: boolean = false,
   fields: string[] = ['h', 'm', 's']
 ) => {
   const timestamp = Math.floor(endTime) - Math.floor(startTime)
-  return formatDurationI18n(timestamp, false, fields)
+  return formatDurationI18n(timestamp, full, fields)
 }
 
 export const formatAvgPace = (
@@ -224,6 +225,7 @@ export function calculateGValue(points: GPSPoint[]): number | null {
 
   // 计算时间差（秒）
   const deltaTime = (point2.timestamp - point1.timestamp) / 1000
+
   if (deltaTime <= 0) {
     console.error('时间戳无效或时间差为零')
     return null
@@ -266,6 +268,14 @@ export function calculateGValue(points: GPSPoint[]): number | null {
 
   // 计算 G 值
   const gValue = acceleration / GRAVITY
+
+  // console.log(
+  //   'calculateGValue',
+  //   gValue,
+  //   point2.timestamp,
+  //   point1.timestamp,
+  //   deltaTime
+  // )
 
   return Math.abs(gValue) // 返回绝对值，避免负值（视方向而定）
 }
@@ -385,6 +395,25 @@ export const getZoom = (
     return 13
   }
   return 14
+}
+
+export function normalizeLeafletCoordinates(lat: number, lng: number) {
+  // 验证纬度
+  if (lat < -90 || lat > 90) {
+    return {
+      lat,
+      lng,
+    }
+  }
+
+  // 规范化经度
+  const normalizedLng = ((lng + 180) % 360) - 180
+
+  // 返回规范化后的坐标
+  return {
+    lat,
+    lng: normalizedLng,
+  }
 }
 
 const coordtransform = require('coordtransform')

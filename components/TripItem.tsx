@@ -1754,13 +1754,13 @@ const TripItemComponent = memo(
             avgSpeed: tempDistance / (time - drivingTime),
           })
           realDrivingTime += time - drivingTime
-          console.log(
-            'ttttttt',
-            timestamp,
-            drivingTime,
-            time,
-            time - drivingTime
-          )
+          // console.log(
+          //   'ttttttt',
+          //   timestamp,
+          //   drivingTime,
+          //   time,
+          //   time - drivingTime
+          // )
           if (distance / timestamp > 1) {
             tripProgress.push({
               type: 'PassTunnel',

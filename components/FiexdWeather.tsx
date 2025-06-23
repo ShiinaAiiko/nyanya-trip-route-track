@@ -191,7 +191,17 @@ const FiexdWeatherComponent = ({
     timer: deepCopy(timer.current),
     startTime: 0,
     copyText() {
-      copyText(`${cityInfo.lat},${cityInfo.lng},${cityInfo.address}`)
+      if (
+        geo.selectPosition.latitude === cityInfo.lat &&
+        geo.selectPosition.longitude === cityInfo.lng
+      ) {
+        copyText(`${cityInfo.lat},${cityInfo.lng},${cityInfo.address}`)
+      } else {
+        copyText(
+          `${geo.selectPosition.latitude},${geo.selectPosition.longitude}`
+        )
+      }
+
       snackbar({
         message: t('copySuccessfully', {
           ns: 'prompt',
@@ -207,7 +217,7 @@ const FiexdWeatherComponent = ({
       cityClickEvent.startTime = e.timeStamp
       cityClickEvent.timer = setTimeout(() => {
         cityClickEvent.copyText()
-        voiceBroadcast(cityInfo.address)
+        // voiceBroadcast(cityInfo.address)
         return
       }, 700)
     },
@@ -326,6 +336,32 @@ const FiexdWeatherComponent = ({
             .join('·')}
         </span>
       </div>
+      {showCoords ? (
+        <div
+          onMouseDown={cityClickEvent.mouseDown}
+          onMouseUp={cityClickEvent.mouseUp}
+          onTouchStart={cityClickEvent.mouseDown}
+          onTouchEnd={cityClickEvent.mouseUp}
+          className="dashbord-latlng"
+        >
+          <span>
+            {(geo.selectPosition.latitude !== -10000
+              ? geo.selectPosition?.latitude
+              : geo.position?.coords?.latitude
+            )?.toFixed(6)}
+            ° N
+          </span>
+          <span>
+            {(geo.selectPosition.latitude !== -10000
+              ? geo.selectPosition?.longitude
+              : geo.position?.coords?.longitude
+            )?.toFixed(6)}
+            ° E
+          </span>
+        </div>
+      ) : (
+        ''
+      )}
     </div>
   )
 
