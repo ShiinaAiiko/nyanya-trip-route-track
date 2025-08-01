@@ -879,6 +879,12 @@ const TripHistoryPage = ({
 
   const getTripHistory = async () => {
     if (loadStatus === 'loading' || loadStatus == 'noMore') return
+
+    if (type === 'Local') {
+      getLocalTrips()
+
+      return
+    }
     setLoadStatus('loading')
 
     let sd = getTimeLimit(time)
@@ -928,10 +934,20 @@ const TripHistoryPage = ({
   }
 
   const getLocalTrips = async () => {
-    const trips = (await storage.trips.getAll()).filter((v) =>
-      v.key.includes('IDB_')
-    )
-    console.log('getLocalTrips', trips)
+    const trips = await storage.trips.getAll()
+    // .filter(
+    //   (v) =>
+    //     // v.key.includes('IDB_')
+    //     true
+    // )
+    // console.log(
+    //   'getLocalTrips',
+    //   pageSize * (pageNum - 1),
+    //   pageSize * pageSize,
+    //   pageSize,
+    //   pageSize,
+    //   trips
+    // )
     // if (trips?.length) {
     let distance = 0
     let time = 0
@@ -940,9 +956,6 @@ const TripHistoryPage = ({
       return Number(b.value.createTime) - Number(a.value.createTime)
     })
     const list = trips
-      // .filter((v) => {
-      // 	return type === 'Local' ? true : v.value.type === type
-      // })
       .map((v) => {
         if (v.value.status !== 1) {
           uselessDataCount += 1
@@ -952,11 +965,16 @@ const TripHistoryPage = ({
           (Number(v.value.endTime) || 0) - (Number(v.value.startTime) || 0)
         return v.value
       })
+      .slice(0, pageSize * pageNum)
+    // .filter((v) => {
+    // 	return type === 'Local' ? true : v.value.type === type
+    // })
 
     if (type === 'Local') {
-      setPageNum(2)
+      // setPageNum(2)
+      setPageNum(pageNum + 1)
       setTrips(list)
-      setLoadStatus('noMore')
+      setLoadStatus(list.length % pageSize === 0 ? 'loaded' : 'noMore')
     }
 
     console.log(
@@ -1662,7 +1680,7 @@ export const TripListItemComponent = ({
             {formatDistance(trip.statistics?.distance || 0)}
           </span>
 
-          {isResumeTrip(trip) ? (
+          {/* {isResumeTrip(trip) ? (
             <div className="th-l-i-l-t-local">
               {t('resumeTrip', {
                 ns: 'tripPage',
@@ -1670,7 +1688,7 @@ export const TripListItemComponent = ({
             </div>
           ) : (
             ''
-          )}
+          )} */}
           {trip.permissions?.customTrip ? (
             <div className="th-l-i-l-t-customTrip">
               {t('customTrip', {

@@ -31,12 +31,12 @@ var (
 
 	// ToolApiUrl = "https://tools.aiiko.club"
 
-	// NominatimApiUrl = "http://192.168.204.132:17010"
+	// NominatimApiUrl = "http://192.168.204.139:17010"
 	// NominatimApiUrl = "https://nominatim.aiiko.club"
 )
 
 func GetConfig(configPath string) {
-	// ToolApiUrl = "http://192.168.204.132:23201"
+	// ToolApiUrl = "http://192.168.204.139:23201"
 
 	jsonFile, _ := os.Open(configPath)
 

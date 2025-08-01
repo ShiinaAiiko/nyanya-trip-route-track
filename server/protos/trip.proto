@@ -3,6 +3,7 @@ syntax = "proto3";
 option go_package = "./;protos";
 package trip;
 import "city.proto";
+import "road.proto";
 
 message VehicleItem {
   string id = 1;
@@ -72,6 +73,15 @@ message TripCity {
   repeated city.CityItem cityDetails = 4;
 }
 
+message TripRoad {
+  repeated road.RoadInfo roads = 1;
+
+  message EntryTimeItem { int64 timestamp = 1; }
+  repeated EntryTimeItem entryTimes = 2;
+  // 仅输出
+  // repeated city.CityItem cityDetails = 4;
+}
+
 message Trip {
   string id = 1;
   // 非必填
@@ -97,6 +107,7 @@ message Trip {
   repeated TripMark marks = 13;
 
   repeated TripCity cities = 15;
+  repeated TripRoad roads = 17;
 }
 
 message AddTripMark {
@@ -169,7 +180,10 @@ message FinishTrip {
     // TripStatistics statistics = 2;
     int64 endTime = 3;
   }
-  message Response { bool deleted = 1; }
+  message Response {
+    bool deleted = 1;
+    int32 positionLength = 2;
+  }
 }
 
 message CorrectedTripData {
@@ -385,6 +399,11 @@ message TripHistoricalStatistics {
 //   }
 // }
 message ClearTripCities {
+  message Request { string tripId = 1; }
+  message Response {}
+}
+
+message ClearTripRoads {
   message Request { string tripId = 1; }
   message Response {}
 }

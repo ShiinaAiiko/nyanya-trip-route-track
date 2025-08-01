@@ -16,7 +16,7 @@ let toolUrl = ''
 let nominatimUrl = ''
 
 if (process.env.CLIENT_ENV === 'development') {
-  toolApiUrl = 'http://192.168.204.132:23201'
+  toolApiUrl = 'http://192.168.204.139:23201'
 }
 
 let version = ''

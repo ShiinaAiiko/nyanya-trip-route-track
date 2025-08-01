@@ -144,7 +144,7 @@
         background-color: rgba(0, 0, 0, 0.3);
 
         span {
-          color: #aaa;
+          color: #fff;
         }
       }
 
@@ -295,18 +295,25 @@
     }
     &.pov {
       // padding: 10px;
+      --pov-top: 10px;
       .rt-bg {
         // background-color: blue;
         background-color: #444;
       }
       #rt-map {
-        width: 240px;
-        height: 240px;
+        --map-w: 240px;
+        // transform: scale(2) translate(-25%, 25%);
+        // --map-w: 480px;
+        // transform: scale(0.5) translate(-25%, 25%);
+        width: var(--map-w);
+        height: var(--map-w);
         position: absolute !important;
         right: 10px;
-        top: 10px;
-        border-radius: 20px;
-        border: 2px solid #666;
+        top: calc(10px + var(--pov-top));
+        // right: calc(var(--map-w) / 24);
+        // top: calc(var(--map-w) / 24);
+        border-radius: calc(var(--map-w) / 12);
+        border: calc(var(--map-w) / 120) solid #666;
         // box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
         overflow: hidden;
       }

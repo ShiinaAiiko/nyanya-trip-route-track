@@ -25,4 +25,6 @@ func (r *Routerv1) Init() {
 	r.InitCity()
 	r.InitJourneyMemory()
 	r.InitFile()
+	r.InitRoad()
+	r.InitPrivacyGeofence()
 }

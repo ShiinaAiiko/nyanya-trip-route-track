@@ -96,7 +96,7 @@
     "parkTime": "停车时长 {{time}}",
     "trafficLightTime": "等待时长 {{time}}",
     "tripTimeline": "行程时间线",
-    "statisticalCharts": "統計圖表",
+    "statisticalCharts": "统计图表",
     "temporaryPark": "临时停车",
     "All": "全部",
     "Driving": "行驶中",
@@ -104,6 +104,8 @@
     "TemporaryPark": "临时停车",
     "PassTunnel": "驶入隧道",
     "EnterNewCity": "途径城市",
+    "EnterNewRoad": "途径道路",
+    "enterNewRoad": "途径道路",
     "TrafficLight": "等待红绿灯",
     "TripMark": "行程标记",
     "driveDistance2": "已行驶 {{distance}}",
@@ -121,7 +123,19 @@
 
     "slope": "坡度",
 
-    "totalMileage": "总里程 {{distance}}"
+    "totalMileage": "总里程 {{distance}}",
+
+    "initTripRoad": "初始化行程道路信息",
+
+    "unnamedRoad": "无名道路",
+
+    "GRoad": "{{road}}国道",
+    "SRoad": "{{road}}省道",
+    "XRoad": "{{road}}县道",
+    "YRoad": "{{road}}乡道",
+    "ORoad": "{{road}}",
+
+    "customTrip": "自定义行程"
   },
   "replayTripPage": {
     "title": "回放行程",
@@ -182,7 +196,19 @@
   "createCustomTripModal": {
     "title": "创建自定义行程",
     "tripInfo": "行程信息",
-    "gpsPoints": "{{length}} 个 GPS 点"
+    "gpsPoints": "{{length}} 个 GPS 点",
+    "insertAfterThisGPSNode": "在此GPS节点后插入"
+  },
+  "privacyGeofenceModal": {
+    "title": "隐私围栏",
+
+    "mapClickAddNode": "在地图上点击节点，新增新的隐私围栏",
+    "selectedPGPoints": "已选中 隐私围栏 #{{num}}，点击地图即可新增节点",
+
+    "deletePG": "删除此围栏",
+    "deletePGContent": "您确定要删除 {{name}} 吗?",
+    "deleteAllPG": "删除所有围栏",
+    "deleteAllPGContent": "您确定要删除所有围栏吗?"
   },
   "visitedCitiesModal": {
     "title": "城市足迹",
@@ -235,6 +261,7 @@
     "createdAt": "创建于 {{date}} {{time}}",
     "lastUpdatedAt": "最后更新于 {{date}} {{time}}",
     "expandCities": "展开剩余{{num}}城",
+    "expandRoads": "展开剩余{{num}}道路",
     "collapseCities": "收起",
     "404": "旅途记忆打不开，检查下URL是否正确？",
     "loadingDetail": "正在加载旅途记忆...",
@@ -334,10 +361,13 @@
     "cityBoundaries": "城市边界",
     "tripTrackRoute": "行程轨迹",
     "showPositionMarker": "位置分享标记",
+    "showPosition": "位置分享",
     "appearanceSettings": "外观设置",
 
     "openVConsole": "打开 vConsole",
-    "closeVConsole": "关闭 vConsole"
+    "closeVConsole": "关闭 vConsole",
+
+    "enableGeoFence": "启用隐私围栏，对外分享的行程数据、位置分享将会在服务端进行过滤处理"
   },
   "prompt": {
     "next": "下一步",
@@ -415,6 +445,15 @@
     "turnOn": "开启",
     "turnOff": "关闭",
     "width": "宽度",
-    "height": "高度"
+    "height": "高度",
+
+    "clearLine": "清除轨迹",
+    "clearLineContent": "即将清除地图上所有的轨迹，确定清除吗？",
+
+    "shareContent": "数据分享",
+
+    "reupdateTripPositions": "已重新上传{{num}}个GPS节点",
+    "shortDistanceTrip": "距离过短, 距离需过50m才会记录",
+    "finishTripTip": "已完成本次行程，程序已记录{{localNum}}个GPS节点，已保存至云端{{cloudNum}}个GPS节点"
   }
 }

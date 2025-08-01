@@ -24,10 +24,12 @@ type CityCoords struct {
 var CityNameLanguages = []string{"zhCN", "en", "zhHans", "zhHant"}
 
 type CityName struct {
-	ZhCN   string `bson:"zhCN" json:"zhCN,omitempty"`
-	En     string `bson:"en" json:"en,omitempty"`
-	ZhHans string `bson:"zhHans" json:"zhHans,omitempty"`
-	ZhHant string `bson:"zhHant" json:"zhHant,omitempty"`
+	Ref       string `bson:"ref" json:"ref,omitempty"`
+	ShortName string `bson:"shortName" json:"shortName,omitempty"`
+	ZhCN      string `bson:"zhCN" json:"zhCN,omitempty"`
+	En        string `bson:"en" json:"en,omitempty"`
+	ZhHans    string `bson:"zhHans" json:"zhHans,omitempty"`
+	ZhHant    string `bson:"zhHant" json:"zhHant,omitempty"`
 }
 type CityNames struct {
 	Names      map[string]string `bson:"names" json:"names,omitempty"`

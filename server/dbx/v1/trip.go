@@ -150,6 +150,40 @@ func (t *TripDbx) UpdateTripCities(id, authorId string,
 	return nil
 }
 
+func (t *TripDbx) UpdateTripRoads(id, authorId string,
+	roads []*models.TripRoad) error {
+	trip := new(models.Trip)
+
+	setUp := bson.M{
+		"roads":          roads,
+		"lastUpdateTime": time.Now().Unix(),
+	}
+
+	updateResult, err := trip.GetCollection().UpdateOne(context.TODO(),
+		bson.M{
+			"$and": []bson.M{
+				{
+					"_id":      id,
+					"authorId": authorId,
+					// "status":   0,
+				},
+			},
+		}, bson.M{
+			"$set": setUp,
+		}, options.Update().SetUpsert(false))
+
+	if err != nil {
+		return err
+	}
+	if updateResult.ModifiedCount == 0 {
+		return errors.New("update fail")
+	}
+
+	t.DeleteRedisData(authorId, id)
+
+	return nil
+}
+
 func (t *TripDbx) UpdateTripPosition(authorId, id string, positions []*models.TripPosition, distance float64) error {
 	trip, err := t.GetTrip(id, authorId)
 	if err != nil {
@@ -197,8 +231,29 @@ func (t *TripDbx) UpdateTripPosition(authorId, id string, positions []*models.Tr
 	}
 
 	// 2、更新positions
-	trip.Positions = append(trip.Positions, positions...)
-	log.Info(len(trip.Positions))
+
+	// old
+	// trip.Positions = append(trip.Positions, positions...)
+	// log.Info(len(trip.Positions))
+
+	// new
+
+	timeAll := narrays.Map(trip.Positions, func(pos *models.TripPosition, i int) int64 {
+		return pos.Timestamp
+	})
+
+	for _, pos := range positions {
+		if !narrays.Includes(timeAll, pos.Timestamp) {
+			trip.Positions = append(trip.Positions, pos)
+		}
+	}
+	sort.Slice(trip.Positions, func(a, b int) bool {
+		return trip.Positions[a].Timestamp < trip.Positions[b].Timestamp
+	})
+
+	// 如果是校验接口，则分别进行筛选，没有则push，有则跳过
+	// 之后根据时间戳排序
+
 	// 3、写入positions
 	if _, err := writeGPSFile(trip, false); err != nil {
 		log.Error("writeGPSFile", err)
@@ -354,6 +409,12 @@ func (t *TripDbx) FilterPositions(positions []*models.TripPosition,
 
 		return b
 	}), existsTimestamp
+}
+
+func (t *TripDbx) FilterPositionsByPrivacyGeofence(
+	positions []*models.TripPosition, pgp *models.PrivacyGeofencePoints,
+) []*models.TripPosition {
+	return positions
 }
 
 // deleteStatus -1 删除失败 0 不需要删除 1 删除成功
@@ -786,6 +847,7 @@ var tripProject = bson.M{
 	"vehicleId":   1,
 	"marks":       1,
 	"cities":      1,
+	"roads":       1,
 	"statistics":  1,
 	"permissions": 1,
 	"authorId":    1,
@@ -1118,7 +1180,7 @@ func readTempGPSFile(trip *models.Trip, tempFile bool) (*models.Trip, error) {
 		tempFolderPath = "./static/gps/temp/" + conf.Config.Version + "/" + time.Unix(trip.CreateTime, 0).Format("2006/01/02")
 	}
 
-	log.Info(tempFolderPath + "/" + trip.Id)
+	// log.Info(tempFolderPath + "/" + trip.Id)
 
 	jsonFile, _ := os.Open(tempFolderPath + "/" + trip.Id)
 
@@ -1126,7 +1188,8 @@ func readTempGPSFile(trip *models.Trip, tempFile bool) (*models.Trip, error) {
 	decoder := json.NewDecoder(jsonFile)
 
 	err := decoder.Decode(&tempTrip)
-	if err != nil || len(*tempTrip) == 0 {
+	// log.Error("tempTrip", tempTrip)
+	if err != nil || tempTrip == nil || len(*tempTrip) == 0 {
 		if tempFile {
 			return readTempGPSFile(trip, false)
 		}
@@ -1634,21 +1697,7 @@ func (t *TripDbx) GetTripsBaseData(
 				"$limit": pageSize,
 			},
 			{
-				"$project": bson.M{
-					"_id":            1,
-					"name":           1,
-					"type":           1,
-					"authorId":       1,
-					"vehicleId":      1,
-					"cities":         1,
-					"status":         1,
-					"statistics":     1,
-					"permissions":    1,
-					"startTime":      1,
-					"endTime":        1,
-					"createTime":     1,
-					"lastUpdateTime": 1,
-				},
+				"$project": tripProject,
 			},
 		}
 
@@ -1896,7 +1945,10 @@ func (t *TripDbx) DeleteRedisData(authorId, id string) error {
 		log.Error(err)
 	}
 
-	for _, v := range fsdb.TripIds.Keys(authorId) {
+	keys := fsdb.TripIds.Keys(authorId)
+	// log.Error("fsdb.TripIds.Keys(authorId)", keys)
+	for _, v := range keys {
+
 		if err := fsdb.TripIds.Delete(v); err != nil {
 			log.Error(err)
 		}

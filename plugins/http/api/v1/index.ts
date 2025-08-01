@@ -6,7 +6,8 @@ import { openApi } from './open'
 import { cityApi } from './city'
 import { journeyMemoryApi } from './journeyMemory'
 import { fileApi } from './file'
-
+import { roadApi } from './road'
+import { privacyGeofenceApi } from './privacyGeofence'
 
 export const v1 = {
   ...tripApi,
@@ -16,5 +17,7 @@ export const v1 = {
   ...openApi,
   ...cityApi,
   ...journeyMemoryApi,
-  ...fileApi
+  ...fileApi,
+  ...roadApi,
+  ...privacyGeofenceApi,
 }

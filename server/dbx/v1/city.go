@@ -1069,6 +1069,11 @@ func (t *CityDbx) FortmatNames(city *models.City, osmInfo *OsmInfo) *I18nInfo {
 	result.CityId = city.Id
 	result.OsmInfo = osmInfo
 	result.Name = &models.CityName{
+		Ref: nstrings.StringOr(
+			osmInfo.Names["ref"]),
+		ShortName: nstrings.StringOr(
+			osmInfo.Names["short_name"],
+			osmInfo.Names["ref"]),
 		ZhCN: nstrings.StringOr(
 			osmInfo.Names["name:zh"],
 			osmInfo.Names["name:zh-Hans"],
@@ -1137,7 +1142,7 @@ func (t *CityDbx) CityI18n(city *models.City, cities []*models.City) (*I18nInfo,
 		log.Error(err)
 		return result, err
 	}
-	log.Info(city.Id, fn, osmInfo, osmInfo.Names, err)
+	// log.Info(city.Id, fn, osmInfo, osmInfo.Names, err)
 
 	return result, nil
 }

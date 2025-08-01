@@ -53,3 +53,70 @@ func GetGeoKey(mapKeys *(map[string]int), latlon string, keyIndex *int) string {
 	}
 	return nstrings.ToString((*mapKeys)[k]) + "." + latlons[1][2:len(latlons[1])-1]
 }
+
+// Point 表示一个二维点
+type Point [2]float64
+
+// IsPointInMultiPolygon 判断点是否在任意一个多边形内
+func IsPointInMultiPolygon(point *Point, polygons [][]*Point) bool {
+	for _, poly := range polygons {
+		if IsPointInPolygon(point, poly) {
+			return true
+		}
+	}
+	return false
+}
+
+// IsPointInPolygon 使用射线法判断点是否在单个多边形内
+func IsPointInPolygon(point *Point, polygon []*Point) bool {
+	x, y := point[0], point[1]
+	inside := false
+
+	n := len(polygon)
+	if n < 3 {
+		return false // 至少需要3个点才能形成多边形
+	}
+
+	for i, j := 0, n-1; i < n; j, i = i, i+1 {
+		xi, yi := (polygon)[i][0], (polygon)[i][1]
+		xj, yj := (polygon)[j][0], (polygon)[j][1]
+
+		// 检查点是否在多边形的边上
+		if onSegment(xi, yi, xj, yj, x, y) {
+			return true
+		}
+
+		// 射线法核心判断
+		intersect := (yi > y) != (yj > y) &&
+			x < (xj-xi)*(y-yi)/(yj-yi)+xi
+		if intersect {
+			inside = !inside
+		}
+	}
+
+	return inside
+}
+
+// onSegment 判断点是否在线段上
+func onSegment(xi, yi, xj, yj, x, y float64) bool {
+	if x <= max(xi, xj) && x >= min(xi, xj) &&
+		y <= max(yi, yj) && y >= min(yi, yj) {
+		area := (xj-xi)*(y-yi) - (yj-yi)*(x-xi)
+		return area == 0
+	}
+	return false
+}
+
+func max(a, b float64) float64 {
+	if a > b {
+		return a
+	}
+	return b
+}
+
+func min(a, b float64) float64 {
+	if a < b {
+		return a
+	}
+	return b
+}

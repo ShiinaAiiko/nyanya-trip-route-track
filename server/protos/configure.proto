@@ -50,6 +50,7 @@ message Configure {
       // Blue / Pink / Red
       string trackRouteColor = 14;
       int32 polylineWidth = 15;
+      bool privacyGeofence = 16;
     }
 
     MapLayerItem indexPage = 1;
@@ -60,6 +61,7 @@ message Configure {
     MapLayerItem createCustomTripModal = 6;
     MapLayerItem replayTripModal = 7;
     MapLayerItem visitedCitiesModal = 8;
+    MapLayerItem privacyGeofenceModal = 9;
   }
 
   MapLayer mapLayer = 1;
@@ -67,6 +69,8 @@ message Configure {
   message General {
     // Cloud
     SpeedColorLimit speedColorLimit = 1;
+
+    bool enableGeoFence = 2;
     // Cloud
     // string trackSpeedColor = 4;
     // Cloud

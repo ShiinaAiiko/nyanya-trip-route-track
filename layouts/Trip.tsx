@@ -57,6 +57,8 @@ import LoadModalComponent, {
 import { loadPwaNewVersion } from '../plugins/loadPwaNewVersion'
 import { SakiI18n } from '../components/saki-ui-react/components'
 import { ReactNativeWebJSBridge } from '../plugins/reactNativeWebJsBridge'
+import { loadModal } from '../store/layout'
+import { sakisso } from '../config'
 
 // import { testGpsData } from '../plugins/methods'
 // import parserFunc from 'ua-parser-js'
@@ -307,12 +309,18 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
 
           await dispatch(methods.config.GetConfigure())
 
+          await dispatch(methods.trip.GetPrivacyGeofence()).unwrap()
+
           dispatch(
             methods.vehicle.GetVehicles({
               type: 'All',
               pageNum: 1,
             })
           )
+
+          // loadModal('PrivacyGeofence', () => {
+          //   dispatch(layoutSlice.actions.setOpenPrivacyGeofenceModal(true))
+          // })
         }
         dispatch(configSlice.actions.setInitConfigure(true))
       }
@@ -479,6 +487,26 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
                 },
               })}
             ></saki-init>
+            {user.isInit && !user.isLogin ? (
+              <saki-sso-init
+                ref={bindEvent({
+                  login: (e: any) => {
+                    console.log('saki-sso-init login', e)
+                    store.dispatch(
+                      userSlice.actions.login({
+                        token: e.detail.token,
+                        deviceId: e.detail.deviceId,
+                        userInfo: e.detail.userInfo,
+                      })
+                    )
+                    // e?.target?.loggedIn()
+                  },
+                })}
+                url={sakisso.clientUrl}
+              ></saki-sso-init>
+            ) : (
+              ''
+            )}
             <SakiI18n
               onMounted={async (e) => {
                 console.log('SakiI18n', e.target)

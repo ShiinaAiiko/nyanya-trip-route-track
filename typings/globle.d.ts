@@ -63,6 +63,7 @@ declare global {
       'saki-waterfall-layout-item': any
       'saki-circle-progress-bar': any
       'saki-app-portal': any
+      'saki-sso-init': any
     }
   }
   namespace Window {

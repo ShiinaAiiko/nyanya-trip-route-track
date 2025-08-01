@@ -59,6 +59,27 @@ type TripCity struct {
 	CityId     string                   `bson:"cityId" json:"cityId,omitempty"`
 	EntryTimes []*TripCityEntryTimeItem `bson:"entryTimes" json:"entryTimes,omitempty"`
 }
+type TypeRoadName struct {
+	En     string `bson:"en" json:"en,omitempty"`
+	ZhHans string `bson:"zhHans" json:"zhHans,omitempty"`
+	ZhHant string `bson:"zhHant" json:"zhHant,omitempty"`
+}
+
+type TripRoadInfo struct {
+	// "motorway" | "trunk" | "primary" | "secondary" | "tertiary" | "unclassified"
+	Type string        `bson:"type" json:"type,omitempty"`
+	Code string        `bson:"code" json:"code,omitempty"`
+	Name *TypeRoadName `bson:"name" json:"name,omitempty"`
+	// Names         map[string]string `bson:"names" json:"names,omitempty"`
+	ShortCityName string `bson:"shortCityName" json:"shortCityName,omitempty"`
+}
+
+type TripRoad struct {
+	// Id   string       `bson:"_id" json:"id,omitempty"`
+	Roads []*TripRoadInfo `bson:"roads" json:"roads,omitempty"`
+
+	EntryTimes []*TripCityEntryTimeItem `bson:"entryTimes" json:"entryTimes,omitempty"`
+}
 
 type Trip struct {
 	// 使用短ID
@@ -70,6 +91,7 @@ type Trip struct {
 	Positions   []*TripPosition  `bson:"positions" json:"positions,omitempty"`
 	Marks       []*TripMark      `bson:"marks" json:"marks,omitempty"`
 	Cities      []*TripCity      `bson:"cities" json:"cities,omitempty"`
+	Roads       []*TripRoad      `bson:"roads" json:"roads,omitempty"`
 	Statistics  *TripStatistics  `bson:"statistics" json:"statistics,omitempty"`
 	Permissions *TripPermissions `bson:"permissions" json:"permissions,omitempty"`
 	AuthorId    string           `bson:"authorId" json:"authorId,omitempty"`

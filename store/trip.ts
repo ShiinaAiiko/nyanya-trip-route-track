@@ -12,6 +12,7 @@ import {
   getLatLng,
   getSpeedColor,
   getZoom,
+  isPointInPolygon,
 } from '../plugins/methods'
 import { eventListener, R, TabsTripType } from './config'
 import { httpApi } from '../plugins/http/api'
@@ -26,6 +27,8 @@ import { t } from 'i18next'
 import { toolApiUrl } from '../config'
 import { cityMethods, GeoJSON } from './city'
 import moment from 'moment'
+import { updateRoadTime } from './geo'
+import { createBins } from '@turf/turf'
 
 export interface Statistics {
   speed: number
@@ -90,6 +93,10 @@ export const state = {
       days: 0
     }
   },
+
+  privacyGeofencePoints:
+    [] as protoRoot.privacyGeofence.IPrivacyGeofencePointsItem[],
+  privacyGeofencePointsPolygon: [] as number[][][],
 }
 
 export type WeatherInfoType = typeof state.weatherInfo
@@ -248,11 +255,13 @@ export const getTripHistoryPositions = async ({
   fullData,
   authorId,
   jmId = '',
+  cache = true,
 }: {
   ids: string[]
   fullData: boolean
   authorId: string
   jmId?: string
+  cache?: boolean
 }) => {
   try {
     const { user } = store.getState()
@@ -266,6 +275,7 @@ export const getTripHistoryPositions = async ({
       loadingSnackbar: true,
       fullData,
       jmId,
+      cache,
     })
     console.log(
       'getAllTripPositions allres',
@@ -306,6 +316,7 @@ export const getAllTripPositions = async ({
   asyncQueue,
   data,
   maxQueueConcurrency = 5,
+  cache = true,
   onload,
 }: {
   ids: string[]
@@ -325,6 +336,7 @@ export const getAllTripPositions = async ({
     list: protoRoot.trip.ITripPositions[]
   }
   maxQueueConcurrency?: number
+  cache?: boolean
   onload?: (totalCount: number, loadCount: number) => void
 }): Promise<protoRoot.trip.ITripPositions[]> => {
   ids = ids.filter((v) => !!v)
@@ -366,7 +378,7 @@ export const getAllTripPositions = async ({
 
   let loadCount = data?.loadCount || 0
 
-  if (isInit) {
+  if (isInit && cache) {
     let localTrips = await storage.tripPositions.mget(ids)
 
     if (fullData) {
@@ -669,6 +681,241 @@ export const initTripItemCity = async (
   // console.log('initCity', trip.positions)
 }
 
+// let count = 1
+
+export interface GpsPoint {
+  lat: number
+  lng: number
+  heading: number // 航向角(0-359度)
+  timestamp: number // 时间戳(毫秒)
+}
+
+export function detectTurns(gpsPoints: GpsPoint[]) {
+  const tempGPSPoints = gpsPoints.slice(gpsPoints.length - 7, gpsPoints.length)
+
+  const tempGPSPoints2 = gpsPoints.slice(0, gpsPoints.length - 7)
+
+  const minHeading = Math.min(
+    ...tempGPSPoints2.map((v) => Number(v.heading) + 360)
+  )
+  const maxHeading = Math.max(
+    ...tempGPSPoints2.map((v) => Number(v.heading) + 360)
+  )
+  const minLast5Heading = Math.min(
+    ...tempGPSPoints.map((v) => Number(v.heading) + 360)
+  )
+  const maxLast5Heading = Math.max(
+    ...tempGPSPoints.map((v) => Number(v.heading) + 360)
+  )
+
+  if (gpsPoints.length >= 15) {
+    // console.log(
+    //   'tempGPSPoints',
+    //   gpsPoints.length,
+    //   Math.abs(maxHeading - minHeading),
+    //   Math.abs(maxLast5Heading - minLast5Heading),
+    //   minHeading,
+    //   maxHeading
+    // )
+    if (
+      Math.abs(maxHeading - minHeading) > 10 &&
+      Math.abs(maxLast5Heading - minLast5Heading) <= 5
+    ) {
+      return true
+    }
+  }
+  return false
+}
+
+// 使用示例
+let gpsPoints: GpsPoint[] = [
+  // 直线行驶
+  // { lat: 39.9042, lng: 116.4074, heading: 90, timestamp: 1000 },
+  // { lat: 39.9043, lng: 116.4076, heading: 90, timestamp: 2000 },
+  // { lat: 39.9044, lng: 116.4078, heading: 91, timestamp: 3000 },
+  // // 开始右转
+  // { lat: 39.9045, lng: 116.4079, heading: 100, timestamp: 4000 },
+  // { lat: 39.9046, lng: 116.408, heading: 120, timestamp: 5000 },
+  // { lat: 39.9047, lng: 116.4081, heading: 140, timestamp: 6000 },
+  // // 开始拉直
+  // { lat: 39.9048, lng: 116.4082, heading: 160, timestamp: 7000 },
+  // { lat: 39.9049, lng: 116.4083, heading: 170, timestamp: 8000 },
+  // { lat: 39.905, lng: 116.4084, heading: 170, timestamp: 9000 }, // 第3个直线点
+  // // 确认直线
+  // { lat: 39.9051, lng: 116.4085, heading: 170, timestamp: 10000 },
+  // { lat: 39.9042, lng: 116.4074, heading: 90, timestamp: 1000 },
+  // { lat: 39.9043, lng: 116.4076, heading: 90, timestamp: 2000 },
+  // // 开始右转
+  // { lat: 39.9044, lng: 116.4077, heading: 100, timestamp: 3000 },
+  // { lat: 39.9045, lng: 116.4078, heading: 120, timestamp: 4000 },
+  // // 结束转弯
+  // { lat: 39.9046, lng: 116.4079, heading: 180, timestamp: 5000 },
+  // // 直线行驶
+  // { lat: 39.9047, lng: 116.4079, heading: 180, timestamp: 6000 },
+]
+
+// const turnResults = detectTurnsWithStraight(gpsPoints, {
+//   minStraightPoints: 3,
+//   straightHeadingThreshold: 5,
+// })
+// // const turnResults = detectTurns(gpsPoints)
+// console.log('turnResults', turnResults)
+
+const initTripItemRoadAQ = new AsyncQueue({
+  maxQueueConcurrency: 2,
+})
+
+export const initTripItemRoad = async (
+  trip: protoRoot.trip.ITrip,
+  init: boolean,
+  isSnackbar: boolean
+) => {
+  if (trip.roads?.length && !init) return
+
+  console.log(
+    'initRoad initTripRoad',
+    trip.roads,
+    trip.positions,
+    trip.positions?.length
+  )
+  if (init) {
+    const res = await httpApi.v1.ClearTripRoads({
+      tripId: trip.id,
+    })
+    console.log('initTripRoad ClearTripRoads', res)
+    if (res.code !== 200) {
+      return
+    }
+  }
+  let _snackbar: ReturnType<typeof snackbar> | undefined
+
+  if (isSnackbar) {
+    _snackbar = snackbar({
+      message: t('loadedData', {
+        ns: 'prompt',
+        percentage: 0 + '%',
+      }),
+      vertical: 'top',
+      horizontal: 'center',
+      backgroundColor: 'var(--saki-default-color)',
+      color: '#fff',
+    })
+    _snackbar.open()
+  }
+
+  let nextPosTime = 0
+  let totalCount = 0
+  let count = 0
+
+  if (trip.positions?.length) {
+    for (let i = 0; i < trip.positions?.length; i++) {
+      const v = trip.positions[i]
+      // if (totalCount > 20) {
+      //   return
+      // }
+
+      const turnResults = detectTurns(gpsPoints)
+      // console.log(
+      //   'initRoad heading turnResults',
+      //   v.heading,
+      //   moment(Number(v.timestamp) * 1000).format('HH:mm:ss')
+      // )
+      // 179 286
+      // 71 154
+      if (Number(v.timestamp) > nextPosTime || turnResults) {
+        totalCount++
+        // console.log(
+        //   'initRoad turnResults',
+        //   moment(Number(v.timestamp) * 1000).format('HH:mm:ss'),
+        //   totalCount,
+        //   Number(v.timestamp) > nextPosTime,
+        //   gpsPoints.length,
+        //   // gpsPoints,
+        //   turnResults,
+        //   v.heading
+        // )
+        gpsPoints = []
+        nextPosTime = Number(v.timestamp) + 60
+        // continue
+        initTripItemRoadAQ.increase(async () => {
+          count++
+          // console.log(
+          //   'initRoad timestamp',
+          //   count,
+          //   moment(Number(v.timestamp) * 1000).format('HH:mm:ss'),
+          //   Number(v.timestamp),
+          //   nextPosTime
+          // )
+
+          // console.log('initCity', count, v.latitude, v.timestamp)
+
+          // console.log("initTripCity  cityinfo", count)
+
+          const lat = v.latitude
+          const lng = v.longitude
+
+          const res = await store
+            .dispatch(
+              methods.geo.GetRoadInfo({
+                position: {
+                  coords: {
+                    latitude: lat,
+                    longitude: lng,
+                  },
+                  timestamp: 0,
+                } as any,
+                runNow: true,
+              })
+            )
+            .unwrap()
+          console.log('initRoad res', count, res, res.riList?.[0]?.code)
+
+          // .then((res) => {
+          //   if (res.status === 'loaded') {
+          //     roadInfoList.current = res.riList || []
+          //   }
+          // })
+          // console.log('initCity', newCi, v.timestamp)
+
+          if (res.status === 'loaded') {
+            const nres = await httpApi.v1.UpdateRoad({
+              tripId: trip.id,
+              // tripId: trip?.id || 'wKod7r4LS',
+              roads: res.riList,
+              entryTime: v.timestamp,
+            })
+            console.log('initRoad nres', count, nres)
+          }
+          // console.log("initTripCity  cityinfo", count, data, data.platform, newCi, [lat, lng], nres,
+          //   moment(Number(v.timestamp) * 1000).format("YYYY-MM-DD HH:mm:ss"))
+          // console.log('initTripCity', nres, newCi)
+          _snackbar?.setMessage(
+            t('loadedData', {
+              ns: 'prompt',
+              percentage:
+                ((i / ((trip.positions?.length || 0) - 1)) * 100).toFixed(0) +
+                '%',
+            })
+          )
+        })
+      } else {
+        gpsPoints.push({
+          lat: v.latitude || 0,
+          lng: v.latitude || 0,
+          heading: v.heading || 0,
+          timestamp: Number(v.timestamp) * 1000 || 0,
+        })
+      }
+    }
+  }
+
+  await initTripItemRoadAQ.wait.waiting()
+  console.log('进度中y 结束', count)
+
+  _snackbar?.close()
+  // console.log('initCity', trip.positions)
+}
+
 let loadStatus = {
   GetTripStatistics: 'loaded',
 }
@@ -677,6 +924,29 @@ export const tripSlice = createSlice({
   name: modelName,
   initialState: state,
   reducers: {
+    setPrivacyGeofencePoints: (
+      state,
+      params: {
+        payload: typeof state.privacyGeofencePoints
+        type: string
+      }
+    ) => {
+      state.privacyGeofencePoints = params.payload
+      state.privacyGeofencePointsPolygon = (params.payload.map((sv) => {
+        return sv.coords?.map((ssv) => {
+          return [Number(ssv.latitude), Number(ssv.longitude)]
+        })
+      }) || []) as any
+
+      // console.log(
+      //   'isPointInPolygon privacyGeofencePointsPolygon',
+      //   state.privacyGeofencePointsPolygon,
+      //   isPointInPolygon(
+      //     [29.874569, 106.383489],
+      //     state.privacyGeofencePointsPolygon as any
+      //   )
+      // )
+    },
     setHistoricalStatistics: (
       state,
       params: {
@@ -1064,6 +1334,85 @@ export const filterTrips = ({
       return ct >= st && ct <= et && v.status === 1
     }) || []
   )
+}
+
+export const reupdateTripPositions = async ({
+  id,
+  positions,
+}: {
+  id: string
+  positions: protoRoot.trip.ITripPosition[]
+}) => {
+  const loadDataSnackbar = snackbar({
+    message: i18n.t('reupdateTripPositions', {
+      ns: 'prompt',
+      num: 0,
+    }),
+    vertical: 'top',
+    horizontal: 'center',
+    backgroundColor: 'var(--saki-default-color)',
+    color: '#fff',
+  })
+
+  loadDataSnackbar.open()
+
+  const asyncQueue = new AsyncQueue({
+    maxQueueConcurrency: 1,
+  })
+
+  const sLength = 200
+
+  let count = 0
+
+  for (let i = 0; i < Math.ceil(positions.length / sLength); i++) {
+    const posAll = positions.slice(sLength * i, sLength * (i + 1))
+
+    asyncQueue.increase(async () => {
+      const params: protoRoot.trip.UpdateTripPosition.IRequest = {
+        id: id,
+        distance: 0,
+        vehicleId: '',
+        positions: posAll.map((v): protoRoot.trip.ITripPosition => {
+          return {
+            latitude: v.latitude,
+            longitude: v.longitude,
+            altitude: v.altitude,
+            altitudeAccuracy: v.altitudeAccuracy,
+            accuracy: v.accuracy,
+            heading: v.heading,
+            speed: v.speed,
+            timestamp: v.timestamp,
+          }
+        }),
+      }
+
+      const res = await httpApi.v1.UpdateTripPosition(params)
+
+      if (res.code === 200) {
+        count += posAll.length
+        loadDataSnackbar.setMessage(
+          i18n.t('reupdateTripPositions', {
+            ns: 'prompt',
+            num: count,
+          })
+        )
+      } else {
+        snackbar({
+          message: res.error + '; ' + res.msg + '; ' + res.cnMsg,
+          horizontal: 'center',
+          vertical: 'top',
+          backgroundColor: 'var(--saki-default-color)',
+          color: '#fff',
+          autoHideDuration: 2000,
+        }).open()
+      }
+
+      return res
+    })
+  }
+
+  await asyncQueue.wait.waiting()
+  loadDataSnackbar.close()
 }
 
 export const tripMethods = {
@@ -1712,6 +2061,29 @@ export const tripMethods = {
           vertical: 'top',
           horizontal: 'center',
         }).open()
+      } catch (error) {
+        console.error(error)
+      }
+    }
+  ),
+
+  GetPrivacyGeofence: createAsyncThunk(
+    modelName + '/GetPrivacyGeofence',
+    async (_, thunkAPI) => {
+      const dispatch = thunkAPI.dispatch
+
+      try {
+        const { user } = store.getState()
+
+        if (!user.isLogin) return
+        const res = await httpApi.v1.GetPrivacyGeofence({})
+        console.log('GetPrivacyGeofence', res)
+
+        if (res.code === 200) {
+          dispatch(
+            tripSlice.actions.setPrivacyGeofencePoints(res.data?.points || [])
+          )
+        }
       } catch (error) {
         console.error(error)
       }

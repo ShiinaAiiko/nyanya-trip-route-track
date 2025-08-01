@@ -96,7 +96,7 @@
     "parkTime": "停車時長 {{time}}",
     "trafficLightTime": "等待時長 {{time}}",
     "tripTimeline": "行程時間軸",
-    "statisticalCharts": "统计图表",
+    "statisticalCharts": "統計圖表",
     "temporaryPark": "臨時停車",
     "All": "全部",
     "Driving": "行駛中",
@@ -104,6 +104,8 @@
     "TemporaryPark": "臨時停車",
     "PassTunnel": "駛入隧道",
     "EnterNewCity": "途徑城市",
+    "EnterNewRoad": "途徑道路",
+    "enterNewRoad": "途徑道路",
     "TrafficLight": "等待紅綠燈",
     "TripMark": "行程標記",
     "driveDistance2": "已行駛 {{distance}}",
@@ -120,7 +122,19 @@
 
     "slope": "坡度",
 
-    "totalMileage": "總里程 {{distance}}"
+    "totalMileage": "總里程 {{distance}}",
+
+    "initTripRoad": "初始化行程道路資訊",
+
+    "unnamedRoad": "无名道路",
+
+    "GRoad": "{{road}}國道",
+    "SRoad": "{{road}}省道",
+    "XRoad": "{{road}}縣道",
+    "YRoad": "{{road}}鄉道",
+    "ORoad": "{{road}}",
+
+    "customTrip": "自訂行程"
   },
   "replayTripPage": {
     "title": "回放行程",
@@ -181,7 +195,19 @@
   "createCustomTripModal": {
     "title": "建立自訂行程",
     "tripInfo": "行程資訊",
-    "gpsPoints": "{{length}} 個 GPS 點"
+    "gpsPoints": "{{length}} 個 GPS 點",
+    "insertAfterThisGPSNode": "在此GPS節點後插入"
+  },
+  "privacyGeofenceModal": {
+    "title": "隱私圍欄",
+
+    "mapClickAddNode": "在地圖上點選節點，新增新的隱私圍籬",
+    "selectedPGPoints": "已選取 隱私圍籬 #{{num}}，點選地圖即可新增節點",
+
+    "deletePG": "刪除此圍欄",
+    "deletePGContent": "您確定要刪除 {{name}} 嗎?",
+    "deleteAllPG": "刪除所有圍欄",
+    "deleteAllPGContent": "您確定要刪除所有圍欄嗎?"
   },
   "visitedCitiesModal": {
     "title": "城市足跡",
@@ -234,6 +260,7 @@
     "createdAt": "創建於 {{date}} {{time}}",
     "lastUpdatedAt": "最後更新於 {{date}} {{time}}",
     "expandCities": "展開剩餘{{num}}城",
+    "expandRoads": "展開剩餘{{num}}道路",
     "collapseCities": "收起",
     "404": "旅途記憶打不開，檢查下URL是否正確？",
     "loadingDetail": "正在加載旅途記憶...",
@@ -333,10 +360,13 @@
     "cityBoundaries": "城市邊界",
     "tripTrackRoute": "行程軌跡",
     "showPositionMarker": "位置分享標記",
+    "showPosition": "位置分享",
     "appearanceSettings": "外觀設定",
 
     "openVConsole": "開啟 vConsole",
-    "closeVConsole": "關閉 vConsole"
+    "closeVConsole": "關閉 vConsole",
+
+    "enableGeoFence": "啟用隱私圍欄，對外分享的行程資料、位置分享將會在服務端進行過濾處理"
   },
   "prompt": {
     "next": "繼續",
@@ -405,6 +435,20 @@
 
     "hourTime": "時",
     "minuteTime": "分",
-    "secondTime": "秒"
+    "secondTime": "秒",
+
+    "turnOnPovMode": "開啟POV模式",
+    "turnOnPovModeContent": "接下來，將會以POV影片素材的形式展示，為您的行車記錄影片提供素材之用。還需在下方設定素材參考解析度：",
+    "turnOffPovMode": "關閉POV模式",
+    "turnOffPovModeContent": "關閉後，將會回到行程回放普通模式",
+    "turnOn": "開啟",
+    "turnOff": "關閉",
+    "width": "寬度",
+    "height": "高度",
+
+    "clearLine": "清除軌跡",
+    "clearLineContent": "即將清除地圖上所有的軌跡，確定清除嗎？",
+
+    "shareContent": "資料分享"
   }
 }

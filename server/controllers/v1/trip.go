@@ -9,8 +9,10 @@ import (
 	dbxv1 "github.com/ShiinaAiiko/nyanya-trip-route-track/server/dbx/v1"
 	"github.com/ShiinaAiiko/nyanya-trip-route-track/server/models"
 	"github.com/ShiinaAiiko/nyanya-trip-route-track/server/protos"
+	"github.com/ShiinaAiiko/nyanya-trip-route-track/server/services/methods"
 	"github.com/ShiinaAiiko/nyanya-trip-route-track/server/services/middleware"
 	"github.com/ShiinaAiiko/nyanya-trip-route-track/server/services/response"
+	"github.com/cherrai/nyanyago-utils/narrays"
 	"github.com/cherrai/nyanyago-utils/nint"
 	"github.com/cherrai/nyanyago-utils/nlog"
 	"github.com/cherrai/nyanyago-utils/nstrings"
@@ -37,6 +39,7 @@ func formartTrip(v *models.Trip) *protos.Trip {
 	postions := []*protos.TripPosition{}
 	marks := []*protos.TripMark{}
 	cities := []*protos.TripCity{}
+	roads := []*protos.TripRoad{}
 
 	for _, v := range v.Positions {
 		postions = append(postions, formartPosition(&protos.TripPosition{
@@ -72,7 +75,39 @@ func formartTrip(v *models.Trip) *protos.Trip {
 		})
 	}
 
-	// log.Info("cities", cities, v.Cities)
+	for _, v := range v.Roads {
+		entryTimes := []*protos.TripRoad_EntryTimeItem{}
+		for _, sv := range v.EntryTimes {
+			entryTimes = append(entryTimes, &protos.TripRoad_EntryTimeItem{
+				Timestamp: sv.Timestamp,
+			})
+		}
+
+		// log.Info("v.CityId", v.CityId, v)
+
+		roadsList := []*protos.RoadInfo{}
+
+		for _, road := range v.Roads {
+
+			roadsList = append(roadsList, &protos.RoadInfo{
+				Type: road.Type,
+				Code: road.Code,
+				Name: &protos.RoadName{
+					ZhHans: road.Name.ZhHans,
+					ZhHant: road.Name.ZhHant,
+					En:     road.Name.En,
+				},
+				ShortCityName: road.ShortCityName,
+			})
+		}
+
+		roads = append(roads, &protos.TripRoad{
+			Roads:      roadsList,
+			EntryTimes: entryTimes,
+		})
+	}
+
+	// log.Info("roads", roads, v.Roads)
 
 	// log.Info(len( v.Positions), len(postions))
 
@@ -82,6 +117,7 @@ func formartTrip(v *models.Trip) *protos.Trip {
 		Positions: postions,
 		Marks:     marks,
 		Cities:    cities,
+		Roads:     roads,
 		Type:      v.Type,
 		AuthorId:  v.AuthorId,
 		// VehicleId: v.VehicleId,
@@ -93,7 +129,7 @@ func formartTrip(v *models.Trip) *protos.Trip {
 		LastUpdateTime: v.LastUpdateTime,
 	}
 
-	log.Error("v.Statistics ", v.Statistics)
+	// log.Error("v.Statistics ", v.Statistics)
 
 	if v.Statistics != nil {
 		trip.Statistics = &protos.TripStatistics{
@@ -637,10 +673,10 @@ func (fc *TripController) FinishTrip(c *gin.Context) {
 	endTime := data.EndTime
 	log.Info("endTime", endTime)
 
-	if endTime <= 0 {
-		tripPositions, err := tripDbx.GetTripPositions(data.Id, userInfo.Uid)
-		log.Info("getTrip, err ", tripPositions, err)
+	tripPositions, err := tripDbx.GetTripPositions(data.Id, userInfo.Uid)
+	log.Info("getTrip, err ", tripPositions, err)
 
+	if endTime <= 0 {
 		if err != nil || tripPositions == nil {
 			res.Errors(err)
 			res.Code = 10011
@@ -720,7 +756,9 @@ func (fc *TripController) FinishTrip(c *gin.Context) {
 		return
 	}
 
-	protoData := &protos.FinishTrip_Response{}
+	protoData := &protos.FinishTrip_Response{
+		PositionLength: int32(len(tripPositions.Positions)),
+	}
 
 	res.Data = protos.Encode(protoData)
 
@@ -1109,6 +1147,7 @@ func (fc *TripController) GetTripPositions(c *gin.Context) {
 	authorId := ""
 	// 校验身份
 	code := middleware.CheckAuthorize(c)
+
 	// log.Info("code", data.Id, code)
 	if code == 200 {
 		userInfoAny, exists := c.Get("userInfo")
@@ -1136,12 +1175,25 @@ func (fc *TripController) GetTripPositions(c *gin.Context) {
 		res.Call(c)
 		return
 	}
+	var pgp *models.PrivacyGeofencePoints
+	// 非登录或者非作者登录且分享状态
+	if (authorId == "" || authorId != trip.AuthorId) && trip.Permissions.AllowShare {
+
+		pgp, err = getUserPGP(trip.AuthorId)
+
+		if err != nil {
+			res.Errors(err)
+			res.Code = 10001
+			res.Call(c)
+			return
+		}
+	}
 
 	authorId = trip.AuthorId
 
 	// log.Info(data.Id, authorId, data.ShareKey)
 	tripPositions, err := tripDbx.GetTripPositions(data.Id, authorId)
-	log.Info("tripPositions, err ", len(tripPositions.Positions), err)
+	// log.Info("tripPositions, err ", len(tripPositions.Positions), err)
 	if err != nil || tripPositions == nil {
 		res.Errors(err)
 		res.Code = 10006
@@ -1153,11 +1205,41 @@ func (fc *TripController) GetTripPositions(c *gin.Context) {
 	positions := []string{}
 	// mapKeys := map[string]int{}
 	// keyIndex := int(0)
+	// log.Error("pgp", len(tripPositions.Positions), pgp)
+
+	if pgp != nil && len(pgp.Points) > 0 {
+		// log.Warn("pgp", len(tripPositions.Positions))
+		mp := narrays.Map(pgp.Points, func(
+			v *models.PrivacyGeofencePointsItem, index int,
+		) []*methods.Point {
+
+			polygon := narrays.Map(v.Coords, func(
+				pic *models.PrivacyGeofencePointsItemCoords, sIndex int,
+			) *methods.Point {
+				return &methods.Point{pic.Latitude, pic.Longitude}
+			})
+
+			return polygon
+		})
+		tripPositions.Positions = narrays.Filter(tripPositions.Positions, func(
+			pos *models.TripPosition, index int,
+		) bool {
+
+			return !methods.IsPointInMultiPolygon(
+				&methods.Point{pos.Latitude, pos.Longitude},
+				mp,
+			)
+		})
+		// log.Warn("pgp", len(tripPositions.Positions))
+
+	}
 
 	vPositions, existsTimestamp := tripDbx.FilterPositions(
 		tripPositions.Positions,
 		tripPositions.StartTime,
 		tripPositions.EndTime)
+
+	// log.Warn("pgp", len(vPositions), len(tripPositions.Positions))
 
 	// log.Info("vPositions", vPositions, existsTimestamp,
 	// 	len(tripPositions.Positions), tripPositions.CreateTime, tripPositions.EndTime)
@@ -1294,9 +1376,25 @@ func (fc *TripController) GetTripHistoryPositions(c *gin.Context) {
 	authorId := ""
 
 	log.Info(data.JmId, "jmid")
+
+	code := middleware.CheckAuthorize(c)
+	// log.Info("code", data.Id, code)
+	if code == 200 {
+		userInfoAny, exists := c.Get("userInfo")
+		if !exists {
+			res.Errors(err)
+			res.Code = 10004
+			res.Call(c)
+			return
+		}
+		authorId = userInfoAny.(*sso.UserInfo).Uid
+	}
+
+	var pgp *models.PrivacyGeofencePoints
+
 	if data.JmId != "" {
 		jm, err := jmDbx.GetJM(
-			data.JmId, authorId,
+			data.JmId, "",
 		)
 		// log.Info(jm, err)
 		if err != nil || jm == nil {
@@ -1305,21 +1403,23 @@ func (fc *TripController) GetTripHistoryPositions(c *gin.Context) {
 			res.Call(c)
 			return
 		}
-		authorId = jm.AuthorId
-	} else {
-		code := middleware.CheckAuthorize(c)
-		// log.Info("code", data.Id, code)
-		if code == 200 {
-			userInfoAny, exists := c.Get("userInfo")
-			if !exists {
+
+		log.Error(authorId == "", authorId != jm.AuthorId)
+		if authorId != jm.AuthorId {
+			pgp, err = getUserPGP(jm.AuthorId)
+
+			if err != nil {
 				res.Errors(err)
-				res.Code = 10004
+				res.Code = 10001
 				res.Call(c)
 				return
 			}
-			authorId = userInfoAny.(*sso.UserInfo).Uid
+
 		}
+
+		authorId = jm.AuthorId
 	}
+	// log.Error("pgp", pgp)
 
 	// log.Info(authorId)
 	trips, err := tripDbx.GetTripAllPositions(authorId, data.Type, data.PageNum, data.PageSize, data.Ids, data.TimeLimit[0], data.TimeLimit[1], data.VehicleLimit)
@@ -1360,8 +1460,37 @@ func (fc *TripController) GetTripHistoryPositions(c *gin.Context) {
 		// alphabet := strings.Split("abcdefghijklmnopqrstuvwxyz", "")
 		// keyIndex := int(0)
 
+		if pgp != nil && len(pgp.Points) > 0 {
+			// log.Warn("pgp", len(v.Positions))
+			mp := narrays.Map(pgp.Points, func(
+				v *models.PrivacyGeofencePointsItem, index int,
+			) []*methods.Point {
+
+				polygon := narrays.Map(v.Coords, func(
+					pic *models.PrivacyGeofencePointsItemCoords, sIndex int,
+				) *methods.Point {
+					return &methods.Point{pic.Latitude, pic.Longitude}
+				})
+
+				return polygon
+			})
+			v.Positions = narrays.Filter(v.Positions, func(
+				pos *models.TripPosition, index int,
+			) bool {
+
+				return !methods.IsPointInMultiPolygon(
+					&methods.Point{pos.Latitude, pos.Longitude},
+					mp,
+				)
+			})
+			// log.Warn("pgp", len(v.Positions))
+
+		}
+
 		vPositions, existsTimestamp := tripDbx.FilterPositions(
 			v.Positions, v.StartTime, v.EndTime)
+
+		vPositions = tripDbx.FilterPositionsByPrivacyGeofence(vPositions, pgp)
 
 		// var startPositions *models.TripPosition
 
@@ -2017,6 +2146,60 @@ func (cl *TripController) ClearTripCities(c *gin.Context) {
 	}
 
 	protoData := &protos.ClearTripCities_Response{}
+
+	res.Data = protos.Encode(protoData)
+
+	res.Call(c)
+}
+
+func (cl *TripController) ClearTripRoads(c *gin.Context) {
+	// 1、请求体
+	var res response.ResponseProtobufType
+	res.Code = 200
+
+	// 2、获取参数
+	data := new(protos.ClearTripRoads_Request)
+	var err error
+	if err = protos.DecodeBase64(c.GetString("data"), data); err != nil {
+		res.Error = err.Error()
+		res.Code = 10002
+		res.Call(c)
+		return
+	}
+
+	// log.Info("data", data)
+
+	// 3、验证参数
+	if err = validation.ValidateStruct(
+		data,
+		validation.Parameter(&data.TripId, validation.Type("string"), validation.Required()),
+	); err != nil {
+		res.Errors(err)
+		res.Code = 10002
+		res.Call(c)
+		return
+	}
+
+	userInfoAny, exists := c.Get("userInfo")
+	if !exists {
+		res.Errors(err)
+		res.Code = 10004
+		res.Call(c)
+		return
+	}
+	authorId := userInfoAny.(*sso.UserInfo).Uid
+	// log.Info("AddAndGetFullCity", data)
+
+	if err := tripDbx.UpdateTripRoads(
+		data.TripId, authorId, []*models.TripRoad{},
+	); err != nil {
+		res.Errors(err)
+		res.Code = 10011
+		res.Call(c)
+		return
+	}
+
+	protoData := &protos.ClearTripRoads_Response{}
 
 	res.Data = protos.Encode(protoData)
 

@@ -165,7 +165,7 @@ const SettingsItemList = ({ menuType }: { menuType: string }) => {
     <>
       <Account show={menuType === 'Account'} />
       <Language show={menuType === 'Language'} />
-      {/* <Maps show={menuType === 'Maps'} /> */}
+      <Maps show={menuType === 'Maps'} />
       {/* 
 			<Appearance show={menuType === 'Appearance'} />
 			<General show={menuType === 'General'} />
@@ -242,7 +242,7 @@ const SettingsNavList = ({
         </div>
       </saki-menu-item>
 
-      {/* <saki-menu-item
+      <saki-menu-item
         active={menuType === 'Maps'}
         padding="16px 12px"
         value="Maps"
@@ -264,7 +264,7 @@ const SettingsNavList = ({
           </svg>
           <span className="name">{t('maps')}</span>
         </div>
-      </saki-menu-item> */}
+      </saki-menu-item>
       {/* <saki-menu-item
 				active={menuType === 'Appearance'}
 				padding='16px 12px'
@@ -703,960 +703,1043 @@ const Language = ({ show }: { show: boolean }) => {
   )
 }
 
-// const Maps = ({ show }: { show: boolean }) => {
-//   const { t, i18n } = useTranslation('settings')
-//   const config = useSelector((state: RootState) => state.config)
-//   const layout = useSelector((state: RootState) => state.layout)
+const Maps = ({ show }: { show: boolean }) => {
+  const { t, i18n } = useTranslation('settings')
+  const config = useSelector((state: RootState) => state.config)
+  const layout = useSelector((state: RootState) => state.layout)
 
-//   const dispatch = useDispatch<AppDispatch>()
+  const dispatch = useDispatch<AppDispatch>()
 
-//   const [openMapUrlDowndrop, setOpenMapUrlDowndrop] = useState(false)
-//   const [speedColorType, setSpeedColorType] = useState(Object.keys(config.configure?.speedColorLimit || {})?.[0])
-//   const [speedColorLimit, setSpeedColorLimit] = useState(
-//     (config.configure as any)?.speedColorLimit?.[
-//       speedColorType
-//     ] as protoRoot.configure.Configure.SpeedColorLimit.ISpeedColorLimitItem
-//   )
+  const [openMapUrlDowndrop, setOpenMapUrlDowndrop] = useState(false)
 
-//   const [openSpeedColorTypeDropdown, setOpenSpeedColorTypeDropdown] = useState(false)
+  return (
+    <div
+      style={{
+        display: show ? 'block' : 'none',
+        height: '100%',
+      }}
+      className="setting-maps scrollBarHover"
+    >
+      <SettingsItem
+        subtitle={() => (
+          <div>
+            {t('title', {
+              ns: 'privacyGeofenceModal',
+            })}
+          </div>
+        )}
+        main={() => (
+          <div className="sm-basemap">
+            <span>
+              {t('enableGeoFence', {
+                ns: 'settings',
+              })}
+            </span>
+            <saki-switch
+              ref={bindEvent({
+                change: (e) => {
+                  dispatch(
+                    methods.config.SetConfigure({
+                      ...config.configure,
+                      general: {
+                        ...config.configure.general,
+                        enableGeoFence: Boolean(e.detail),
+                      },
+                    })
+                  )
+                },
+              })}
+              height="24px"
+              value={!!config.configure.general?.enableGeoFence}
+            ></saki-switch>
+          </div>
+        )}
+      ></SettingsItem>
 
-//   const [openTrackRouteMapUrlDowndrop, setOpenTrackRouteMapUrlDowndrop] = useState(false)
+      {/* <SettingsItem
+        subtitle={() => <div>{t('basemap')}</div>}
+        main={() => (
+          // <saki-checkbox
+          // 	ref={bindEvent({
+          // 		async selectvalue(e) {
+          // 			console.log(e)
+          // 			dispatch(methods.config.setMapKey(e.detail.value))
+          // 		},
+          // 	})}
+          // 	value={config.mapKey}
+          // 	flex-direction='Column'
+          // 	type='Radio'
+          // >
+          // 	{maps.map((v, i) => {
+          // 		return (
+          // 			<saki-checkbox-item key={i} margin='14px 8px 14px 0' value={v.key}>
+          // 				{t(v.key)}
+          // 			</saki-checkbox-item>
+          // 		)
+          // 	})}
+          // </saki-checkbox>
+          <>
+            <div className="sm-basemap">
+              <span>{t('basemap')}</span>
+              <saki-dropdown
+                visible={openMapUrlDowndrop}
+                floating-direction="Left"
+                z-index="1000"
+                ref={bindEvent({
+                  close: () => {
+                    setOpenMapUrlDowndrop(false)
+                  },
+                })}
+              >
+                <saki-button
+                  border="none"
+                  bg-hover-color="transparent"
+                  bg-active-color="transparent"
+                  padding="0px"
+                  ref={bindEvent({
+                    tap: () => {
+                      setOpenMapUrlDowndrop(true)
+                    },
+                  })}
+                >
+                  <span
+                    style={{
+                      color: '#666',
+                    }}
+                    className="name"
+                  >
+                    {t(
+                      maps.filter((v) => {
+                        return v.key === config.configure.baseMap?.mapKey
+                      })?.[0]?.key
+                    )}
+                  </span>
+                  <saki-icon
+                    width="12px"
+                    height="12px"
+                    color="#999"
+                    margin="0 0 0 6px"
+                    type="Bottom"
+                  ></saki-icon>
+                </saki-button>
+                <div slot="main">
+                  <saki-menu
+                    ref={bindEvent({
+                      selectvalue: async (e) => {
+                        console.log(e.detail.value)
 
-//   useEffect(() => {
-//     setSpeedColorLimit(
-//       (config.configure as any)?.speedColorLimit?.[
-//         speedColorType
-//       ] as protoRoot.configure.Configure.SpeedColorLimit.ISpeedColorLimitItem
-//     )
-//   }, [speedColorType, layout.openSettingsModal])
+                        dispatch(
+                          methods.config.SetConfigure({
+                            ...config.configure,
+                            baseMap: {
+                              ...config.configure['baseMap'],
+                              mapKey: e.detail.value,
+                            },
+                          })
+                        )
 
-//   const sliderRange = getSpeedColorSliderRange(speedColorType)
+                        setOpenMapUrlDowndrop(false)
+                      },
+                    })}
+                  >
+                    {maps.map((v, i) => {
+                      return (
+                        <saki-menu-item
+                          key={i}
+                          // width={dropdownWidth}
+                          padding="10px 18px"
+                          value={v.key}
+                        >
+                          <div className="note-item">
+                            <span className="text-elipsis">{t(v.key)}</span>
+                          </div>
+                        </saki-menu-item>
+                      )
+                    })}
+                  </saki-menu>
+                </div>
+              </saki-dropdown>
+            </div>
+            <div className="sm-segmented">
+              <saki-segmented
+                ref={bindEvent({
+                  changevalue: (e) => {
+                    console.log('SetConfigure segmented', e)
+                    dispatch(
+                      methods.config.SetConfigure({
+                        ...config.configure,
+                        baseMap: {
+                          ...config.configure['baseMap'],
+                          mapMode: e.detail,
+                        },
+                      })
+                    )
+                  },
+                })}
+                // width='100%'
+                height="40px"
+                border-radius="20px"
+                margin="12px 0 0"
+                value={config.configure.baseMap?.mapMode || 'Normal'}
+                // value={config.configure.baseMap?.mapMode || 'Normal'}
+                bg-color="#eee"
+              >
+                {['Normal', 'Gray', 'Dark', 'Black'].map((v, i) => {
+                  return (
+                    <saki-segmented-item padding="2px 14px" value={v} key={i}>
+                      <span>{t(v.toLowerCase() + 'Mode')}</span>
+                    </saki-segmented-item>
+                  )
+                })}
+              </saki-segmented>
+            </div>
 
-//   return (
-//     <div
-//       style={{
-//         display: show ? 'block' : 'none',
-//         height: '100%',
-//       }}
-//       className="setting-maps scrollBarHover"
-//     >
-//       <SettingsItem
-//         subtitle={() => <div>{t('basemap')}</div>}
-//         main={() => (
-//           // <saki-checkbox
-//           // 	ref={bindEvent({
-//           // 		async selectvalue(e) {
-//           // 			console.log(e)
-//           // 			dispatch(methods.config.setMapKey(e.detail.value))
-//           // 		},
-//           // 	})}
-//           // 	value={config.mapKey}
-//           // 	flex-direction='Column'
-//           // 	type='Radio'
-//           // >
-//           // 	{maps.map((v, i) => {
-//           // 		return (
-//           // 			<saki-checkbox-item key={i} margin='14px 8px 14px 0' value={v.key}>
-//           // 				{t(v.key)}
-//           // 			</saki-checkbox-item>
-//           // 		)
-//           // 	})}
-//           // </saki-checkbox>
-//           <>
-//             <div className="sm-basemap">
-//               <span>{t('basemap')}</span>
-//               <saki-dropdown
-//                 visible={openMapUrlDowndrop}
-//                 floating-direction="Left"
-//                 z-index="1000"
-//                 ref={bindEvent({
-//                   close: () => {
-//                     setOpenMapUrlDowndrop(false)
-//                   },
-//                 })}
-//               >
-//                 <saki-button
-//                   border="none"
-//                   bg-hover-color="transparent"
-//                   bg-active-color="transparent"
-//                   padding="0px"
-//                   ref={bindEvent({
-//                     tap: () => {
-//                       setOpenMapUrlDowndrop(true)
-//                     },
-//                   })}
-//                 >
-//                   <span
-//                     style={{
-//                       color: '#666',
-//                     }}
-//                     className="name"
-//                   >
-//                     {t(
-//                       maps.filter((v) => {
-//                         return v.key === config.configure.baseMap?.mapKey
-//                       })?.[0]?.key
-//                     )}
-//                   </span>
-//                   <saki-icon width="12px" height="12px" color="#999" margin="0 0 0 6px" type="Bottom"></saki-icon>
-//                 </saki-button>
-//                 <div slot="main">
-//                   <saki-menu
-//                     ref={bindEvent({
-//                       selectvalue: async (e) => {
-//                         console.log(e.detail.value)
+            <div className="sm-bm-recommend">
+              {config.mapRecommend.baseMap.map((v, i) => {
+                return (
+                  <div
+                    ref={
+                      bindEvent({
+                        click: () => {
+                          dispatch(
+                            methods.config.SetConfigure({
+                              ...config.configure,
+                              baseMap: {
+                                mapKey: v.mapKey,
+                                mapMode: v.mapMode,
+                              },
+                            })
+                          )
+                        },
+                      }) as any
+                    }
+                    key={i}
+                    className="sm-r-item"
+                  >
+                    <span>
+                      {t(v.mapKey)}
+                      {v.mapMode !== 'Normal'
+                        ? '-' + t(v.mapMode.toLowerCase() + 'Mode')
+                        : ''}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
 
-//                         dispatch(
-//                           methods.config.SetConfigure({
-//                             ...config.configure,
-//                             baseMap: {
-//                               ...config.configure['baseMap'],
-//                               mapKey: e.detail.value,
-//                             },
-//                           })
-//                         )
+            <div className="sm-basemap">
+              <span>{t('trackRouteBaseMap')}</span>
+              <saki-dropdown
+                visible={openTrackRouteMapUrlDowndrop}
+                floating-direction="Left"
+                z-index="1000"
+                ref={bindEvent({
+                  close: () => {
+                    setOpenTrackRouteMapUrlDowndrop(false)
+                  },
+                })}
+              >
+                <saki-button
+                  border="none"
+                  bg-hover-color="transparent"
+                  bg-active-color="transparent"
+                  padding="0px"
+                  ref={bindEvent({
+                    tap: () => {
+                      setOpenTrackRouteMapUrlDowndrop(true)
+                    },
+                  })}
+                >
+                  <span
+                    style={{
+                      color: '#666',
+                    }}
+                    className="name"
+                  >
+                    {t(
+                      maps.filter((v) => {
+                        return v.key === config.configure.trackRouteMap?.mapKey
+                      })?.[0]?.key
+                    )}
+                  </span>
+                  <saki-icon
+                    width="12px"
+                    height="12px"
+                    color="#999"
+                    margin="0 0 0 6px"
+                    type="Bottom"
+                  ></saki-icon>
+                </saki-button>
+                <div slot="main">
+                  <saki-menu
+                    ref={bindEvent({
+                      selectvalue: async (e) => {
+                        console.log(e.detail.value)
 
-//                         setOpenMapUrlDowndrop(false)
-//                       },
-//                     })}
-//                   >
-//                     {maps.map((v, i) => {
-//                       return (
-//                         <saki-menu-item
-//                           key={i}
-//                           // width={dropdownWidth}
-//                           padding="10px 18px"
-//                           value={v.key}
-//                         >
-//                           <div className="note-item">
-//                             <span className="text-elipsis">{t(v.key)}</span>
-//                           </div>
-//                         </saki-menu-item>
-//                       )
-//                     })}
-//                   </saki-menu>
-//                 </div>
-//               </saki-dropdown>
-//             </div>
-//             <div className="sm-segmented">
-//               <saki-segmented
-//                 ref={bindEvent({
-//                   changevalue: (e) => {
-//                     console.log('SetConfigure segmented', e)
-//                     dispatch(
-//                       methods.config.SetConfigure({
-//                         ...config.configure,
-//                         baseMap: {
-//                           ...config.configure['baseMap'],
-//                           mapMode: e.detail,
-//                         },
-//                       })
-//                     )
-//                   },
-//                 })}
-//                 // width='100%'
-//                 height="40px"
-//                 border-radius="20px"
-//                 margin="12px 0 0"
-//                 value={config.configure.baseMap?.mapMode || 'Normal'}
-//                 // value={config.configure.baseMap?.mapMode || 'Normal'}
-//                 bg-color="#eee"
-//               >
-//                 {['Normal', 'Gray', 'Dark', 'Black'].map((v, i) => {
-//                   return (
-//                     <saki-segmented-item padding="2px 14px" value={v} key={i}>
-//                       <span>{t(v.toLowerCase() + 'Mode')}</span>
-//                     </saki-segmented-item>
-//                   )
-//                 })}
-//               </saki-segmented>
-//             </div>
+                        dispatch(
+                          methods.config.SetConfigure({
+                            ...config.configure,
+                            trackRouteMap: {
+                              ...config.configure['trackRouteMap'],
+                              mapKey: e.detail.value,
+                            },
+                          })
+                        )
+                        setOpenTrackRouteMapUrlDowndrop(false)
+                      },
+                    })}
+                  >
+                    {maps.map((v, i) => {
+                      return (
+                        <saki-menu-item
+                          key={i}
+                          // width={dropdownWidth}
+                          padding="10px 18px"
+                          value={v.key}
+                        >
+                          <div className="note-item">
+                            <span className="text-elipsis">{t(v.key)}</span>
+                          </div>
+                        </saki-menu-item>
+                      )
+                    })}
+                  </saki-menu>
+                </div>
+              </saki-dropdown>
+            </div>
+            <div className="sm-segmented">
+              <saki-segmented
+                ref={bindEvent({
+                  changevalue: (e) => {
+                    console.log(e)
+                    dispatch(
+                      methods.config.SetConfigure({
+                        ...config.configure,
+                        trackRouteMap: {
+                          ...config.configure['trackRouteMap'],
+                          mapMode: e.detail,
+                        },
+                      })
+                    )
+                  },
+                })}
+                width="100%"
+                height="36px"
+                border-radius="18px"
+                margin="12px 0 0"
+                value={config.configure.trackRouteMap?.mapMode || 'Normal'}
+                // value={config.configure.baseMap?.mapMode || 'Normal'}
+                bg-color="#eee"
+              >
+                {['Normal', 'Gray', 'Dark', 'Black'].map((v, i) => {
+                  return (
+                    <saki-segmented-item padding="2px 14px" value={v} key={i}>
+                      <span>{t(v.toLowerCase() + 'Mode')}</span>
+                    </saki-segmented-item>
+                  )
+                })}
+              </saki-segmented>
+            </div>
 
-//             <div className="sm-bm-recommend">
-//               {config.mapRecommend.baseMap.map((v, i) => {
-//                 return (
-//                   <div
-//                     ref={
-//                       bindEvent({
-//                         click: () => {
-//                           dispatch(
-//                             methods.config.SetConfigure({
-//                               ...config.configure,
-//                               baseMap: {
-//                                 mapKey: v.mapKey,
-//                                 mapMode: v.mapMode,
-//                               },
-//                             })
-//                           )
-//                         },
-//                       }) as any
-//                     }
-//                     key={i}
-//                     className="sm-r-item"
-//                   >
-//                     <span>
-//                       {t(v.mapKey)}
-//                       {v.mapMode !== 'Normal' ? '-' + t(v.mapMode.toLowerCase() + 'Mode') : ''}
-//                     </span>
-//                   </div>
-//                 )
-//               })}
-//             </div>
+            <div className="sm-bm-recommend">
+              {config.mapRecommend.trackRouteMap.map((v, i) => {
+                return (
+                  <div
+                    ref={
+                      bindEvent({
+                        click: () => {
+                          dispatch(
+                            methods.config.SetConfigure({
+                              ...config.configure,
+                              trackRouteMap: {
+                                mapKey: v.mapKey,
+                                mapMode: v.mapMode,
+                              },
+                            })
+                          )
+                        },
+                      }) as any
+                    }
+                    key={i}
+                    className="sm-r-item"
+                  >
+                    <span>
+                      {t(v.mapKey)}
+                      {v.mapMode !== 'Normal'
+                        ? '-' + t(v.mapMode.toLowerCase() + 'Mode')
+                        : ''}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          </>
+        )}
+      ></SettingsItem>
+      <SettingsItem
+        subtitle={() => (
+          <div>
+            {t('roadColorFade', {
+              ns: 'settings',
+            })}
+          </div>
+        )}
+        main={() => (
+          <div className="sm-basemap">
+            <span>
+              {t('roadColorFadeTip', {
+                ns: 'settings',
+                maps: config.mapRecommend.roadColorFadeMap
+                  .map((v, i) => {
+                    return (
+                      t(v.mapKey, {
+                        ns: 'settings',
+                      }) +
+                      (i === config.mapRecommend.roadColorFadeMap.length - 1
+                        ? config.lang === 'en-US'
+                          ? ','
+                          : ''
+                        : ',')
+                    )
+                  })
+                  .join(' '),
+              })}
+            </span>
+            <saki-switch
+              ref={bindEvent({
+                change: (e) => {
+                  dispatch(
+                    methods.config.SetConfigure({
+                      ...config.configure,
+                      roadColorFade: Boolean(e.detail),
+                    })
+                  )
+                },
+              })}
+              height="24px"
+              value={config.configure.roadColorFade}
+            ></saki-switch>
+          </div>
+        )}
+      ></SettingsItem>
 
-//             <div className="sm-basemap">
-//               <span>{t('trackRouteBaseMap')}</span>
-//               <saki-dropdown
-//                 visible={openTrackRouteMapUrlDowndrop}
-//                 floating-direction="Left"
-//                 z-index="1000"
-//                 ref={bindEvent({
-//                   close: () => {
-//                     setOpenTrackRouteMapUrlDowndrop(false)
-//                   },
-//                 })}
-//               >
-//                 <saki-button
-//                   border="none"
-//                   bg-hover-color="transparent"
-//                   bg-active-color="transparent"
-//                   padding="0px"
-//                   ref={bindEvent({
-//                     tap: () => {
-//                       setOpenTrackRouteMapUrlDowndrop(true)
-//                     },
-//                   })}
-//                 >
-//                   <span
-//                     style={{
-//                       color: '#666',
-//                     }}
-//                     className="name"
-//                   >
-//                     {t(
-//                       maps.filter((v) => {
-//                         return v.key === config.configure.trackRouteMap?.mapKey
-//                       })?.[0]?.key
-//                     )}
-//                   </span>
-//                   <saki-icon width="12px" height="12px" color="#999" margin="0 0 0 6px" type="Bottom"></saki-icon>
-//                 </saki-button>
-//                 <div slot="main">
-//                   <saki-menu
-//                     ref={bindEvent({
-//                       selectvalue: async (e) => {
-//                         console.log(e.detail.value)
+      <SettingsItem
+        subtitle={() => (
+          <div>
+            <span>{t('trackSpeed​Color')}</span>
+          </div>
+        )}
+        main={() => (
+          <>
+            <saki-checkbox
+              ref={bindEvent({
+                async selectvalue(e) {
+                  dispatch(
+                    methods.config.SetConfigure({
+                      ...config.configure,
+                      trackSpeedColor: e.detail.value,
+                    })
+                  )
+                },
+              })}
+              value={config.configure?.trackSpeedColor || 'RedGreen'}
+              flex-direction="Column"
+              type="Radio"
+            >
+              {['RedGreen', 'PinkBlue'].map((v, i) => {
+                const rgbs = getTrackSpeedColors(v as any)
+                return (
+                  <saki-checkbox-item
+                    key={i}
+                    margin="14px 8px 14px 0"
+                    value={v}
+                  >
+                    <saki-row
+                      justify-content="space-between"
+                      align-items="center"
+                      margin="0 0 0 2px"
+                    >
+                      <span>{t(v)}</span>
+                      <div
+                        style={{
+                          flex: 1,
+                          margin: '0 0 0 8px',
+                        }}
+                        className="sm-sc-color"
+                      >
+                        <div
+                          style={{
+                            background: `linear-gradient(45deg, ${rgbs[0]},${
+                              rgbs[rgbs.length - 1]
+                            })`,
+                          }}
+                          className="sm-sc-line"
+                        ></div>
+                      </div>
+                    </saki-row>
+                  </saki-checkbox-item>
+                )
+              })}
+            </saki-checkbox>
+          </>
+        )}
+      ></SettingsItem>
 
-//                         dispatch(
-//                           methods.config.SetConfigure({
-//                             ...config.configure,
-//                             trackRouteMap: {
-//                               ...config.configure['trackRouteMap'],
-//                               mapKey: e.detail.value,
-//                             },
-//                           })
-//                         )
-//                         setOpenTrackRouteMapUrlDowndrop(false)
-//                       },
-//                     })}
-//                   >
-//                     {maps.map((v, i) => {
-//                       return (
-//                         <saki-menu-item
-//                           key={i}
-//                           // width={dropdownWidth}
-//                           padding="10px 18px"
-//                           value={v.key}
-//                         >
-//                           <div className="note-item">
-//                             <span className="text-elipsis">{t(v.key)}</span>
-//                           </div>
-//                         </saki-menu-item>
-//                       )
-//                     })}
-//                   </saki-menu>
-//                 </div>
-//               </saki-dropdown>
-//             </div>
-//             <div className="sm-segmented">
-//               <saki-segmented
-//                 ref={bindEvent({
-//                   changevalue: (e) => {
-//                     console.log(e)
-//                     dispatch(
-//                       methods.config.SetConfigure({
-//                         ...config.configure,
-//                         trackRouteMap: {
-//                           ...config.configure['trackRouteMap'],
-//                           mapMode: e.detail,
-//                         },
-//                       })
-//                     )
-//                   },
-//                 })}
-//                 width="100%"
-//                 height="36px"
-//                 border-radius="18px"
-//                 margin="12px 0 0"
-//                 value={config.configure.trackRouteMap?.mapMode || 'Normal'}
-//                 // value={config.configure.baseMap?.mapMode || 'Normal'}
-//                 bg-color="#eee"
-//               >
-//                 {['Normal', 'Gray', 'Dark', 'Black'].map((v, i) => {
-//                   return (
-//                     <saki-segmented-item padding="2px 14px" value={v} key={i}>
-//                       <span>{t(v.toLowerCase() + 'Mode')}</span>
-//                     </saki-segmented-item>
-//                   )
-//                 })}
-//               </saki-segmented>
-//             </div>
+      <SettingsItem
+        subtitle={() => (
+          <div>
+            {t('speedColorLimit', {
+              ns: 'tripPage',
+            })}
+          </div>
+        )}
+        main={() => (
+          <>
+            <div className="sm-speed-color-range">
+              <div className="sm-sc-type">
+                <span
+                  style={{
+                    color: '#000',
+                  }}
+                >
+                  {t('type', {
+                    ns: 'tripPage',
+                  })}
+                </span>
+                <saki-dropdown
+                  visible={openSpeedColorTypeDropdown}
+                  floating-direction="Left"
+                  z-index="1000"
+                  ref={bindEvent({
+                    close: () => {
+                      setOpenSpeedColorTypeDropdown(false)
+                    },
+                  })}
+                >
+                  <saki-button
+                    border="none"
+                    bg-hover-color="transparent"
+                    bg-active-color="transparent"
+                    padding="0px"
+                    ref={bindEvent({
+                      tap: () => {
+                        setOpenSpeedColorTypeDropdown(true)
+                      },
+                    })}
+                  >
+                    <span
+                      style={{
+                        color: '#666',
+                      }}
+                      className="name"
+                    >
+                      {t(speedColorType, {
+                        ns: 'tripPage',
+                      })}
+                    </span>
+                    <saki-icon
+                      width="12px"
+                      height="12px"
+                      color="#999"
+                      margin="0 0 0 6px"
+                      type="Bottom"
+                    ></saki-icon>
+                  </saki-button>
+                  <div slot="main">
+                    <saki-menu
+                      ref={bindEvent({
+                        selectvalue: async (e) => {
+                          setSpeedColorType(e.detail.value)
+                          setOpenSpeedColorTypeDropdown(false)
+                        },
+                      })}
+                    >
+                      {Object.keys(config.configure.speedColorLimit || {}).map(
+                        (v, i) => {
+                          return (
+                            <saki-menu-item
+                              key={i}
+                              padding="10px 18px"
+                              value={v}
+                              active={speedColorType === v}
+                            >
+                              <div className="note-item">
+                                <span className="text-elipsis">
+                                  {t(v, {
+                                    ns: 'tripPage',
+                                  })}
+                                </span>
+                              </div>
+                            </saki-menu-item>
+                          )
+                        }
+                      )}
+                    </saki-menu>
+                  </div>
+                </saki-dropdown>
+              </div>
 
-//             <div className="sm-bm-recommend">
-//               {config.mapRecommend.trackRouteMap.map((v, i) => {
-//                 return (
-//                   <div
-//                     ref={
-//                       bindEvent({
-//                         click: () => {
-//                           dispatch(
-//                             methods.config.SetConfigure({
-//                               ...config.configure,
-//                               trackRouteMap: {
-//                                 mapKey: v.mapKey,
-//                                 mapMode: v.mapMode,
-//                               },
-//                             })
-//                           )
-//                         },
-//                       }) as any
-//                     }
-//                     key={i}
-//                     className="sm-r-item"
-//                   >
-//                     <span>
-//                       {t(v.mapKey)}
-//                       {v.mapMode !== 'Normal' ? '-' + t(v.mapMode.toLowerCase() + 'Mode') : ''}
-//                     </span>
-//                   </div>
-//                 )
-//               })}
-//             </div>
-//           </>
-//         )}
-//       ></SettingsItem>
-//       <SettingsItem
-//         subtitle={() => (
-//           <div>
-//             {t('roadColorFade', {
-//               ns: 'settings',
-//             })}
-//           </div>
-//         )}
-//         main={() => (
-//           <div className="sm-basemap">
-//             <span>
-//               {t('roadColorFadeTip', {
-//                 ns: 'settings',
-//                 maps: config.mapRecommend.roadColorFadeMap
-//                   .map((v, i) => {
-//                     return (
-//                       t(v.mapKey, {
-//                         ns: 'settings',
-//                       }) +
-//                       (i === config.mapRecommend.roadColorFadeMap.length - 1
-//                         ? config.lang === 'en-US'
-//                           ? ','
-//                           : ''
-//                         : ',')
-//                     )
-//                   })
-//                   .join(' '),
-//               })}
-//             </span>
-//             <saki-switch
-//               ref={bindEvent({
-//                 change: (e) => {
-//                   dispatch(
-//                     methods.config.SetConfigure({
-//                       ...config.configure,
-//                       roadColorFade: Boolean(e.detail),
-//                     })
-//                   )
-//                 },
-//               })}
-//               height="24px"
-//               value={config.configure.roadColorFade}
-//             ></saki-switch>
-//           </div>
-//         )}
-//       ></SettingsItem>
+              <div className="sm-sc-speed">
+                <span>
+                  {t('minSpeed', {
+                    ns: 'tripPage',
+                  }) +
+                    ' ' +
+                    Math.round(
+                      (config.configure.speedColorLimit as any)?.[
+                        speedColorType
+                      ].minSpeed * 3.6
+                    )}
+                  km/h
+                </span>
+                <span>
+                  {t('maxSpeed', {
+                    ns: 'tripPage',
+                  }) +
+                    ' ' +
+                    Math.round(
+                      (config.configure.speedColorLimit as any)?.[
+                        speedColorType
+                      ].maxSpeed * 3.6
+                    )}
+                  km/h
+                </span>
+              </div>
 
-//       <SettingsItem
-//         subtitle={() => (
-//           <div>
-//             <span>{t('trackSpeed​Color')}</span>
-//           </div>
-//         )}
-//         main={() => (
-//           <>
-//             <saki-checkbox
-//               ref={bindEvent({
-//                 async selectvalue(e) {
-//                   dispatch(
-//                     methods.config.SetConfigure({
-//                       ...config.configure,
-//                       trackSpeedColor: e.detail.value,
-//                     })
-//                   )
-//                 },
-//               })}
-//               value={config.configure?.trackSpeedColor || 'RedGreen'}
-//               flex-direction="Column"
-//               type="Radio"
-//             >
-//               {['RedGreen', 'PinkBlue'].map((v, i) => {
-//                 const rgbs = getTrackSpeedColors(v as any)
-//                 return (
-//                   <saki-checkbox-item key={i} margin="14px 8px 14px 0" value={v}>
-//                     <saki-row justify-content="space-between" align-items="center" margin="0 0 0 2px">
-//                       <span>{t(v)}</span>
-//                       <div
-//                         style={{
-//                           flex: 1,
-//                           margin: '0 0 0 8px',
-//                         }}
-//                         className="sm-sc-color"
-//                       >
-//                         <div
-//                           style={{
-//                             background: `linear-gradient(45deg, ${rgbs[0]},${rgbs[rgbs.length - 1]})`,
-//                           }}
-//                           className="sm-sc-line"
-//                         ></div>
-//                       </div>
-//                     </saki-row>
-//                   </saki-checkbox-item>
-//                 )
-//               })}
-//             </saki-checkbox>
-//           </>
-//         )}
-//       ></SettingsItem>
+              <div className="sm-sc-range">
+                <saki-slider
+                  ref={bindEvent({
+                    changevalue(e) {
+                      // console.log('onChangevalue', e)
 
-//       <SettingsItem
-//         subtitle={() => (
-//           <div>
-//             {t('speedColorLimit', {
-//               ns: 'tripPage',
-//             })}
-//           </div>
-//         )}
-//         main={() => (
-//           <>
-//             <div className="sm-speed-color-range">
-//               <div className="sm-sc-type">
-//                 <span
-//                   style={{
-//                     color: '#000',
-//                   }}
-//                 >
-//                   {t('type', {
-//                     ns: 'tripPage',
-//                   })}
-//                 </span>
-//                 <saki-dropdown
-//                   visible={openSpeedColorTypeDropdown}
-//                   floating-direction="Left"
-//                   z-index="1000"
-//                   ref={bindEvent({
-//                     close: () => {
-//                       setOpenSpeedColorTypeDropdown(false)
-//                     },
-//                   })}
-//                 >
-//                   <saki-button
-//                     border="none"
-//                     bg-hover-color="transparent"
-//                     bg-active-color="transparent"
-//                     padding="0px"
-//                     ref={bindEvent({
-//                       tap: () => {
-//                         setOpenSpeedColorTypeDropdown(true)
-//                       },
-//                     })}
-//                   >
-//                     <span
-//                       style={{
-//                         color: '#666',
-//                       }}
-//                       className="name"
-//                     >
-//                       {t(speedColorType, {
-//                         ns: 'tripPage',
-//                       })}
-//                     </span>
-//                     <saki-icon width="12px" height="12px" color="#999" margin="0 0 0 6px" type="Bottom"></saki-icon>
-//                   </saki-button>
-//                   <div slot="main">
-//                     <saki-menu
-//                       ref={bindEvent({
-//                         selectvalue: async (e) => {
-//                           setSpeedColorType(e.detail.value)
-//                           setOpenSpeedColorTypeDropdown(false)
-//                         },
-//                       })}
-//                     >
-//                       {Object.keys(config.configure.speedColorLimit || {}).map((v, i) => {
-//                         return (
-//                           <saki-menu-item key={i} padding="10px 18px" value={v} active={speedColorType === v}>
-//                             <div className="note-item">
-//                               <span className="text-elipsis">
-//                                 {t(v, {
-//                                   ns: 'tripPage',
-//                                 })}
-//                               </span>
-//                             </div>
-//                           </saki-menu-item>
-//                         )
-//                       })}
-//                     </saki-menu>
-//                   </div>
-//                 </saki-dropdown>
-//               </div>
+                      if (e.detail?.length === 2) {
+                        const obj: any = {
+                          ...config.configure.speedColorLimit,
+                        }
+                        obj[speedColorType] = {
+                          minSpeed:
+                            e.detail?.[0] / 3.6 || speedColorLimit.minSpeed,
+                          maxSpeed:
+                            e.detail?.[1] / 3.6 || speedColorLimit.maxSpeed,
+                        }
 
-//               <div className="sm-sc-speed">
-//                 <span>
-//                   {t('minSpeed', {
-//                     ns: 'tripPage',
-//                   }) +
-//                     ' ' +
-//                     Math.round((config.configure.speedColorLimit as any)?.[speedColorType].minSpeed * 3.6)}
-//                   km/h
-//                 </span>
-//                 <span>
-//                   {t('maxSpeed', {
-//                     ns: 'tripPage',
-//                   }) +
-//                     ' ' +
-//                     Math.round((config.configure.speedColorLimit as any)?.[speedColorType].maxSpeed * 3.6)}
-//                   km/h
-//                 </span>
-//               </div>
+                        console.log('SetConfigure slider', e)
 
-//               <div className="sm-sc-range">
-//                 <saki-slider
-//                   ref={bindEvent({
-//                     changevalue(e) {
-//                       // console.log('onChangevalue', e)
+                        dispatch(
+                          methods.config.SetConfigure({
+                            ...config.configure,
+                            speedColorLimit: obj,
+                          })
+                        )
+                      }
+                    },
+                  })}
+                  min={sliderRange[0]}
+                  max={sliderRange[1]}
+                  value={[
+                    Math.round((speedColorLimit?.minSpeed || 0) * 3.6 * 100) /
+                      100,
+                    Math.round((speedColorLimit?.maxSpeed || 0) * 3.6 * 100) /
+                      100,
+                  ].join(';')}
+                  bg-color="rgb(243,243,243)"
+                  bg-hover-color="#eee"
+                  track-color={[
+                    `linear-gradient(45deg, ${config.speedColorRGBs[0]},${
+                      config.speedColorRGBs[config.speedColorRGBs.length - 1]
+                    })`,
+                  ].join(';')}
+                  marks={[
+                    {
+                      val: sliderRange[0],
+                      text: sliderRange[0] + 'km/h',
+                      style: {
+                        color: 'var(--saki-default-color)',
+                        // fontWeight: 700,
+                      },
+                    },
+                    {
+                      val:
+                        Math.round(
+                          defaultSpeedColorLimit[speedColorType].minSpeed *
+                            3.6 *
+                            100
+                        ) / 100,
+                      // text: speedColorLimit.minSpeed * 3.6 + 'km/h',
+                      style: {
+                        color: 'var(--saki-default-color)',
+                        // fontWeight: 700,
+                      },
+                    },
+                    {
+                      val:
+                        Math.round(
+                          defaultSpeedColorLimit[speedColorType].maxSpeed *
+                            3.6 *
+                            100
+                        ) / 100,
+                      // text: speedColorLimit.maxSpeed * 3.6 + 'km/h',
+                      style: {
+                        color: 'var(--saki-default-color)',
+                        // fontWeight: 700,
+                      },
+                    },
+                    {
+                      val: sliderRange[1],
+                      text: sliderRange[1] + 'm/h',
+                      style: {
+                        color: 'var(--saki-default-color)',
+                        // fontWeight: 700,
+                      },
+                    },
+                  ]
+                    .map((v) => JSON.stringify(v))
+                    .join(';')}
+                  tool-tip={true}
+                  disabled={false}
+                  width={'100%'}
+                  max-width={'100%'}
+                  height={'12px'}
+                  margin="10px 0 16px"
+                  border-radius="6px"
+                ></saki-slider>
+              </div>
+            </div>
+          </>
+        )}
+      ></SettingsItem>
+      <SettingsItem
+        subtitle={() => <div>{t('speedAnimation')}</div>}
+        main={() => (
+          <div className="sm-basemap">
+            <span>
+              {t('speedAnimationTip', {
+                ns: 'settings',
+              })}
+            </span>
+            <saki-switch
+              ref={bindEvent({
+                change: (e) => {
+                  dispatch(
+                    methods.config.SetConfigure({
+                      ...config.configure,
+                      speedAnimation: Boolean(e.detail),
+                    })
+                  )
+                },
+              })}
+              height="24px"
+              value={config.configure.speedAnimation}
+            ></saki-switch>
+          </div>
+        )}
+      ></SettingsItem>
+      <SettingsItem
+        subtitle={() => <div>{t('trackRouteColor')}</div>}
+        main={() => (
+          <saki-checkbox
+            ref={bindEvent({
+              async selectvalue(e) {
+                dispatch(
+                  methods.config.SetConfigure({
+                    ...config.configure,
+                    trackRouteColor: e.detail.value,
+                  })
+                )
+              },
+            })}
+            value={config.configure.trackRouteColor || 'Red'}
+            flex-direction="Column"
+            type="Radio"
+          >
+            {['Red', 'Blue', 'Pink'].map((v, i) => {
+              return (
+                <saki-checkbox-item key={i} margin="14px 8px 14px 0" value={v}>
+                  <div className="sm-trc-item">
+                    <span>{t(v.toLowerCase())}</span>
+                    <div
+                      className="sm-trc-i-color"
+                      style={{
+                        backgroundColor: getTrackRouteColor(v as any, false),
+                      }}
+                    ></div>
+                  </div>
+                </saki-checkbox-item>
+              )
+            })}
+          </saki-checkbox>
+        )}
+      ></SettingsItem> */}
+      {/* <SettingsItem
+				subtitle={() => <div>{t('trackRouteDetailedData')}</div>}
+				main={() => (
+					<div className='sm-basemap'>
+						<span>{t('trackRouteDetailedDataContent')}</span>
+						<saki-switch
+							ref={bindEvent({
+								change: (e) => {
+									store.dispatch(
+										configSlice.actions.setShowDetailedDataForMultipleHistoricalTrips(
+											e.detail
+										)
+									)
+								},
+							})}
+							height='24px'
+							value={config.showDetailedDataForMultipleHistoricalTrips}
+						></saki-switch>
+					</div>
+				)}
+			></SettingsItem> */}
+      {/* <SettingsItem
+        subtitle={() => <div>{t('currentPosition')}</div>}
+        main={() => (
+          <div className="sm-basemap">
+            <span>
+              {t('showAvatarAtCurrentPosition', {
+                ns: 'settings',
+              })}
+            </span>
+            <saki-switch
+              ref={bindEvent({
+                change: (e) => {
+                  dispatch(
+                    methods.config.SetConfigure({
+                      ...config.configure,
+                      showAvatarAtCurrentPosition: Boolean(e.detail),
+                    })
+                  )
+                },
+              })}
+              height="24px"
+              value={config.configure.showAvatarAtCurrentPosition}
+            ></saki-switch>
+          </div>
+        )}
+      ></SettingsItem>
+      <SettingsItem
+        subtitle={() => <div>{t('turnOnVoice')}</div>}
+        main={() => (
+          <div className="sm-basemap">
+            <span>
+              {t('turnOnCityVoice', {
+                ns: 'settings',
+              })}
+            </span>
+            <saki-switch
+              ref={bindEvent({
+                change: (e) => {
+                  dispatch(
+                    configSlice.actions.setTurnOnCityVoice(Boolean(e.detail))
+                  )
+                },
+              })}
+              height="24px"
+              value={config.turnOnCityVoice}
+            ></saki-switch>
+          </div>
+        )}
+      ></SettingsItem>
 
-//                       if (e.detail?.length === 2) {
-//                         const obj: any = {
-//                           ...config.configure.speedColorLimit,
-//                         }
-//                         obj[speedColorType] = {
-//                           minSpeed: e.detail?.[0] / 3.6 || speedColorLimit.minSpeed,
-//                           maxSpeed: e.detail?.[1] / 3.6 || speedColorLimit.maxSpeed,
-//                         }
+      <SettingsItem
+        subtitle={() => <div>{t('tripTrackWidth')}</div>}
+        main={() => (
+          <>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                margin: '16px 0',
+              }}
+            >
+              <span
+                style={{
+                  paddingRight: '6px',
+                }}
+              >
+                {t('ongoingTrip')}
+              </span>
+              <saki-input
+                ref={bindEvent({
+                  changevalue: (v) => {
+                    dispatch(
+                      methods.config.SetConfigure({
+                        ...config.configure,
+                        polylineWidth: {
+                          ...config.configure.polylineWidth,
+                          ongoingTrip: Number(v.detail) || 4,
+                        },
+                      })
+                    )
+                  },
+                })}
+                style={{
+                  flex: '1',
+                }}
+                width="100%"
+                type="Range"
+                value={config.configure.polylineWidth?.ongoingTrip}
+                min="1"
+                max="10"
+              ></saki-input>
+              <span
+                style={{
+                  paddingLeft: '6px',
+                }}
+              >
+                {Number(config.configure.polylineWidth?.ongoingTrip) || 0}px
+              </span>
+            </div>
 
-//                         console.log('SetConfigure slider', e)
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                margin: '16px 0',
+              }}
+            >
+              <span
+                style={{
+                  paddingRight: '6px',
+                }}
+              >
+                {t('historyTripTrack')}
+              </span>
+              <saki-input
+                ref={bindEvent({
+                  changevalue: (v) => {
+                    dispatch(
+                      methods.config.SetConfigure({
+                        ...config.configure,
+                        polylineWidth: {
+                          ...config.configure.polylineWidth,
+                          historyTripTrack: Number(v.detail) || 1,
+                        },
+                      })
+                    )
+                  },
+                })}
+                style={{
+                  flex: '1',
+                }}
+                width="100%"
+                type="Range"
+                value={config.configure.polylineWidth?.historyTripTrack}
+                min="1"
+                max="10"
+              ></saki-input>
+              <span
+                style={{
+                  paddingLeft: '6px',
+                }}
+              >
+                {Number(config.configure.polylineWidth?.historyTripTrack) || 0}
+                px
+              </span>
+            </div>
 
-//                         dispatch(
-//                           methods.config.SetConfigure({
-//                             ...config.configure,
-//                             speedColorLimit: obj,
-//                           })
-//                         )
-//                       }
-//                     },
-//                   })}
-//                   min={sliderRange[0]}
-//                   max={sliderRange[1]}
-//                   value={[
-//                     Math.round((speedColorLimit?.minSpeed || 0) * 3.6 * 100) / 100,
-//                     Math.round((speedColorLimit?.maxSpeed || 0) * 3.6 * 100) / 100,
-//                   ].join(';')}
-//                   bg-color="rgb(243,243,243)"
-//                   bg-hover-color="#eee"
-//                   track-color={[
-//                     `linear-gradient(45deg, ${config.speedColorRGBs[0]},${
-//                       config.speedColorRGBs[config.speedColorRGBs.length - 1]
-//                     })`,
-//                   ].join(';')}
-//                   marks={[
-//                     {
-//                       val: sliderRange[0],
-//                       text: sliderRange[0] + 'km/h',
-//                       style: {
-//                         color: 'var(--saki-default-color)',
-//                         // fontWeight: 700,
-//                       },
-//                     },
-//                     {
-//                       val: Math.round(defaultSpeedColorLimit[speedColorType].minSpeed * 3.6 * 100) / 100,
-//                       // text: speedColorLimit.minSpeed * 3.6 + 'km/h',
-//                       style: {
-//                         color: 'var(--saki-default-color)',
-//                         // fontWeight: 700,
-//                       },
-//                     },
-//                     {
-//                       val: Math.round(defaultSpeedColorLimit[speedColorType].maxSpeed * 3.6 * 100) / 100,
-//                       // text: speedColorLimit.maxSpeed * 3.6 + 'km/h',
-//                       style: {
-//                         color: 'var(--saki-default-color)',
-//                         // fontWeight: 700,
-//                       },
-//                     },
-//                     {
-//                       val: sliderRange[1],
-//                       text: sliderRange[1] + 'm/h',
-//                       style: {
-//                         color: 'var(--saki-default-color)',
-//                         // fontWeight: 700,
-//                       },
-//                     },
-//                   ]
-//                     .map((v) => JSON.stringify(v))
-//                     .join(';')}
-//                   tool-tip={true}
-//                   disabled={false}
-//                   width={'100%'}
-//                   max-width={'100%'}
-//                   height={'12px'}
-//                   margin="10px 0 16px"
-//                   border-radius="6px"
-//                 ></saki-slider>
-//               </div>
-//             </div>
-//           </>
-//         )}
-//       ></SettingsItem>
-//       <SettingsItem
-//         subtitle={() => <div>{t('speedAnimation')}</div>}
-//         main={() => (
-//           <div className="sm-basemap">
-//             <span>
-//               {t('speedAnimationTip', {
-//                 ns: 'settings',
-//               })}
-//             </span>
-//             <saki-switch
-//               ref={bindEvent({
-//                 change: (e) => {
-//                   dispatch(
-//                     methods.config.SetConfigure({
-//                       ...config.configure,
-//                       speedAnimation: Boolean(e.detail),
-//                     })
-//                   )
-//                 },
-//               })}
-//               height="24px"
-//               value={config.configure.speedAnimation}
-//             ></saki-switch>
-//           </div>
-//         )}
-//       ></SettingsItem>
-//       <SettingsItem
-//         subtitle={() => <div>{t('trackRouteColor')}</div>}
-//         main={() => (
-//           <saki-checkbox
-//             ref={bindEvent({
-//               async selectvalue(e) {
-//                 dispatch(
-//                   methods.config.SetConfigure({
-//                     ...config.configure,
-//                     trackRouteColor: e.detail.value,
-//                   })
-//                 )
-//               },
-//             })}
-//             value={config.configure.trackRouteColor || 'Red'}
-//             flex-direction="Column"
-//             type="Radio"
-//           >
-//             {['Red', 'Blue', 'Pink'].map((v, i) => {
-//               return (
-//                 <saki-checkbox-item key={i} margin="14px 8px 14px 0" value={v}>
-//                   <div className="sm-trc-item">
-//                     <span>{t(v.toLowerCase())}</span>
-//                     <div
-//                       className="sm-trc-i-color"
-//                       style={{
-//                         backgroundColor: getTrackRouteColor(v as any, false),
-//                       }}
-//                     ></div>
-//                   </div>
-//                 </saki-checkbox-item>
-//               )
-//             })}
-//           </saki-checkbox>
-//         )}
-//       ></SettingsItem>
-//       {/* <SettingsItem
-// 				subtitle={() => <div>{t('trackRouteDetailedData')}</div>}
-// 				main={() => (
-// 					<div className='sm-basemap'>
-// 						<span>{t('trackRouteDetailedDataContent')}</span>
-// 						<saki-switch
-// 							ref={bindEvent({
-// 								change: (e) => {
-// 									store.dispatch(
-// 										configSlice.actions.setShowDetailedDataForMultipleHistoricalTrips(
-// 											e.detail
-// 										)
-// 									)
-// 								},
-// 							})}
-// 							height='24px'
-// 							value={config.showDetailedDataForMultipleHistoricalTrips}
-// 						></saki-switch>
-// 					</div>
-// 				)}
-// 			></SettingsItem> */}
-//       <SettingsItem
-//         subtitle={() => <div>{t('currentPosition')}</div>}
-//         main={() => (
-//           <div className="sm-basemap">
-//             <span>
-//               {t('showAvatarAtCurrentPosition', {
-//                 ns: 'settings',
-//               })}
-//             </span>
-//             <saki-switch
-//               ref={bindEvent({
-//                 change: (e) => {
-//                   dispatch(
-//                     methods.config.SetConfigure({
-//                       ...config.configure,
-//                       showAvatarAtCurrentPosition: Boolean(e.detail),
-//                     })
-//                   )
-//                 },
-//               })}
-//               height="24px"
-//               value={config.configure.showAvatarAtCurrentPosition}
-//             ></saki-switch>
-//           </div>
-//         )}
-//       ></SettingsItem>
-//       <SettingsItem
-//         subtitle={() => <div>{t('turnOnVoice')}</div>}
-//         main={() => (
-//           <div className="sm-basemap">
-//             <span>
-//               {t('turnOnCityVoice', {
-//                 ns: 'settings',
-//               })}
-//             </span>
-//             <saki-switch
-//               ref={bindEvent({
-//                 change: (e) => {
-//                   dispatch(configSlice.actions.setTurnOnCityVoice(Boolean(e.detail)))
-//                 },
-//               })}
-//               height="24px"
-//               value={config.turnOnCityVoice}
-//             ></saki-switch>
-//           </div>
-//         )}
-//       ></SettingsItem>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                margin: '16px 0',
+              }}
+            >
+              <span
+                style={{
+                  paddingRight: '6px',
+                }}
+              >
+                {t('historyTripTrackSelectedTrip')}
+              </span>
+              <saki-input
+                ref={bindEvent({
+                  changevalue: (v) => {
+                    dispatch(
+                      methods.config.SetConfigure({
+                        ...config.configure,
+                        polylineWidth: {
+                          ...config.configure.polylineWidth,
+                          historyTripTrackSelectedTrip: Number(v.detail) || 2,
+                        },
+                      })
+                    )
+                  },
+                })}
+                style={{
+                  flex: '1',
+                }}
+                width="100%"
+                type="Range"
+                value={
+                  config.configure.polylineWidth?.historyTripTrackSelectedTrip
+                }
+                min="1"
+                max="10"
+              ></saki-input>
+              <span
+                style={{
+                  paddingLeft: '6px',
+                }}
+              >
+                {Number(
+                  config.configure.polylineWidth?.historyTripTrackSelectedTrip
+                ) || 0}
+                px
+              </span>
+            </div>
 
-//       <SettingsItem
-//         subtitle={() => <div>{t('tripTrackWidth')}</div>}
-//         main={() => (
-//           <>
-//             <div
-//               style={{
-//                 display: 'flex',
-//                 alignItems: 'center',
-//                 margin: '16px 0',
-//               }}
-//             >
-//               <span
-//                 style={{
-//                   paddingRight: '6px',
-//                 }}
-//               >
-//                 {t('ongoingTrip')}
-//               </span>
-//               <saki-input
-//                 ref={bindEvent({
-//                   changevalue: (v) => {
-//                     dispatch(
-//                       methods.config.SetConfigure({
-//                         ...config.configure,
-//                         polylineWidth: {
-//                           ...config.configure.polylineWidth,
-//                           ongoingTrip: Number(v.detail) || 4,
-//                         },
-//                       })
-//                     )
-//                   },
-//                 })}
-//                 style={{
-//                   flex: '1',
-//                 }}
-//                 width="100%"
-//                 type="Range"
-//                 value={config.configure.polylineWidth?.ongoingTrip}
-//                 min="1"
-//                 max="10"
-//               ></saki-input>
-//               <span
-//                 style={{
-//                   paddingLeft: '6px',
-//                 }}
-//               >
-//                 {Number(config.configure.polylineWidth?.ongoingTrip) || 0}px
-//               </span>
-//             </div>
-
-//             <div
-//               style={{
-//                 display: 'flex',
-//                 alignItems: 'center',
-//                 margin: '16px 0',
-//               }}
-//             >
-//               <span
-//                 style={{
-//                   paddingRight: '6px',
-//                 }}
-//               >
-//                 {t('historyTripTrack')}
-//               </span>
-//               <saki-input
-//                 ref={bindEvent({
-//                   changevalue: (v) => {
-//                     dispatch(
-//                       methods.config.SetConfigure({
-//                         ...config.configure,
-//                         polylineWidth: {
-//                           ...config.configure.polylineWidth,
-//                           historyTripTrack: Number(v.detail) || 1,
-//                         },
-//                       })
-//                     )
-//                   },
-//                 })}
-//                 style={{
-//                   flex: '1',
-//                 }}
-//                 width="100%"
-//                 type="Range"
-//                 value={config.configure.polylineWidth?.historyTripTrack}
-//                 min="1"
-//                 max="10"
-//               ></saki-input>
-//               <span
-//                 style={{
-//                   paddingLeft: '6px',
-//                 }}
-//               >
-//                 {Number(config.configure.polylineWidth?.historyTripTrack) || 0}
-//                 px
-//               </span>
-//             </div>
-
-//             <div
-//               style={{
-//                 display: 'flex',
-//                 alignItems: 'center',
-//                 margin: '16px 0',
-//               }}
-//             >
-//               <span
-//                 style={{
-//                   paddingRight: '6px',
-//                 }}
-//               >
-//                 {t('historyTripTrackSelectedTrip')}
-//               </span>
-//               <saki-input
-//                 ref={bindEvent({
-//                   changevalue: (v) => {
-//                     dispatch(
-//                       methods.config.SetConfigure({
-//                         ...config.configure,
-//                         polylineWidth: {
-//                           ...config.configure.polylineWidth,
-//                           historyTripTrackSelectedTrip: Number(v.detail) || 2,
-//                         },
-//                       })
-//                     )
-//                   },
-//                 })}
-//                 style={{
-//                   flex: '1',
-//                 }}
-//                 width="100%"
-//                 type="Range"
-//                 value={config.configure.polylineWidth?.historyTripTrackSelectedTrip}
-//                 min="1"
-//                 max="10"
-//               ></saki-input>
-//               <span
-//                 style={{
-//                   paddingLeft: '6px',
-//                 }}
-//               >
-//                 {Number(config.configure.polylineWidth?.historyTripTrackSelectedTrip) || 0}
-//                 px
-//               </span>
-//             </div>
-
-//             <div
-//               style={{
-//                 display: 'flex',
-//                 alignItems: 'center',
-//                 margin: '16px 0',
-//               }}
-//             >
-//               <span
-//                 style={{
-//                   paddingRight: '6px',
-//                 }}
-//               >
-//                 {t('reviewTrip')}
-//               </span>
-//               <saki-input
-//                 ref={bindEvent({
-//                   changevalue: (v) => {
-//                     dispatch(
-//                       methods.config.SetConfigure({
-//                         ...config.configure,
-//                         polylineWidth: {
-//                           ...config.configure.polylineWidth,
-//                           reviewTrip: Number(v.detail) || 6,
-//                         },
-//                       })
-//                     )
-//                   },
-//                 })}
-//                 style={{
-//                   flex: '1',
-//                 }}
-//                 width="100%"
-//                 type="Range"
-//                 value={config.configure.polylineWidth?.reviewTrip}
-//                 min="1"
-//                 max="10"
-//               ></saki-input>
-//               <span
-//                 style={{
-//                   paddingLeft: '6px',
-//                 }}
-//               >
-//                 {Number(config.configure.polylineWidth?.reviewTrip) || 0}px
-//               </span>
-//             </div>
-//           </>
-//         )}
-//       ></SettingsItem>
-//     </div>
-//   )
-// }
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                margin: '16px 0',
+              }}
+            >
+              <span
+                style={{
+                  paddingRight: '6px',
+                }}
+              >
+                {t('reviewTrip')}
+              </span>
+              <saki-input
+                ref={bindEvent({
+                  changevalue: (v) => {
+                    dispatch(
+                      methods.config.SetConfigure({
+                        ...config.configure,
+                        polylineWidth: {
+                          ...config.configure.polylineWidth,
+                          reviewTrip: Number(v.detail) || 6,
+                        },
+                      })
+                    )
+                  },
+                })}
+                style={{
+                  flex: '1',
+                }}
+                width="100%"
+                type="Range"
+                value={config.configure.polylineWidth?.reviewTrip}
+                min="1"
+                max="10"
+              ></saki-input>
+              <span
+                style={{
+                  paddingLeft: '6px',
+                }}
+              >
+                {Number(config.configure.polylineWidth?.reviewTrip) || 0}px
+              </span>
+            </div>
+          </>
+        )}
+      ></SettingsItem> */}
+    </div>
+  )
+}
 
 // const Appearance = ({ show }: { show: boolean }) => {
 // 	const { t, i18n } = useTranslation('settings')

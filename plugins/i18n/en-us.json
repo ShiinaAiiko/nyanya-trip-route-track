@@ -104,6 +104,8 @@
     "TemporaryPark": "Temporary parking",
     "PassTunnel": "Entering the tunnel",
     "EnterNewCity": "Passing city",
+    "EnterNewRoad": "Passing road",
+    "enterNewRoad": "Passing road",
     "TrafficLight": "Waiting for traffic lights",
     "TripMark": "trip mark",
     "driveDistance2": "Driving {{distance}}",
@@ -120,7 +122,19 @@
 
     "slope": "Slope",
 
-    "totalMileage": "Total: {{distance}}"
+    "totalMileage": "Total: {{distance}}",
+
+    "initTripRoad": "Initialize trip roads",
+
+    "unnamedRoad": "Unnamed Road",
+
+    "GRoad": "{{road}}",
+    "SRoad": "{{road}}",
+    "XRoad": "{{road}}",
+    "YRoad": "{{road}}",
+    "ORoad": "{{road}}",
+
+    "customTrip": "Custom Trip"
   },
   "replayTripPage": {
     "title": "Replay Trip",
@@ -181,7 +195,19 @@
   "createCustomTripModal": {
     "title": "Create a Customized Trip",
     "tripInfo": "Trip Info",
-    "gpsPoints": "{{length}} GPS points"
+    "gpsPoints": "{{length}} GPS points",
+    "insertAfterThisGPSNode": "Insert after this GPS node"
+  },
+  "privacyGeofenceModal": {
+    "title": "Privacy Geofence",
+
+    "mapClickAddNode": "Click a node on the map to add a new privacy Geofence",
+    "selectedPGPoints": "Privacy Geofence #{{num}} is selected, click on the map to add a node",
+
+    "deletePG": "Delete this Geofence",
+    "deletePGContent": "Are you sure you want to delete {{name}}?",
+    "deleteAllPG": "Delete all Geofence",
+    "deleteAllPGContent": "Are you sure you want to delete all Geofence?"
   },
   "visitedCitiesModal": {
     "title": "Visited Cities",
@@ -234,6 +260,7 @@
     "createdAt": "Created on {{date}} at {{time}}",
     "lastUpdatedAt": "Last updated on {{date}} at {{time}}",
     "expandCities": "Expand remaining {{num}} cities",
+    "expandRoads": "Expand the remaining {{num}} roads",
     "collapseCities": "Collapse",
     "404": "Unable to open the Journey Memory, check if the URL is correct",
     "loadingDetail": "Loading Journey Memory...",
@@ -333,10 +360,13 @@
     "cityBoundaries": "City boundaries",
     "tripTrackRoute": "Trip track",
     "showPositionMarker": "Location sharing marker",
+    "showPosition": "Location Sharing",
     "appearanceSettings": "Appearance settings",
 
     "openVConsole": "Open vConsole",
-    "closeVConsole": "Close vConsole"
+    "closeVConsole": "Close vConsole",
+
+    "enableGeoFence": "Enable the privacy fence. The trip data and location sharing shared externally will be filtered on the server."
   },
   "prompt": {
     "next": "Next",
@@ -405,6 +435,20 @@
 
     "hourTime": "h ",
     "minuteTime": "m ",
-    "secondTime": "s "
+    "secondTime": "s ",
+
+    "turnOnPovMode": "Turn on POV mode",
+    "turnOnPovModeContent": "Next, it will be displayed in the form of POV video material to provide material for your driving record video. You also need to set the material reference resolution below:",
+    "turnOffPovMode": "Turn off POV mode",
+    "turnOffPovModeContent": "After turning it off, it will return to the normal mode of trip playback",
+    "turnOn": "Turn on",
+    "turnOff": "Turn off",
+    "width": "Width",
+    "height": "Height",
+
+    "clearLine": "Clear track",
+    "clearLineContent": "All tracks on the map will be cleared. Are you sure you want to clear them?",
+
+    "shareContent": "Data sharing"
   }
 }

@@ -17,7 +17,7 @@ export const PARAMS = <T = any>(data: T, proto: T | any) => {
 }
 
 export const LongToNumber = (data: any): number => {
-  console.log("LongToNumber", LongToNumber)
+  console.log('LongToNumber', LongToNumber)
   if (data?.hasOwnProperty('low') && typeof data?.low === 'number') {
     const long = new Long(data.low, data.high, data.unsigned)
 

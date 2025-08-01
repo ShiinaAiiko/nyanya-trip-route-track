@@ -110,7 +110,10 @@ R.interceptors.response.use(async (response) => {
   const config: any = response.config
   // console.log("interceptors", config, config?.config?.dataType)
   // console.log()
-  if (config?.config?.dataType === 'protobuf' && response?.headers?.['content-type'] === 'application/x-protobuf') {
+  if (
+    config?.config?.dataType === 'protobuf' &&
+    response?.headers?.['content-type'] === 'application/x-protobuf'
+  ) {
     // 	// 将二进制数据生成js对象
     // console.log(response.data.protobuf)
     // console.log(Buffer.from(response.data.protobuf, 'utf-8'))
@@ -149,12 +152,14 @@ R.interceptors.response.use(async (response) => {
     if (data?.code !== 200 && data?.code !== 10006) {
       console.error(data)
 
-      snackbar({
-        message: data.msg + (data.error ? ',' + data.error : ''),
-        autoHideDuration: 2000,
-        vertical: 'bottom',
-        horizontal: 'center',
-      }).open()
+      if (data.error) {
+        snackbar({
+          message: data.msg + (data.error ? ',' + data.error : ''),
+          autoHideDuration: 2000,
+          vertical: 'bottom',
+          horizontal: 'center',
+        }).open()
+      }
     }
     // 	}
     // }

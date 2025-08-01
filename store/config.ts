@@ -147,6 +147,47 @@ export let maps = [
   },
 ]
 
+export let cnShortCityNameList = [
+  '京',
+  '津',
+  '沪',
+  '渝',
+  '皖',
+  '闽',
+  '甘',
+  '陇',
+  '粤',
+  '贵',
+  '黔',
+  '琼',
+  '冀',
+  '豫',
+  '黑',
+  '鄂',
+  '湘',
+  '苏',
+  '赣',
+  '吉',
+  '辽',
+  '青',
+  '鲁',
+  '晋',
+  '陕',
+  '秦',
+  '川',
+  '蜀',
+  '云',
+  '滇',
+  '浙',
+  '桂',
+  '蒙',
+  '宁',
+  '藏',
+  '新',
+  '港',
+  '澳',
+]
+
 export const language: LanguageType = defaultLanguage as any
 
 export let country = ''
@@ -354,6 +395,7 @@ export const defaultMapLayerItem = {
   trackSpeedColor: 'RedGreen' as TrackSpeedColorType,
   trackRouteColor: 'Red' as TrackRouteColorType,
   polylineWidth: 4,
+  privacyGeofence: false,
 }
 
 export const defaultMapLayer = {
@@ -393,6 +435,10 @@ export const defaultMapLayer = {
   visitedCitiesModal: {
     ...defaultMapLayerItem,
     cityBoundaries: 'region',
+  },
+  privacyGeofenceModal: {
+    ...defaultMapLayerItem,
+    polylineWidth: 4,
   },
 }
 const defaultConfigure: protoRoot.configure.IConfigure = {
@@ -483,6 +529,59 @@ export const checkMapUrl = async (mapUrl: string) => {
     // }
     // dispatch(configSlice.actions.setConnectionTrackRouteMapUrl(false))
   }
+}
+
+export type HighwayI18n = {
+  /** 高速公路编号 (如 G1, G15) */
+  code: string
+  name: {
+    /** 简体中文名称 */
+    'zh-CN': string
+    /** 英文名称 */
+    en: string
+    /** 繁体中文名称 */
+    'zh-TW': string
+  }
+  route: {
+    /** 简体中文路线描述 */
+    'zh-CN': string
+    /** 英文路线描述 */
+    en: string
+    /** 繁体中文路线描述 */
+    'zh-TW': string
+  }
+}
+
+export let roadInfo: Record<string, HighwayI18n> = {}
+
+const getRoadInfoDeb = new Debounce()
+
+export const getHighwayInfo = () => {
+  getRoadInfoDeb.increase(async () => {
+    // const ri = await storage.global.get('roadInfo')
+    // console.log('roadInfo', ri)
+    // if (ri?.length) {
+    //   ri.forEach((v: any) => {
+    //     roadInfo[v.code] = v
+    //   })
+    //   return
+    // }
+    const res = await R.request({
+      url: '/roadInfo.json',
+    })
+
+    if ((res.data as any)?.length) {
+      const data = res.data as any
+
+      data.forEach((v: any) => {
+        roadInfo[v.code] = v
+      })
+
+      await storage.global.set('roadInfo', data)
+
+      eventListener.dispatch('roadInfo', data)
+    }
+  }, 500)
 }
 
 const mapLayerDeb = new Debounce()

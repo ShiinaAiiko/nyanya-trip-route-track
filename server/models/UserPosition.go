@@ -29,6 +29,9 @@ func (s *UserPosition) Default() error {
 		s.Position = new(TripPosition)
 	}
 
+	if s.PositionShare == 0 {
+		s.PositionShare = -1
+	}
 	if s.CreateTime == 0 {
 		s.CreateTime = unixTimeStamp
 	}

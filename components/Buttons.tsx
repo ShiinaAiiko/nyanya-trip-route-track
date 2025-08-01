@@ -231,6 +231,13 @@ const ButtonsComponent = ({
                         padding="10px 18px"
                         value={v}
                         active={v === config.userPositionShare}
+                        subtitle={
+                          i === 0
+                            ? t('showPosition', {
+                                ns: 'settings',
+                              })
+                            : ''
+                        }
                       >
                         <span>
                           {t(getPositionShareText(v), {

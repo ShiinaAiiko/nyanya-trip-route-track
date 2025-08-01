@@ -26,6 +26,7 @@ export type ModalType =
   | 'ImagesWaterfall'
   | 'MapLayer'
   | 'WeatherApp'
+  | 'PrivacyGeofence'
 
 export interface IWMediaItem
   extends protoRoot.journeyMemory.IJourneyMemoryMediaItem {
@@ -65,6 +66,7 @@ export const layoutSlice = createSlice({
     openReplayTripModal: false,
     openFindLocationModal: false,
     openCreateCustomTripModal: false,
+    openPrivacyGeofenceModal: false,
     openVisitedCitiesModal: {
       visible: false,
       title: '',
@@ -195,6 +197,15 @@ export const layoutSlice = createSlice({
       }
     ) => {
       state.openCreateCustomTripModal = params.payload
+    },
+    setOpenPrivacyGeofenceModal: (
+      state,
+      params: {
+        payload: boolean
+        type: string
+      }
+    ) => {
+      state.openPrivacyGeofenceModal = params.payload
     },
     setLayoutHeader: (
       state,

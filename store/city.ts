@@ -176,6 +176,10 @@ export const getSimpleCityName = (cityName: string, type: string) => {
 
 import area from '@turf/area'
 import { useRouter } from 'next/router'
+import {
+  networkConnectionStatusDetection,
+  networkConnectionStatusDetectionEnum,
+} from '@nyanyajs/utils/dist/common/common'
 
 export const calculateArea = (boundary: GeoJSON): number => {
   // 使用 @turf/area 计算面积（返回平方米）
@@ -528,7 +532,7 @@ export function updateCityMarkers(
     })
 
   // 6. 更新标记（保持原始渲染逻辑）
-  const bounds = map.getBounds()
+  const bounds = map?.getBounds()
   const existingMarkers = new Set<string>()
 
   // 添加新标记
@@ -813,6 +817,46 @@ export const watchCenterCity = async (
   })
 }
 
+const showrtCityNames: Record<string, string> = {}
+
+export const getShortCityName = async (cityName: string) => {
+  if (showrtCityNames[cityName]) return showrtCityNames[cityName]
+  let url = `https://nominatim.aiiko.club/search?q=${cityName}&format=json&addressdetails=1&namedetails=1`
+
+  // const connectionStatusOpenMeteo = await networkConnectionStatusDetection(
+  //   networkConnectionStatusDetectionEnum.openStreetMap
+  // )
+
+  const res = await R.request({
+    method: 'GET',
+    url,
+    // url: connectionStatusOpenMeteo
+    //   ? url
+    //   : `${toolApiUrl}/api/v1/net/httpProxy?method=GET&url=${encodeURIComponent(
+    //       url
+    //     )}`,
+  })
+
+  let data = res?.data as any
+  // if (connectionStatusOpenMeteo) {
+  //   data = res?.data
+  // }
+
+  // console.log('getShortCityName data', data)
+  let shortName = ''
+  if (data?.length) {
+    shortName =
+      data?.[0]?.namedetails?.short_name || data?.[0]?.namedetails?.ref || ''
+  } else {
+    shortName = data?.namedetails?.short_name || data?.namedetails?.ref || ''
+  }
+
+  showrtCityNames[cityName] = shortName
+  // console.log('shortName 111111', shortName, data, cityName)
+
+  return shortName
+}
+
 export const citySlice = createSlice({
   name: modelName,
   initialState: cityState,
@@ -1061,7 +1105,7 @@ export const cityMethods = {
           lng,
         })
 
-        // console.log('regeo', newCi)
+        console.log('regeo', newCi)
 
         if (!newCi) return
 

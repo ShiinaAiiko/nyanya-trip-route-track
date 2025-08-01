@@ -4,10 +4,12 @@ option go_package = "./;protos";
 package city;
 
 message CityName {
-  string zhCN = 1;
-  string en = 2;
-  string zhHans = 3;
-  string zhHant = 4;
+  string ref = 1;
+  string shortName = 2;
+  string zhCN = 3;
+  string en = 4;
+  string zhHans = 5;
+  string zhHant = 6;
 }
 
 message CityItem {

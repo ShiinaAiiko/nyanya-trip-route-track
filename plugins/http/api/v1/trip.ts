@@ -18,6 +18,21 @@ export const tripApi = {
       protoRoot.trip.ClearTripCities.Response
     )
   },
+  async ClearTripRoads(params: protoRoot.trip.ClearTripRoads.IRequest) {
+    const { apiUrls } = store.getState().api
+
+    return await Request<protoRoot.trip.ClearTripRoads.IResponse>(
+      {
+        method: 'POST',
+        data: PARAMS<protoRoot.trip.ClearTripRoads.IRequest>(
+          params,
+          protoRoot.trip.ClearTripRoads.Request
+        ),
+        url: getUrl(apiUrls.v1.baseUrl, apiUrls.v1.clearTripRoads),
+      },
+      protoRoot.trip.ClearTripRoads.Response
+    )
+  },
   async AddTrip(params: protoRoot.trip.AddTrip.IRequest) {
     const { apiUrls } = store.getState().api
 

@@ -341,6 +341,58 @@
         }
       }
     }
+    .jmd-road {
+      margin: 10px 0 6px 0;
+
+      span {
+        &.cn {
+          display: inline-block;
+          color: #666;
+          font-size: 12px;
+          background-color: #eee;
+          padding: 4px;
+          border-radius: 4px;
+          margin: 0 10px 4px 0;
+          &.motorway {
+            background-color: #008100;
+            color: #fff;
+          }
+
+          &.trunk {
+            background-color: #ff0000;
+            color: #fff;
+          }
+          &.primary {
+            background-color: #ffff00;
+            padding: 3px;
+            border: 1px solid #999;
+          }
+          &.secondary {
+          }
+          &.tertiary {
+          }
+          &.unclassified {
+          }
+          &.residential {
+          }
+        }
+        &.more {
+          display: inline-block;
+          // color: var(--saki-default-color);
+          color: #666;
+          font-size: 12px;
+          // background-color: #eee;
+          padding: 4px;
+          border-radius: 4px;
+          margin: 0 10px 4px 0;
+          &:hover {
+            color: var(--saki-default-color);
+            cursor: pointer;
+            user-select: none;
+          }
+        }
+      }
+    }
 
     .jmd-info {
       font-size: 14px;
@@ -468,6 +520,59 @@
                 padding: 4px;
                 border-radius: 4px;
                 margin: 0 10px 4px 0;
+              }
+              &.more {
+                display: inline-block;
+                // color: var(--saki-default-color);
+                color: #666;
+                font-size: 12px;
+                // background-color: #eee;
+                padding: 4px;
+                border-radius: 4px;
+                margin: 0 10px 4px 0;
+                &:hover {
+                  color: var(--saki-default-color);
+                  cursor: pointer;
+                  user-select: none;
+                }
+              }
+            }
+          }
+
+          .item-road {
+            margin: 0 0 6px 0;
+
+            span {
+              &.cn {
+                display: inline-block;
+                color: #666;
+                font-size: 12px;
+                background-color: #eee;
+                padding: 4px;
+                border-radius: 4px;
+                margin: 0 10px 4px 0;
+              }
+              &.motorway {
+                background-color: #008100;
+                color: #fff;
+              }
+
+              &.trunk {
+                background-color: #ff0000;
+                color: #fff;
+              }
+              &.primary {
+                background-color: #ffff00;
+                padding: 3px;
+                border: 1px solid #999;
+              }
+              &.secondary {
+              }
+              &.tertiary {
+              }
+              &.unclassified {
+              }
+              &.residential {
               }
               &.more {
                 display: inline-block;

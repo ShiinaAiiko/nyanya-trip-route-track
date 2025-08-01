@@ -51,7 +51,7 @@ import NoSSR from './NoSSR'
 import { useRouter } from 'next/router'
 import { Debounce, deepCopy } from '@nyanyajs/utils'
 import { VehicleLogo } from './Vehicle'
-import { initTripCity, initTripItemCity } from '../store/trip'
+import { initTripCity, initTripItemCity, initTripItemRoad } from '../store/trip'
 import {
   CityInfo,
   convertCityLevelToTypeString,
@@ -81,6 +81,8 @@ import {
   SakiTitle,
 } from './saki-ui-react/components'
 import { LayerButtons } from './MapLayer'
+import { getRoadId } from '../store/geo'
+import { RoadIcon } from './Dashboard'
 
 // memo()
 const TripItemComponent = memo(
@@ -218,6 +220,7 @@ const TripItemComponent = memo(
       trackRouteColor: true,
       polylineWidth: true,
       speedColorLimit: true,
+      privacyGeofence: true,
     })
 
     const { mapLayer, speedColorRGBs, mapLayerType, mapUrl } = useMemo(() => {
@@ -396,7 +399,7 @@ const TripItemComponent = memo(
 
         let positions = trip?.positions || []
 
-        positions = positions.filter((v, i) => {
+        positions = positions?.filter((v, i) => {
           const gss = !(v.speed === null || v.altitude === null)
 
           if (v.speed && v.speed > 45) {
@@ -486,7 +489,7 @@ const TripItemComponent = memo(
             let maxSpeedPosition = positions[0]
 
             positions
-              .filter((v) => {
+              ?.filter((v) => {
                 return !(
                   Number(v.speed || 0) < 0 || Number(v.altitude || 0) < 0
                 )
@@ -658,6 +661,7 @@ const TripItemComponent = memo(
       mapLayer?.polylineWidth,
       mapLayer?.trackSpeedColor,
       config.configure.general?.speedColorLimit,
+      mapLayer?.privacyGeofence,
     ])
 
     const d = useRef(new Debounce())
@@ -694,6 +698,7 @@ const TripItemComponent = memo(
             weight: Number(mapLayer?.polylineWidth),
             clickFunc({ params, reRender }) {},
             filterAccuracy: 'High',
+            privacyGeofence: mapLayer?.privacyGeofence || false,
           })
       }, 700)
     }
@@ -1662,6 +1667,7 @@ const TripItemComponent = memo(
           | 'StartTrip'
           | 'EndTrip'
           | 'EnterNewCity'
+          | 'EnterNewRoad'
           | 'TrafficLight'
           | 'TripMark'
           | 'TemporaryPark'
@@ -1672,6 +1678,7 @@ const TripItemComponent = memo(
         avgSpeed?: number
         maxSpeed?: number
         city?: protoRoot.city.ICityItem
+        roads?: protoRoot.road.IRoadInfo[]
       }[] = []
 
       const citiles = trip?.cities?.reduce((val, cv) => {
@@ -1696,11 +1703,31 @@ const TripItemComponent = memo(
                 }
                 return cityItem
               })
-              .filter((v) => v) || []
+              ?.filter((v) => v) || []
           ) || []
 
         return val
       }, [] as protoRoot.city.ICityItem[])
+
+      const roads = trip?.roads
+        // ?.filter((v) => {
+        //   return v.roads?.filter((sv) => sv.code !== 'A404')?.length
+        // })
+        ?.reduce(
+          (val, cv) => {
+            cv.entryTimes?.forEach((v) => {
+              val.push({
+                roads: cv?.roads || [],
+                entryTime: Number(v.timestamp),
+              })
+            })
+            return val
+          },
+          [] as {
+            roads: protoRoot.road.IRoadInfo[]
+            entryTime: number
+          }[]
+        )
 
       let totalDistance = 0
       let realDrivingTime = 0
@@ -1808,6 +1835,25 @@ const TripItemComponent = memo(
             return true
           }
         })
+
+        roads?.some((sv) => {
+          if (
+            !addedCitiIdMap.includes(getRoadId(sv.roads)) &&
+            Number(nextPos.timestamp) >= Number(sv.entryTime)
+          ) {
+            tripProgress.push({
+              type: 'EnterNewRoad',
+              time: Number(sv.entryTime) || 0,
+              drivingTime: 0,
+              distance: 0,
+              distanceProgress: totalDistance,
+              roads: sv.roads,
+            })
+            addedCitiIdMap.push(getRoadId(sv.roads))
+            return true
+          }
+        })
+
         trip?.marks?.some((sv) => {
           if (
             !addedCitiIdMap.includes(String(sv.timestamp)) &&
@@ -1849,7 +1895,7 @@ const TripItemComponent = memo(
         distanceProgress: totalDistance,
       })
 
-      // console.log('tripProgress', trip, addedCitiIdMap, citiles, tripProgress)
+      console.log('tripProgress', trip, addedCitiIdMap, citiles, tripProgress)
       return { tripProgress }
     }, [trip])
 
@@ -1944,7 +1990,12 @@ const TripItemComponent = memo(
                 scroll-bar="Hidden"
               >
                 <div
-                  className={'ti-main ' + (startScroll ? 'startScroll' : '')}
+                  className={
+                    'ti-main ' +
+                    trip?.id +
+                    ' ' +
+                    (startScroll ? 'startScroll' : '')
+                  }
                 >
                   <div className="ti-wrap">
                     <div className="ti-m-content">
@@ -2059,6 +2110,16 @@ const TripItemComponent = memo(
                                           })
 
                                           break
+                                        case 'initTripRoad':
+                                          initTripItemRoad(
+                                            trip,
+                                            true,
+                                            true
+                                          ).finally(() => {
+                                            getTrip()
+                                          })
+
+                                          break
                                         case 'CorrectedData':
                                           finishTrip(true)
                                           break
@@ -2104,7 +2165,7 @@ const TripItemComponent = memo(
                                     },
                                   })}
                                 >
-                                  {isResumeTrip(trip) ? (
+                                  {/* {isResumeTrip(trip) ? (
                                     <>
                                       <saki-menu-item
                                         padding="10px 18px"
@@ -2121,7 +2182,7 @@ const TripItemComponent = memo(
                                     </>
                                   ) : (
                                     ''
-                                  )}
+                                  )} */}
                                   {user.isLogin ? (
                                     trip?.status === 1 ? (
                                       <>
@@ -2251,6 +2312,19 @@ const TripItemComponent = memo(
                                         <div className="tb-h-r-user-item">
                                           <span>
                                             {t('initTripCity', {
+                                              ns: 'tripPage',
+                                            })}
+                                          </span>
+                                        </div>
+                                      </saki-menu-item>
+                                      <saki-menu-item
+                                        padding="10px 18px"
+                                        value={'initTripRoad'}
+                                        // disabled={!!trip?.cities?.length}
+                                      >
+                                        <div className="tb-h-r-user-item">
+                                          <span>
+                                            {t('initTripRoad', {
                                               ns: 'tripPage',
                                             })}
                                           </span>
@@ -2638,6 +2712,7 @@ const TripItemComponent = memo(
                               'TrafficLight',
                               'PassTunnel',
                               'EnterNewCity',
+                              'EnterNewRoad',
                               'TripMark',
                             ].map((v, i) => {
                               return (
@@ -2667,7 +2742,7 @@ const TripItemComponent = memo(
                       <div className="ti-list">
                         {(timelineFilterType === 'All'
                           ? tripProgress
-                          : tripProgress.filter(
+                          : tripProgress?.filter(
                               (v) =>
                                 v.type === timelineFilterType ||
                                 v.type === 'StartTrip' ||
@@ -2684,13 +2759,13 @@ const TripItemComponent = memo(
 
                           let fullName1 =
                             fn
-                              .filter(
+                              ?.filter(
                                 (v, i, arr) => i >= arr.length - 2 && i !== 0
                               )
                               ?.join(' ') || ''
                           let fullName2 =
                             fn
-                              .filter(
+                              ?.filter(
                                 (v, i, arr) => i <= arr.length - 3 && i !== 0
                               )
                               ?.join(' ') || ''
@@ -2732,9 +2807,11 @@ const TripItemComponent = memo(
                                           }
                                         )}
                                   </span>
-                                  <span>
-                                    {v.type === 'EnterNewCity' ? fullName2 : ''}
-                                  </span>
+                                  {v.type === 'EnterNewCity' ? (
+                                    <span>{fullName2}</span>
+                                  ) : (
+                                    ''
+                                  )}
                                 </div>
                                 <div className="tp-i-c-content">
                                   {v.type === 'EnterNewCity' ? (
@@ -2744,6 +2821,33 @@ const TripItemComponent = memo(
                                         'MM.DD HH:mm'
                                       ),
                                     })}`}</span>
+                                  ) : v.type === 'EnterNewRoad' ? (
+                                    <div className="tp-i-c-road">
+                                      {v.roads?.map((v, i) => {
+                                        console.log('roadsroads', v)
+                                        return (
+                                          <RoadIcon
+                                            key={i}
+                                            type={v.type as any}
+                                            country={'CN'}
+                                            roadCode={v.code || ''}
+                                            roadName={
+                                              ((v.name as any)?.[
+                                                config.lang === 'zh-CN'
+                                                  ? 'zhHans'
+                                                  : config.lang === 'zh-TW'
+                                                  ? 'zhHant'
+                                                  : 'en'
+                                              ] || (v.name as any)['zhHans']) +
+                                              ''
+                                            }
+                                            shortCityName={
+                                              v.shortCityName || ''
+                                            }
+                                          ></RoadIcon>
+                                        )
+                                      })}
+                                    </div>
                                   ) : v.type === 'PassTunnel' ? (
                                     <span>{`${t('tunnelLength', {
                                       ns: 'tripPage',

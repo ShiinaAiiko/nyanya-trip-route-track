@@ -161,6 +161,19 @@ const HeaderComponent = ({
                             )
                           })
                           break
+                        case 'PrivacyGeofence':
+                          if (!user.isLogin) {
+                            dispatch(methods.user.loginAlert())
+                            return
+                          }
+                          loadModal('PrivacyGeofence', () => {
+                            dispatch(
+                              layoutSlice.actions.setOpenPrivacyGeofenceModal(
+                                true
+                              )
+                            )
+                          })
+                          break
                         case 'CreateCustomTrip':
                           if (!user.isLogin) {
                             dispatch(methods.user.loginAlert())
@@ -334,19 +347,34 @@ const HeaderComponent = ({
                     </saki-menu-item>
                   )}
                   {user.isLogin ? (
-                    <saki-menu-item
-                      padding="10px 18px"
-                      value={'CreateCustomTrip'}
-                    >
-                      <div className="tb-h-r-user-item">
-                        <saki-icon color="#666" type="Add"></saki-icon>
-                        <span>
-                          {t('title', {
-                            ns: 'createCustomTripModal',
-                          })}
-                        </span>
-                      </div>
-                    </saki-menu-item>
+                    <>
+                      <saki-menu-item
+                        padding="10px 18px"
+                        value={'PrivacyGeofence'}
+                      >
+                        <div className="tb-h-r-user-item">
+                          <saki-icon color="#666" type="Geofencing"></saki-icon>
+                          <span>
+                            {t('title', {
+                              ns: 'privacyGeofenceModal',
+                            })}
+                          </span>
+                        </div>
+                      </saki-menu-item>
+                      <saki-menu-item
+                        padding="10px 18px"
+                        value={'CreateCustomTrip'}
+                      >
+                        <div className="tb-h-r-user-item">
+                          <saki-icon color="#666" type="Add"></saki-icon>
+                          <span>
+                            {t('title', {
+                              ns: 'createCustomTripModal',
+                            })}
+                          </span>
+                        </div>
+                      </saki-menu-item>
+                    </>
                   ) : (
                     ''
                   )}

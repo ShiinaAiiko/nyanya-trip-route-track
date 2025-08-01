@@ -69,6 +69,7 @@ func main() {
 			AppKey: conf.Config.SSO.AppKey,
 			Host:   conf.Config.SSO.Host,
 			Rdb:    conf.Redisdb,
+			Log:    log,
 		})
 		mongodb.ConnectMongoDB(conf.Config.Mongodb.Currentdb.Uri, conf.Config.Mongodb.Currentdb.Name)
 

@@ -26,7 +26,7 @@ import store, {
   journeyMemorySlice,
 } from '../store'
 
-import { sakisso, version } from '../config'
+import { isDev, sakisso, version } from '../config'
 
 import moment from 'moment'
 
@@ -43,6 +43,7 @@ import { useTranslation } from 'react-i18next'
 import { httpApi } from '../plugins/http/api'
 import { protoRoot } from '../protos'
 import {
+  copyText,
   exitFullscreen,
   formatAvgPace,
   formatDistance,
@@ -71,7 +72,12 @@ import {
 import StatisticsComponent from './Statistics'
 import Leaflet, { map } from 'leaflet'
 import SpeedMeterComponent from './Dashboard'
-import { eventListener, getMapLayer, getTrackRouteColor } from '../store/config'
+import {
+  cnShortCityNameList,
+  eventListener,
+  getMapLayer,
+  getTrackRouteColor,
+} from '../store/config'
 import { UserInfo } from '@nyanyajs/utils/dist/sakisso'
 import { getIconType } from './Vehicle'
 import {
@@ -199,26 +205,28 @@ const copyJMUrl = (id: string) => {
     color: '#fff',
   }).open()
 
-  const jmItem = journeyMemory.list.filter((v) => v.id === id)?.[0]
+  const jmItem =
+    journeyMemory.list.filter((v) => v.id === id)?.[0] || journeyMemory.jmDetail
 
-  window.navigator.clipboard.writeText(
-    t('shareContent', {
-      ns: 'journeyMemoriesModal',
-      name: jmItem?.name || '',
-      days: jmItem.statistics?.days || 0,
-      tripCount: jmItem.statistics?.count || 0,
-      minAlt:
-        Math.round((jmItem.statistics?.minAltitude?.num || 0) * 100) / 100,
-      maxAlt:
-        Math.round((jmItem.statistics?.maxAltitude?.num || 0) * 100) / 100,
-      distance: Math.round((jmItem.statistics?.distance || 0) / 10) / 100,
-      url:
-        location.origin +
-        (config.language === 'system' ? '' : '/' + config.language) +
-        '/journeyMemories/detail?id=' +
-        id,
-    })
-  )
+  jmItem &&
+    window.navigator.clipboard.writeText(
+      t('shareContent', {
+        ns: 'journeyMemoriesModal',
+        name: jmItem?.name || '',
+        days: jmItem?.statistics?.days || 0,
+        tripCount: jmItem?.statistics?.count || 0,
+        minAlt:
+          Math.round((jmItem?.statistics?.minAltitude?.num || 0) * 100) / 100,
+        maxAlt:
+          Math.round((jmItem?.statistics?.maxAltitude?.num || 0) * 100) / 100,
+        distance: Math.round((jmItem.statistics?.distance || 0) / 10) / 100,
+        url:
+          location.origin +
+          (config.language === 'system' ? '' : '/' + config.language) +
+          '/journeyMemories/detail?id=' +
+          id,
+      })
+    )
 }
 
 const shareJM = (jmDetail: protoRoot.journeyMemory.IJourneyMemoryItem) => {
@@ -1535,10 +1543,12 @@ export const JourneyMemoriesItemPage = ({
   const user = useSelector((state: RootState) => state.user)
   const jmState = useSelector((state: RootState) => state.journeyMemory)
 
-  const { historicalStatistics } = useSelector((state: RootState) => {
-    const { historicalStatistics } = state.trip
-    return { historicalStatistics }
-  })
+  const { historicalStatistics, privacyGeofencePointsPolygon } = useSelector(
+    (state: RootState) => {
+      const { historicalStatistics, privacyGeofencePointsPolygon } = state.trip
+      return { historicalStatistics, privacyGeofencePointsPolygon }
+    }
+  )
 
   const router = useRouter()
 
@@ -1560,6 +1570,7 @@ export const JourneyMemoriesItemPage = ({
     trackRouteColor: true,
     polylineWidth: true,
     speedColorLimit: true,
+    privacyGeofence: true,
   })
 
   const { mapLayer, speedColorRGBs, mapLayerType, mapUrl } = useMemo(() => {
@@ -1881,6 +1892,7 @@ export const JourneyMemoriesItemPage = ({
     mapLayer?.showSpeedColor,
     mapLayer?.polylineWidth,
     mapLayer?.trackSpeedColor,
+    mapLayer?.privacyGeofence,
   ])
 
   const loadTrackData = async () => {
@@ -1912,6 +1924,7 @@ export const JourneyMemoriesItemPage = ({
           fullData: true,
           authorId: jmState.jmDetail?.authorId || '',
           jmId,
+          cache: !isDev,
         })
 
         await renderPolyline({
@@ -1933,6 +1946,7 @@ export const JourneyMemoriesItemPage = ({
           weight: Number(mapLayer?.polylineWidth),
 
           filterAccuracy: 'NoFilter',
+          privacyGeofence: mapLayer?.privacyGeofence || false,
           // speedColor: getTrackRouteColor(config.configure?.trackRouteColor as any, false) || 'auto',
         })
         d.current.increase(() => {
@@ -2101,52 +2115,193 @@ export const JourneyMemoriesItemPage = ({
     Number(jmState.jmDetail.lastUpdateTime) * 1000
   )
 
-  const { cityNamesMap, cityNamesList, tripIds } = useMemo(() => {
-    const cityNamesMap: {
-      [id: string]: string[]
-    } = {}
-    let tripIds: string[] = []
-    jmState.tlList.forEach((v) => {
-      const cityName: string[] = []
+  const { cityNamesMap, cityNamesList, roadsList, roadsMap, tripIds } =
+    useMemo(() => {
+      const cityNamesMap: {
+        [id: string]: string[]
+      } = {}
 
-      if (!viewMomentMapTrackId || v.id === viewMomentMapTrackId) {
-        tripIds = tripIds.concat(v?.tripIds || [])
-      }
+      const roadsMap: {
+        [id: string]: {
+          type: string
+          name: string
+        }[]
+      } = {}
 
-      v.trips?.forEach((sv) => {
-        sv.cities?.reverse()
-        sv.cities?.forEach((ssv) => {
-          // ssv.cityDetails?.filter
+      let tripIds: string[] = []
 
-          const fullName: string[] = []
-          ssv.cityDetails?.forEach((sssv) => {
-            if (sssv.level === 2 || sssv.level === 3 || sssv.level === 4) {
-              fullName.push(
-                getSimpleCityName(
-                  getCityName(sssv.name) || '',
-                  convertCityLevelToTypeString(sssv.level || 1)
+      let lang =
+        config.lang === 'zh-CN'
+          ? 'zhHans'
+          : config.lang === 'zh-TW'
+          ? 'zhHant'
+          : 'en'
+
+      const priority = {
+        motorway: 1, // 高速（最高优先级）
+        trunk: 2, // 国道
+        primary: 3, // 省道
+        secondary: 4, // 县道
+        tertiary: 5, // 其他...
+        unclassified: 6,
+        residential: 7,
+        '': 8, // 空类型（最低优先级）
+      } as any
+
+      jmState.tlList.forEach((v) => {
+        const cityName: string[] = []
+        const roads: {
+          type: string
+          name: string
+        }[] = []
+
+        if (!viewMomentMapTrackId || v.id === viewMomentMapTrackId) {
+          tripIds = tripIds.concat(v?.tripIds || [])
+        }
+
+        v.trips?.forEach((sv) => {
+          sv.cities?.reverse()
+          sv.cities?.forEach((ssv) => {
+            // ssv.cityDetails?.filter
+
+            const fullName: string[] = []
+            ssv.cityDetails?.forEach((sssv) => {
+              if (sssv.level === 2 || sssv.level === 3 || sssv.level === 4) {
+                fullName.push(
+                  getSimpleCityName(
+                    getCityName(sssv.name) || '',
+                    convertCityLevelToTypeString(sssv.level || 1)
+                  )
                 )
-              )
-              // fullName.push(sssv.name?.zhCN || '')
+                // fullName.push(sssv.name?.zhCN || '')
+              }
+            })
+
+            const fullNameStr = fullName
+              // .slice(fullName.length - 2, fullName.length)
+              .join('·')
+
+            !cityName.includes(fullNameStr) && cityName.push(fullNameStr)
+          })
+
+          // console.log('sv.roads', sv.roads)
+          sv.roads?.forEach((ssv) => {
+            ssv.roads?.forEach((sssv) => {
+              if (sssv.code === 'A404') return
+              let name = ''
+
+              let roadName =
+                (sssv.name as any)?.[lang] || (sssv.name as any)['zhHans'] || ''
+
+              if (sssv.type === 'motorway') {
+                name = sssv.code + '' + roadName
+
+                name = name.trim()
+                !roads.some((road) => road.name === name) &&
+                  name &&
+                  roads.push({
+                    type: sssv.type || '',
+                    name,
+                  })
+              } else {
+                if (sssv.code && /^[A-Za-z0-9]+$/.test(sssv.code)) {
+                  name = cnShortCityNameList.includes(sssv.shortCityName || '')
+                    ? t(
+                        sssv.code.includes('G')
+                          ? 'GRoad'
+                          : sssv.code.includes('S')
+                          ? 'SRoad'
+                          : sssv.code.includes('X')
+                          ? 'XRoad'
+                          : sssv.code.includes('Y')
+                          ? 'YRoad'
+                          : 'ORoad',
+                        { ns: 'tripPage', road: sssv.code }
+                      )
+                    : sssv.code
+
+                  name = name.trim()
+
+                  !roads.some((road) => road.name === name) &&
+                    name &&
+                    roads.push({
+                      type: cnShortCityNameList.includes(
+                        sssv.shortCityName || ''
+                      )
+                        ? sssv.code.includes('G')
+                          ? 'trunk'
+                          : sssv.code.includes('S')
+                          ? 'primary'
+                          : sssv.code.includes('X')
+                          ? 'secondary'
+                          : sssv.code.includes('Y')
+                          ? 'tertiary'
+                          : sssv.type || ''
+                        : sssv.type || '',
+                      name,
+                    })
+                }
+
+                // if (!name) {
+                //   name = sssv.code + ' ' + roadName
+
+                //   name = name.trim()
+                //   !roads.some((road) => road.name === name) &&
+                //     name &&
+                //     roads.push({
+                //       type: sssv.type || '',
+                //       name,
+                //     })
+                //   // !roads.includes(name) && name && roads.push(name)
+                // }
+              }
+            })
+          })
+        })
+
+        cityNamesMap[v.id || ''] = cityName
+
+        roads.sort((a, b) => {
+          const priorityA = priority[a.type]
+          const priorityB = priority[b.type]
+          return priorityA - priorityB // 从小到大排序
+        })
+
+        roadsMap[v.id || ''] = roads
+      })
+
+      const cityNamesList = Object.keys(cityNamesMap).reduce((cityNames, v) => {
+        return [...new Set(cityNames.concat(cityNamesMap[v]))]
+      }, [] as string[])
+      const roadsList = Object.keys(roadsMap).reduce(
+        (roadName, v) => {
+          roadsMap[v].forEach((sv) => {
+            if (!roadName.some((road) => road.name === sv.name)) {
+              roadName.push(sv)
             }
           })
 
-          const fullNameStr = fullName
-            // .slice(fullName.length - 2, fullName.length)
-            .join('·')
-
-          !cityName.includes(fullNameStr) && cityName.push(fullNameStr)
-        })
+          return roadName
+        },
+        [] as {
+          type: string
+          name: string
+        }[]
+      )
+      roadsList.sort((a, b) => {
+        const priorityA = priority[a.type]
+        const priorityB = priority[b.type]
+        return priorityA - priorityB // 从小到大排序
       })
 
-      cityNamesMap[v.id || ''] = cityName
-    })
-
-    const cityNamesList = Object.keys(cityNamesMap).reduce((cityNames, v) => {
-      return [...new Set(cityNames.concat(cityNamesMap[v]))]
-    }, [] as string[])
-    return { cityNamesMap, cityNamesList, tripIds }
-  }, [jmState.tlList, viewMomentMapTrackId])
+      return {
+        cityNamesMap,
+        cityNamesList,
+        roadsList,
+        roadsMap,
+        tripIds,
+      }
+    }, [jmState.tlList, viewMomentMapTrackId, config.lang])
 
   // console.log('router', router)
 
@@ -2177,6 +2332,96 @@ export const JourneyMemoriesItemPage = ({
     mediaIndex: -1,
     url: '',
   })
+
+  const shareContent = ({
+    name,
+    desc,
+    statistics,
+    cityNames,
+    roads,
+  }: {
+    name: string
+    desc: string
+    statistics: protoRoot.trip.ITripHistoricalStatistics
+    cityNames: string[]
+    roads: {
+      type: string
+      name: string
+    }[]
+  }) => {
+    copyText(
+      `${name}
+${stripHtmlTags(desc || '')}
+${t('durationFull', {
+  ns: 'tripPage',
+  days: `${statistics?.days}天`,
+  time: `${formatDurationI18n(Number(statistics?.time), true)}`,
+})} ${statistics?.count}次行程 · ${
+        Math.round((statistics?.distance || 0) / 10) / 100
+      } km · ${t('maxAltitude', {
+        ns: 'tripPage',
+      })} ${
+        (statistics?.maxAltitude?.num || 0) <= 0
+          ? 0
+          : Math.round((statistics?.maxAltitude?.num || 0) * 10) / 10
+      }m · ${t('minAltitude', {
+        ns: 'tripPage',
+      })} ${
+        (statistics?.minAltitude?.num || 0) <= 0
+          ? 0
+          : Math.round((statistics?.minAltitude?.num || 0) * 10) / 10
+      }m 
+走过城市：${cityNames
+        .reduce(
+          (t, v) => {
+            let cityNames = v.split('·')
+            let cn = cityNames.slice(0, cityNames.length - 1).join('·')
+            let isexits = false
+            t.some((sv) => {
+              if (sv.cityName === cn) {
+                isexits = true
+                sv.subCities.push(cityNames[cityNames.length - 1])
+                return true
+              }
+            })
+            if (!isexits) {
+              t.push({
+                cityName: cn,
+                subCities: [cityNames[cityNames.length - 1]],
+              })
+            }
+            return t
+          },
+          [] as {
+            cityName: string
+            subCities: string[]
+          }[]
+        )
+        .map((v) => {
+          return `${v.cityName}(${v.subCities.join('、')})`
+        })
+        .join(', ')}
+走过的道路：${roads.map((v) => v.name)?.join(', ')}
+${
+  location.origin +
+  (config.language === 'system' ? '' : '/' + config.language) +
+  '/journeyMemories/detail?id=' +
+  jmState.jmDetail.id
+}
+`
+    )
+
+    snackbar({
+      message: t('copySuccessfully', {
+        ns: 'prompt',
+      }),
+      autoHideDuration: 2000,
+      vertical: 'top',
+      horizontal: 'center',
+      backgroundColor: 'var(--saki-default-color)',
+      color: '#fff',
+    }).open()
+  }
 
   return (
     <div
@@ -2581,6 +2826,45 @@ export const JourneyMemoriesItemPage = ({
                 ''
               )}
             </div>
+
+            <div className="jmd-road">
+              {(showAllCityIds.includes('Rdetail')
+                ? roadsList
+                : roadsList.filter((_, i) => i < 9)
+              ).map((v, i) => {
+                return (
+                  <span className={'cn ' + v.type} key={i}>
+                    {v.name}
+                  </span>
+                )
+              })}
+
+              {roadsList.length > 9 ? (
+                <span
+                  ref={bindEvent({
+                    click: () => {
+                      setShowAllCityIds(
+                        showAllCityIds.includes('Rdetail')
+                          ? showAllCityIds.filter((v) => v !== 'Rdetail')
+                          : showAllCityIds.concat(['Rdetail'])
+                      )
+                    },
+                  })}
+                  className="more"
+                >
+                  {!showAllCityIds.includes('Rdetail')
+                    ? t('expandRoads', {
+                        ns: 'journeyMemoriesModal',
+                        num: roadsList.length - 9,
+                      })
+                    : t('collapseCities', {
+                        ns: 'journeyMemoriesModal',
+                      })}
+                </span>
+              ) : (
+                ''
+              )}
+            </div>
             {jmState.jmDetail?.statistics?.count ? (
               <div className="jm-statistics">
                 <div className="item-s-item">
@@ -2656,6 +2940,27 @@ export const JourneyMemoriesItemPage = ({
                 {t('createdAt', {
                   date: jmCreateTimeMoment.format('YYYY.MM.DD'),
                   time: jmCreateTimeMoment.format('HH:mm:ss'),
+                })}
+              </span>
+              <span>{`·`}</span>
+              <span
+                ref={
+                  bindEvent({
+                    click: () => {
+                      jmState.jmDetail.statistics &&
+                        shareContent({
+                          name: jmState.jmDetail.name || '',
+                          desc: jmState.jmDetail.desc || '',
+                          statistics: jmState.jmDetail.statistics,
+                          cityNames: cityNamesList,
+                          roads: roadsList,
+                        })
+                    },
+                  }) as any
+                }
+              >
+                {t('shareContent', {
+                  ns: 'prompt',
                 })}
               </span>
             </div>
@@ -2849,6 +3154,16 @@ export const JourneyMemoriesItemPage = ({
                                         break
                                       case 'Delete':
                                         deleteMoment(v.id || '')
+                                      case 'ShareContent':
+                                        v.statistics &&
+                                          shareContent({
+                                            name: v.name || '',
+                                            desc: v.desc || '',
+                                            statistics: v.statistics,
+                                            cityNames:
+                                              cityNamesMap[v?.id || ''],
+                                            roads: roadsMap[v?.id || ''],
+                                          })
                                         break
                                       case 'ViewMomentMapTrack':
                                         setShowType('ViewMomentMapTrack')
@@ -2884,6 +3199,18 @@ export const JourneyMemoriesItemPage = ({
                                     <span>
                                       {t('updateMoment', {
                                         ns: 'journeyMemoriesModal',
+                                      })}
+                                    </span>
+                                  </div>
+                                </saki-menu-item>
+                                <saki-menu-item
+                                  padding="10px 18px"
+                                  value={'ShareContent'}
+                                >
+                                  <div className="dp-menu-item">
+                                    <span>
+                                      {t('shareContent', {
+                                        ns: 'prompt',
                                       })}
                                     </span>
                                   </div>
@@ -2950,6 +3277,49 @@ export const JourneyMemoriesItemPage = ({
                                       ns: 'journeyMemoriesModal',
                                       num:
                                         cityNamesMap[v?.id || '']?.length - 9,
+                                    })
+                                  : t('collapseCities', {
+                                      ns: 'journeyMemoriesModal',
+                                    })}
+                              </span>
+                            ) : (
+                              ''
+                            )}
+                          </div>
+
+                          <div className="item-road">
+                            {(showAllCityIds.includes('R' + v?.id || '')
+                              ? roadsMap[v?.id || '']
+                              : roadsMap[v?.id || ''].filter((_, i) => i < 9)
+                            )?.map((sv, si) => {
+                              return (
+                                <span className={'cn ' + sv.type} key={si}>
+                                  {sv.name}
+                                </span>
+                              )
+                            })}
+
+                            {roadsMap[v?.id || '']?.length > 9 ? (
+                              <span
+                                ref={bindEvent({
+                                  click: () => {
+                                    setShowAllCityIds(
+                                      showAllCityIds.includes('R' + v?.id || '')
+                                        ? showAllCityIds.filter(
+                                            (sv) => sv !== 'R' + v?.id || ''
+                                          )
+                                        : showAllCityIds.concat([
+                                            'R' + v?.id || '',
+                                          ])
+                                    )
+                                  },
+                                })}
+                                className="more"
+                              >
+                                {!showAllCityIds.includes('R' + v?.id || '')
+                                  ? t('expandRoads', {
+                                      ns: 'journeyMemoriesModal',
+                                      num: roadsMap[v?.id || '']?.length - 9,
                                     })
                                   : t('collapseCities', {
                                       ns: 'journeyMemoriesModal',
@@ -3369,7 +3739,7 @@ const addOnlineVideo = (mediaList: MediaItem[]) => {
     }[]
   >(async (res, rej) => {
     // let oldPassword = ''
-    const multipleInputs: MultipleInput[] = []
+    let multipleInputs: MultipleInput[] = []
 
     let id = 0
     const addInput = (value: string) => {
@@ -3392,6 +3762,7 @@ const addOnlineVideo = (mediaList: MediaItem[]) => {
         onClear() {
           console.log('clear')
           mp1.removeInput(input.label)
+          multipleInputs = multipleInputs.filter((v) => v.label !== input.label)
         },
         onChange(value) {
           if (!value) {
@@ -3452,7 +3823,18 @@ const addOnlineVideo = (mediaList: MediaItem[]) => {
           }),
           type: 'Primary',
           async onTap() {
-            console.log('multipleInputs', multipleInputs)
+            console.log(
+              'multipleInputs',
+              multipleInputs,
+              multipleInputs
+                .filter((v) => !!v.value)
+                .map((v) => {
+                  return {
+                    label: v.label,
+                    value: v.value || '',
+                  }
+                })
+            )
 
             res(
               multipleInputs

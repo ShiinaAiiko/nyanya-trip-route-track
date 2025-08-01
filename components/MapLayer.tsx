@@ -151,6 +151,16 @@ export const LayerButtons = ({
         <saki-button
           ref={bindEvent({
             tap: () => {
+              console.log(
+                'mapLayerConfig',
+                {
+                  visible: true,
+                  mapLayerType,
+                  modalConfig,
+                  // mapLayerConfig,
+                },
+                mapLayerConfig
+              )
               mapLayerConfig &&
                 loadModal('MapLayer', () => {
                   dispatch(
@@ -227,13 +237,17 @@ const MapLayerModal = () => {
 
   return (
     <SakiAsideModal
-      onClose={() => {
-        dispatch(
-          layoutSlice.actions.setOpenMapLayerModal({
-            visible: false,
-          })
-        )
-      }}
+      ref={
+        bindEvent({
+          close: () => {
+            dispatch(
+              layoutSlice.actions.setOpenMapLayerModal({
+                visible: false,
+              })
+            )
+          },
+        }) as any
+      }
       onLoaded={() => {
         eventListener.dispatch('loadModal:MapLayer', true)
       }}
@@ -444,6 +458,15 @@ const Maps = ({
         ns: 'settings',
       }),
       icon: 'PositionShare',
+      method: 'switch',
+      value: false,
+    },
+    {
+      type: 'privacyGeofence',
+      text: t('title', {
+        ns: 'privacyGeofenceModal',
+      }),
+      icon: 'Geofencing',
       method: 'switch',
       value: false,
     },

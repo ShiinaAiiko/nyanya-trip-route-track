@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+option go_package = "./;protos";
+package privacyGeofence;
+
+message PrivacyGeofencePointsItem {
+  string id = 1;
+  message Coords {
+    double latitude = 1;
+    double longitude = 2;
+  }
+  repeated Coords coords = 2;
+  int64 createTime = 3;
+  int64 lastUpdateTime = 4;
+}
+
+message SetPrivacyGeofence {
+  message Request { repeated PrivacyGeofencePointsItem points = 1; }
+  message Response {}
+}
+
+message GetPrivacyGeofence {
+  message Request {}
+  message Response { repeated PrivacyGeofencePointsItem points = 1; }
+}

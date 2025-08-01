@@ -11,6 +11,7 @@ import (
 )
 
 // "github.com/cherrai/nyanyago-utils/validation"
+var ()
 
 type ConfigureController struct {
 }
@@ -107,7 +108,9 @@ func (fc *ConfigureController) GetConfigure(c *gin.Context) {
 			"configure",
 			token, deviceId, userAgent)
 
-	// 比较谁新谁久
+		// 比较谁新谁久
+
+	// conf.SSO.AppData.Get()
 
 	oldConfigure := new(protos.Configure)
 

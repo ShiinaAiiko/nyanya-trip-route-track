@@ -22,6 +22,7 @@ import { Debounce } from '@nyanyajs/utils'
 import ImagesWaterfallComponent from './ImagesWaterfall'
 import MapLayerModal from './MapLayer'
 import WeatherAppModal from './WeatherApp'
+import PrivacyGeofenceModal from './PrivacyGeofence'
 
 const d = new Debounce()
 
@@ -45,7 +46,7 @@ const LoadModalComponent: React.FC<Props> = ({ children, type, name }) => {
   const timer = useRef<NodeJS.Timeout>()
 
   useEffect(() => {
-    console.log(type, loadModals[type])
+    // console.log(type, loadModals[type])
     if (loadModals[type]) {
       console.log(type, !load, isChildLoaded)
       if (!load) {
@@ -265,6 +266,13 @@ export const LoadModalsComponent = () => {
         ns: 'weatherAppModal',
       }),
       component: <WeatherAppModal />,
+    },
+    {
+      type: 'PrivacyGeofence',
+      name: t('title', {
+        ns: 'privacyGeofenceModal',
+      }),
+      component: <PrivacyGeofenceModal />,
     },
   ]
 

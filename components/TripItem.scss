@@ -401,9 +401,17 @@
                 }
               }
               .tp-i-c-content {
-                span {
+                & > span {
                   color: #666;
                   font-size: 12px;
+                }
+                .tp-i-c-road {
+                  display: flex;
+                  align-items: center;
+                  margin: 4px 0 0;
+
+                  flex-wrap: wrap;
+                  gap: 6px;
                 }
               }
             }

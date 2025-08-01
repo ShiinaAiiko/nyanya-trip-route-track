@@ -110,7 +110,9 @@ const TripEditComponent = memo(() => {
         )
       }
       snackbar({
-        message: t('editedSuccessfully'),
+        message: t('editedSuccessfully', {
+          ns: 'prompt',
+        }),
         vertical: 'top',
         horizontal: 'center',
         backgroundColor: 'var(--saki-default-color)',

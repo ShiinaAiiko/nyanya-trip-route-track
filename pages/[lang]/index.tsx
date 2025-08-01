@@ -17,7 +17,13 @@ import store, {
 import { useSelector, useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { bindEvent, snackbar, progressBar, alert } from '@saki-ui/core'
-import { Debounce, deepCopy, NyaNyaWasm, QueueLoop } from '@nyanyajs/utils'
+import {
+  AsyncQueue,
+  Debounce,
+  deepCopy,
+  NyaNyaWasm,
+  QueueLoop,
+} from '@nyanyajs/utils'
 import {
   getRegExp,
   copyText,
@@ -59,7 +65,13 @@ import {
   defaultLanguage,
   languages,
 } from '../../plugins/i18n/i18n'
-import { initTripCity, Statistics, tripSlice } from '../../store/trip'
+import {
+  GpsPoint,
+  initTripCity,
+  reupdateTripPositions,
+  Statistics,
+  tripSlice,
+} from '../../store/trip'
 import DashboardComponent, { DashboardLayer } from '../../components/Dashboard'
 
 import * as geolib from 'geolib'
@@ -79,6 +91,7 @@ import {
 import { loadModal } from '../../store/layout'
 import { LayerButtons } from '../../components/MapLayer'
 import NewDashboardComponent from '../../components/Dashboard'
+import { getRoadId } from '../../store/geo'
 
 let tempTimer: any
 
@@ -293,12 +306,17 @@ const TripPage = () => {
 
       if (config.devTrip) {
         const getTestData = await axios(
-          // 'http://192.168.204.132:23203/s//testData1.json'
-          'http://192.168.204.132:23203/s//KTmESZzS4.json'
-          // 'http://192.168.204.132:23203/s//xfHtQxa4s.json'
-          // 'http://192.168.204.132:23203/s//rhcMglTZW.json'
-          // 'http://192.168.204.132:23203/s//ykMRlTUd2.json'
-          // 'http://192.168.204.132:23203/s//lRzQNG8Pq.json'
+          // 173
+          // http://192.168.204.139:23202/trip/detail?id=kbZ4vhU21
+
+          // 'http://192.168.204.139:23203/s//testData1.json'
+          // 'http://192.168.204.139:23203/s//KTmESZzS4.json'
+          // 'http://192.168.204.139:23203/s//xfHtQxa4s.json'
+          // 'http://192.168.204.139:23203/s//rhcMglTZW.json'
+          // 'http://192.168.204.139:23203/s//ykMRlTUd2.json'
+          // 'http://192.168.204.139:23203/s//lRzQNG8Pq.json'
+          // 'http://192.168.204.139:23203/s//kbZ4vhU21'
+          'http://192.168.204.139:23203/s//jZwjLXZ0S'
         )
         // console.log('testData', getTestData.data)
         // console.log('testData', getTestData.data.reverse())
@@ -729,7 +747,7 @@ const TripPage = () => {
             return
           }
 
-          console.log('oooooo', testData.positions[i])
+          // console.log('oooooo', testData.positions[i])
 
           dispatch(
             geoSlice.actions.setSelectPosition({
@@ -740,8 +758,8 @@ const TripPage = () => {
 
           dispatch(
             geoSlice.actions.setPosition({
-              // timestamp: testData.positions[i]?.timestamp as any,
-              timestamp: new Date().getTime(),
+              timestamp: testData.positions[i]?.timestamp as any,
+              // timestamp: new Date().getTime(),
               coords: {
                 ...(testData.positions[i] as any),
                 altitude: Number(testData.positions[i].altitude),
@@ -755,7 +773,7 @@ const TripPage = () => {
           // 	true
           // )
           i++
-        }, 500)
+        }, 200)
       }, 1000)
     }
   }, [testData, startTrip])
@@ -852,16 +870,16 @@ const TripPage = () => {
       let time = 0
       setListenTime(new Date().getTime() + time)
 
-      console.log(
-        'resumeTrip1 resumeStartTime.current || new Date().getTime()',
-        trip,
-        startTime,
-        resumeStartTime.current,
-        climbAltitude.current,
-        descendAltitude.current,
-        polyline.current,
-        tempPositions.current
-      )
+      // console.log(
+      //   'resumeTrip1 resumeStartTime.current || new Date().getTime()',
+      //   trip,
+      //   startTime,
+      //   resumeStartTime.current,
+      //   climbAltitude.current,
+      //   descendAltitude.current,
+      //   polyline.current,
+      //   tempPositions.current
+      // )
       // console.log('testGpsData', testGpsData)
 
       // let i = 20
@@ -884,12 +902,12 @@ const TripPage = () => {
       // 	dispatch(geoSlice.actions.setPosition(nv))
       // }, 1500)
       timer.current = setInterval(() => {
-        console.log(
-          'resumeStartTime',
-          new Date().getTime() - startTime,
-          new Date().getTime(),
-          startTime
-        )
+        // console.log(
+        //   'resumeStartTime',
+        //   new Date().getTime() - startTime,
+        //   new Date().getTime(),
+        //   startTime
+        // )
         setListenTime(new Date().getTime() + time)
 
         // if (!testGpsData[i]) return
@@ -999,14 +1017,33 @@ const TripPage = () => {
     }
   }, [listenTime])
 
+  const roadInfoList = useRef<protoRoot.road.IRoadInfo[]>([])
+  const roads = useRef<protoRoot.trip.ITripRoad[]>([])
+
   useEffect(() => {
     try {
-      console.log('initMap1 111111111', geo.position, loadedMap.current)
+      // console.log('initMap1 111111111', geo.position, loadedMap.current)
       if (!loadedMap.current) {
         initMap()
       }
       // console.log('geo.position', geo.position, geo.position?.coords?.heading)
       addPosition(geo.position, false)
+
+      startTrip &&
+        dispatch(
+          methods.geo.GetRoadInfo({
+            position: geo.position,
+          })
+        )
+          .unwrap()
+          .then((res) => {
+            if (res.status === 'loaded') {
+              roadInfoList.current = res.riList || []
+
+              // console.log('roadInfo', trip?.id)
+              addRoad(roadInfoList.current)
+            }
+          })
     } catch (error) {
       snackbar({
         message: JSON.stringify(error),
@@ -1017,7 +1054,7 @@ const TripPage = () => {
         color: '#fff',
       }).open()
     }
-  }, [geo.position?.timestamp])
+  }, [geo.position?.timestamp, startTrip, trip])
 
   useEffect(() => {
     marker.current?.remove()
@@ -1146,14 +1183,14 @@ const TripPage = () => {
 
   const initMap = () => {
     const L: typeof Leaflet = (window as any).L
-    console.log(
-      'initMap1',
-      L,
-      loadedMap.current,
-      geo.position,
-      geo.position?.coords?.latitude,
-      mapUrl
-    )
+    // console.log(
+    //   'initMap1',
+    //   L,
+    //   loadedMap.current,
+    //   geo.position,
+    //   geo.position?.coords?.latitude,
+    //   mapUrl
+    // )
     if (
       L &&
       !loadedMap.current &&
@@ -1474,9 +1511,11 @@ const TripPage = () => {
   }
 
   const updatePosition = async () => {
-    const pl = tempPositions.current.filter((_, i) => {
-      return i > updatedPositionIndex.current
-    })
+    const pl = tempPositions.current
+      .filter((_, i) => {
+        return i > updatedPositionIndex.current
+      })
+      .slice(0, 100)
     console.log('updatePosition1', trip, pl, updatedPositionIndex.current)
     if (!trip?.id || !pl.length) return
     // console.log('updatePositionparams', params)
@@ -1505,7 +1544,9 @@ const TripPage = () => {
         }
       ),
     })
-    if (!trip.id.includes('IDB')) {
+    if (trip.id.includes('IDB')) {
+      updatedPositionIndex.current = pLength - 1
+    } else {
       const params: protoRoot.trip.UpdateTripPosition.IRequest = {
         id: trip?.id || '',
         distance: statistics.current.distance,
@@ -1526,10 +1567,11 @@ const TripPage = () => {
       const res = await httpApi.v1.UpdateTripPosition(params)
       console.log('updateTripPosition', res)
       if (res.code === 200) {
-        updatedPositionIndex.current = pLength - 1
+        updatedPositionIndex.current = Math.min(
+          updatedPositionIndex.current + pl.length,
+          pLength - 1
+        )
       }
-    } else {
-      updatedPositionIndex.current = pLength - 1
     }
   }
 
@@ -1654,6 +1696,67 @@ const TripPage = () => {
     }
   }
 
+  const addRoad = async (roadInfo: typeof roadInfoList.current) => {
+    let id = trip?.id || ''
+    const entryTime = Math.round(new Date().getTime() / 1000)
+
+    const lastRoad = roads.current.reduce((latest, city) => {
+      return Math.max(
+        ...(city?.entryTimes?.map((entry) => Number(entry?.timestamp)) || [])
+      ) >
+        Math.max(
+          ...(latest?.entryTimes?.map((entry) => Number(entry.timestamp)) || [])
+        )
+        ? city
+        : latest
+    }, roads.current[0])
+
+    // console.log('cities.current lastCity', lastCity)
+
+    if (getRoadId(roadInfo) !== getRoadId(lastRoad?.roads || []) && trip?.id) {
+      // 将城市信息存储到本地
+      let isexits = false
+      roads.current.some((v) => {
+        if (getRoadId(v?.roads || []) === getRoadId(roadInfo)) {
+          isexits = true
+          v.entryTimes?.push({
+            timestamp: entryTime,
+          })
+          return true
+        }
+      })
+
+      if (!isexits) {
+        roads.current.push({
+          roads: roadInfo,
+          entryTimes: [
+            {
+              timestamp: entryTime,
+            },
+          ],
+        })
+      }
+
+      await storage.trips.set(trip.id, {
+        ...trip,
+        roads: roads.current,
+      })
+    }
+
+    // console.log('roadInfo', roadInfo)
+    if (user.isLogin && trip?.id) {
+      const res = await httpApi.v1.UpdateRoad({
+        tripId: id,
+        // tripId: trip?.id || 'wKod7r4LS',
+        roads: roadInfo,
+        entryTime,
+      })
+      if (res.code === 200) {
+        // 将城市信息存储到本地
+      }
+    }
+  }
+
   const finishTrip = async () => {
     if (!trip?.id) return
     await updatePosition()
@@ -1688,7 +1791,8 @@ const TripPage = () => {
       endTime: Math.floor(new Date().getTime() / 1000),
     }
     await storage.trips.set(trip.id, tempTrip)
-    console.log('tempTrip getLocalTrips', tempTrip)
+    await storage.global.set('tempTripData_' + trip.id, tempTrip)
+    // console.log('tempTrip getLocalTrips', tempTrip)
     // }
     if (trip.id.indexOf('IDB') < 0) {
       const res = await httpApi.v1.FinishTrip({
@@ -1696,9 +1800,33 @@ const TripPage = () => {
       })
       console.log('FinishTrip', res)
       if (res.code === 200) {
+        setTimeout(() => {
+          snackbar({
+            message: t('finishTripTip', {
+              ns: 'prompt',
+              localNum: tempPositions.current.length,
+              cloudNum: res?.data?.positionLength,
+            }),
+            autoHideDuration: 2000,
+            vertical: 'center',
+            horizontal: 'center',
+          }).open()
+        }, 4000)
+        // 检测是否没传完，没传完的在这里继续，然后重新FinshTrip
+        if (res?.data?.positionLength !== tempPositions.current.length) {
+          await reupdateTripPositions({
+            id: trip.id || '',
+            positions: tempPositions.current,
+          })
+          finishTrip()
+
+          return
+        }
         if (res?.data?.deleted) {
           snackbar({
-            message: '距离过短, 距离需过50m才会记录',
+            message: t('shortDistanceTrip', {
+              ns: 'prompt',
+            }),
             autoHideDuration: 2000,
             vertical: 'top',
             horizontal: 'center',
@@ -1961,6 +2089,11 @@ const TripPage = () => {
               cities={cities.current}
               zIndex={500}
               speedAnimation={mapLayer?.speedAnimation || false}
+              roads={
+                roadInfoList.current?.filter((v) => {
+                  return v.code !== 'A404'
+                }) || []
+              }
             ></NewDashboardComponent>
           </NoSSR>
 
@@ -2037,7 +2170,8 @@ const TripPage = () => {
             mapMode={mapLayer?.mapMode || 'Normal'}
             style={{
               right: '10px',
-              bottom: (startTrip ? 40 + dashboardDataHeight.current : 4) + 'px',
+              bottom:
+                (startTrip ? 40 + dashboardDataHeight.current + 0 : 4) + 'px',
             }}
           ></FiexdWeatherComponent>
           {/* {startTrip || position.selectRealTimeMarkerId ? (

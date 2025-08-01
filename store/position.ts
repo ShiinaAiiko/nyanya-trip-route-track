@@ -160,7 +160,11 @@ const getUserPositionAndVehiclePosition = async (map: Leaflet.Map) => {
       if (distanceToMe < 2 * 1000) {
         console.log('distanceToMe', oldObj[id], distanceToMe)
         iTime =
-          (v?.userInfo?.uid || '') === user.userInfo.uid ? 8 : driving ? 5 : 8
+          (v?.userInfo?.uid || '') === user.userInfo.uid
+            ? 20
+            : driving
+            ? 10
+            : 20
       }
 
       if (iTime === 2) {

@@ -52,10 +52,7 @@ import TripItemComponent from './TripItem'
 import { Debounce, deepCopy, NEventListener } from '@nyanyajs/utils'
 import StatisticsComponent from './Statistics'
 import Leaflet from 'leaflet'
-import NewDashboardComponent, {
-  DashboardComponent,
-  DashboardLayer,
-} from './Dashboard'
+import NewDashboardComponent, { DashboardLayer } from './Dashboard'
 import { Statistics } from '../store/trip'
 import { eventListener, getMapLayer, getTrackRouteColor } from '../store/config'
 import { createIconMarker, renderPolyline } from '../store/map'
@@ -109,7 +106,7 @@ const ReplayTripComponent = () => {
       width={config.deviceWH.w + 'px'}
       height={
         (!pov.povWH.h
-          ? config.deviceWH.w
+          ? config.deviceWH.h
           : config.deviceWH.w / (pov.povWH.w / pov.povWH.h)) + 'px'
       }
       max-width={'100%'}
@@ -244,6 +241,7 @@ const ReplayTripPage = ({
     trackRouteColor: true,
     polylineWidth: true,
     speedColorLimit: true,
+    privacyGeofence: true,
   })
 
   const { mapLayer, speedColorRGBs, mapLayerType, mapUrl } = useMemo(() => {
@@ -461,13 +459,14 @@ const ReplayTripPage = ({
     })
     setTimeout(() => {
       map.current?.invalidateSize(true)
-      zoom.current = povMode ? 13 : config.deviceType === 'Mobile' ? 14 : 15
+      zoom.current = povMode ? 13.5 : config.deviceType === 'Mobile' ? 14 : 15
       map.current?.setZoom(zoom.current)
     }, 500)
-  }, [povWH, povMode])
+  }, [povWH, povMode, mapUrl])
 
   useEffect(() => {
     if (tripId && layout.openReplayTripModal) {
+      visitedCities.current = []
       setIsStarted(false)
       clear(true)
       const init = async () => {
@@ -497,8 +496,9 @@ const ReplayTripPage = ({
         (updatingPositionIndex.current === trip?.positions?.length - 1 ||
           updatingPositionIndex.current === 0)
       ) {
+        visitedCities.current = []
         // if (!isSetZoom.current) {
-        zoom.current = povMode ? 13 : config.deviceType === 'Mobile' ? 14 : 15
+        zoom.current = povMode ? 13.5 : config.deviceType === 'Mobile' ? 14 : 15
         isSetZoom.current = true
         // }
         map.current?.setZoom(zoom.current)
@@ -951,11 +951,11 @@ const ReplayTripPage = ({
       console.log('initMap开始加载！', trip)
       let lat = geo.position?.coords.latitude || 0
       let lon = geo.position?.coords.longitude || 0
-      zoom.current = 13
+      zoom.current = 13.5
 
       let positions = trip?.positions || []
 
-      positions = positions.filter((v, i) => {
+      positions = positions?.filter((v, i) => {
         const gss = !(v.speed === null || v.altitude === null)
 
         if (v.speed && v.speed > 45) {
@@ -1096,7 +1096,7 @@ const ReplayTripPage = ({
           console.time('getLatLnggetLatLng')
 
           positions
-            .filter((v) => {
+            ?.filter((v) => {
               return !(Number(v.speed || 0) < 0 || Number(v.altitude || 0) < 0)
             })
             ?.forEach((v, i, arr) => {
@@ -1241,6 +1241,7 @@ const ReplayTripPage = ({
           weight: Number(mapLayer?.polylineWidth),
           clickFunc({ params, reRender }) {},
           filterAccuracy: 'High',
+          privacyGeofence: mapLayer?.privacyGeofence || false,
         })
     }, 700)
   }
@@ -1359,31 +1360,55 @@ const ReplayTripPage = ({
     )
   }, [trip?.cities])
 
-  const findCityByTimestamp = (
-    cityTimeline: {
-      item: protoRoot.trip.ITripCity
-      time: number
-    }[],
-    timestamp: number
-  ) => {
-    if (!cityTimeline.length) return
-    let city = cityTimeline[0]
-    for (let i = 0; i < cityTimeline.length; i++) {
-      // console.log(
-      // 	'lllll',
-      // 	i,
-      // 	moment(cityTimeline[i].time * 1000).format('HH:mm:ss'),
-      // 	moment(timestamp * 1000).format('HH:mm:ss'),
-      // 	moment(Number(trip?.startTime) * 1000).format('HH:mm:ss'),
-      // 	moment(Number(trip?.endTime) * 1000).format('HH:mm:ss'),
-      // 	cityTimeline[i].time > timestamp
-      // )
-      if (cityTimeline[i].time > timestamp) {
+  const roadsTimeline = useMemo(() => {
+    return (
+      trip?.roads?.reduce(
+        (results, v, i, arr) => {
+          v.entryTimes?.forEach((t) => {
+            results.push({
+              item: v,
+              time: Number(t.timestamp),
+            })
+          })
+          if (arr.length - 1 === i) {
+            console.log('trip?.cities results', results)
+            results.sort((a, b) => a.time - b.time)
+          }
+          return results
+        },
+        [] as {
+          item: protoRoot.trip.ITripRoad
+          time: number
+        }[]
+      ) || []
+    )
+  }, [trip?.roads])
+
+  const findCityByTimestamp = (ct: typeof cityTimeline, timestamp: number) => {
+    if (!ct.length) return
+    let city = ct[0]
+    for (let i = 0; i < ct.length; i++) {
+      if (ct[i].time > timestamp) {
         break
       }
-      city = cityTimeline[i]
+      city = ct[i]
     }
     return city
+  }
+
+  const findRoadsByTimestamp = (
+    ct: typeof roadsTimeline,
+    timestamp: number
+  ) => {
+    if (!ct.length) return
+    let roads = ct[0]
+    for (let i = 0; i < ct.length; i++) {
+      if (ct[i].time > timestamp) {
+        break
+      }
+      roads = ct[i]
+    }
+    return roads
   }
 
   // const [fullCityName, setFullCityName] = useState(true)
@@ -1394,12 +1419,20 @@ const ReplayTripPage = ({
   const [cityInfo, setCityInfo] = useState<
     protoRoot.trip.ITripCity | undefined
   >()
+
+  const roadsEntryTime = useRef(0)
+  const [roadsInfo, setRoadsInfo] = useState<
+    protoRoot.trip.ITripRoad | undefined
+  >()
   useEffect(() => {
     const tempCitiInfo = findCityByTimestamp(
       cityTimeline,
       Number(trip?.startTime) + listenTime
     )
-    if (tempCitiInfo?.time !== entryTime.current) {
+    if (
+      tempCitiInfo?.time !== entryTime.current ||
+      !visitedCities.current.length
+    ) {
       // console.log('新城市', tempCitiInfo)
       entryTime.current = tempCitiInfo?.time || 0
 
@@ -1465,6 +1498,17 @@ const ReplayTripPage = ({
       } else {
         setCityInfo(tempCitiInfo?.item)
       }
+    }
+
+    const tempRoads = findRoadsByTimestamp(
+      roadsTimeline,
+      Number(trip?.startTime) + listenTime
+    )
+    console.log('roadsInfo', tempRoads, roadsTimeline)
+    if (tempRoads?.time !== roadsEntryTime.current) {
+      roadsEntryTime.current = tempRoads?.time || 0
+
+      setRoadsInfo(tempRoads?.item)
     }
   }, [listenTime])
 
@@ -1679,6 +1723,11 @@ const ReplayTripPage = ({
             }, 500)
           }}
           zIndex={zIndex}
+          roads={
+            roadsInfo?.roads?.filter((v) => {
+              return v.code !== 'A404'
+            }) || []
+          }
         />
       ) : (
         // <DashboardComponent
@@ -1919,7 +1968,7 @@ const ReplayTripPage = ({
             >
               {runningSpeed === 1
                 ? '倍速'
-                : runningSpeedArr.filter((v) => {
+                : runningSpeedArr?.filter((v) => {
                     return v.v === runningSpeed
                   })?.[0].t}
             </span>

@@ -1,12 +1,15 @@
-import Leaflet, { latLng, map } from 'leaflet'
+import Leaflet, { latLng, map, svg } from 'leaflet'
 import { protoRoot } from '../protos'
 import {
   formatPositionsStr,
   getDistance,
   getLatLng,
+  getLatLngGcj02ToWgs84,
   getSpeedColor,
   getZoom,
+  isPointInPolygon,
 } from '../plugins/methods'
+// import { isPointInPolygon } from 'geolib'
 import store, { methods } from '.'
 import { storage } from './storage'
 import {
@@ -156,6 +159,7 @@ export const renderPolyline = async ({
   alert = false,
   speedRange,
   altitudeRange,
+  privacyGeofence = false,
 }: {
   map: Leaflet.Map
   trips: protoRoot.trip.ITripPositions[]
@@ -169,7 +173,36 @@ export const renderPolyline = async ({
   alert?: boolean
   speedRange?: protoRoot.configure.Configure.Filter.FilterItem.IRangeItem
   altitudeRange?: protoRoot.configure.Configure.Filter.FilterItem.IRangeItem
+  privacyGeofence?: boolean
 }) => {
+  // setTimeout(() => {
+  //   const { trip } = store.getState()
+
+  //   const L: typeof Leaflet = (window as any).L
+
+  //   const mapUrl = (map as any)?.mapUrl || ''
+  //   const polygon = L.polygon(
+  //     trip.privacyGeofencePointsPolygon.map((v) => {
+  //       return v.map((sv) => {
+  //         return getLatLng(mapUrl, Number(sv[0]), Number(sv[1]))
+  //       })
+  //     }) as any,
+  //     {
+  //       color: 'rgb(230,110,70)', // 边框颜色
+  //       fillOpacity: 0.3, // 填充透明度
+  //     }
+  //   ).addTo(map)
+  //   console.log(
+  //     'trip.privacyGeofencePointsPolygon',
+  //     trip.privacyGeofencePointsPolygon.map((v) => {
+  //       return v.map((sv) => {
+  //         return getLatLng(mapUrl, Number(sv[0]), Number(sv[1]))
+  //       })
+  //     }),
+  //     polygon
+  //   )
+  // }, 1000)
+
   let loadBaseData: ReturnType<typeof snackbar> | undefined
   if (alert) {
     loadBaseData = snackbar({
@@ -243,6 +276,7 @@ export const renderPolyline = async ({
               filterAccuracy: v.permissions?.customTrip
                 ? 'NoFilter'
                 : filterAccuracy,
+              privacyGeofence,
             },
             clickFunc,
           }))
@@ -372,6 +406,8 @@ export interface RenderPolylineItemParams {
   filterAccuracy: 'Low' | 'Medium' | 'High' | 'NoFilter'
   speedRange?: protoRoot.configure.Configure.Filter.FilterItem.IRangeItem
   altitudeRange?: protoRoot.configure.Configure.Filter.FilterItem.IRangeItem
+
+  privacyGeofence?: boolean
 }
 
 export type RenderPolylineItemClickFuncReRender = (
@@ -479,7 +515,9 @@ async function simplifyTrip(
   // 缓存逻辑
   const cacheKey = `${id}_${
     speedColor === 'auto'
-  }_${tolerance}_${speedThreshold}_${minTimeInterval}_${minPointsInterval}`
+  }_${tolerance}_${speedThreshold}_${minTimeInterval}_${minPointsInterval}_${
+    coords.length
+  }`
   const cached = await storage.simplifyTripPositions.get(cacheKey)
   if (cached) return cached
 
@@ -574,7 +612,7 @@ export const renderPolylineItem = async ({
 }): Promise<Leaflet.Layer | undefined> => {
   const L: typeof Leaflet = (window as any).L
 
-  const { config } = store.getState()
+  const { config, trip } = store.getState()
 
   let { weight, positions, speedColor, map, type, tripId } = params
 
@@ -604,15 +642,48 @@ export const renderPolylineItem = async ({
     params.altitudeRange &&
     !(params.altitudeRange?.min === 0 && params.altitudeRange?.max === 8848)
 
-  const tempPositions =
+  const mapUrl = (map as any)?.mapUrl || ''
+  let tempPositions =
+    trip.privacyGeofencePointsPolygon?.length && params.privacyGeofence
+      ? positions.filter((v) => {
+          let b = true
+          trip.privacyGeofencePointsPolygon.some((sv) => {
+            if (
+              isPointInPolygon([Number(v.latitude), Number(v.longitude)], sv)
+            ) {
+              b = false
+              return true
+            }
+          })
+
+          return b
+        })
+      : positions
+  // tempPositions = positions
+
+  console.log(
+    'isPointInPolygon:',
+    tempPositions.length,
+    positions.length,
+    trip.privacyGeofencePointsPolygon?.length
+  )
+
+  tempPositions =
     params.filterAccuracy === 'NoFilter' || isSpeedRange || isAltitudeRange
-      ? positions
-      : await simplifyTrip(params.tripId, params.speedColor, positions, {
+      ? tempPositions
+      : await simplifyTrip(params.tripId, params.speedColor, tempPositions, {
           tolerance,
           speedThreshold,
           minTimeInterval: 5000,
           minPointsInterval: 15,
         })
+  console.log(
+    'isPointInPolygon:',
+    tempPositions.length,
+    positions.length,
+    trip.privacyGeofencePointsPolygon?.length
+  )
+
   // : await simplifyWithSpeed(params.tripId, positions, tolerance, speedThreshold)
 
   // console.log(
@@ -648,7 +719,6 @@ export const renderPolylineItem = async ({
         config.configure.general?.speedColorLimit as any
       )[(type?.toLowerCase() || 'running') as any]
 
-      const mapUrl = (params.map as any)?.mapUrl || ''
       const speedColorRGBs = (params.map as any)?.speedColorRGBs || []
 
       if (!isSpeedRange && !isAltitudeRange) {
@@ -828,7 +898,7 @@ export const renderPolylineItem = async ({
   tempTrack.forEach((v) => {
     const { latLngs, colors } = v
     // if (latLngs.length <= 1) return
-    // console.log('trackssss', latLngs)
+    // console.log('trackssss isPointInPolygon', latLngs)
 
     // if ((isSpeedRange ||isAltitudeRange)&&latLngs.length>) {
 

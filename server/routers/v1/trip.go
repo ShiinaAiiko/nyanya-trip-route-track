@@ -22,6 +22,16 @@ func (r *Routerv1) InitTrip() {
 		}),
 		tc.ClearTripCities)
 	r.Group.POST(
+		role.SetRole("/trip/roads/clear", &middleware.RoleOptionsType{
+			CheckApp:           false,
+			Authorize:          true,
+			RequestEncryption:  false,
+			ResponseEncryption: false,
+			RequestDataType:    "protobuf",
+			ResponseDataType:   "protobuf",
+		}),
+		tc.ClearTripRoads)
+	r.Group.POST(
 		role.SetRole("/trip/add", &middleware.RoleOptionsType{
 			CheckApp:           false,
 			Authorize:          true,

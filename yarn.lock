@@ -817,17 +817,17 @@
   integrity sha512-dBVuXR082gk3jsFp7Rd/JI4kytwGHecnCoTtXFb7DB6CNHp4rg5k1bhg0nWdLGLnOV71lmDzGQaLMy8iPLY0pw==
 
 "@grpc/grpc-js@^1.3.7":
-  version "1.13.0"
-  resolved "https://registry.npm.aiiko.club/@grpc/grpc-js/-/grpc-js-1.13.0.tgz#69c229eacb77f3468afa9d375c23dc9b694d1af9"
-  integrity sha512-pMuxInZjUnUkgMT2QLZclRqwk2ykJbIU05aZgPgJYXEpN9+2I7z7aNwcjWZSycRPl232FfhPszyBFJyOxTHNog==
+  version "1.13.4"
+  resolved "https://registry.npm.aiiko.club/@grpc/grpc-js/-/grpc-js-1.13.4.tgz#922fbc496e229c5fa66802d2369bf181c1df1c5a"
+  integrity sha512-GsFaMXCkMqkKIvwCQjCrwH+GHbPKBjhwo/8ZuUkWHqbI73Kky9I+pQltrlT0+MWpedCoosda53lgjYfyEPgxBg==
   dependencies:
     "@grpc/proto-loader" "^0.7.13"
     "@js-sdsl/ordered-map" "^4.4.2"
 
 "@grpc/proto-loader@^0.7.13":
-  version "0.7.13"
-  resolved "https://registry.npm.aiiko.club/@grpc/proto-loader/-/proto-loader-0.7.13.tgz#f6a44b2b7c9f7b609f5748c6eac2d420e37670cf"
-  integrity sha512-AiXO/bfe9bmxBjxxtYxFAXGZvMaN5s8kO+jBHAJCON8rJoB5YS/D6X7ZNc6XQkuHNmyl4CYaMI1fJ/Gn27RGGw==
+  version "0.7.15"
+  resolved "https://registry.npm.aiiko.club/@grpc/proto-loader/-/proto-loader-0.7.15.tgz#4cdfbf35a35461fc843abe8b9e2c0770b5095e60"
+  integrity sha512-tMXdRCfYVixjuFK+Hk0Q1s38gV9zDiDJfWL3h1rv4Qc39oILCu1TRTDt7+fGUI8K4G1Fj125Hx/ru3azECWTyQ==
   dependencies:
     lodash.camelcase "^4.3.0"
     long "^5.0.0"
@@ -967,10 +967,10 @@
   resolved "https://registry.npm.aiiko.club/@nyanyajs/nyanyadb/-/nyanyadb-1.0.5.tgz#a1fc65b6f8b5d2a10f00c72dfe6b498e5aa24866"
   integrity sha512-39jRem3KkEHEyL6I1qzKLl6ejEUtp29Cf+ZOUkWviGTv9LVt0lVmSAX7SbySRyYwT2k0RxOjRC7KcEbFl8EvhA==
 
-"@nyanyajs/utils@^1.0.33":
-  version "1.0.33"
-  resolved "https://registry.npm.aiiko.club/@nyanyajs/utils/-/utils-1.0.33.tgz#fe2ba6692fc8ade1a2855092f0b4a0d5780e700c"
-  integrity sha512-U2KeOESEeTz+MI/e+Ik24/7VnOI/tj22L9fkOYwL3DsmgDeUwoicjhQZgi5USrQXkCVoyMnR5VgSHG1FNjring==
+"@nyanyajs/utils@^1.0.36":
+  version "1.0.36"
+  resolved "https://registry.npm.aiiko.club/@nyanyajs/utils/-/utils-1.0.36.tgz#165aaea71513adca67ad60d14c28659f3f78cfb5"
+  integrity sha512-V7CZmzHtKrvzp4zKI/+6xtl/gzMw1bIGw7Lto0qSvHHgvYWXX/dLvaTdY9CodWsqjAlk8rlUVW7nTZV+1jFi1g==
   dependencies:
     "@nyanyajs/nyanyadb" "^1.0.5"
     axios "^0.27.2"
@@ -4545,9 +4545,9 @@ long@^4.0.0:
   integrity sha512-XsP+KhQif4bjX1kbuSiySJFNAehNxgLb6hPRGJ9QsUr8ajHkuXGdrHmFUTUUXhDwVX2R5bY4JNZEwbUiMhV+MA==
 
 long@^5.0.0:
-  version "5.3.1"
-  resolved "https://registry.npm.aiiko.club/long/-/long-5.3.1.tgz#9d4222d3213f38a5ec809674834e0f0ab21abe96"
-  integrity sha512-ka87Jz3gcx/I7Hal94xaN2tZEOPoUOEVftkQqZx2EeQRN7LGdfLlI3FvZ+7WDplm+vK2Urx9ULrvSowtdCieng==
+  version "5.3.2"
+  resolved "https://registry.npm.aiiko.club/long/-/long-5.3.2.tgz#1d84463095999262d7d7b7f8bfd4a8cc55167f83"
+  integrity sha512-mNAgZ1GmyNhD7AuqnTG3/VQ26o760+ZYBPKjPvugO8+nLbYfX6TVpJPseBvopbdY+qpZ/lKUnmEc1LeZYS3QAA==
 
 loose-envify@^1.1.0:
   version "1.4.0"
@@ -4940,9 +4940,9 @@ protobufjs@^6.11.2:
     long "^4.0.0"
 
 protobufjs@^7.2.5:
-  version "7.4.0"
-  resolved "https://registry.npm.aiiko.club/protobufjs/-/protobufjs-7.4.0.tgz#7efe324ce9b3b61c82aae5de810d287bc08a248a"
-  integrity sha512-mRUWCc3KUU4w1jU8sGxICXH/gNS94DvI1gxqDvBzhj1JpcsimQkYiOJfwsPUykUI5ZaspFbSgmBLER8IrQ3tqw==
+  version "7.5.3"
+  resolved "https://registry.npm.aiiko.club/protobufjs/-/protobufjs-7.5.3.tgz#13f95a9e3c84669995ec3652db2ac2fb00b89363"
+  integrity sha512-sildjKwVqOI2kmFDiXQ6aEB0fjYTafpEvIBs8tOR8qI4spuL9OPROLVu2qZqi/xgCfsHIwVqlaF8JBjWFHnKbw==
   dependencies:
     "@protobufjs/aspromise" "^1.1.2"
     "@protobufjs/base64" "^1.1.2"

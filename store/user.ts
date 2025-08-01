@@ -104,14 +104,11 @@ export const userMethods = {
             })
           )
 
-          thunkAPI.dispatch(
-            userSlice.actions.setIsLogin(true)
-          )
-
+          thunkAPI.dispatch(userSlice.actions.setIsLogin(true))
         } else {
           thunkAPI.dispatch(userSlice.actions.logout({}))
         }
-      } catch (error) { }
+      } catch (error) {}
     }
   ),
   logout: createAsyncThunk(modeName + '/logout', async (_, thunkAPI) => {
@@ -128,7 +125,7 @@ export const userMethods = {
       confirmText: t('logout', {
         ns: 'prompt',
       }),
-      onCancel() { },
+      onCancel() {},
       async onConfirm() {
         thunkAPI.dispatch(userSlice.actions.logout({}))
         snackbar({
@@ -144,30 +141,31 @@ export const userMethods = {
       },
     }).open()
   }),
-  loginAlert: createAsyncThunk(modeName + '/loginAlert', async (_, thunkAPI) => {
-    alert({
-      title: t('login', {
-        ns: 'common',
-      }),
-      content: t('noLoginTrip', {
-        ns: 'prompt',
-      }),
-      cancelText: t('cancel', {
-        ns: 'prompt',
-      }),
-      confirmText: t('login', {
-        ns: 'common',
-      }),
-      onCancel() { },
-      async onConfirm() {
-
-        loadModal('Login', () => {
-          thunkAPI.dispatch(layoutSlice.actions.setOpenLoginModal(true))
-        })
-
-      },
-    }).open()
-  }),
+  loginAlert: createAsyncThunk(
+    modeName + '/loginAlert',
+    async (_, thunkAPI) => {
+      alert({
+        title: t('login', {
+          ns: 'common',
+        }),
+        content: t('noLoginTrip', {
+          ns: 'prompt',
+        }),
+        cancelText: t('cancel', {
+          ns: 'prompt',
+        }),
+        confirmText: t('login', {
+          ns: 'common',
+        }),
+        onCancel() {},
+        async onConfirm() {
+          loadModal('Login', () => {
+            thunkAPI.dispatch(layoutSlice.actions.setOpenLoginModal(true))
+          })
+        },
+      }).open()
+    }
+  ),
 }
 
 export type UserInfo = {

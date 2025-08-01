@@ -199,6 +199,7 @@ const TrackRoutePage = () => {
     trackRouteColor: true,
     polylineWidth: true,
     speedColorLimit: true,
+    privacyGeofence: true,
   })
 
   const { mapLayer, speedColorRGBs, mapLayerType, mapUrl } = useMemo(() => {
@@ -547,6 +548,7 @@ const TrackRoutePage = () => {
                 false
               ),
           weight: Number(mapLayer?.polylineWidth),
+          privacyGeofence: mapLayer?.privacyGeofence || false,
           clickFunc({ params, reRender }) {
             console.log('clickFunc', params)
             delayClickPolyline.current = true
