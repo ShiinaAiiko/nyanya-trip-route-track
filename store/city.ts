@@ -963,7 +963,7 @@ export const regeo = async ({ lat, lng }: { lat: number; lng: number }) => {
   //   return
   // }
   const data = res.data.data as any
-  // console.log('GetCity', toolApiUrl, data)
+  console.log('GetCity', toolApiUrl, data)
   if (!data?.country || res?.data?.code !== 200) return
   let newCi: (typeof cityState)['cityInfo'] = {
     country: data.country,
@@ -1010,7 +1010,7 @@ export const getCityName = (
   return name
 }
 
-export const voiceBroadcast = (city: string) => {
+export const voiceBroadcast = (city: string, msg?: boolean) => {
   // const tripArrivalMessages = [
   //   '你已经到了 {{city}}，记下这一站喽',
   //   '抵达 {{city}}！旅途的小标记 +1',
@@ -1047,16 +1047,20 @@ export const voiceBroadcast = (city: string) => {
     city: city,
   })
 
-  const msgSnackbar = snackbar({
-    message: text,
-    vertical: 'center',
-    horizontal: 'center',
-    backgroundColor: 'var(--saki-default-color)',
-    color: '#fff',
-    autoHideDuration: 12000,
-  })
+  let msgSnackbar: ReturnType<typeof snackbar>
 
-  msgSnackbar.open()
+  if (msg) {
+    msgSnackbar = snackbar({
+      message: text,
+      vertical: 'center',
+      horizontal: 'center',
+      backgroundColor: 'var(--saki-default-color)',
+      color: '#fff',
+      autoHideDuration: 12000,
+    })
+
+    msgSnackbar.open()
+  }
   ;(window as any).responsiveVoice.speak(
     text,
     'Chinese Female', // 中文女声
@@ -1065,7 +1069,7 @@ export const voiceBroadcast = (city: string) => {
       rate: 1, // 语速
       volume: 2, // 音量
       onend: () => {
-        msgSnackbar.close()
+        msg && msgSnackbar?.close()
         console.log('播放完成！')
       },
     }
@@ -1129,7 +1133,7 @@ export const cityMethods = {
 
           // 缺乏i18n
           if (msg) {
-            voiceBroadcast(msg)
+            voiceBroadcast(msg, true)
 
             // if ("speechSynthesis" in window) {
             //   // 清空队列

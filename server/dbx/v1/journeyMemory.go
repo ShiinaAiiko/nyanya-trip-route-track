@@ -77,6 +77,7 @@ func (d *JourneyMemoryDbx) AddJM(jm *models.JourneyMemory) (*models.JourneyMemor
 	if err != nil {
 		return nil, err
 	}
+	d.DeleteRedisData(jm.AuthorId, jm.Id)
 
 	return jm, nil
 }
@@ -330,10 +331,12 @@ func (d *JourneyMemoryDbx) DeleteRedisData(authorId string, id string) error {
 	fsdb := jm.GetFsDB()
 
 	if err := fsdb.Jm.Delete(id); err != nil {
-		return err
+		log.Error(err)
+		// return err
 	}
 	if err := fsdb.JmTlList.Delete(id); err != nil {
-		return err
+		log.Error(err)
+		// return err
 	}
 
 	// log.Info(fsdb.JmTlList.Keys())
@@ -341,14 +344,16 @@ func (d *JourneyMemoryDbx) DeleteRedisData(authorId string, id string) error {
 		// log.Info(strings.Contains(v, id))
 		if strings.Contains(v, id) {
 			if err := fsdb.JmTlList.Delete(v); err != nil {
-				return err
+				log.Error(err)
+				// return err
 			}
 		}
 	}
 	// log.Info(fsdb.JmTlList.Keys())
 	for _, v := range fsdb.JmList.Keys(authorId) {
 		if err := fsdb.JmList.Delete(v); err != nil {
-			return err
+			log.Error(err)
+			// return err
 		}
 	}
 

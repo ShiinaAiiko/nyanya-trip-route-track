@@ -23,6 +23,7 @@ import {
   calculateSlope,
   formatDistance,
   formatTime,
+  getLatLngUnit,
 } from '../plugins/methods'
 import moment from 'moment'
 import { storage } from '../store/storage'
@@ -305,77 +306,85 @@ const NewDashboardComponent = ({
 
   const lastPosition = useRef<protoRoot.trip.ITripPosition[]>([])
 
-  const { speedClipPathD, gClipPathD, speedVal, gVal } = useMemo(() => {
-    // const speed = 180
-    // const speed = 10
-    let speedVal =
-      gpsSignalStatus === 1 && enable
-        ? stopped
-          ? 0
-          : speed <= 0
-          ? 0
-          : Math.round(((speed || 0) * 3600) / 100) / 10
-        : 0
+  const { speedClipPathD, gClipPathD, speedVal, gVal, latlngUnit } =
+    useMemo(() => {
+      // const speed = 180
+      // const speed = 10
+      let speedVal =
+        gpsSignalStatus === 1 && enable
+          ? stopped
+            ? 0
+            : speed <= 0
+            ? 0
+            : Math.round(((speed || 0) * 3600) / 100) / 10
+          : 0
 
-    // speedVal = 199
+      // speedVal = 199
 
-    // const slope = calculateSlope(
-    //   Number(position?.latitude),
-    //   Number(position?.longitude),
-    //   Number(position?.altitude),
-    //   Number(lastPosition.current?.latitude),
-    //   Number(lastPosition.current?.longitude),
-    //   Number(lastPosition.current?.altitude)
-    // )
-    // console.log('slope', slope)
-    // console.log('calculateGValue position', position)
-    if (position) {
-      lastPosition.current = [...lastPosition.current, position]
-      if (lastPosition.current.length > 3) {
-        lastPosition.current = lastPosition.current.slice(-3)
+      // const slope = calculateSlope(
+      //   Number(position?.latitude),
+      //   Number(position?.longitude),
+      //   Number(position?.altitude),
+      //   Number(lastPosition.current?.latitude),
+      //   Number(lastPosition.current?.longitude),
+      //   Number(lastPosition.current?.altitude)
+      // )
+      // console.log('slope', slope)
+      // console.log('calculateGValue position', position)
+      if (position) {
+        lastPosition.current = [...lastPosition.current, position]
+        if (lastPosition.current.length > 3) {
+          lastPosition.current = lastPosition.current.slice(-3)
+        }
       }
-    }
 
-    let gVal = 0
-    if (lastPosition.current.length >= 3) {
-      gVal = Math.min(
-        calculateGValue(
-          lastPosition.current.map((v): any => {
-            return {
-              latitude: Number(v.latitude) || 0,
-              longitude: Number(v.longitude) || 0,
-              timestamp: Number(v.timestamp) || 0,
-            }
-          })
-        ) || 0,
-        99
+      let gVal = 0
+      if (lastPosition.current.length >= 3) {
+        gVal = Math.min(
+          calculateGValue(
+            lastPosition.current.map((v): any => {
+              return {
+                latitude: Number(v.latitude) || 0,
+                longitude: Number(v.longitude) || 0,
+                timestamp: Number(v.timestamp) || 0,
+              }
+            })
+          ) || 0,
+          99
+        )
+      }
+      // if (position?.timestamp !== lastPosition.current?.timestamp) {
+      //   lastPosition.current = position
+      // }
+
+      const speedColorLimit = (
+        config.configure?.general?.speedColorLimit as any
+      )?.[(type?.toLowerCase() || 'drive') as any]
+      // console.log(
+      //   'config.configure',
+      //   config.configure?.general?.speedColorLimit,
+      //   type,
+      //   speedColorLimit?.maxSpeed * 3.6,
+      //   100 / ((speedColorLimit?.maxSpeed || 22.22) * 3.6)
+      // )
+
+      const latlngUnit = getLatLngUnit(
+        position?.latitude || 0,
+        position?.longitude || 0
       )
-    }
-    // if (position?.timestamp !== lastPosition.current?.timestamp) {
-    //   lastPosition.current = position
-    // }
 
-    const speedColorLimit = (
-      config.configure?.general?.speedColorLimit as any
-    )?.[(type?.toLowerCase() || 'drive') as any]
-    // console.log(
-    //   'config.configure',
-    //   config.configure?.general?.speedColorLimit,
-    //   type,
-    //   speedColorLimit?.maxSpeed * 3.6,
-    //   100 / ((speedColorLimit?.maxSpeed || 22.22) * 3.6)
-    // )
-    return {
-      speedClipPathD: getClipPath(
-        dashboardSpeedWidth,
-        speedVal * (50 / ((speedColorLimit?.maxSpeed || 22.22) * 3.6))
-      ),
-      gClipPathD: getClipPath(dashboardGWidth, gVal * 33),
-      speedVal,
-      gVal,
-      // slope,
-    }
-  }, [position?.speed, enable, gpsSignalStatus, stopped])
+      return {
+        speedClipPathD: getClipPath(
+          dashboardSpeedWidth,
+          speedVal * (50 / ((speedColorLimit?.maxSpeed || 22.22) * 3.6))
+        ),
+        gClipPathD: getClipPath(dashboardGWidth, gVal * 33),
+        speedVal,
+        gVal,
+        latlngUnit,
+        // slope,
+      }
+    }, [position?.speed, enable, gpsSignalStatus, stopped])
   let distanceVal = 0
   let distanceUnit = 'km'
 
@@ -1222,9 +1231,13 @@ const NewDashboardComponent = ({
         </div>
         <div className="data-position">
           <div>
-            <span>{position?.latitude?.toFixed(povMode ? 3 : 6)}° N</span>
+            <span>
+              {position?.latitude?.toFixed(povMode ? 3 : 6)}° {latlngUnit.lat}
+            </span>
             <span> - </span>
-            <span>{position?.longitude?.toFixed(povMode ? 3 : 6)}° E</span>
+            <span>
+              {position?.longitude?.toFixed(povMode ? 3 : 6)}° {latlngUnit.lng}
+            </span>
             {/* {weatherInfo && weatherInfo?.weather && live ? (
 								<>
 									<span>
@@ -1524,6 +1537,10 @@ export const RoadIcon = ({
   roadName: string
   shortCityName: string
 }) => {
+  const { user } = useSelector((state: RootState) => {
+    return state
+  })
+
   const [tempRoadInfo, setTempRoadInfo] = useState<typeof roadInfo>(roadInfo)
 
   if (country === 'CN' || cnShortCityNameList.includes(shortCityName)) {
@@ -1578,7 +1595,9 @@ export const RoadIcon = ({
         ' ' +
         (!roadCode ? 'onlyName' : '') +
         ' ' +
-        (roadCode && !roadName ? 'onlyCode' : '')
+        (roadCode && !roadName ? 'onlyCode' : '') +
+        ' ' +
+        user.userAgent.os.name
       }
     >
       {type === 'motorway' ? (

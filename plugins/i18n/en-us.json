@@ -271,6 +271,9 @@
 
     "shareContent": "{{name}}, {{days}} days, {{tripCount}} trips, {{distance}}km, spanning {{minAlt}}m to {{maxAlt}}m elevation\n{{url}}"
   },
+  "selectFilesModal": {
+    "pageTitle": "Select Files"
+  },
   "imagesWaterfallModal": {
     "title": "Photo Album",
     "albumTitle": "{{name}} Photo Album"

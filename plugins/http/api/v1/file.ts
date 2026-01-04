@@ -18,4 +18,19 @@ export const fileApi = {
       protoRoot.file.GetUploadToken.Response
     )
   },
+  async GetAppToken(params: protoRoot.file.GetAppToken.IRequest) {
+    const { apiUrls } = store.getState().api
+
+    return await Request<protoRoot.file.GetAppToken.IResponse>(
+      {
+        method: 'POST',
+        data: PARAMS<protoRoot.file.GetAppToken.IRequest>(
+          params,
+          protoRoot.file.GetAppToken.Request
+        ),
+        url: getUrl(apiUrls.v1.baseUrl, apiUrls.v1.GetAppToken),
+      },
+      protoRoot.file.GetAppToken.Response
+    )
+  },
 }

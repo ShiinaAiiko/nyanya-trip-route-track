@@ -220,12 +220,15 @@ func (t *TripDbx) UpdateTripPosition(authorId, id string, positions []*models.Tr
 	if err != nil {
 		return err
 	}
-	if updateResult.ModifiedCount == 0 {
-		return errors.New("update fail")
-	}
+
+	log.Info("updateResult", updateResult, distance)
+
+	// if updateResult.ModifiedCount == 0 {
+	// 	return errors.New("update fail")
+	// }
 
 	// 1、获取positions
-	if _, err := readGPSFile(trip); err != nil {
+	if _, err := readTempGPSFile(trip, false); err != nil {
 		log.Error("readGPSFile", err)
 		return err
 	}
@@ -242,14 +245,27 @@ func (t *TripDbx) UpdateTripPosition(authorId, id string, positions []*models.Tr
 		return pos.Timestamp
 	})
 
+	// log.Info("writeGPSFile1", trip.CreateTime, len(trip.Positions), trip.Id)
 	for _, pos := range positions {
+		// if pos.Timestamp == 1757549632000 {
+		// 	log.Info("!narrays.Includes(timeAll, pos.Timestamp)", !narrays.Includes(timeAll, pos.Timestamp))
+		// }
 		if !narrays.Includes(timeAll, pos.Timestamp) {
 			trip.Positions = append(trip.Positions, pos)
 		}
 	}
+	// log.Info("writeGPSFile2", trip.CreateTime, len(trip.Positions), trip.Id)
 	sort.Slice(trip.Positions, func(a, b int) bool {
 		return trip.Positions[a].Timestamp < trip.Positions[b].Timestamp
 	})
+	// log.Info("writeGPSFile3", trip.CreateTime, len(trip.Positions), trip.Id)
+
+	// for _, v := range trip.Positions {
+	// 	if v.Timestamp == 1757549632000 {
+	// 		log.Warn(v, "1757549632000", trip.CreateTime)
+	// 	}
+
+	// }
 
 	// 如果是校验接口，则分别进行筛选，没有则push，有则跳过
 	// 之后根据时间戳排序
@@ -1142,12 +1158,14 @@ func writeGPSFile(trip *models.Trip, tempFile bool) (string, error) {
 
 	if tempFile {
 		tempFolderPath = "./static/gps/temp/" + conf.Config.Version + "/" + time.Unix(trip.CreateTime, 0).Format("2006/01/02")
+	} else {
+		os.Remove("./static/gps/temp/" + conf.Config.Version + "/" + time.Unix(trip.CreateTime, 0).Format("2006/01/02") + "/" + trip.Id)
 	}
 	if err := os.MkdirAll(tempFolderPath, os.ModePerm); err != nil {
 		return tempFolderPath, err
 	}
 
-	// log.Info("writeGPSFile", trip.CreateTime, len(trip.Positions), trip.Id, tempFolderPath)
+	// log.Info("writeGPSFile5", trip.CreateTime, len(trip.Positions), trip.Id, tempFolderPath)
 	gpsFile, err := os.Create(tempFolderPath + "/" + trip.Id)
 	if err != nil {
 		log.Error(err)
@@ -1193,7 +1211,7 @@ func readTempGPSFile(trip *models.Trip, tempFile bool) (*models.Trip, error) {
 		if tempFile {
 			return readTempGPSFile(trip, false)
 		}
-		log.Error(err)
+		log.Error(err, trip.Id)
 		return nil, err
 	}
 	trip.Positions = *tempTrip
@@ -1473,9 +1491,9 @@ func (t *TripDbx) FormatTripStatistics(trips []*models.Trip) *protos.TripHistori
 	// trips := []*protos.Trip{}
 	for _, v := range trips {
 
-		if v.Permissions.CustomTrip {
-			continue
-		}
+		// if v.Permissions.CustomTrip {
+		// 	continue
+		// }
 		if maxDistance.Num <= v.Statistics.Distance {
 			maxDistance.Num = v.Statistics.Distance
 			maxDistance.Id = v.Id

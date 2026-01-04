@@ -34,3 +34,12 @@ message GetUploadToken {
     repeated int64 uploadedOffset = 5;
   }
 }
+
+message GetAppToken {
+  message Request {}
+  message Response {
+    string baseUrl = 1;
+    string appToken = 2;
+    int64 deadline = 3;
+  }
+}

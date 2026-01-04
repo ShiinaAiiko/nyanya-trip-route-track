@@ -61,6 +61,7 @@ export const apiSlice = createSlice({
         DeleteJMTimeline: '/journeyMemory/timeline/delete',
 
         GetUploadToken: '/file/getUploadToken',
+        GetAppToken: '/file/appToken/get',
 
         setPrivacyGeofence: '/privacyGeofence/set',
         getPrivacyGeofence: '/privacyGeofence/get',

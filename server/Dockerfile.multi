@@ -17,8 +17,8 @@ RUN \
   apk add bash && \
   apk add openssh  && \
   apk add protoc && \
-  go install google.golang.org/protobuf/cmd/protoc-gen-go@latest && \
-  go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest 
+  go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.34.1 && \
+  go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.5.1 
 
 COPY  .ssh/ \
   /root/.ssh/

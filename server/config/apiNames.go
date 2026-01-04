@@ -12,6 +12,7 @@ type ApiNamesType struct {
 var ApiNames = ApiNamesType{
 	File: ApiNamesVal{
 		"GetUploadToken": "/file/getUploadToken",
+		"GetAppToken":    "/file/appToken/get",
 	},
 	Open: ApiNamesVal{
 		"GetBaseTripsByOpenAPI": "/open/trip/base/list/get",

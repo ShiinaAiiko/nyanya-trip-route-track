@@ -23,6 +23,7 @@ import ImagesWaterfallComponent from './ImagesWaterfall'
 import MapLayerModal from './MapLayer'
 import WeatherAppModal from './WeatherApp'
 import PrivacyGeofenceModal from './PrivacyGeofence'
+import SelectFilesModal from './SelectFilesModal'
 
 const d = new Debounce()
 
@@ -273,6 +274,13 @@ export const LoadModalsComponent = () => {
         ns: 'privacyGeofenceModal',
       }),
       component: <PrivacyGeofenceModal />,
+    },
+    {
+      type: 'SelectFilesModal',
+      name: t('pageTitle', {
+        ns: 'selectFilesModal',
+      }),
+      component: <SelectFilesModal />,
     },
   ]
 

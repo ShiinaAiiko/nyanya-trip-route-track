@@ -272,6 +272,9 @@
 
     "shareContent": "{{name}}，{{days}}天{{tripCount}}次行程{{distance}}km，跨越{{minAlt}}米~{{maxAlt}}米海拔\n{{url}}"
   },
+  "selectFilesModal": {
+    "pageTitle": "选择文件"
+  },
   "imagesWaterfallModal": {
     "title": "相册",
     "albumTitle": "{{name}}的相册"
@@ -418,7 +421,7 @@
     "deleteImage": "删除此图片",
     "filesUploaded": "已上传 {{count}} 个文件",
     "uploadCompleted": "上传完毕",
-    "mediaLimitExceeded": "媒体数量不能超过9个",
+    "mediaLimitExceeded": "媒体数量不能超过{{length}}个",
     "loadComponent": "正在加载 {{name}} 组件",
     "newVersion": "新版本！",
     "newVersionContent": "已经完成v{{version}}的版本更新，是否刷新页面？",

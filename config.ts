@@ -37,6 +37,9 @@ let meowApps = {
   esmjsurl: '',
 }
 let appListUrl = ''
+let cloudShare = {
+  url: '',
+}
 
 interface Config {
   isDev: typeof isDev
@@ -49,6 +52,7 @@ interface Config {
   toolApiUrl: typeof toolApiUrl
   nominatimUrl: typeof nominatimUrl
   toolUrl: typeof toolUrl
+  cloudShare: typeof cloudShare
 }
 
 try {
@@ -67,6 +71,7 @@ try {
     toolApiUrl = configJson.toolApiUrl
     nominatimUrl = configJson.nominatimUrl
     toolUrl = configJson.toolUrl
+    cloudShare = configJson.cloudShare
   }
 } catch (error) {
   console.error(error)
@@ -82,6 +87,7 @@ export {
   toolApiUrl,
   nominatimUrl,
   toolUrl,
+  cloudShare,
 }
 export default {
   isDev,
@@ -94,4 +100,5 @@ export default {
   toolApiUrl,
   nominatimUrl,
   toolUrl,
+  cloudShare,
 }

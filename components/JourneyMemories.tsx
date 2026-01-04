@@ -740,6 +740,7 @@ const JourneyMemoriesModal = () => {
                                         height="50px"
                                         border-radius="6px"
                                         margin="0 10px 0 0"
+                                        lazyload={false}
                                         src={getSAaSSImageUrl(
                                           coverUrl,
                                           'thumbnail'
@@ -1117,14 +1118,16 @@ const AddJourneyMemoriesPage = () => {
       const params: protoRoot.journeyMemory.AddJM.IRequest = {
         name,
         desc,
-        media: mediaList.map((v) => {
-          return {
-            type: v.type,
-            url: v.url,
-            width: v.width || 0,
-            height: v.height || 0,
-          }
-        }),
+        media: mediaList
+          .filter((v) => v.url)
+          .map((v) => {
+            return {
+              type: v.type,
+              url: v.url,
+              width: v.width || 0,
+              height: v.height || 0,
+            }
+          }),
       }
       const res = await httpApi.v1.AddJM({
         ...params,
@@ -1170,14 +1173,16 @@ const AddJourneyMemoriesPage = () => {
       const params: protoRoot.journeyMemory.UpdateJM.IRequest = {
         name,
         desc,
-        media: mediaList.map((v) => {
-          return {
-            type: v.type,
-            url: v.url,
-            width: v.width || 0,
-            height: v.height || 0,
-          }
-        }),
+        media: mediaList
+          .filter((v) => v.url)
+          .map((v) => {
+            return {
+              type: v.type,
+              url: v.url,
+              width: v.width || 0,
+              height: v.height || 0,
+            }
+          }),
       }
 
       const res = await httpApi.v1.UpdateJM({
@@ -2559,6 +2564,7 @@ ${
                         height={'80px'}
                         objectFit="cover"
                         borderRadius="10px"
+                        lazyload={false}
                         src={getSAaSSImageUrl(coverUrl, 'small')}
                       ></SakiImages>
                       <div className="cover-text">
@@ -3980,14 +3986,16 @@ const AddJourneyMemoriesTimelinePage = () => {
 
       const params: protoRoot.journeyMemory.AddJMTimeline.IRequest = {
         desc,
-        media: mediaList.map((v) => {
-          return {
-            type: v.type,
-            url: v.url,
-            width: v.width || 0,
-            height: v.height || 0,
-          }
-        }),
+        media: mediaList
+          .filter((v) => v.url)
+          .map((v) => {
+            return {
+              type: v.type,
+              url: v.url,
+              width: v.width || 0,
+              height: v.height || 0,
+            }
+          }),
         tripIds,
       }
 
@@ -4041,14 +4049,16 @@ const AddJourneyMemoriesTimelinePage = () => {
       const params: protoRoot.journeyMemory.UpdateJMTimeline.IRequest = {
         name,
         desc,
-        media: mediaList.map((v) => {
-          return {
-            type: v.type,
-            url: v.url,
-            width: v.width || 0,
-            height: v.height || 0,
-          }
-        }),
+        media: mediaList
+          .filter((v) => v.url)
+          .map((v) => {
+            return {
+              type: v.type,
+              url: v.url,
+              width: v.width || 0,
+              height: v.height || 0,
+            }
+          }),
         tripIds,
       }
 
@@ -4427,6 +4437,8 @@ export const CoverListComponent = ({
   onMedia: (media: MediaItem[]) => void
   maxLength?: number
 }) => {
+  const dispatch = useDispatch<AppDispatch>()
+
   return (
     <saki-drag-sort
       ref={bindEvent({
@@ -4510,39 +4522,88 @@ export const CoverListComponent = ({
             ref={
               bindEvent({
                 click: async () => {
-                  const files = await selectFiles()
-
-                  if (files?.length) {
-                    const tmedia = [...media]
-
-                    for (let i = 0; i < files.length; i++) {
-                      if (tmedia.length >= maxLength) {
-                        snackbar({
-                          message: t('mediaLimitExceeded', {
-                            ns: 'prompt',
-                          }),
-                          autoHideDuration: 2000,
-                          vertical: 'top',
-                          horizontal: 'center',
-                          backgroundColor: 'var(--saki-default-color)',
-                          color: '#fff',
-                        }).open()
-                        break
-                      }
-
-                      const info = await images.getExif(files[i])
-                      tmedia.push({
-                        type: 'image',
-                        url: URL.createObjectURL(files[i]),
-                        file: files[i],
-                        id: getShortId(9),
-                        width: info?.ImageWidth || 0,
-                        height: info?.ImageHeight || 0,
+                  loadModal('SelectFilesModal', () => {
+                    console.log('SelectFilesModal1111 jm cover')
+                    dispatch(
+                      layoutSlice.actions.setOpenSelectFilesModal({
+                        visible: true,
+                        maxLength: maxLength,
+                        selectedFiles: media.map((v) => v.url || ''),
                       })
-                    }
+                    )
 
-                    onMedia(tmedia)
-                  }
+                    eventListener.on(
+                      'ModalCallback:SelectFilesModal',
+                      (params: any[]) => {
+                        console.log('ModalCallback params', params)
+                        const tmedia = [...media]
+
+                        params.map((v) => {
+                          if (tmedia.length > maxLength) {
+                            snackbar({
+                              message: t('mediaLimitExceeded', {
+                                ns: 'prompt',
+                                length: maxLength,
+                              }),
+                              autoHideDuration: 2000,
+                              vertical: 'top',
+                              horizontal: 'center',
+                              backgroundColor: 'var(--saki-default-color)',
+                              color: '#fff',
+                            }).open()
+                            return
+                          }
+                          tmedia.push({
+                            type: 'image',
+                            url: v.urls.domainUrl + v.urls.shortUrl,
+                            id: getShortId(9),
+                            width: v.fileInfo.width,
+                            height: v.fileInfo.height,
+                          })
+                        })
+
+                        onMedia(tmedia)
+
+                        eventListener.removeEvent(
+                          'ModalCallback:SelectFilesModal'
+                        )
+                      }
+                    )
+                  })
+
+                  // const files = await selectFiles()
+
+                  // if (files?.length) {
+                  //   const tmedia = [...media]
+
+                  //   for (let i = 0; i < files.length; i++) {
+                  //     if (tmedia.length >= maxLength) {
+                  //       snackbar({
+                  //         message: t('mediaLimitExceeded', {
+                  //           ns: 'prompt',
+                  //         }),
+                  //         autoHideDuration: 2000,
+                  //         vertical: 'top',
+                  //         horizontal: 'center',
+                  //         backgroundColor: 'var(--saki-default-color)',
+                  //         color: '#fff',
+                  //       }).open()
+                  //       break
+                  //     }
+
+                  //     const info = await images.getExif(files[i])
+                  //     tmedia.push({
+                  //       type: 'image',
+                  //       url: URL.createObjectURL(files[i]),
+                  //       file: files[i],
+                  //       id: getShortId(9),
+                  //       width: info?.ImageWidth || 0,
+                  //       height: info?.ImageHeight || 0,
+                  //     })
+                  //   }
+
+                  //   onMedia(tmedia)
+                  // }
                 },
               }) as any
             }

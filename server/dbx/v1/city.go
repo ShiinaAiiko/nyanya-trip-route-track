@@ -534,15 +534,15 @@ func (t *CityDbx) DeleteRedisData(id string, fullName string) error {
 	key := conf.Redisdb.GetKey("GetCity")
 
 	if err := conf.Redisdb.Delete(key.GetKey(id + fullName)); err != nil {
-		return err
+		log.Error(err)
 	}
 
 	if err := conf.Redisdb.Delete(key.GetKey(id + "")); err != nil {
-		return err
+		log.Error(err)
 	}
 
 	if err := conf.Redisdb.Delete(key.GetKey("" + fullName)); err != nil {
-		return err
+		log.Error(err)
 	}
 
 	return nil

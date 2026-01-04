@@ -395,7 +395,7 @@ export const geoMethods = {
 
               if (lastRoadVoiceStr !== str && str) {
                 lastRoadVoiceStr = str
-                voiceBroadcast(str)
+                voiceBroadcast(str, false)
               }
             }
           }

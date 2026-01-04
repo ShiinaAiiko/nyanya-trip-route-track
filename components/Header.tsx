@@ -17,6 +17,7 @@ import axios from 'axios'
 import { appListUrl } from '../config'
 import MenuDropdownComponent from '../components/MenuDropdown'
 import { loadModal } from '../store/layout'
+import { SakiCol, SakiRow } from './saki-ui-react/components'
 
 const HeaderComponent = ({
   // 暂时仅fixed可用
@@ -137,6 +138,11 @@ const HeaderComponent = ({
                             )
                           })
 
+                          break
+                        case 'goBlog':
+                          window.open(
+                            `https://aiiko.club/${user.userInfo.username}`
+                          )
                           break
                         case 'Logout':
                           dispatch(methods.user.logout())
@@ -285,6 +291,16 @@ const HeaderComponent = ({
                           />
                           <span className="text-elipsis">
                             {user.userInfo.nickname}
+                          </span>
+                        </div>
+                      </saki-menu-item>
+                      <saki-menu-item padding="10px 18px" value={'goBlog'}>
+                        <div className="tb-h-r-user-item">
+                          <saki-icon color="#666" type="NekoFill"></saki-icon>
+                          <span>
+                            {t('myBlog', {
+                              ns: 'sakiuiBlog',
+                            })}
                           </span>
                         </div>
                       </saki-menu-item>

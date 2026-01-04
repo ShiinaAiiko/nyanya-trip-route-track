@@ -367,8 +367,8 @@ const FilterComponent = ({
   }
 
   const { menuWidth, menuItemWidth } = useMemo(() => {
-    let menuWidth = '410px'
-    let menuItemWidth = '118px'
+    let menuWidth = '402px'
+    let menuItemWidth = '115px'
 
     if (config.deviceType === 'Mobile') {
       menuWidth = config.deviceWH.w + 'px'
@@ -1692,7 +1692,7 @@ const FilterComponent = ({
 
                               <saki-checkbox-item
                                 key={i}
-                                margin="14px 10px"
+                                margin="0px 8px"
                                 value={v.id}
                                 disabled={disableSelectedTrips.includes(
                                   v?.id || ''

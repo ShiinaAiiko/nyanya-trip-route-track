@@ -24,6 +24,7 @@ import { httpApi } from '../plugins/http/api'
 import { protoRoot } from '../protos'
 import Chart from 'chart.js/auto'
 import {
+  copyText,
   formatAvgPace,
   formatDistance,
   formatDurationI18n,
@@ -51,7 +52,12 @@ import NoSSR from './NoSSR'
 import { useRouter } from 'next/router'
 import { Debounce, deepCopy } from '@nyanyajs/utils'
 import { VehicleLogo } from './Vehicle'
-import { initTripCity, initTripItemCity, initTripItemRoad } from '../store/trip'
+import {
+  initTripCity,
+  initTripItemCity,
+  initTripItemRoad,
+  reupdateTripPositions,
+} from '../store/trip'
 import {
   CityInfo,
   convertCityLevelToTypeString,
@@ -83,6 +89,7 @@ import {
 import { LayerButtons } from './MapLayer'
 import { getRoadId } from '../store/geo'
 import { RoadIcon } from './Dashboard'
+import { uploadFile } from '../store/file'
 
 // memo()
 const TripItemComponent = memo(
@@ -286,6 +293,16 @@ const TripItemComponent = memo(
       // 	}
       // })
     }, [])
+
+    const [tempPos, setTempPos] = useState<protoRoot.trip.ITripPositions>()
+
+    useEffect(() => {
+      const init = async () => {
+        const pos = await storage.global.get('tempTripData_' + (trip?.id || ''))
+        setTempPos(pos)
+      }
+      init()
+    }, [trip?.id])
     // useEffect(() => {
     // 	if (tripId) {
     // 		getTrip()
@@ -2157,6 +2174,59 @@ const TripItemComponent = memo(
                                         case 'Delete':
                                           deleteTrip()
                                           break
+                                        case 'TempPos':
+                                          const jsonString = JSON.stringify(
+                                            tempPos?.positions || []
+                                          )
+
+                                          // 创建File对象
+                                          const file = new File(
+                                            [jsonString], // 内容
+                                            'backup_trip_' +
+                                              trip?.id +
+                                              '_temp.json', // 文件名
+                                            { type: 'application/json' } // 文件类型
+                                          )
+
+                                          const res = await uploadFile(file)
+                                          snackbar({
+                                            message: res,
+                                            // autoHideDuration: 4000,
+                                            closeIcon: true,
+                                            onTap() {
+                                              copyText(res)
+                                            },
+                                            vertical: 'bottom',
+                                            horizontal: 'center',
+                                          }).open()
+
+                                          await httpApi.v1.ResumeTrip({
+                                            id: trip?.id,
+                                          })
+
+                                          snackbar({
+                                            message: String(
+                                              tempPos?.positions?.length || 0
+                                            ),
+                                            // autoHideDuration: 4000,
+                                            closeIcon: true,
+                                            onTap() {
+                                              copyText(res)
+                                            },
+                                            vertical: 'top',
+                                            horizontal: 'center',
+                                          }).open()
+
+                                          await reupdateTripPositions({
+                                            id: trip.id || '',
+                                            positions:
+                                              (tempPos?.positions as any) || [],
+                                          })
+                                          await httpApi.v1.FinishTrip({
+                                            id: trip.id,
+                                          })
+
+                                          break
 
                                         default:
                                           break
@@ -2165,7 +2235,19 @@ const TripItemComponent = memo(
                                     },
                                   })}
                                 >
-                                  {/* {isResumeTrip(trip) ? (
+                                  <>
+                                    <saki-menu-item
+                                      padding="10px 18px"
+                                      value={'TempPos'}
+                                    >
+                                      <div className="tb-h-r-user-item">
+                                        {trip.positions?.length} ·{' '}
+                                        {tempPos?.positions?.length || 0} ·{' '}
+                                        {tempPos?.positionList?.length || 0}
+                                      </div>
+                                    </saki-menu-item>
+                                  </>
+                                  {isResumeTrip(trip) ? (
                                     <>
                                       <saki-menu-item
                                         padding="10px 18px"
@@ -2182,7 +2264,8 @@ const TripItemComponent = memo(
                                     </>
                                   ) : (
                                     ''
-                                  )} */}
+                                  )}
+
                                   {user.isLogin ? (
                                     trip?.status === 1 ? (
                                       <>

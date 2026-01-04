@@ -33,6 +33,7 @@ import '../components/ImagesWaterfall.scss'
 import '../components/MapLayer.scss'
 import '../components/WeatherApp.scss'
 import '../components/PrivacyGeofence.scss'
+import '../components/SelectFilesModal.scss'
 
 import { useRouter } from 'next/router'
 import { Provider } from 'react-redux'

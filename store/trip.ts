@@ -1348,7 +1348,7 @@ export const reupdateTripPositions = async ({
       ns: 'prompt',
       num: 0,
     }),
-    vertical: 'top',
+    vertical: 'center',
     horizontal: 'center',
     backgroundColor: 'var(--saki-default-color)',
     color: '#fff',
@@ -1361,16 +1361,18 @@ export const reupdateTripPositions = async ({
   })
 
   const sLength = 200
+  // const sLength = 10
 
   let count = 0
 
+  // for (let i = 0; i < 3; i++) {
   for (let i = 0; i < Math.ceil(positions.length / sLength); i++) {
     const posAll = positions.slice(sLength * i, sLength * (i + 1))
 
     asyncQueue.increase(async () => {
       const params: protoRoot.trip.UpdateTripPosition.IRequest = {
         id: id,
-        distance: 0,
+        distance: posAll?.[posAll.length - 1]?.distance || 0,
         vehicleId: '',
         positions: posAll.map((v): protoRoot.trip.ITripPosition => {
           return {
@@ -1388,23 +1390,25 @@ export const reupdateTripPositions = async ({
 
       const res = await httpApi.v1.UpdateTripPosition(params)
 
+      count += posAll.length
+      loadDataSnackbar.setMessage(
+        i18n.t('reupdateTripPositions', {
+          ns: 'prompt',
+          num: count,
+        })
+      )
+
+      // console.log('UpdateTripPositionres', posAll, res)
       if (res.code === 200) {
-        count += posAll.length
-        loadDataSnackbar.setMessage(
-          i18n.t('reupdateTripPositions', {
-            ns: 'prompt',
-            num: count,
-          })
-        )
       } else {
-        snackbar({
-          message: res.error + '; ' + res.msg + '; ' + res.cnMsg,
-          horizontal: 'center',
-          vertical: 'top',
-          backgroundColor: 'var(--saki-default-color)',
-          color: '#fff',
-          autoHideDuration: 2000,
-        }).open()
+        // snackbar({
+        //   message: res.error + '; ' + res.msg + '; ' + res.cnMsg,
+        //   horizontal: 'center',
+        //   vertical: 'top',
+        //   backgroundColor: 'var(--saki-default-color)',
+        //   color: '#fff',
+        //   autoHideDuration: 2000,
+        // }).open()
       }
 
       return res
@@ -2022,18 +2026,18 @@ export const tripMethods = {
         const dis = getDistance(cLat, cLng, lLat, lLng)
         console.log('ResumeTrip', dis)
 
-        if (dis > 100) {
-          snackbar({
-            message: t('resumeTripDistanceLimit', {
-              ns: 'tripPage',
-            }),
-            autoHideDuration: 2000,
-            vertical: 'top',
-            horizontal: 'center',
-          }).open()
+        // if (dis > 100) {
+        //   snackbar({
+        //     message: t('resumeTripDistanceLimit', {
+        //       ns: 'tripPage',
+        //     }),
+        //     autoHideDuration: 2000,
+        //     vertical: 'top',
+        //     horizontal: 'center',
+        //   }).open()
 
-          return
-        }
+        //   return
+        // }
 
         const res = await httpApi.v1.ResumeTrip({
           id: trip?.id,

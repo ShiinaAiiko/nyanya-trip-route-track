@@ -22,4 +22,15 @@ func (r Routerv1) InitFile() {
 			ResponseDataType:   "protobuf",
 		}),
 		fc.GetUploadToken)
+
+	r.Group.POST(
+		role.SetRole(conf.ApiNames.File["GetAppToken"], &middleware.RoleOptionsType{
+			CheckApp:           false,
+			Authorize:          true,
+			RequestEncryption:  false,
+			ResponseEncryption: false,
+			RequestDataType:    "protobuf",
+			ResponseDataType:   "protobuf",
+		}),
+		fc.GetAppToken)
 }

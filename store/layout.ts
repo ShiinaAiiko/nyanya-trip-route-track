@@ -27,6 +27,7 @@ export type ModalType =
   | 'MapLayer'
   | 'WeatherApp'
   | 'PrivacyGeofence'
+  | 'SelectFilesModal'
 
 export interface IWMediaItem
   extends protoRoot.journeyMemory.IJourneyMemoryMediaItem {
@@ -123,6 +124,11 @@ export const layoutSlice = createSlice({
         alt: 0,
       },
     },
+    openSelectFilesModal: {
+      visible: false,
+      maxLength: 0,
+      selectedFiles: [] as string[],
+    },
   },
   reducers: {
     setLoadModals: (
@@ -134,6 +140,28 @@ export const layoutSlice = createSlice({
     ) => {
       console.log('TripHistory', params.payload)
       state.loadModals = params.payload
+    },
+    setOpenSelectFilesModal: (
+      state,
+      params: {
+        payload: {
+          visible: boolean
+          maxLength?: number
+          selectedFiles?: string[]
+        }
+        type: string
+      }
+    ) => {
+      state.openSelectFilesModal.visible = params.payload.visible
+
+      if (!params.payload.visible) {
+        state.openSelectFilesModal.maxLength = 0
+        state.openSelectFilesModal.selectedFiles = []
+      } else {
+        state.openSelectFilesModal.maxLength = params.payload.maxLength || 0
+        state.openSelectFilesModal.selectedFiles =
+          params.payload.selectedFiles || []
+      }
     },
     setOpenImagesWaterfallModalMediaList: (
       state,

@@ -26,7 +26,7 @@ func CheckAuthorize(c *gin.Context) int64 {
 	userAgent = userAgentAny.(*sso.UserAgent)
 	// Log.Info("token, deviceId, userAgent", deviceId, *userAgent)
 	ret, err := conf.SSO.Verify(token, deviceId, userAgent)
-	// log.Info(ret, err)
+	log.Info(ret, err)
 	if err != nil {
 		return 10004
 	}

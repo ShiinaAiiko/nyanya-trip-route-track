@@ -23,6 +23,7 @@ import { useTranslation } from 'react-i18next'
 import { httpApi } from '../plugins/http/api'
 import { protoRoot } from '../protos'
 import {
+  copyText,
   formatAvgPace,
   formatDistance,
   formatTime,
@@ -34,8 +35,9 @@ import Chart from 'chart.js/auto'
 import { deepCopy } from '@nyanyajs/utils'
 import StatisticsComponent from './Statistics'
 import FilterComponent from './Filter'
-import { getTrips } from '../store/trip'
+import { getTrips, reupdateTripPositions } from '../store/trip'
 import { deviceType, eventListener, TabsTripType } from '../store/config'
+import { uploadFile } from '../store/file'
 // import { isCorrectedData } from '../store/trip'
 
 const getMonth = () => {
@@ -1661,11 +1663,63 @@ export const TripListItemComponent = ({
     <div
       ref={(e) => {
         e &&
-          (e.onclick = () => {
+          (e.onclick = async () => {
             if (trip.status === 0) {
               // alert
             }
             onTap?.(trip.id || '')
+
+            // const init = async () => {
+            //   await httpApi.v1.ResumeTrip({
+            //     id: trip?.id,
+            //   })
+
+            //   const pos = await storage.trips.get(trip.id || '')
+
+            //   snackbar({
+            //     message: String(pos?.positions?.length || 0),
+            //     // autoHideDuration: 4000,
+            //     closeIcon: true,
+            //     onTap() {
+            //       copyText(res)
+            //     },
+            //     vertical: 'top',
+            //     horizontal: 'center',
+            //   }).open()
+
+            //   await reupdateTripPositions({
+            //     id: trip.id || '',
+            //     positions: pos?.positions || [],
+            //   })
+            //   const jsonString = JSON.stringify(pos?.positions || [])
+
+            //   // 创建File对象
+            //   const file = new File(
+            //     [jsonString], // 内容
+            //     'backup_trip_' + trip?.id + '.json', // 文件名
+            //     { type: 'application/json' } // 文件类型
+            //   )
+
+            //   const res = await uploadFile(file)
+            //   snackbar({
+            //     message: res,
+            //     // autoHideDuration: 4000,
+            //     closeIcon: true,
+            //     onTap() {
+            //       copyText(res)
+            //     },
+            //     vertical: 'bottom',
+            //     horizontal: 'center',
+            //   }).open()
+
+            //   // 原始数组
+            //   // copyText(jsonString)
+
+            //   await httpApi.v1.FinishTrip({
+            //     id: trip.id,
+            //   })
+            // }
+            // init()
           })
       }}
       className={'trip-list-item-component ' + config.deviceType}

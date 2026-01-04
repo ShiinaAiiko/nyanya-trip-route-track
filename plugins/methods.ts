@@ -908,3 +908,13 @@ export function isPointInPolygon(point: number[], polygon: number[][]) {
 
   return inside
 }
+
+export function getLatLngUnit(
+  latitude: number,
+  longitude: number
+): { lat: string; lng: string } {
+  const lat = latitude >= 0 ? 'N' : 'S'
+  const lng = longitude >= 0 ? 'E' : 'W'
+
+  return { lat, lng }
+}

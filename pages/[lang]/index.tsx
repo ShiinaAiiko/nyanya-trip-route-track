@@ -92,6 +92,7 @@ import { loadModal } from '../../store/layout'
 import { LayerButtons } from '../../components/MapLayer'
 import NewDashboardComponent from '../../components/Dashboard'
 import { getRoadId } from '../../store/geo'
+import { uploadFile } from '../../store/file'
 
 let tempTimer: any
 
@@ -1520,14 +1521,13 @@ const TripPage = () => {
     if (!trip?.id || !pl.length) return
     // console.log('updatePositionparams', params)
     const pLength = tempPositions.current.length
-
     // 本地
     // setTrip({
     // 	...trip,
     // 	...params,
     // 	positions: localTempPositions,
     // })
-    await storage.trips.set(trip.id, {
+    const tempTrip = {
       ...trip,
       positions: tempPositions.current.map(
         (v): protoRoot.trip.ITripPosition => {
@@ -1543,7 +1543,9 @@ const TripPage = () => {
           }
         }
       ),
-    })
+    }
+    await storage.trips.set(trip.id, tempTrip)
+    await storage.global.set('tempTripData_' + trip.id, tempTrip)
     if (trip.id.includes('IDB')) {
       updatedPositionIndex.current = pLength - 1
     } else {
@@ -1759,9 +1761,18 @@ const TripPage = () => {
 
   const finishTrip = async () => {
     if (!trip?.id) return
-    await updatePosition()
+
+    // const gpsJson = await axios.get('http://192.168.204.139:23202/JJd7XhWhe2')
+
+    // console.log('UpdateTripPositionres gpsJson', gpsJson.data)
+
+    // await reupdateTripPositions({
+    //   id: trip.id || '',
+    //   positions: gpsJson.data,
+    // })
 
     // if (statistics.current.distance >= 50) {
+    // 先存储到本地
     const tempTrip = {
       ...trip,
       marks: tripMarks,
@@ -1792,6 +1803,9 @@ const TripPage = () => {
     }
     await storage.trips.set(trip.id, tempTrip)
     await storage.global.set('tempTripData_' + trip.id, tempTrip)
+
+    await updatePosition()
+
     // console.log('tempTrip getLocalTrips', tempTrip)
     // }
     if (trip.id.indexOf('IDB') < 0) {
@@ -1800,26 +1814,52 @@ const TripPage = () => {
       })
       console.log('FinishTrip', res)
       if (res.code === 200) {
-        setTimeout(() => {
-          snackbar({
-            message: t('finishTripTip', {
-              ns: 'prompt',
-              localNum: tempPositions.current.length,
-              cloudNum: res?.data?.positionLength,
-            }),
-            autoHideDuration: 2000,
-            vertical: 'center',
-            horizontal: 'center',
-          }).open()
-        }, 4000)
+        snackbar({
+          message: t('finishTripTip', {
+            ns: 'prompt',
+            localNum: tempPositions.current.length,
+            cloudNum: res?.data?.positionLength,
+          }),
+          autoHideDuration: 4000,
+          vertical: 'top',
+          horizontal: 'center',
+        }).open()
         // 检测是否没传完，没传完的在这里继续，然后重新FinshTrip
         if (res?.data?.positionLength !== tempPositions.current.length) {
+          await httpApi.v1.ResumeTrip({
+            id: trip?.id,
+          })
           await reupdateTripPositions({
             id: trip.id || '',
             positions: tempPositions.current,
           })
-          finishTrip()
+          const jsonString = JSON.stringify(tempPositions.current)
 
+          // 创建File对象
+          const file = new File(
+            [jsonString], // 内容
+            'backup_trip_' + trip?.id + '.json', // 文件名
+            { type: 'application/json' } // 文件类型
+          )
+
+          const res = await uploadFile(file)
+          snackbar({
+            message: res,
+            // autoHideDuration: 4000,
+            closeIcon: true,
+            onTap() {
+              copyText(res)
+            },
+            vertical: 'bottom',
+            horizontal: 'center',
+          }).open()
+
+          // 原始数组
+          // copyText(jsonString)
+
+          await httpApi.v1.FinishTrip({
+            id: trip.id,
+          })
           return
         }
         if (res?.data?.deleted) {

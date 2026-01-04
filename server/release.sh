@@ -52,12 +52,12 @@ start() {
 
   echo "-> 准备运行Docker"
   stop
+    # -v $DIR/fsdb:/fsdb \
   docker run \
     -v $DIR/$configFilePath:/config.json \
     -v $DIR/appList.json:/appList.json \
     -v $DIR/client:/client \
     -v $DIR/static:/static \
-    -v $DIR/fsdb:/fsdb \
     -v /etc/timezone:/etc/timezone:ro \
     -v /etc/localtime:/etc/localtime:ro \
     --name=$name \
@@ -102,12 +102,12 @@ run() {
 
   echo "-> 准备运行Docker"
   stop
+    # -v $DIR/fsdb:/fsdb \
   docker run \
     -v $DIR/$configFilePath:/config.json \
     -v $DIR/appList.json:/appList.json \
     -v $DIR/client:/client \
     -v $DIR/static:/static \
-    -v $DIR/fsdb:/fsdb \
     -v /etc/timezone:/etc/timezone:ro \
     -v /etc/localtime:/etc/localtime:ro \
     --name=$runName \

@@ -271,6 +271,9 @@
 
     "shareContent": "{{name}}，{{days}}天{{tripCount}}次行程{{distance}}km，跨越{{minAlt}}米~{{maxAlt}}米海拔\n{{url}}"
   },
+  "selectFilesModal": {
+    "pageTitle": "选择文件"
+  },
   "imagesWaterfallModal": {
     "title": "相簿",
     "albumTitle": "{{name}}的相冊"

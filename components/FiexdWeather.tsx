@@ -39,6 +39,7 @@ import {
   fullScreen,
   getAngle,
   getLatLng,
+  getLatLngUnit,
   getSpeedColor,
   getZoom,
   isFullScreen,
@@ -261,6 +262,25 @@ const FiexdWeatherComponent = ({
     }
   }, [mapUrl, mapMode])
 
+  const latlng = useMemo(() => {
+    let lat =
+      geo.selectPosition.latitude !== -10000
+        ? geo.selectPosition?.latitude
+        : geo.position?.coords?.latitude
+    let lng =
+      geo.selectPosition.latitude !== -10000
+        ? geo.selectPosition?.longitude
+        : geo.position?.coords?.longitude
+
+    const unit = getLatLngUnit(lat, lng)
+
+    return {
+      lat,
+      lng,
+      unit,
+    }
+  }, [geo.position, geo.selectPosition])
+
   return (
     <div
       style={{
@@ -345,18 +365,10 @@ const FiexdWeatherComponent = ({
           className="dashbord-latlng"
         >
           <span>
-            {(geo.selectPosition.latitude !== -10000
-              ? geo.selectPosition?.latitude
-              : geo.position?.coords?.latitude
-            )?.toFixed(6)}
-            ° N
+            {latlng.lat?.toFixed(6)}° {latlng.unit.lat}
           </span>
           <span>
-            {(geo.selectPosition.latitude !== -10000
-              ? geo.selectPosition?.longitude
-              : geo.position?.coords?.longitude
-            )?.toFixed(6)}
-            ° E
+            {latlng.lng?.toFixed(6)}° {latlng.unit.lng}
           </span>
         </div>
       ) : (
