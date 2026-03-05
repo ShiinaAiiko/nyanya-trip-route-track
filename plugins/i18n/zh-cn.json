@@ -370,7 +370,9 @@
     "openVConsole": "打开 vConsole",
     "closeVConsole": "关闭 vConsole",
 
-    "enableGeoFence": "启用隐私围栏，对外分享的行程数据、位置分享将会在服务端进行过滤处理"
+    "enableGeoFence": "启用隐私围栏，对外分享的行程数据、位置分享将会在服务端进行过滤处理",
+
+    "headingUp": "方向向上"
   },
   "prompt": {
     "next": "下一步",

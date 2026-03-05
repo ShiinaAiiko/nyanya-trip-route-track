@@ -278,8 +278,8 @@ const MapLayerModal = () => {
         config.deviceType === 'Mobile'
           ? '0px'
           : config.deviceWH.h > 600
-          ? layout.openMapLayerModal.modalConfig.offsetY
-          : '0px'
+            ? layout.openMapLayerModal.modalConfig.offsetY
+            : '0px'
       }
       mask={config.deviceType === 'Mobile'}
       mask-closable={config.deviceType === 'Mobile'}
@@ -404,6 +404,15 @@ const Maps = ({
       icon: 'Route',
       method: 'switch',
       value: false,
+    },
+    {
+      type: 'headingUp',
+      text: t('headingUp', {
+        ns: 'settings',
+      }),
+      icon: 'PaperAirplaneTop',
+      method: 'switch',
+      value: true,
     },
     {
       type: 'cityName',

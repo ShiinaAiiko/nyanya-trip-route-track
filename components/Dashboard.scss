@@ -416,7 +416,8 @@
         & > span {
           color: var(--dark-text-color);
           font-size: 14px;
-          text-shadow: -1px -1px 0 var(--dark-text-shadow),
+          text-shadow:
+            -1px -1px 0 var(--dark-text-shadow),
             1px -1px 0 var(--dark-text-shadow),
             -1px 1px 0 var(--dark-text-shadow),
             1px 1px 0 var(--dark-text-shadow);
@@ -662,8 +663,10 @@
       & > span {
         color: var(--dark-text-color);
         font-size: 14px;
-        text-shadow: -1px -1px 0 var(--dark-text-shadow),
-          1px -1px 0 var(--dark-text-shadow), -1px 1px 0 var(--dark-text-shadow),
+        text-shadow:
+          -1px -1px 0 var(--dark-text-shadow),
+          1px -1px 0 var(--dark-text-shadow),
+          -1px 1px 0 var(--dark-text-shadow),
           1px 1px 0 var(--dark-text-shadow);
         &:nth-child(2) {
           font-size: 24px;
@@ -743,6 +746,23 @@
     & > div {
       margin: 0 6px 6px 0;
       // flex: none;
+    }
+  }
+
+  .dashboard-compass {
+    position: absolute;
+    // left: 150px;
+    // bottom: calc(70px + var(--dashboard-data-h));
+    // transition: bottom 0.3s;
+    transition: bottom 0.3s;
+    &.disallowRotate {
+    }
+    &.allowRotate {
+      svg {
+        transform: rotate(calc(var(--position-heading) * -1));
+        // transform: rotate(calc(var(--position-heading) - 275deg));
+        transition: transform 0.3s;
+      }
     }
   }
 
@@ -965,8 +985,14 @@
     background-color: var(--bg-color);
 
     font-variant-numeric: tabular-nums;
-    font-family: ui-sans-serif, system-ui, sans-serif, Apple Color Emoji,
-      Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
+    font-family:
+      ui-sans-serif,
+      system-ui,
+      sans-serif,
+      Apple Color Emoji,
+      Segoe UI Emoji,
+      Segoe UI Symbol,
+      Noto Color Emoji;
 
     transition: background-color 0.2s;
 
@@ -1236,8 +1262,14 @@
     background-color: var(--bg-color);
 
     font-variant-numeric: tabular-nums;
-    font-family: ui-sans-serif, system-ui, sans-serif, Apple Color Emoji,
-      Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
+    font-family:
+      ui-sans-serif,
+      system-ui,
+      sans-serif,
+      Apple Color Emoji,
+      Segoe UI Emoji,
+      Segoe UI Symbol,
+      Noto Color Emoji;
 
     transition: background-color 0.2s;
 
@@ -1528,8 +1560,14 @@
     background-color: var(--bg-color);
 
     font-variant-numeric: tabular-nums;
-    font-family: ui-sans-serif, system-ui, sans-serif, Apple Color Emoji,
-      Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
+    font-family:
+      ui-sans-serif,
+      system-ui,
+      sans-serif,
+      Apple Color Emoji,
+      Segoe UI Emoji,
+      Segoe UI Symbol,
+      Noto Color Emoji;
 
     transition: background-color 0.2s;
 

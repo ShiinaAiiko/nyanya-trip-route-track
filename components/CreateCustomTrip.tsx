@@ -285,7 +285,8 @@ const CreateCustomTripComponent = () => {
       marker.current = createMyPositionMarker(
         map.current,
         [myPositionGPS[0], myPositionGPS[1]],
-        mapLayer?.showAvatarAtCurrentPosition || false
+        mapLayer?.showAvatarAtCurrentPosition || false,
+        false
       )
 
       const customTripPositions = await storage.global.get(

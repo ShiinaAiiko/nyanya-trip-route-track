@@ -163,8 +163,8 @@ const getUserPositionAndVehiclePosition = async (map: Leaflet.Map) => {
           (v?.userInfo?.uid || '') === user.userInfo.uid
             ? 20
             : driving
-            ? 10
-            : 20
+              ? 10
+              : 20
       }
 
       if (iTime === 2) {
@@ -407,7 +407,8 @@ export const createCustomTripPointMarker = (
 export const createMyPositionMarker = (
   map: Leaflet.Map,
   [lat, lon]: number[],
-  showAvatarAtCurrentPosition: boolean
+  showAvatarAtCurrentPosition: boolean,
+  headingUp: boolean
 ) => {
   const { user, config } = store.getState()
   const L: typeof Leaflet = (window as any).L
@@ -416,7 +417,7 @@ export const createMyPositionMarker = (
     L.marker([lat, lon], {
       icon: L.divIcon({
         html: `<div class='map_current_position_icon-wrap'>
-      <div class='icon'></div>
+        <div class='icon ${!headingUp ? 'allowRotate' : 'disallowRotate'}'></div>
       ${
         user.userInfo?.uid && showAvatarAtCurrentPosition
           ? `<div class='saki-avatar'><saki-avatar

@@ -369,7 +369,9 @@
     "openVConsole": "開啟 vConsole",
     "closeVConsole": "關閉 vConsole",
 
-    "enableGeoFence": "啟用隱私圍欄，對外分享的行程資料、位置分享將會在服務端進行過濾處理"
+    "enableGeoFence": "啟用隱私圍欄，對外分享的行程資料、位置分享將會在服務端進行過濾處理",
+
+    "headingUp": "方向向上"
   },
   "prompt": {
     "next": "繼續",

@@ -11,6 +11,7 @@ import store, {
   RootState,
   configSlice,
   layoutSlice,
+  methods,
   vehicleSlice,
 } from '../store'
 import { useSelector, useDispatch } from 'react-redux'
@@ -72,6 +73,8 @@ const NewDashboardComponent = ({
   speedAnimation = false,
   povMode = false,
   roads = [],
+  headingUp = false,
+  mapLayerType,
 }: {
   enable: boolean
   mapUrl: string
@@ -100,6 +103,10 @@ const NewDashboardComponent = ({
   povMode?: boolean
 
   roads?: protoRoot.road.IRoadInfo[]
+
+  headingUp?: boolean
+
+  mapLayerType?: keyof protoRoot.configure.Configure.IMapLayer
 }) => {
   if (!enable) {
     return <div></div>
@@ -315,8 +322,8 @@ const NewDashboardComponent = ({
           ? stopped
             ? 0
             : speed <= 0
-            ? 0
-            : Math.round(((speed || 0) * 3600) / 100) / 10
+              ? 0
+              : Math.round(((speed || 0) * 3600) / 100) / 10
           : 0
 
       // speedVal = 199
@@ -399,13 +406,17 @@ const NewDashboardComponent = ({
       }
     })
 
-  const { textTheme } = useMemo(() => {
+  const { textTheme, compassColor } = useMemo(() => {
     let textTheme = 'light-text'
     // textTheme = 'light-text'
 
     const mapKey = maps.filter((v) => v.url === mapUrl)?.[0].key
 
     // console.log('cccccccc', mapKey, mapUrl, mapMode)
+
+    let compassColor = {
+      textColor: '#000',
+    }
 
     if (
       mapKey === 'AmapSatellite' ||
@@ -415,10 +426,14 @@ const NewDashboardComponent = ({
       mapMode === 'Black'
     ) {
       textTheme = 'dark-text'
+      compassColor = {
+        textColor: '#fff',
+      }
     }
 
     return {
       textTheme,
+      compassColor,
     }
   }, [mapUrl, mapMode])
 
@@ -611,8 +626,8 @@ const NewDashboardComponent = ({
                   config.lang === 'zh-CN'
                     ? 'zhHans'
                     : config.lang === 'zh-TW'
-                    ? 'zhHant'
-                    : 'en'
+                      ? 'zhHant'
+                      : 'en'
                 ] || (v.name as any)['zhHans']) + ''
               }
               shortCityName={v.shortCityName || ''}
@@ -655,6 +670,118 @@ const NewDashboardComponent = ({
           roudName="高雄 - 成都"
           shortCityName="渝"
         ></RoadIcon> */}
+      </div>
+
+      <div
+        className={
+          'dashboard-compass ' + (headingUp ? 'allowRotate' : 'disallowRotate')
+        }
+      >
+        <svg
+          width="60"
+          height="60"
+          viewBox="0 0 80 80"
+          xmlns="http://www.w3.org/2000/svg"
+          onClick={() => {
+            const tempConfigure = {
+              ...config.configure,
+              mapLayer: {
+                ...config.configure.mapLayer,
+              },
+            }
+
+            if (mapLayerType && tempConfigure.mapLayer?.[mapLayerType]) {
+              tempConfigure.mapLayer[mapLayerType] = {
+                ...tempConfigure.mapLayer[mapLayerType],
+                headingUp:
+                  !tempConfigure.mapLayer[mapLayerType]?.headingUp || false,
+              }
+              dispatch(methods.config.SetConfigure(tempConfigure))
+            }
+          }}
+        >
+          <circle
+            cx="40"
+            cy="40"
+            r="24"
+            fill="#000"
+            stroke="#000"
+            stroke-width="1.2"
+            opacity="0.3"
+          />
+          <circle
+            cx="40"
+            cy="40"
+            r="20"
+            fill="#000"
+            stroke="#000"
+            stroke-width="0.8"
+            opacity="0.3"
+          />
+
+          <text
+            x="40"
+            y="12"
+            font-family="system-ui, sans-serif"
+            font-size="11"
+            font-weight="bold"
+            text-anchor="middle"
+            fill={compassColor.textColor}
+          >
+            N
+          </text>
+          <text
+            x="72"
+            y="44"
+            font-family="system-ui, sans-serif"
+            font-size="13"
+            font-weight="bold"
+            text-anchor="middle"
+            fill={compassColor.textColor}
+          >
+            E
+          </text>
+          <text
+            x="40"
+            y="76"
+            font-family="system-ui, sans-serif"
+            font-size="13"
+            font-weight="bold"
+            text-anchor="middle"
+            fill={compassColor.textColor}
+          >
+            S
+          </text>
+          <text
+            x="7"
+            y="44"
+            font-family="system-ui, sans-serif"
+            font-size="11"
+            font-weight="bold"
+            text-anchor="middle"
+            fill={compassColor.textColor}
+          >
+            W
+          </text>
+
+          <g transform="translate(40,40)">
+            <polygon
+              points="0,-22 -9,-4 9,-4"
+              fill="#e63946"
+              stroke="#c1121f"
+              stroke-width="0.8"
+            />
+            <polygon
+              points="0,18 -7,4 7,4"
+              fill="#eee"
+              stroke="fff"
+              stroke-width="0.6"
+            />
+
+            <circle cx="0" cy="0" r="5" fill="#222222" />
+            <circle cx="0" cy="0" r="2.5" fill="#dddddd" />
+          </g>
+        </svg>
       </div>
 
       {/* <div
@@ -1398,8 +1525,8 @@ const NewDashboardComponent = ({
                 gpsSignalStatus === 1
                   ? 'var(--saki-default-color)'
                   : gpsSignalStatus === 0
-                  ? '#eccb56'
-                  : '#b0aa93'
+                    ? '#eccb56'
+                    : '#b0aa93'
               }
               type="GPSFill"
             ></saki-icon>

@@ -67,6 +67,8 @@ import {
 } from '../store/city'
 import { LayerButtons } from './MapLayer'
 import { MultipleInput } from '@saki-ui/core/dist/dialog'
+import { smoothSetBearing } from '../plugins/map'
+import { createMyPositionMarker } from '../store/position'
 
 const ReplayTripComponent = () => {
   const { t, i18n } = useTranslation('replayTripPage')
@@ -242,6 +244,7 @@ const ReplayTripPage = ({
     polylineWidth: true,
     speedColorLimit: true,
     privacyGeofence: true,
+    headingUp: true,
   })
 
   const { mapLayer, speedColorRGBs, mapLayerType, mapUrl } = useMemo(() => {
@@ -1006,6 +1009,8 @@ const ReplayTripPage = ({
           zoomDelta: 0.5,
           zoomSnap: 0.5,
 
+          ...({ rotate: true, bearing: 0, rotateControl: false } as any),
+
           zoom: 15,
           attributionControl: false,
         })
@@ -1207,6 +1212,30 @@ const ReplayTripPage = ({
     config.configure.general?.speedColorLimit,
   ])
 
+  const lastHeading = useRef(0)
+  useEffect(() => {
+    if (!map.current) return
+    if (mapLayer?.headingUp) {
+      smoothSetBearing(map.current, lastHeading.current * -1, 400, 'linear')
+    } else {
+      ;(map.current as any)?.setBearing(0)
+    }
+
+    if (marker.current) {
+      const el = document.body.querySelector(
+        '.map_current_position_icon-wrap .icon'
+      )
+
+      if (mapLayer?.headingUp) {
+        el?.classList.add('disallowRotate')
+        el?.classList.remove('allowRotate')
+      } else {
+        el?.classList.remove('disallowRotate')
+        el?.classList.add('allowRotate')
+      }
+    }
+  }, [mapLayer?.headingUp])
+
   const d = useRef(new Debounce())
 
   const loadData = () => {
@@ -1287,51 +1316,43 @@ const ReplayTripPage = ({
         // if (!iconOptions.iconUrl) {
         // 	delete iconOptions.iconUrl
         // }
-        marker.current = L.marker([lat, lon], {
-          icon: L.divIcon({
-            html: `<div class='map_current_position_icon-wrap'>
-            <div class='icon'></div>
-            ${
-              user.userInfo?.uid && mapLayer?.showAvatarAtCurrentPosition
-                ? `<div class='saki-avatar'><saki-avatar
-              width='${22}px'
-              height='${22}px'
-              border-radius='50%'
-              border='2px solid #fff'
-              border-hover='2px solid #fff'
-              border-active='2px solid #fff'
-              default-icon={'UserLine'}
-              nickname='${user.userInfo?.nickname}'
-              src='${user.userInfo?.avatar}'
-              alt=''
-            ></saki-avatar></div>`
-                : ''
-            }
 
-            </div>`,
-            className:
-              'map_current_position_icon ' +
-              (user?.userInfo?.uid && mapLayer?.showAvatarAtCurrentPosition
-                ? ' avatar'
-                : ' noAvatar'),
-            // iconUrl: user?.userInfo?.avatar || '',
-            // iconUrl: '/current_position_50px.png',
-            // iconUrl: user?.userInfo?.avatar || '/current_position_50px.png',
-            iconSize: [26, 26], // size of the icon
-            // shadowSize: [36, 36], // size of the shadow
-            // iconAnchor: [22, 94], // point of the icon which will correspond to marker's location
-            // shadowAnchor: [4, 62], // the same for the shadow
-            // popupAnchor: [-3, -76], // point from which the popup should open relative to the iconAnchor
-          }),
-        })
-          .addTo(map.current)
-          // .bindPopup(
-          // 	`${ipInfoObj.ipv4}`
-          // 	// `${ipInfoObj.country}, ${ipInfoObj.regionName}, ${ipInfoObj.city}`
-          // )
-          .openPopup()
+        marker.current = createMyPositionMarker(
+          map.current,
+          [lat, lon],
+          mapLayer?.showAvatarAtCurrentPosition || false,
+          mapLayer?.headingUp || false
+        )
       }
+
       marker.current.setLatLng([lat, lon])
+
+      // console.log(
+      //   'connectionOSM',
+      //   position.coords,
+      //   (position.coords.speed || 0) > 0,
+      //   mapLayer?.headingUp
+      // )
+      // ;(map.current as any).setBearing(position.coords.heading)
+
+      if (mapLayer?.headingUp) {
+        if ((position.coords.speed || 0) > 0) {
+          lastHeading.current = position.coords.heading || 0
+          smoothSetBearing(
+            map.current,
+            (position.coords.heading || 0) * -1,
+            400,
+            'linear'
+          )
+        }
+      } else {
+        ;(map.current as any).setBearing(0)
+      }
+
+      // smoothSetBearing(map.current, -218.2, 400, 'linear')
+
+      // map.current.setView([lat, lon], 14, { animate: true, duration: 400 })
+
       // }
     }
   }
@@ -1636,6 +1657,7 @@ const ReplayTripPage = ({
           (isStarted ? speedMeterZoom : '')
         }
       ></div>
+
       <LayerButtons
         mapLayer={mapLayer}
         show={showeProgressBar.current}
@@ -1728,6 +1750,8 @@ const ReplayTripPage = ({
               return v.code !== 'A404'
             }) || []
           }
+          headingUp={mapLayer?.headingUp || false}
+          mapLayerType={mapLayerType}
         />
       ) : (
         // <DashboardComponent

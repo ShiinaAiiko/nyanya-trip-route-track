@@ -177,6 +177,10 @@
   }
 }
 
+.leaflet-control-rotate {
+  display: none !important;
+}
+
 .map_current_position_icon {
   --width: 26px;
   --height: 26px;
@@ -244,7 +248,13 @@
     width: calc(var(--width));
     height: calc(var(--height));
     position: absolute;
-    transform: rotate(calc(var(--position-heading) - 135deg));
+
+    &.disallowRotate {
+      transform: rotate(calc(225deg));
+    }
+    &.allowRotate {
+      transform: rotate(calc(var(--position-heading) - 135deg));
+    }
     // transition: transform .3s;
     // transform: rotate(var(--position-heading));
 
@@ -308,7 +318,8 @@
   width: var(--max-speed-marker-pixel);
   height: var(--max-speed-marker-pixel);
   border-radius: 50%;
-  margin: calc(-1 * var(--max-speed-marker-pixel) / 2) 0 0 calc(-1 * var(--max-speed-marker-pixel) / 2);
+  margin: calc(-1 * var(--max-speed-marker-pixel) / 2) 0 0
+    calc(-1 * var(--max-speed-marker-pixel) / 2);
   border: 2px solid #fff;
   background-color: var(--max-speed-marker-bg-color);
 
@@ -432,7 +443,10 @@
       // -webkit-text-stroke: 2px black;
       /* 现代浏览器 */
       --text-shadow: rgba(255, 255, 255, 0.7);
-      text-shadow: -1px -1px 0 var(--text-shadow), 1px -1px 0 var(--text-shadow), -1px 1px 0 var(--text-shadow),
+      text-shadow:
+        -1px -1px 0 var(--text-shadow),
+        1px -1px 0 var(--text-shadow),
+        -1px 1px 0 var(--text-shadow),
         1px 1px 0 var(--text-shadow);
       /* 兼容 Firefox */
 

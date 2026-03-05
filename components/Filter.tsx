@@ -393,26 +393,29 @@ const FilterComponent = ({
       })
     )
 
-    const distanceMap = jmBaseDataList.reduce((t, v) => {
-      let tripIds = v.timeline?.reduce((t, v) => {
-        return t.concat(...(v?.tripIds || []))
-      }, [] as string[])
+    const distanceMap = jmBaseDataList.reduce(
+      (t, v) => {
+        let tripIds = v.timeline?.reduce((t, v) => {
+          return t.concat(...(v?.tripIds || []))
+        }, [] as string[])
 
-      // console.log('distanceMap', tripIds)
+        // console.log('distanceMap', tripIds)
 
-      if (v?.id) {
-        t[v.id] =
-          tripIds?.reduce((t, v) => {
-            const m = allTripDistanceMap.get(v)
-            if (m) {
-              t += m?.distance || 0
-            }
-            return t
-          }, 0) || 0
-      }
+        if (v?.id) {
+          t[v.id] =
+            tripIds?.reduce((t, v) => {
+              const m = allTripDistanceMap.get(v)
+              if (m) {
+                t += m?.distance || 0
+              }
+              return t
+            }, 0) || 0
+        }
 
-      return t
-    }, {} as Record<string, number>)
+        return t
+      },
+      {} as Record<string, number>
+    )
     // console.log('distanceMap', distanceMap)
 
     vehicle.vehicles.forEach((v) => {
@@ -717,7 +720,10 @@ const FilterComponent = ({
                           }
                         },
                         focusfunc: () => {
-                          console.log('focus')
+                          console.log(
+                            'selectStartDate focus',
+                            openStartDateDatePicker
+                          )
                           setOpenStartDateDatePicker(true)
                         },
                       })}
@@ -806,10 +812,14 @@ const FilterComponent = ({
                   <saki-date-picker
                     ref={bindEvent({
                       close: () => {
+                        console.log(
+                          'selectStartDate close',
+                          openStartDateDatePicker
+                        )
                         setOpenStartDateDatePicker(false)
                       },
                       selectdate: (e) => {
-                        // console.log("Dom发生了变化`1111111", e)
+                        console.log('selectStartDate Dom发生了变化`1111111', e)
                         setOpenStartDateDatePicker(false)
 
                         if (!e.detail.date) {
@@ -819,6 +829,11 @@ const FilterComponent = ({
                         setSelectedStartDate?.(
                           moment(e.detail.date).format('YYYY-MM-DD')
                         )
+                      },
+                      cncelSelect: (e) => {
+                        setOpenStartDateDatePicker(false)
+
+                        setSelectedStartDate?.('')
                       },
                     })}
                     date={selectedStartDate}
@@ -844,6 +859,11 @@ const FilterComponent = ({
                             'YYYY-MM-DD'
                           )
                         )
+                      },
+                      cncelSelect: (e) => {
+                        setOpenEndDateDatePicker(false)
+
+                        setSelectedEndDate?.('')
                       },
                     })}
                     date={selectedEndDate}

@@ -126,7 +126,7 @@ const WeatherAppModal = () => {
                 )
               },
             })}
-            entry-url={Query(`${toolUrl}/zh-CN/weather`, {
+            entry-url={Query(`https://weather.aiiko.club/${config.lang}`, {
               lat: layout.openWeatherAppModal.latlng.lat.toString(),
               lng: layout.openWeatherAppModal.latlng.lng.toString(),
               alt: layout.openWeatherAppModal.latlng.alt.toString(),

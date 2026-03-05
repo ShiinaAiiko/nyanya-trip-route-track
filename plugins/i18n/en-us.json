@@ -369,7 +369,9 @@
     "openVConsole": "Open vConsole",
     "closeVConsole": "Close vConsole",
 
-    "enableGeoFence": "Enable the privacy fence. The trip data and location sharing shared externally will be filtered on the server."
+    "enableGeoFence": "Enable the privacy fence. The trip data and location sharing shared externally will be filtered on the server.",
+
+    "headingUp": "Heading Up"
   },
   "prompt": {
     "next": "Next",

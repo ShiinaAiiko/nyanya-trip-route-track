@@ -386,6 +386,7 @@ export const defaultMapLayerItem = {
   roadColorFade: true,
   showAvatarAtCurrentPosition: true,
   showSpeedColor: true,
+  headingUp: true,
   cityName: true,
   cityBoundaries: '' as CityBoundariesType | '',
   tripTrackRoute: true,

@@ -51,6 +51,7 @@ message Configure {
       string trackRouteColor = 14;
       int32 polylineWidth = 15;
       bool privacyGeofence = 16;
+      bool headingUp = 17;
     }
 
     MapLayerItem indexPage = 1;

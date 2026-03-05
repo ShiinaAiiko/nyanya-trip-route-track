@@ -443,6 +443,8 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
         <script src="/js/leaflet-polycolor.min.js"></script>
         <script src="/js/TileLayer.ColorScale.js" crossOrigin=""></script>
 
+        <script src="/js/leaflet-rotate.js"></script>
+
         {/* {debug === 'true' ? (
 					<script src='https://unpkg.com/vconsole@latest/dist/vconsole.min.js'></script>
 				) : (

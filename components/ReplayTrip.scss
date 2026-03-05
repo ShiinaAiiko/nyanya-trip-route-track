@@ -186,7 +186,9 @@
       border-radius: 20px;
       background-color: var(--bg-color);
 
-      transition: background-color 0.3s, bottom 0.3s;
+      transition:
+        background-color 0.3s,
+        bottom 0.3s;
 
       &.Dark {
         background-color: rgba(0, 0, 0, 0.3);
@@ -328,6 +330,13 @@
         span {
           // font-size: 16px;
         }
+      }
+    }
+
+    .dashboard-component {
+      .dashboard-compass {
+        right: 10px;
+        bottom: calc(70px + var(--dashboard-data-h));
       }
     }
   }

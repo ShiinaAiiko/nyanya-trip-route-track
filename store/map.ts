@@ -295,7 +295,7 @@ export const renderPolyline = async ({
       lat: (minLat + maxLat) / 2,
       lon: (minLon + maxLon) / 2,
     }
-    zoom = getZoom(minLat, minLon, maxLat, maxLon)
+    zoom = map.getZoom() || getZoom(minLat, minLon, maxLat, maxLon)
     map.setView(
       [tempLatLon.lat, tempLatLon.lon],
       // [
