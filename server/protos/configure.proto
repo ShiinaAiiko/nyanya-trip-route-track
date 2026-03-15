@@ -63,6 +63,7 @@ message Configure {
     MapLayerItem replayTripModal = 7;
     MapLayerItem visitedCitiesModal = 8;
     MapLayerItem privacyGeofenceModal = 9;
+    MapLayerItem roadbookPage = 10;
   }
 
   MapLayer mapLayer = 1;
@@ -111,7 +112,14 @@ message Configure {
     FilterItem trackRoute = 2;
   }
   Filter filter = 3;
-  int64 lastUpdateTime = 4;
+
+  message NavigationSettings {
+    repeated string routeOptions = 1;
+    string preference = 2;
+    string travelOptions = 3;
+  }
+  NavigationSettings navigation = 4;
+  int64 lastUpdateTime = 5;
   // Local
   //  bool roadColorFade = 11;
 

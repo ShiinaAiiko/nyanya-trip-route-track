@@ -1,9 +1,15 @@
-import { createSlice, createAsyncThunk, combineReducers, configureStore } from '@reduxjs/toolkit'
+import {
+  createSlice,
+  createAsyncThunk,
+  combineReducers,
+  configureStore,
+} from '@reduxjs/toolkit'
 import md5 from 'blueimp-md5'
 import store, { ActionParams } from '.'
 import { WebStorage } from '@nyanyajs/utils'
 import { protoRoot } from '../protos'
 import { GeoJSON } from './city'
+import { PolylineItem } from '../components/Roadbook/Context'
 // import { User } from './user'
 // import { WebStorage } from './webStorage'
 
@@ -24,10 +30,12 @@ export let storage = {
     storage: 'IndexedDB',
     baseLabel: 'tripPositions',
   }),
-  simplifyTripPositions: new WebStorage<string, protoRoot.trip.ITripPosition[]>({
-    storage: 'IndexedDB',
-    baseLabel: 'simplifyTripPositions',
-  }),
+  simplifyTripPositions: new WebStorage<string, protoRoot.trip.ITripPosition[]>(
+    {
+      storage: 'IndexedDB',
+      baseLabel: 'simplifyTripPositions',
+    }
+  ),
   cityDetails: new WebStorage<string, protoRoot.trip.ITripCity>({
     storage: 'IndexedDB',
     baseLabel: 'cityDetails',
@@ -35,6 +43,10 @@ export let storage = {
   cityBoundaries: new WebStorage<string, GeoJSON>({
     storage: 'IndexedDB',
     baseLabel: 'cityBoundaries',
+  }),
+  navigationPolylines: new WebStorage<string, PolylineItem>({
+    storage: 'IndexedDB',
+    baseLabel: 'navigationPolylines',
   }),
 }
 

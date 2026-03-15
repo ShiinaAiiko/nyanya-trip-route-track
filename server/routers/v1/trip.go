@@ -206,4 +206,15 @@ func (r *Routerv1) InitTrip() {
 			ResponseDataType:   "protobuf",
 		}),
 		tc.ResumeTrip)
+
+	r.Group.POST(
+		role.SetRole("/trip/addresses/update", &middleware.RoleOptionsType{
+			CheckApp:           false,
+			Authorize:          true,
+			RequestEncryption:  false,
+			ResponseEncryption: false,
+			RequestDataType:    "protobuf",
+			ResponseDataType:   "protobuf",
+		}),
+		tc.UpdateTripAddresses)
 }

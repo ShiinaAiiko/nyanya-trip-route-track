@@ -668,6 +668,41 @@ func (t *TripDbx) UpdateTrip(authorId, id string, allowShare, name, typeStr, veh
 	return nil
 }
 
+func (t *TripDbx) UpdateTripAddresses(authorId, id string, addresses []*models.TripAddresses) error {
+	trip := new(models.Trip)
+
+	updateResult, err := trip.GetCollection().UpdateOne(context.TODO(),
+		bson.M{
+			"$and": []bson.M{
+				{
+					"_id": id,
+				},
+				{
+					"authorId": authorId,
+					"status": bson.M{
+						"$in": []int64{1, 0},
+					},
+				},
+			},
+		}, bson.M{
+			"$set": bson.M{
+				"addresses":      addresses,
+				"lastUpdateTime": time.Now().Unix(),
+			},
+		}, options.Update().SetUpsert(false))
+
+	if err != nil {
+		return err
+	}
+	if updateResult.ModifiedCount == 0 {
+		return errors.New("update fail")
+	}
+
+	// 删除对应redis
+	t.DeleteRedisData(authorId, id)
+	return nil
+}
+
 func (t *TripDbx) ResumeTrip(id, authorId string) error {
 	trip := new(models.Trip)
 
@@ -866,6 +901,7 @@ var tripProject = bson.M{
 	"roads":       1,
 	"statistics":  1,
 	"permissions": 1,
+	"addresses":   1,
 	"authorId":    1,
 	"status":      1,
 	"createTime":  1,

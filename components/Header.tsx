@@ -1,6 +1,6 @@
 import Head from 'next/head'
 import Link from 'next/link'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/router'
 import {
   RootState,
@@ -17,7 +17,14 @@ import axios from 'axios'
 import { appListUrl } from '../config'
 import MenuDropdownComponent from '../components/MenuDropdown'
 import { loadModal } from '../store/layout'
-import { SakiCol, SakiRow } from './saki-ui-react/components'
+import {
+  SakiButton,
+  SakiCol,
+  SakiRow,
+  SakiTemplateMenuDropdown,
+} from './saki-ui-react/components'
+import NoSSR from './NoSSR'
+import { languages } from '../plugins/i18n/i18n'
 
 const HeaderComponent = ({
   // 暂时仅fixed可用
@@ -43,6 +50,69 @@ const HeaderComponent = ({
 
   const [openUserDropDownMenu, setOpenUserDropDownMenu] = useState(false)
 
+  const appList = useMemo(() => {
+    const titleMap = (key: string, ns: string) => {
+      return Object.fromEntries(
+        languages.map((lang) => [
+          lang,
+          t(key, {
+            ns: ns,
+            lng: lang,
+          }),
+        ])
+      )
+    }
+
+    const appList: any = [
+      {
+        title: titleMap('pageTitle', 'tripPage'),
+        url: '/',
+        logoText: '',
+        icon: 'Route',
+        iconSize: '14px',
+        active: true,
+      },
+      {
+        title: titleMap('pageTitle', 'trackRoutePage'),
+        url: '/trackRoute',
+        logoText: '',
+        icon: 'TripRoute',
+      },
+      {
+        title: titleMap('title', 'journeyMemoriesModal'),
+        url: '/journeyMemories',
+        logoText: '',
+        icon: 'Camera2Fill',
+        method: 'Event',
+      },
+      {
+        title: titleMap('pageTitle', 'roadBookPage'),
+        url: '/roadbook',
+        logoText: '',
+        icon: 'Road',
+      },
+      {
+        title: titleMap('pageTitle', 'altitudePage'),
+        url: '/altitude',
+        logoText: '',
+        icon: 'Mountains',
+      },
+    ].map((v) => {
+      let url = (router.query?.lang ? '/' + router.query?.lang : '') + v.url
+
+      if (url[url.length - 1] === '/') {
+        url = url.slice(0, url.length - 1)
+      }
+
+      return {
+        ...v,
+        url: url,
+        active: url === router.asPath,
+      }
+    })
+    return appList
+  }, [router])
+
   return (
     <div
       className={
@@ -62,11 +132,75 @@ const HeaderComponent = ({
 						ns: 'common',
 					})} */}
 
-          <MenuDropdownComponent />
+          {/* <MenuDropdownComponent /> */}
+          <NoSSR>
+            <SakiTemplateMenuDropdown
+              ref={
+                bindEvent(
+                  {
+                    openPage: (e) => {
+                      // console.log('openPage', e)
+
+                      if (e.detail.value.includes('/journeyMemories')) {
+                        if (!user.isLogin) {
+                          dispatch(methods.user.loginAlert())
+                          return
+                        }
+                        loadModal('JourneyMemories', () => {
+                          dispatch(
+                            layoutSlice.actions.setOpenJourneyMemoriesModal(
+                              true
+                            )
+                          )
+                        })
+                      }
+                    },
+                  },
+                  (e: any) => {
+                    // console.log('routerrr' , router)
+
+                    e?.setAppList?.(appList)
+                  }
+                ) as any
+              }
+              openNewPage={true}
+              app-text={layout.headerLogoText}
+              app-logo={
+                router.pathname.includes('/weather')
+                  ? '/weather-icons/128x128.png'
+                  : ''
+              }
+              text-color={'#555'}
+              icon-color={'#999'}
+              button-bg-color={'rgba(255,255,255,0.7)'}
+            ></SakiTemplateMenuDropdown>
+          </NoSSR>
         </div>
       </div>
       <div className="tb-h-center"></div>
       <div className="tb-h-right">
+        {['/altitude', '/[lang]/altitude'].includes(router.pathname) ? (
+          <SakiButton
+            onTap={async () => {
+              window.open(
+                (router.query.lang ? '/' + (router.query.lang || '') : '') + '/'
+              )
+            }}
+            // padding="24px"
+            // margin="6px 6px"
+            padding="6px 8px"
+            border="none"
+          >
+            <span>
+              {t('pageTitle', {
+                ns: 'tripPage',
+              })}
+            </span>
+          </SakiButton>
+        ) : (
+          ''
+        )}
+
         {mounted && (
           <>
             <meow-apps-dropdown
@@ -241,6 +375,13 @@ const HeaderComponent = ({
                               : '') + '/'
                           )
                           break
+                        case 'AltitudePage':
+                          window.open(
+                            (router.query.lang
+                              ? '/' + (router.query.lang || '')
+                              : '') + '/altitude'
+                          )
+                          break
                         case 'VConsole':
                           dispatch(
                             configSlice.actions.setVConsole(!config.vConsole)
@@ -339,7 +480,7 @@ const HeaderComponent = ({
                       </span>
                     </div>
                   </saki-menu-item>
-                  {router.pathname.indexOf('trackRoute') < 0 ? (
+                  {/* {router.pathname.indexOf('trackRoute') < 0 ? (
                     <saki-menu-item padding="10px 18px" value={'Route'}>
                       <div className="tb-h-r-user-item">
                         <saki-icon color="#666" type="Route"></saki-icon>
@@ -361,7 +502,7 @@ const HeaderComponent = ({
                         </span>
                       </div>
                     </saki-menu-item>
-                  )}
+                  )} */}
                   {user.isLogin ? (
                     <>
                       <saki-menu-item
@@ -411,7 +552,7 @@ const HeaderComponent = ({
                   ) : (
                     ''
                   )}
-                  {user.isLogin ? (
+                  {/* {user.isLogin ? (
                     <saki-menu-item
                       padding="10px 18px"
                       value={'JourneyMemories'}
@@ -430,7 +571,17 @@ const HeaderComponent = ({
                     </saki-menu-item>
                   ) : (
                     ''
-                  )}
+                  )} */}
+                  {/* <saki-menu-item padding="10px 18px" value={'AltitudePage'}>
+                    <div className="tb-h-r-user-item">
+                      <saki-icon color="#666" type="Mountains"></saki-icon>
+                      <span>
+                        {t('pageTitle', {
+                          ns: 'altitudePage',
+                        })}
+                      </span>
+                    </div>
+                  </saki-menu-item> */}
                   <saki-menu-item padding="10px 18px" value={'Settings'}>
                     <div className="tb-h-r-user-item">
                       <saki-icon color="#666" type="Settings"></saki-icon>

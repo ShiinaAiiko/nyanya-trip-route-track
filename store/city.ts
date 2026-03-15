@@ -605,7 +605,7 @@ function levelPriority(level: string, displayLevels: string[]): number {
     city: 3,
     town: 4,
   }
-  return displayLevels.includes(level) ? basePriorities[level] ?? 5 : Infinity
+  return displayLevels.includes(level) ? (basePriorities[level] ?? 5) : Infinity
 }
 
 function getIconByLevel(cityInfo: CityInfo): L.DivIcon {

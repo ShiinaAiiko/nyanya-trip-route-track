@@ -166,16 +166,16 @@
 // 	z-index: 1002 !important;
 // }
 
-.tool-box-layout-menu-list {
-  .tblml-item {
-    a {
-      font-size: 14px;
-      padding: 14px 16px;
-      display: block;
-      color: #000;
-    }
-  }
-}
+// .tool-box-layout-menu-list {
+//   .tblml-item {
+//     a {
+//       font-size: 14px;
+//       padding: 14px 16px;
+//       display: block;
+//       color: #000;
+//     }
+//   }
+// }
 
 .leaflet-control-rotate {
   display: none !important;
@@ -565,5 +565,50 @@
       height: 60px !important;
       object-fit: cover;
     }
+  }
+}
+
+.waypoint-map-marker {
+  .waypoint-map-marker-main {
+    position: relative;
+    svg {
+      width: 25px;
+    }
+    .wp-main {
+      position: absolute;
+      left: 50%;
+      top: calc(50% - 6px);
+      transform: translate(-50%, -50%);
+      color: #fff;
+      font-weight: 700;
+      font-size: 13px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      .wp-title {
+        color: #fff;
+        font-size: 13px;
+        &.D3 {
+          font-size: 11.5px;
+        }
+        &.D4 {
+          font-size: 10px;
+        }
+      }
+      .wp-subtitle {
+        // font-size: 6px;
+        display: none;
+      }
+    }
+  }
+}
+
+.waypoint-map-tooltip {
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+  font-size: 14px;
+  &.Day {
+    font-weight: 700;
   }
 }

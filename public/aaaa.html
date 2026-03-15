@@ -1,95 +1,499 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
+<!doctype html>
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Pinterest 风格瀑布流</title>
+    <title>摄像头 · Canvas 水印相机</title>
     <style>
       * {
-        margin: 0;
-        padding: 0;
         box-sizing: border-box;
+        font-family:
+          system-ui,
+          -apple-system,
+          'Segoe UI',
+          Roboto,
+          sans-serif;
       }
-
       body {
-        background-color: #f5f5f5;
-        padding: 20px;
-        font-family: Arial, sans-serif;
+        min-height: 100vh;
+        margin: 0;
+        background: linear-gradient(145deg, #0b1a2e 0%, #1b2f44 100%);
+        display: flex;
+        justify-content: center;
+        align-items: center;
       }
-
-      .waterfall {
-        column-gap: 12px;
-        width: 100%;
-        max-width: 1200px;
-        margin: 0 auto;
-        column-width: 250px; /* 固定列宽，类似 Pinterest */
+      .card {
+        background: rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(8px);
+        border-radius: 2rem;
+        padding: 2rem 2rem 2.5rem;
+        box-shadow: 0 25px 40px -10px rgba(0, 0, 0, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        width: fit-content;
+        max-width: 1000px;
       }
-
-      .item {
-        break-inside: avoid;
-        margin-bottom: 12px;
-        background: #fff;
-        border-radius: 8px;
-        overflow: hidden;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        transition: transform 0.2s;
+      h2 {
+        color: #d3eaff;
+        font-weight: 400;
+        letter-spacing: 1px;
+        margin: 0 0 0.75rem 0.5rem;
+        font-size: 1.4rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
       }
-
-      .item:hover {
-        transform: translateY(-4px); /* 悬停效果 */
+      h2 span {
+        background: #2e4e6e;
+        padding: 0.15rem 0.8rem;
+        border-radius: 40px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        color: #b9d9ff;
       }
-
-      .item img {
+      .view-grid {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 2rem;
+        align-items: center;
+      }
+      .video-col,
+      .canvas-col {
+        background: #0f212f;
+        border-radius: 24px;
+        padding: 12px;
+        box-shadow:
+          inset 0 2px 6px rgba(0, 0, 0, 0.8),
+          0 10px 20px rgba(0, 0, 0, 0.5);
+        border: 1px solid #3f5568;
+      }
+      .video-col video,
+      .canvas-col canvas {
+        display: block;
+        border-radius: 16px;
         width: 100%;
         height: auto;
-        display: block;
-        object-fit: cover; /* 确保图片按比例填充 */
+        background-color: #132433; /* fallback */
+        box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
       }
-
-      /* 响应式：调整列宽和间距 */
-      @media (max-width: 768px) {
-        .waterfall {
-          column-width: 200px;
-          column-gap: 10px;
-        }
-        .item {
-          margin-bottom: 10px;
-        }
+      .video-col video {
+        min-width: 480px;
+        max-width: 100%;
+        transform: scaleX(-1); /* 镜像，更像镜子 */
       }
-
-      @media (max-width: 480px) {
-        .waterfall {
-          column-width: 160px;
-          column-gap: 8px;
-        }
-        .item {
-          margin-bottom: 8px;
-        }
+      .canvas-col canvas {
+        min-width: 480px;
+        max-width: 100%;
+      }
+      .control-panel {
+        margin-top: 2rem;
+        background: #1d3043c9;
+        border-radius: 48px;
+        padding: 1.2rem 1.8rem;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 1.2rem 2rem;
+        border: 1px solid #52728b;
+        backdrop-filter: blur(4px);
+      }
+      .watermark-group {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.6rem 1.2rem;
+        background: #0d1f2d;
+        padding: 0.4rem 1rem 0.4rem 1.5rem;
+        border-radius: 40px;
+        border: 1px solid #3f627c;
+      }
+      .watermark-label {
+        color: white;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .watermark-label i {
+        font-size: 1.2rem;
+        filter: drop-shadow(0 2px 2px black);
+      }
+      #watermarkTextInput {
+        background: #263e54;
+        border: 1px solid #6089aa;
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 30px;
+        font-size: 0.95rem;
+        width: 210px;
+        outline: none;
+        transition: all 0.15s;
+      }
+      #watermarkTextInput:focus {
+        border-color: #aad0ff;
+        background: #1f364b;
+        box-shadow: 0 0 0 2px #2d5f8b6b;
+      }
+      #watermarkTextInput::placeholder {
+        color: #98b4ce;
+        font-style: italic;
+      }
+      .action-buttons {
+        display: flex;
+        gap: 10px;
+      }
+      button {
+        background: #1f3f5a;
+        border: none;
+        color: white;
+        font-size: 1rem;
+        padding: 0.55rem 1.4rem;
+        border-radius: 40px;
+        font-weight: 500;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3);
+        border: 1px solid #5783a3;
+        transition: 0.1s ease;
+      }
+      button:hover {
+        background: #2b5477;
+        border-color: #8bb9da;
+        transform: scale(1.02);
+      }
+      button:active {
+        background: #12334b;
+        transform: scale(1);
+      }
+      .danger-btn {
+        background: #4f3644;
+        border-color: #b47b94;
+      }
+      .danger-btn:hover {
+        background: #6d435a;
+      }
+      .status {
+        color: #b2d3f0;
+        font-size: 0.95rem;
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        background: #0e1f2b;
+        padding: 0.3rem 1.2rem;
+        border-radius: 40px;
+        border: 1px solid #2b506b;
+      }
+      .status .dot {
+        width: 12px;
+        height: 12px;
+        background: #38d9a9;
+        border-radius: 50%;
+        box-shadow: 0 0 8px #4effb5;
       }
     </style>
   </head>
   <body>
-    <div class="waterfall">
-      <div class="item"><img src="https://picsum.photos/300/400?random=1" alt="img1" loading="lazy" /></div>
-      <div class="item"><img src="https://picsum.photos/250/300?random=2" alt="img2" loading="lazy" /></div>
-      <div class="item"><img src="https://picsum.photos/320/500?random=3" alt="img3" loading="lazy" /></div>
-      <div class="item"><img src="https://picsum.photos/280/350?random=4" alt="img4" loading="lazy" /></div>
-      <div class="item"><img src="https://picsum.photos/310/420?random=5" alt="img5" loading="lazy" /></div>
-      <div class="item"><img src="https://picsum.photos/260/320?random=6" alt="img6" loading="lazy" /></div>
-      <div class="item"><img src="https://picsum.photos/290/450?random=7" alt="img7" loading="lazy" /></div>
-      <div class="item"><img src="https://picsum.photos/270/380?random=8" alt="img8" loading="lazy" /></div>
-      <div class="item"><img src="https://picsum.photos/300/360?random=9" alt="img9" loading="lazy" /></div>
-      <div class="item"><img src="https://picsum.photos/280/400?random=10" alt="img10" loading="lazy" /></div>
-      <div class="item"><img src="https://picsum.photos/310/340?random=11" alt="img11" loading="lazy" /></div>
-      <div class="item"><img src="https://picsum.photos/260/500?random=12" alt="img12" loading="lazy" /></div>
-      <div class="item"><img src="https://picsum.photos/290/370?random=13" alt="img13" loading="lazy" /></div>
-      <div class="item"><img src="https://picsum.photos/320/410?random=14" alt="img14" loading="lazy" /></div>
-      <div class="item"><img src="https://picsum.photos/270/330?random=15" alt="img15" loading="lazy" /></div>
-      <div class="item"><img src="https://picsum.photos/300/460?random=16" alt="img16" loading="lazy" /></div>
-      <div class="item"><img src="https://picsum.photos/280/390?random=17" alt="img17" loading="lazy" /></div>
-      <div class="item"><img src="https://picsum.photos/310/350?random=18" alt="img18" loading="lazy" /></div>
-      <div class="item"><img src="https://picsum.photos/260/430?random=19" alt="img19" loading="lazy" /></div>
-      <div class="item"><img src="https://picsum.photos/290/380?random=20" alt="img20" loading="lazy" /></div>
+    <div class="card">
+      <h2>
+        📷 摄像头流 · 水印画板
+        <span>实时合成</span>
+      </h2>
+
+      <div class="view-grid">
+        <!-- 原始摄像头视频（镜像显示，仅作参照） -->
+        <div class="video-col">
+          <video id="cameraVideo" autoplay playsinline muted></video>
+          <div
+            style="
+              color: #9bb8da;
+              margin-top: 8px;
+              text-align: center;
+              font-size: 0.9rem;
+            "
+          >
+            🎥 摄像头预览 (镜像)
+          </div>
+        </div>
+        <!-- 最终输出 Canvas (带水印) -->
+        <div class="canvas-col">
+          <canvas id="watermarkCanvas" width="640" height="480"></canvas>
+          <div
+            style="
+              color: #9bb8da;
+              margin-top: 8px;
+              text-align: center;
+              font-size: 0.9rem;
+            "
+          >
+            🖼️ Canvas + 水印
+          </div>
+        </div>
+      </div>
+
+      <!-- 水印控制栏 -->
+      <div class="control-panel">
+        <div class="watermark-group">
+          <span class="watermark-label"> <i>💧</i> 水印文字 </span>
+          <input
+            type="text"
+            id="watermarkTextInput"
+            value="© 我的水印"
+            placeholder="例如: 2026-03-06 私享"
+            maxlength="50"
+          />
+          <div class="action-buttons">
+            <button id="applyWatermarkBtn" title="更新水印文字">✏️ 应用</button>
+            <button
+              id="clearWatermarkBtn"
+              class="danger-btn"
+              title="清除水印 (只留画面)"
+            >
+              🧹 清除
+            </button>
+          </div>
+        </div>
+        <div class="status">
+          <span class="dot"></span> <span id="fpsHint">画布更新中</span>
+        </div>
+      </div>
+      <div
+        style="
+          text-align: center;
+          margin-top: 18px;
+          color: #819eb3;
+          font-size: 0.85rem;
+        "
+      >
+        ⚡ 水印绘制在Canvas上 · 点击应用或清除实时生效
+      </div>
     </div>
+
+    <script>
+      ;(function () {
+        // ------ DOM 元素 ------
+        const video = document.getElementById('cameraVideo')
+        const canvas = document.getElementById('watermarkCanvas')
+        const ctx = canvas.getContext('2d')
+
+        const watermarkInput = document.getElementById('watermarkTextInput')
+        const applyBtn = document.getElementById('applyWatermarkBtn')
+        const clearBtn = document.getElementById('clearWatermarkBtn')
+        const fpsHint = document.getElementById('fpsHint')
+
+        // ------ 状态 ------
+        let currentWatermark = '© 我的水印' // 默认水印文字
+        let isWatermarkEnabled = true // 是否绘制水印 (清除按钮只是把文字置空, 但我们用标志更好)
+        // 但为了符合直觉: 清除按钮 将文字置为''并且清空输入框, 应用按钮用输入框文字覆盖。 完全符合“添加我指定的水印”。
+
+        // 视频尺寸适配 (默认640x480, 但摄像头可能有不同比例)
+        let videoWidth = 640
+        let videoHeight = 480
+
+        // 动画循环控制
+        let rafId = null
+
+        // ------ 获取摄像头 ------
+        async function startCamera() {
+          try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+              video: {
+                width: { ideal: 640 },
+                height: { ideal: 480 },
+                facingMode: 'user', // 前置摄像头 (一般笔记本/手机前置)
+              },
+              audio: false,
+            })
+            video.srcObject = stream
+            // 视频元数据加载后 调整canvas尺寸匹配实际分辨率
+            video.addEventListener('loadedmetadata', () => {
+              // 某些设备视频轨道实际宽高可能略有不同，但通常尊重理想值。
+              const track = stream.getVideoTracks()[0]
+              const settings = track.getSettings()
+              if (settings.width && settings.height) {
+                videoWidth = settings.width
+                videoHeight = settings.height
+              } else {
+                // 回退使用video.videoWidth / videoHeight
+                videoWidth = video.videoWidth || 640
+                videoHeight = video.videoHeight || 480
+              }
+              // 确保宽高为整数且不超过合理范围(限制最大显示，但画布保持比例)
+              videoWidth = Math.floor(videoWidth)
+              videoHeight = Math.floor(videoHeight)
+              // 避免过大画布，但保留清晰度；设定上限 1280x720 足够，同时保持比例
+              if (videoWidth > 1280) {
+                const ratio = 1280 / videoWidth
+                videoWidth = 1280
+                videoHeight = Math.floor(videoHeight * ratio)
+              }
+              canvas.width = videoWidth
+              canvas.height = videoHeight
+
+              fpsHint.innerText = `画布 ${videoWidth}×${videoHeight}`
+            })
+
+            // 考虑到 loadedmetadata 可能已经触发，加fallback
+            if (video.readyState >= 1) {
+              videoWidth = video.videoWidth || 640
+              videoHeight = video.videoHeight || 480
+              canvas.width = videoWidth
+              canvas.height = videoHeight
+              fpsHint.innerText = `画布 ${videoWidth}×${videoHeight}`
+            }
+          } catch (err) {
+            alert('无法访问摄像头: ' + (err.message || '未知错误'))
+            console.error('摄像头错误:', err)
+            fpsHint.innerText = '❌ 摄像头错误'
+          }
+        }
+
+        // ------ 绘制循环 (将视频帧绘制到canvas并附加水印) ------
+        function drawFrame() {
+          if (video.readyState >= 2) {
+            // HAVE_CURRENT_DATA 或更高
+            // 确保画布尺寸与视频保持一致（如果尺寸还没设置，用video大小）
+            if (canvas.width === 0 || canvas.height === 0) {
+              if (video.videoWidth > 0 && video.videoHeight > 0) {
+                canvas.width = video.videoWidth
+                canvas.height = video.videoHeight
+                videoWidth = video.videoWidth
+                videoHeight = video.videoHeight
+              } else {
+                // 默认
+                canvas.width = 640
+                canvas.height = 480
+              }
+            }
+
+            // 绘制视频帧到canvas (填满画布，保持比例不变形？直接用画布尺寸绘制，视频会被拉伸——但一般摄像头尺寸与canvas一致，不会变形)
+            // 注意video可能因为镜像变换显示，但绘制时我们需要原始方向。为了保证不镜像，直接drawImage即可。
+            // 但canvas预览我们不做镜像，与视频预览区分开。
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+
+            // 如果水印被启用 (文字不为空) 则绘制水印
+            if (isWatermarkEnabled && currentWatermark.trim() !== '') {
+              drawWatermark(currentWatermark)
+            }
+            // 如果水印为空字符串，那就不画任何额外文字（等同于清除）
+          }
+
+          rafId = requestAnimationFrame(drawFrame)
+        }
+
+        // 单独抽离水印绘制，方便复用 (可定制样式)
+        function drawWatermark(text) {
+          // 保存上下文状态
+          ctx.save()
+          // 水印样式：半透明白色斜体，带阴影，右下角
+          ctx.font =
+            'bold 26px "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif'
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.7)'
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.7)'
+          ctx.shadowBlur = 12
+          ctx.shadowOffsetX = 3
+          ctx.shadowOffsetY = 3
+
+          // 测量文字宽度以确定位置（右下边距）
+          const textWidth = ctx.measureText(text).width
+          const padding = 30 // 距离右/下边距
+          const x = canvas.width - textWidth - padding
+          const y = canvas.height - 30 // 距离底部30px
+
+          // 绘制文字
+          ctx.fillText(text, x, y)
+          ctx.restore()
+
+          // 额外加一个细边框增加可读性 (可选)
+          ctx.save()
+          ctx.font =
+            'bold 26px "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif'
+          ctx.strokeStyle = 'rgba(0, 0, 0, 0.4)'
+          ctx.lineWidth = 2
+          ctx.strokeText(text, x, y)
+          ctx.restore()
+        }
+
+        // 更新水印文字 (由应用按钮触发)
+        function updateWatermarkFromInput() {
+          const newText = watermarkInput.value.trim()
+          if (newText === '') {
+            // 如果输入为空，相当于清除水印（但不清除启用标志）
+            currentWatermark = ''
+            isWatermarkEnabled = true // 仍然启用绘制，但文字为空所以画布不会绘制
+            fpsHint.innerText = `水印已清除 (文字为空)`
+          } else {
+            currentWatermark = newText
+            isWatermarkEnabled = true
+            fpsHint.innerText = `水印: "${currentWatermark}"`
+          }
+        }
+
+        // 清除按钮：设置输入框为空，并将水印文字置为空 (停止绘制)
+        function clearWatermark() {
+          watermarkInput.value = '' // 清空输入框
+          currentWatermark = '' // 水印文字置空
+          isWatermarkEnabled = true // 保持启用状态但文字为空 → 无绘制
+          fpsHint.innerText = '水印已清除 (无文字)'
+        }
+
+        // 手动应用按钮
+        applyBtn.addEventListener('click', () => {
+          updateWatermarkFromInput()
+        })
+
+        clearBtn.addEventListener('click', () => {
+          clearWatermark()
+        })
+
+        // 额外：如果用户按回车快速应用
+        watermarkInput.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') {
+            applyBtn.click()
+          }
+        })
+
+        // 启动摄像头并开始循环
+        startCamera()
+
+        // 监听视频开始播放后开启绘制（防止过早绘制无帧）
+        video.addEventListener('play', () => {
+          if (rafId) cancelAnimationFrame(rafId)
+          rafId = requestAnimationFrame(drawFrame)
+        })
+
+        // 如果摄像头加载完自动播放，但play事件可能已经过去，手动触发一次绘制
+        if (video.paused === false) {
+          // 已经在播放
+          if (!rafId) {
+            rafId = requestAnimationFrame(drawFrame)
+          }
+        } else {
+          // 当play事件触发开始绘制 (已经监听)
+        }
+
+        // 页面关闭或退出时释放资源（可选）
+        window.addEventListener('beforeunload', () => {
+          if (rafId) {
+            cancelAnimationFrame(rafId)
+            rafId = null
+          }
+          const stream = video.srcObject
+          if (stream) {
+            const tracks = stream.getTracks()
+            tracks.forEach((track) => track.stop())
+          }
+        })
+
+        // 初始化水印默认值到输入框（和currentWatermark同步）
+        watermarkInput.value = currentWatermark
+        // 刚载入时画布可能还没尺寸, 但输入框默认就显示了 “© 我的水印” 很好。
+        // 如果希望默认就绘制水印，currentWatermark已有内容，并且isWatermarkEnabled = true，没问题。
+        // 但是可能视频还未就绪，但等到绘制循环第一次运行就会绘制水印。
+        // 另外，当窗口大小改变？不涉及。
+      })()
+    </script>
   </body>
 </html>

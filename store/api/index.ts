@@ -28,6 +28,7 @@ export const apiSlice = createSlice({
         getTripStatistics: '/trip/statistics/get',
         clearTripCities: '/trip/cities/clear',
         clearTripRoads: '/trip/roads/clear',
+        UpdateTripAddresses: '/trip/addresses/update',
 
         addVehicle: '/vehicle/add',
         getVehicles: '/vehicle/get/list',
@@ -60,11 +61,19 @@ export const apiSlice = createSlice({
         GetJMTimelineList: '/journeyMemory/timeline/list/get',
         DeleteJMTimeline: '/journeyMemory/timeline/delete',
 
+        addRoadbook: '/roadbook/add',
+        GetRoadbookList: '/roadbook/list/get',
+        GetRoadbookDetail: '/roadbook/detail/get',
+        UpdateRoadbook: '/roadbook/update',
+        DeleteRoadbook: '/roadbook/delete',
+
         GetUploadToken: '/file/getUploadToken',
         GetAppToken: '/file/appToken/get',
 
         setPrivacyGeofence: '/privacyGeofence/set',
         getPrivacyGeofence: '/privacyGeofence/get',
+
+        GetNavigationData: '/navigation/get',
       },
     },
   },

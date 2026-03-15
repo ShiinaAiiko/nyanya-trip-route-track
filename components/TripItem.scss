@@ -87,6 +87,49 @@
           }
         }
 
+        .ti-addr {
+          flex: 1;
+          display: flex;
+          justify-content: space-between;
+          gap: 4px;
+          margin: 10px 0 16px;
+          &.Mobile {
+            //   flex-direction: column;
+            // justify-content: center;
+            // align-items: flex-start;
+          }
+          .th-l-i-c-startaddr,
+          .th-l-i-c-endaddr {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            .addr-icon {
+              background-color: #d64a45;
+              width: 8px;
+              height: 8px;
+              border-radius: 4px;
+              margin: 0 4px 0 0;
+            }
+            .addr-name {
+              font-size: 12px;
+              color: #444;
+              flex: 1;
+            }
+          }
+          .th-l-i-c-startaddr {
+            .addr-icon {
+              background-color: #51b150;
+            }
+            .addr-name {
+            }
+          }
+          .th-l-i-c-endaddr {
+            .addr-icon {
+            }
+            .addr-name {
+            }
+          }
+        }
         .ti-distance {
           display: flex;
           justify-content: space-between;
@@ -398,6 +441,31 @@
                     margin: 0 0 0 6px;
                     color: #666;
                   }
+                }
+              }
+              .tp-i-c-startaddr,
+              .tp-i-c-endaddr {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                .addr-icon {
+                  background-color: #d64a45;
+                  width: 8px;
+                  height: 8px;
+                  border-radius: 4px;
+                  margin: 0 4px 0 0;
+                }
+                .addr-name {
+                  font-size: 12px;
+                  color: #444;
+                  flex: 1;
+                }
+              }
+              .tp-i-c-startaddr {
+                .addr-icon {
+                  background-color: #51b150;
+                }
+                .addr-name {
                 }
               }
               .tp-i-c-content {

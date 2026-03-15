@@ -1,0 +1,311 @@
+.roadbook-detail-page {
+  .rd-header {
+    border-bottom: 1px solid #eee;
+    padding: 4px 10px 10px;
+    margin: 0 0 10px;
+    .rdh-date {
+      font-size: 14px;
+      color: #999;
+      margin: 0 0 0 0;
+    }
+    .rdh-title {
+      font-size: 26px;
+      font-weight: 700;
+      margin: 0 0 4px;
+    }
+    .rdh-desc {
+      color: #444;
+      font-size: 14px;
+      margin: 0 0 10px;
+    }
+    .rdh-data {
+      font-size: 12px;
+      color: #666;
+    }
+  }
+
+  .rd-timelines {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+
+    .rdt-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 0 0 0px 0;
+      padding: 0 10px;
+      .rdth-left {
+        .rdth-title {
+          font-size: 22px;
+          font-weight: 700;
+        }
+      }
+      .rdth-right {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+      }
+    }
+
+    .rdt-main {
+      padding: 0 10px 20px;
+      .rdt-item {
+        width: calc(100% - 5px);
+        padding: 0px 0 0px 24px;
+        margin: 10px 0 10px 5px;
+        // border-left: 1px solid #eee;
+        position: relative;
+        // overflow-y: hidden;
+
+        &.expand {
+          .rdti-waypoints {
+            height: auto;
+          }
+        }
+        &:nth-last-child(2) {
+          &::before {
+            height: calc(100% - 10px);
+            // top: 40px;
+          }
+        }
+
+        &::before {
+          content: '';
+          width: 1px;
+          height: calc(100% + 10px);
+          background-color: #eee;
+          // background-color: blue;
+          position: absolute;
+          left: 6px;
+          top: 20px;
+        }
+
+        .item-header {
+          position: relative;
+          margin: 0 0 0px 0;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          min-height: 37px;
+
+          &.D2 {
+            &::before {
+              font-size: 9px;
+            }
+          }
+
+          &::before {
+            content: attr(data-day);
+            width: 24px;
+            height: 24px;
+            background-color: #fff;
+            border: 2px solid var(--saki-default-color);
+            color: var(--saki-default-color);
+            font-size: 11px;
+            // line-height: 24px;
+            font-weight: 700;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+
+            text-align: center;
+            border-radius: 50%;
+            position: absolute;
+            left: -30px;
+            top: 50%;
+            transform: translate(0, -50%);
+          }
+
+          .ih-left {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-start;
+            .ihl-title {
+              font-size: 16px;
+              color: #5f6477;
+              // font-weight: 600;
+              span {
+              }
+            }
+            .ihl-date {
+              font-size: 12px;
+              color: #999;
+            }
+          }
+          .ih-right {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+          }
+        }
+
+        .rdti-waypoints {
+          transition: all 0.3s;
+          overflow: hidden;
+          height: 0;
+          .rdti-desc {
+            padding: 6px 0;
+            font-size: 14px;
+            color: #999;
+            border-radius: 10px;
+          }
+          .rdtiw-item {
+            width: calc(100% - 5px);
+            padding: 2px 0 2px 26px;
+            margin: 0px 0 0px 0px;
+            // border-left: 1px solid #eee;
+            position: relative;
+
+            &::before {
+              content: '';
+              width: 1px;
+              height: calc(100% + 0px);
+              background-color: #eee;
+              position: absolute;
+              left: 12px;
+              top: 20px;
+            }
+            &.searchbutton {
+              &::before {
+                display: none;
+              }
+              .rdtiw-header {
+                .rdtiwh-left {
+                  transform: translate(-5px, 0);
+                }
+                &:hover {
+                  background-color: transparent;
+                }
+                &:active {
+                  background-color: transparent;
+                }
+              }
+            }
+
+            .rdtiw-header {
+              // height: 30px;
+              min-height: 40px;
+              position: relative;
+              margin: 0 0 0px 0;
+              padding: 4px 0 4px 4px;
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              border-radius: 6px;
+              cursor: pointer;
+              transition: background-color 0.3s;
+              // background-color: #eee;
+
+              &:hover {
+                background-color: #eee;
+                .rdtiwh-right {
+                  display: flex;
+                }
+                .rdtiwhl-city {
+                  // display: none;
+                }
+              }
+              &:active {
+                background-color: #ddd;
+              }
+              .rdtiwhlt-icon {
+                position: absolute;
+                left: -20px;
+                top: calc(50% + 1px);
+                transform: translate(0, -50%);
+              }
+
+              &::before {
+                content: attr(data-day);
+                width: 24px;
+                height: 24px;
+                background-color: #fff;
+                border: 2px solid var(--saki-default-color);
+                color: var(--saki-default-color);
+                font-size: 11px;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                text-align: center;
+                border-radius: 50%;
+                position: absolute;
+                left: -26px;
+                top: calc(50% + 1px);
+                transform: translate(0, -50%);
+              }
+
+              .rdtiwh-left {
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                align-items: flex-start;
+                margin: 0 0 0 0px;
+                .rdtiwhl-title {
+                  font-size: 14px;
+                  color: #444;
+                }
+                .rdtiwhl-city {
+                  font-size: 10px;
+                  color: #999;
+                  // padding: 4px 0 0 6px;
+                }
+              }
+              .rdtiwh-right {
+                display: none;
+                justify-content: flex-end;
+                align-items: center;
+                &.showButton {
+                  display: flex !important;
+                }
+              }
+            }
+
+            .rdtiw-navigation {
+              // position: absolute;
+              // left: 26px;
+              // top: 40px;
+              width: calc(100% - 0px);
+              height: 26px;
+              font-size: 12px;
+              color: #999;
+              cursor: pointer;
+              padding: 0 0 0 4px;
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              border-radius: 6px;
+              transition: background-color 0.3s;
+              // background-color: #eee;
+              &.showButton {
+                .rdtiwn-right {
+                  display: flex !important;
+                }
+              }
+              &:hover {
+                background-color: #eee;
+                .rdtiwn-right {
+                  display: flex;
+                }
+              }
+              &:active {
+                background-color: #ddd;
+              }
+              .rdtiwn-left {
+                display: flex;
+                justify-content: flex-start;
+                align-items: center;
+              }
+              .rdtiwn-right {
+                display: none;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

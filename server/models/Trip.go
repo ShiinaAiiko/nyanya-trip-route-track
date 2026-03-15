@@ -81,6 +81,30 @@ type TripRoad struct {
 	EntryTimes []*TripCityEntryTimeItem `bson:"entryTimes" json:"entryTimes,omitempty"`
 }
 
+type TripAddressesCity struct {
+	Country string `bson:"country" json:"country,omitempty"`
+	State   string `bson:"state" json:"state,omitempty"`
+	Region  string `bson:"region" json:"region,omitempty"`
+	City    string `bson:"city" json:"city,omitempty"`
+	Town    string `bson:"town" json:"town,omitempty"`
+	Road    string `bson:"road" json:"road,omitempty"`
+}
+type TripAddressesAddress struct {
+	FullName string `bson:"fullName" json:"fullName,omitempty"`
+	Type     string `bson:"type" json:"type,omitempty"`
+	Name     string `bson:"name" json:"name,omitempty"`
+}
+
+type TripAddresses struct {
+	Latitude  float64               `bson:"latitude" json:"latitude,omitempty"`
+	Longitude float64               `bson:"longitude" json:"longitude,omitempty"`
+	Altitude  float64               `bson:"altitude" json:"altitude,omitempty"`
+	City      *TripAddressesCity    `bson:"city" json:"city,omitempty"`
+	Address   *TripAddressesAddress `bson:"address" json:"address,omitempty"`
+
+	EntryTime int64 `bson:"entryTime" json:"entryTime,omitempty"`
+}
+
 type Trip struct {
 	// 使用短ID
 	Id string `bson:"_id" json:"id,omitempty"`
@@ -89,6 +113,7 @@ type Trip struct {
 	// Running、Bike、Drive、Motorcycle、Walking、PowerWalking
 	Type        string           `bson:"type" json:"type,omitempty"`
 	Positions   []*TripPosition  `bson:"positions" json:"positions,omitempty"`
+	Addresses   []*TripAddresses `bson:"addresses" json:"addresses,omitempty"`
 	Marks       []*TripMark      `bson:"marks" json:"marks,omitempty"`
 	Cities      []*TripCity      `bson:"cities" json:"cities,omitempty"`
 	Roads       []*TripRoad      `bson:"roads" json:"roads,omitempty"`
@@ -126,6 +151,9 @@ func (s *Trip) Default() error {
 	}
 	if s.Cities == nil {
 		s.Cities = []*TripCity{}
+	}
+	if s.Addresses == nil {
+		s.Addresses = []*TripAddresses{}
 	}
 	if s.Statistics == nil {
 		s.Statistics = &TripStatistics{}

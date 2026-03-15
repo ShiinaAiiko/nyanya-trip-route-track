@@ -29,6 +29,8 @@ import { protoRoot } from '../protos'
 // import screenfull from 'screenfull'
 import { config } from 'process'
 import { ReactNativeWebJSBridge } from '../plugins/reactNativeWebJsBridge'
+import axios from 'axios'
+import { appListUrl } from '../config'
 
 export const R = new NRequest()
 
@@ -62,7 +64,7 @@ export type TabsTripType =
 export type MapColorMode = 'Normal' | 'Gray' | 'Dark' | 'Black'
 export type CityBoundariesType = 'country' | 'state' | 'region' | 'city'
 export type TrackSpeedColorType = 'RedGreen' | 'PinkBlue'
-export type TrackRouteColorType = 'Blue' | 'Pink' | 'Red'
+export type TrackRouteColorType = 'Blue' | 'Pink' | 'Red' | 'Green'
 
 export type DeviceType = 'Mobile' | 'Pad' | 'PC'
 export type LanguageType = Languages | 'system'
@@ -242,14 +244,20 @@ export const getTrackSpeedColorRGBs = (type: TrackSpeedColorType) => {
 }
 
 export const getTrackRouteColor = (
-  type: 'Blue' | 'Pink' | 'Red',
+  type: 'Blue' | 'Green' | 'Pink' | 'Red',
   lightColor: boolean
 ) => {
   if (type === 'Blue') {
     if (lightColor) {
-      return '#6a8b8e'
+      return '#6b96fa'
     }
-    return '#4af0fe'
+    return '#5484f8'
+  }
+  if (type === 'Green') {
+    if (lightColor) {
+      return '#77c48a'
+    }
+    return '#5ec377'
   }
   if (type === 'Pink') {
     if (lightColor) {
@@ -441,6 +449,12 @@ export const defaultMapLayer = {
     ...defaultMapLayerItem,
     polylineWidth: 4,
   },
+  roadbookPage: {
+    ...defaultMapLayerItem,
+    polylineWidth: 4,
+    cityName: true,
+    showPositionMarker: true,
+  },
 }
 const defaultConfigure: protoRoot.configure.IConfigure = {
   general: {
@@ -494,6 +508,11 @@ const defaultConfigure: protoRoot.configure.IConfigure = {
       showCustomTrip: false,
       showFullData: false,
     },
+  },
+  navigation: {
+    routeOptions: [],
+    travelOptions: 'driving-car',
+    preference: 'recommended',
   },
   lastUpdateTime: -1,
 }
@@ -755,8 +774,28 @@ export const configSlice = createSlice({
       openStreetMap: false,
       sakiuiI18n: false,
     },
+
+    appList: [] as {
+      title: {
+        [lang: string]: string
+      }
+      url: string
+      logo?: string
+      logoText: string
+      iconSize?: number
+      active?: boolean
+    }[],
   },
   reducers: {
+    setAppList: (
+      state,
+      params: {
+        payload: (typeof state)['appList']
+        type: string
+      }
+    ) => {
+      state.appList = params.payload
+    },
     setSakiuiI18n: (
       state,
       params: {
@@ -1132,11 +1171,20 @@ export const configMethods = {
 
     // console.log('dddddd', 22222222222)
     // thunkAPI.dispatch(configSlice.actions.setUserPositionShare(Number(await storage.global.get('userPositionShare')) || -1))
+
+    const res = await axios({
+      method: 'GET',
+      url: appListUrl,
+    })
+    // console.log('appList', res?.data?.appList)
+    res?.data?.appList &&
+      thunkAPI.dispatch(configSlice.actions.setAppList(res.data.appList))
   }),
 
   GetConfigure: createAsyncThunk('config/GetConfigure', async (_, thunkAPI) => {
     const { config } = store.getState()
 
+    console.log('GetConfigure start')
     const res = await httpApi.v1.GetConfigure({})
 
     // console.log("filter1 GetConfigure", res,
@@ -1166,6 +1214,9 @@ export const configMethods = {
           },
           mapLayer: {
             ...(config.configure.mapLayer || defaultConfigure.mapLayer),
+          },
+          navigator: {
+            ...(config.configure.navigation || defaultConfigure.navigation),
           },
           lastUpdateTime: c.lastUpdateTime,
         }

@@ -16,7 +16,7 @@
     "system": "使用設備語言"
   },
   "tripPage": {
-    "pageTitle": "行程路線軌跡",
+    "pageTitle": "開始行程",
     "subtitle": "便捷方便的記錄GPS路線軌跡、速度、里程、海拔等行程數據~，支援步行、騎行、駕車等多種出行方式。",
     "all": "全部",
     "running": "跑步",
@@ -135,6 +135,72 @@
     "ORoad": "{{road}}",
 
     "customTrip": "自訂行程"
+  },
+  "altitudePage": {
+    "pageTitle": "即時海拔",
+    "subtitle": "透過網頁即可準確測量所在地的海拔和經緯度。",
+    "altitude": "海拔",
+    "latitude": "緯度",
+    "longitude": "經度",
+    "liveAltitude": "即時海拔",
+    "meters": "米"
+  },
+  "altitudeWatermarkModal": {
+    "pageTitle": "海拔水印"
+  },
+  "roadBookPage": {
+    "pageTitle": "自駕路書",
+    "subtitle": "自駕路書是一個專注於自駕旅行場景的線上行程規劃平台。在這裡，你可以輕鬆建立專業級路書，自動測算每日里程與駕駛時長；也可以瀏覽海量真實車主分享的精品路線，獲取沿途美食、住宿和景點的第一手情報。從靈感收集到旅途執行，讓每一次出發都心中有數。",
+    "createRoadBook": "建立自駕路書",
+    "editRoadBook": "編輯自駕路書",
+    "deleteRoadBook": "刪除自駕路書",
+    "deleteRoadBookContent": "您確定要刪除此自駕路書嗎？",
+    "titlePlaceholder": "自駕路書名稱",
+    "descPlaceholder": "自駕路書介紹（選填）",
+    "startDate": "開始日期",
+    "timeline": "每日路書",
+    "addTimeline": "新增一天",
+    "addStartWaypoint": "搜尋並新增這一天的起點",
+    "addNextWaypoint": "搜尋並新增下一個目的地",
+    "deleteTimeline": "刪除此天路書？",
+    "deleteTimelineContent": "您確定要刪除此天路書嗎？",
+    "deleteWaypoint": "刪除此途經點？",
+    "deleteWaypointContent": "您確定要刪除此途經點嗎？",
+    "directionsToThisWaypoint": "前往此途經點的路線",
+    "loadingNavigationData": "正在載入導航資料",
+    "loadNavigationData": "直線距離 {{distance}}，點擊獲取導航",
+    "aboutTime": "約 {{time}}",
+    "addDesc": "新增介紹",
+    "setDays": "設定持續天數",
+    "updateDesc": "更新介紹",
+    "todayDesc": "今日路書介紹",
+    "dataFull": "歷時{{day}}天 · 行駛約{{distance}} · 耗時{{time}} · {{waypoints}}個途徑點",
+    "durationInDays": "共{{days}}天",
+    "allowShare": "允許所有人存取",
+    "allowShareContent": "是否允許所有人存取？",
+    "navigationSettings": "導航設定",
+    "routeOptions": "路線偏好",
+    "travelOptions": "出行方式",
+    "driving-car": "駕車",
+    "driving-hgv": "卡車",
+    "cycling-regular": "騎自行車",
+    "foot-walking": "步行",
+    "cycling-electric": "機車",
+    "highways": "不走高速",
+    "tollways": "少收費路",
+    "ferries": "避開輪渡",
+    "fords": "避開涉水路段",
+    "fastest": "時間優先",
+    "shortest": "距離優先",
+    "recommended": "推薦路線",
+    "days": "第 {{day}} 天",
+    "resetNavigationRoute": "重置導航路線",
+    "renderingTracks": "正在下載導航資料",
+    "tracksRendered": "已下載 {{num}} 條導航資料",
+    "updateWaypointAddress": "編輯途經點名稱"
+  },
+  "searchWaypointModal": {
+    "pageTitle": "搜尋途經點 或 點擊地圖選點"
   },
   "replayTripPage": {
     "title": "回放行程",
@@ -335,7 +401,8 @@
     "trackRouteBaseMap": "歷史軌跡路線底圖",
     "trackRouteColor": "軌跡路線顏色（無速度顏色）",
     "blue": "藍色",
-    "pink": "粉紅色",
+    "pink": "粉色",
+    "green": "绿色",
     "red": "紅色",
     "trackRouteDetailedData": "歷史行程軌跡詳細資料",
     "trackRouteDetailedDataContent": "僅篩選多個行程時可顯示速度顏色、海拔等數據",
@@ -454,6 +521,18 @@
     "clearLine": "清除軌跡",
     "clearLineContent": "即將清除地圖上所有的軌跡，確定清除嗎？",
 
-    "shareContent": "資料分享"
+    "shareContent": "資料分享",
+    "reupdateTripPositions": "已重新上傳 {{num}} 個 GPS 節點",
+    "shortDistanceTrip": "距離過短，需大於 50 公尺才會記錄",
+    "finishTripTip": "已完成本次行程，本地共記錄 {{localNum}} 個 GPS 節點，已成功保存至雲端 {{cloudNum}} 個 GPS 節點",
+
+    "moveUp": "上移",
+    "moveDown": "下移"
+  },
+  "unit": {
+    "km": "公里",
+    "h": "小時",
+    "m": "分鐘",
+    "s": "秒"
   }
 }

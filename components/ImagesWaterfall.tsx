@@ -139,77 +139,81 @@ const ImagesWaterfallComponent = () => {
             }
           ></saki-modal-header>
         </div>
-        {layout.openImagesWaterfallModal.mediaList?.length ? (
-          <saki-scroll-view
-            ref={bindEvent({
-              distancetoborder: (e) => {
-                console.log(e.detail.top > 0)
+        <div className='th-main'>
+          {layout.openImagesWaterfallModal.mediaList?.length ? (
+            <saki-scroll-view
+              ref={bindEvent({
+                distancetoborder: (e) => {
+                  console.log(e.detail.top > 0)
 
-                // if  ((e.detail.top !== 0) !== startScroll) {
-                // 	setStartScroll(e.detail.top !== 0)
-                // }
-              },
-            })}
-            mode="Custom"
-            // scroll-bar="Hidden"
-          >
-            <div className="iw-main">
-              <saki-viewer>
-                <div className="saki-gallery">
-                  <saki-waterfall-layout>
-                    {layout.openImagesWaterfallModal.mediaList.map((v, i) => {
-                      let shortDesc = stripHtmlTags(v?.tlItem?.desc || '')
+                  // if  ((e.detail.top !== 0) !== startScroll) {
+                  // 	setStartScroll(e.detail.top !== 0)
+                  // }
+                },
+              })}
+              mode="Custom"
+              // scroll-bar="Hidden"
+            >
+              <div className="iw-main">
+                <saki-viewer>
+                  <div className="saki-gallery">
+                    <saki-waterfall-layout>
+                      {layout.openImagesWaterfallModal.mediaList.map((v, i) => {
+                        let shortDesc = stripHtmlTags(v?.tlItem?.desc || '')
 
-                      if (shortDesc.length >= 50) {
-                        shortDesc = shortDesc.slice(0, 50) + '...'
-                      }
+                        if (shortDesc.length >= 50) {
+                          shortDesc = shortDesc.slice(0, 50) + '...'
+                        }
 
-                      return (
-                        <saki-waterfall-layout-item
-                          width={v.width}
-                          height={v.height}
-                          // margin="0 5px 5px"
-                          border-radius="10px"
-                          key={i}
-                        >
-                          <a
-                            style={{
-                              width: '100%',
-                            }}
-                            className="im-img"
-                            data-src={getSAaSSImageUrl(v.url || '', 'big')}
-                            data-sub-html={`
-                          <h4>${v.tlItem.name}</h4>
-                          <p>${shortDesc}</p>
-                        `}
+                        return (
+                          <saki-waterfall-layout-item
+                            width={v.width}
+                            height={v.height}
+                            // margin="0 5px 5px"
+                            border-radius="10px"
+                            key={i}
                           >
-                            <img
-                              style={{
-                                display: 'none',
-                              }}
-                              src={getSAaSSImageUrl(v.url || '', 'small')}
-                              alt="Image 1"
-                            />
-                            <SakiImages
+                            <a
                               style={{
                                 width: '100%',
                               }}
-                              border-radius="10px"
-                              width={'100%'}
-                              height={'100%'}
-                              objectFit={'cover'}
-                              src={getSAaSSImageUrl(v?.url || '', 'midOrSmall')}
-                            ></SakiImages>
-                            <div className="im-i-name text-two-elipsis">
-                              {' '}
-                              {v.tlItem.name}
-                            </div>
-                          </a>
-                        </saki-waterfall-layout-item>
-                      )
-                    })}
-                  </saki-waterfall-layout>
-                  {/* {layout.openImagesWaterfallModal.mediaList.map((v, i) => {
+                              className="im-img"
+                              data-src={getSAaSSImageUrl(v.url || '', 'big')}
+                              data-sub-html={`
+                          <h4>${v.tlItem.name}</h4>
+                          <p>${shortDesc}</p>
+                        `}
+                            >
+                              <img
+                                style={{
+                                  display: 'none',
+                                }}
+                                src={getSAaSSImageUrl(v.url || '', 'small')}
+                                alt="Image 1"
+                              />
+                              <SakiImages
+                                style={{
+                                  width: '100%',
+                                }}
+                                border-radius="10px"
+                                width={'100%'}
+                                height={'100%'}
+                                objectFit={'cover'}
+                                src={getSAaSSImageUrl(
+                                  v?.url || '',
+                                  'midOrSmall'
+                                )}
+                              ></SakiImages>
+                              <div className="im-i-name text-two-elipsis">
+                                {' '}
+                                {v.tlItem.name}
+                              </div>
+                            </a>
+                          </saki-waterfall-layout-item>
+                        )
+                      })}
+                    </saki-waterfall-layout>
+                    {/* {layout.openImagesWaterfallModal.mediaList.map((v, i) => {
                   return (
                     <a
                       className="im-img"
@@ -239,13 +243,14 @@ const ImagesWaterfallComponent = () => {
                     </a>
                   )
                 })} */}
-                </div>
-              </saki-viewer>
-            </div>
-          </saki-scroll-view>
-        ) : (
-          ''
-        )}
+                  </div>
+                </saki-viewer>
+              </div>
+            </saki-scroll-view>
+          ) : (
+            ''
+          )}
+        </div>
       </div>
     </saki-modal>
   )

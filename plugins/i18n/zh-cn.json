@@ -137,6 +137,67 @@
 
     "customTrip": "自定义行程"
   },
+  "altitudePage": {
+    "pageTitle": "实时海拔",
+    "subtitle": "通过网页即可以准确测量所在地的海拔和经纬度。"
+  },
+  "altitudeWatermarkModal": {
+    "pageTitle": "海拔水印"
+  },
+  "roadBookPage": {
+    "pageTitle": "自驾路书",
+    "subtitle": "自驾路书是一个专注于自驾旅行场景的在线行程规划平台。在这里，你可以轻松创建专业级路书，自动测算每日里程与驾驶时长；也可以浏览海量真实车主分享的精品路线，获取沿途美食、住宿和景点的第一手情报。从灵感收集到旅途执行，让每一次出发都心中有数。",
+    "createRoadBook": "创建自驾路书",
+    "editRoadBook": "编辑自驾路书",
+    "deleteRoadBook": "删除自驾路书",
+    "deleteRoadBookContent": "您确定要删除自驾路书吗",
+    "titlePlaceholder": "自驾路书名称",
+    "descPlaceholder": "自驾路书介绍 (选填)",
+    "startDate": "开始日期",
+    "timeline": "每日路书",
+    "addTimeline": "添加新的一天",
+    "addStartWaypoint": "搜索添加这一天的起点",
+    "addNextWaypoint": "搜索添加新的目的地",
+    "deleteTimeline": "删除此时间线？",
+    "deleteTimelineContent": "您确定要删除此时间线吗",
+    "deleteWaypoint": "删除此途径点？",
+    "deleteWaypointContent": "您确定要删除此途径点吗",
+    "directionsToThisWaypoint": "前往此途径点的路线",
+    "loadingNavigationData": "正在加载导航",
+    "loadNavigationData": "直线距离{{distance}}，点击获取导航",
+    "aboutTime": "约{{time}}",
+    "addDesc": "添加介绍",
+    "setDays": "设置持续天数",
+    "updateDesc": "更新介绍",
+    "todayDesc": "今日路书介绍",
+    "dataFull": "历经{{day}}天 · 行驶约{{distance}} · 耗时{{time}} · {{waypoints}}个途径点",
+    "durationInDays": "共{{days}}天",
+    "allowShare": "允许所有人访问",
+    "allowShareContent": "是否允许所有人访问？",
+    "navigationSettings": "导航设置",
+    "routeOptions": "路线偏好",
+    "travelOptions": "出行方式",
+    "driving-car": "驾车",
+    "driving-hgv": "卡车",
+    "cycling-regular": "骑行",
+    "foot-walking": "步行",
+    "cycling-electric": "摩托车",
+    "highways": "不走高速",
+    "tollways": "少收费",
+    "ferries": "避开轮渡",
+    "fords": "避开涉水路",
+    "fastest": "时间优先",
+    "shortest": "距离优先",
+    "recommended": "推荐路线",
+    "days": "第{{day}}天",
+    "resetNavigationRoute": "重置导航线路",
+    "renderingTracks": "正在下载导航数据",
+    "tracksRendered": "已下载{{num}}条导航数据",
+    "updateWaypointAddress": "编辑途径点名称"
+  },
+  "searchWaypointModal": {
+    "pageTitle": "搜索途径点 或 点击地图选点"
+  },
   "replayTripPage": {
     "title": "回放行程",
     "cities": "城",
@@ -337,6 +398,7 @@
     "trackRouteColor": "轨迹路线颜色（无速度颜色）",
     "blue": "蓝色",
     "pink": "粉色",
+    "green": "绿色",
     "red": "红色",
     "trackRouteDetailedData": "历史行程轨迹详细数据",
     "trackRouteDetailedDataContent": "仅筛选多个行程时可显示速度颜色、海拔等数据",
@@ -459,6 +521,15 @@
 
     "reupdateTripPositions": "已重新上传{{num}}个GPS节点",
     "shortDistanceTrip": "距离过短, 距离需过50m才会记录",
-    "finishTripTip": "已完成本次行程，程序已记录{{localNum}}个GPS节点，已保存至云端{{cloudNum}}个GPS节点"
+    "finishTripTip": "已完成本次行程，程序已记录{{localNum}}个GPS节点，已保存至云端{{cloudNum}}个GPS节点",
+
+    "moveUp": "上移",
+    "moveDown": "下移"
+  },
+  "unit": {
+    "km": "公里",
+    "h": "时",
+    "m": "分",
+    "s": "秒"
   }
 }

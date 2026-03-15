@@ -163,58 +163,6 @@
   }
 }
 
-.page-transition {
-  background-color: #fff;
-
-  position: absolute;
-  left: 0;
-  top: 50px;
-  width: 100%;
-  height: calc(100% - 52px);
-  transition: opacity 0.3s, transform 0.3s;
-
-  &.avp-disable-animation {
-    transition: none;
-
-    &.avp-enter {
-      opacity: 1;
-      transform: translateX(0%);
-    }
-  }
-
-  &.avp-will-load {
-    transition: none;
-    display: none;
-    opacity: 0;
-    transform: translateX(100%);
-  }
-
-  &.avp-enter {
-    opacity: 0;
-    transform: translateX(100%);
-  }
-
-  &.avp-leave,
-  &.avp-enter-active {
-    opacity: 1;
-    transform: translateX(0%);
-  }
-
-  &.avp-leave-active {
-    opacity: 0;
-    transform: translateX(100%);
-  }
-
-  &.avp-leave-done {
-    display: none;
-  }
-
-  // &.avp-enter-done {
-  //   opacity: 1;
-  //   transform: translateX(0%);
-  // }
-}
-
 .jm-detail-page {
   width: 100%;
   height: 100%;

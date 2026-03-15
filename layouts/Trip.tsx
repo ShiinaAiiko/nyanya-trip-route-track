@@ -59,6 +59,10 @@ import { SakiI18n } from '../components/saki-ui-react/components'
 import { ReactNativeWebJSBridge } from '../plugins/reactNativeWebJsBridge'
 import { loadModal } from '../store/layout'
 import { sakisso } from '../config'
+import {
+  networkConnectionStatusDetection,
+  networkConnectionStatusDetectionEnum,
+} from '@nyanyajs/utils/dist/common/common'
 
 // import { testGpsData } from '../plugins/methods'
 // import parserFunc from 'ua-parser-js'
@@ -252,9 +256,12 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
     const initConnectionOSM = async () => {
       try {
         console.time('initConnectionOSM')
+
         dispatch(
           configSlice.actions.setConnectionOSM(
-            (await fetch('https://tile.openstreetmap.org')).status === 200
+            (await networkConnectionStatusDetection(
+              networkConnectionStatusDetectionEnum.openStreetMap
+            ))
               ? 1
               : -1
           )
@@ -276,7 +283,7 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
           'https://tools.aiiko.club/api/v1/ip/details?ip=&language=en-US'
         )
 
-        // console.log('dddddd initCountry', res)
+        console.log('dddddd initCountry', res)
         if (res?.data?.code === 200 && res?.data?.data?.country) {
           // dispatch(configSlice.actions.setCountry('Argentina'))
           dispatch(configSlice.actions.setCountry(res.data.data.country))

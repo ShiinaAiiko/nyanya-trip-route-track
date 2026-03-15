@@ -28,6 +28,8 @@ export type ModalType =
   | 'WeatherApp'
   | 'PrivacyGeofence'
   | 'SelectFilesModal'
+  | 'AltitudeWatermarkModal'
+  | 'CamerakModal'
 
 export interface IWMediaItem
   extends protoRoot.journeyMemory.IJourneyMemoryMediaItem {
@@ -128,6 +130,19 @@ export const layoutSlice = createSlice({
       visible: false,
       maxLength: 0,
       selectedFiles: [] as string[],
+    },
+    openAltitudeWatermarkModal: {
+      visible: false,
+      selectFile: null as File | null,
+      position: {
+        altitude: 0,
+        latitude: 0,
+        longitude: 0,
+      } as {
+        altitude: number
+        latitude: number
+        longitude: number
+      } | null,
     },
   },
   reducers: {
@@ -462,6 +477,23 @@ export const layoutSlice = createSlice({
       }
     ) => {
       state.openHistoricalTripsDetailedDataModal = params.payload
+    },
+    setOpenAltitudeWatermarkModal: (
+      state,
+      params: {
+        payload: {
+          visible: boolean
+          selectFile?: (typeof state)['openAltitudeWatermarkModal']['selectFile']
+          position?: (typeof state)['openAltitudeWatermarkModal']['position']
+        }
+        type: string
+      }
+    ) => {
+      state.openAltitudeWatermarkModal.visible = params.payload.visible
+      state.openAltitudeWatermarkModal.selectFile =
+        params.payload.selectFile || null
+      state.openAltitudeWatermarkModal.position =
+        params.payload.position || null
     },
   },
 })

@@ -2139,8 +2139,8 @@ export const JourneyMemoriesItemPage = ({
         config.lang === 'zh-CN'
           ? 'zhHans'
           : config.lang === 'zh-TW'
-          ? 'zhHant'
-          : 'en'
+            ? 'zhHant'
+            : 'en'
 
       const priority = {
         motorway: 1, // 高速（最高优先级）
@@ -2215,12 +2215,12 @@ export const JourneyMemoriesItemPage = ({
                         sssv.code.includes('G')
                           ? 'GRoad'
                           : sssv.code.includes('S')
-                          ? 'SRoad'
-                          : sssv.code.includes('X')
-                          ? 'XRoad'
-                          : sssv.code.includes('Y')
-                          ? 'YRoad'
-                          : 'ORoad',
+                            ? 'SRoad'
+                            : sssv.code.includes('X')
+                              ? 'XRoad'
+                              : sssv.code.includes('Y')
+                                ? 'YRoad'
+                                : 'ORoad',
                         { ns: 'tripPage', road: sssv.code }
                       )
                     : sssv.code
@@ -2236,12 +2236,12 @@ export const JourneyMemoriesItemPage = ({
                         ? sssv.code.includes('G')
                           ? 'trunk'
                           : sssv.code.includes('S')
-                          ? 'primary'
-                          : sssv.code.includes('X')
-                          ? 'secondary'
-                          : sssv.code.includes('Y')
-                          ? 'tertiary'
-                          : sssv.type || ''
+                            ? 'primary'
+                            : sssv.code.includes('X')
+                              ? 'secondary'
+                              : sssv.code.includes('Y')
+                                ? 'tertiary'
+                                : sssv.type || ''
                         : sssv.type || '',
                       name,
                     })
@@ -2458,7 +2458,12 @@ ${
         mode="Custom"
         // scroll-bar='Hidden'
       >
-        <div className="jmd-media">
+        <div
+          style={{
+            display: jmId ? 'block' : 'none',
+          }}
+          className="jmd-media"
+        >
           {jmId ? (
             <>
               <div className="jmd-map">

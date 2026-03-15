@@ -136,6 +136,72 @@
 
     "customTrip": "Custom Trip"
   },
+  "altitudePage": {
+    "pageTitle": "Real-time Altitude",
+    "subtitle": "Accurately measure the altitude, latitude, and longitude of your current location directly from the webpage.",
+    "altitude": "Altitude",
+    "latitude": "Latitude",
+    "longitude": "Longitude",
+    "liveAltitude": "Real-time Altitude",
+    "meters": "m"
+  },
+  "altitudeWatermarkModal": {
+    "pageTitle": "Altitude Watermark"
+  },
+  "roadBookPage": {
+    "pageTitle": "Road Book",
+    "subtitle": "Road Book is an online trip planning platform focused on self-driving travel. Here, you can easily create professional-grade road books with automatic calculation of daily mileage and driving time. You can also browse a vast collection of high-quality routes shared by real car owners and get first-hand information on food, accommodation, and attractions along the way. From inspiration gathering to trip execution, every departure comes with peace of mind.",
+    "createRoadBook": "Create Road Book",
+    "editRoadBook": "Edit Road Book",
+    "deleteRoadBook": "Delete Road Book",
+    "deleteRoadBookContent": "Are you sure you want to delete this road book?",
+    "titlePlaceholder": "Road Book Title",
+    "descPlaceholder": "Road Book Description (Optional)",
+    "startDate": "Start Date",
+    "timeline": "Daily Itinerary",
+    "addTimeline": "Add New Day",
+    "addStartWaypoint": "Search and add the starting point for this day",
+    "addNextWaypoint": "Search and add next destination",
+    "deleteTimeline": "Delete this day?",
+    "deleteTimelineContent": "Are you sure you want to delete this day's itinerary?",
+    "deleteWaypoint": "Delete this waypoint?",
+    "deleteWaypointContent": "Are you sure you want to delete this waypoint?",
+    "directionsToThisWaypoint": "Route to this waypoint",
+    "loadingNavigationData": "Loading navigation data",
+    "loadNavigationData": "Straight-line distance {{distance}}, click to get navigation",
+    "aboutTime": "About {{time}}",
+    "addDesc": "Add Description",
+    "setDays": "Set Duration (Days)",
+    "updateDesc": "Update Description",
+    "todayDesc": "Today's Itinerary Description",
+    "dataFull": "Duration: {{day}} days · Approx. {{distance}} · Driving time: {{time}} · {{waypoints}} waypoints",
+    "durationInDays": "Total: {{days}} days",
+    "allowShare": "Allow Public Access",
+    "allowShareContent": "Allow everyone to access this road book?",
+    "navigationSettings": "Navigation Settings",
+    "routeOptions": "Route Preferences",
+    "travelOptions": "Travel Mode",
+    "driving-car": "Car",
+    "driving-hgv": "Truck",
+    "cycling-regular": "Bicycle",
+    "foot-walking": "Walking",
+    "cycling-electric": "Motorcycle",
+    "highways": "Avoid Highways",
+    "tollways": "Avoid Tolls",
+    "ferries": "Avoid Ferries",
+    "fords": "Avoid Fords",
+    "fastest": "Fastest",
+    "shortest": "Shortest",
+    "recommended": "Recommended",
+    "days": "Day {{day}}",
+    "resetNavigationRoute": "Reset Navigation Route",
+    "renderingTracks": "Downloading navigation data",
+    "tracksRendered": "{{num}} navigation routes downloaded",
+    "updateWaypointAddress": "Edit Waypoint Name"
+  },
+  "searchWaypointModal": {
+    "pageTitle": "Search Waypoint or Click on Map"
+  },
   "replayTripPage": {
     "title": "Replay Trip",
     "cities": " Cities",
@@ -336,6 +402,7 @@
     "trackRouteColor": "Track route color (no speed color)",
     "blue": "Blue",
     "pink": "Pink",
+    "green": "Green",
     "red": "Red",
     "trackRouteDetailedData": "Historical Track Route Detail Data",
     "trackRouteDetailedDataContent": "Only when filtering multiple itineraries, data such as speed, color, altitude, etc. can be displayed.",
@@ -454,6 +521,19 @@
     "clearLine": "Clear track",
     "clearLineContent": "All tracks on the map will be cleared. Are you sure you want to clear them?",
 
-    "shareContent": "Data sharing"
+    "shareContent": "Data sharing",
+
+    "reupdateTripPositions": "Successfully re-uploaded {{num}} GPS points",
+    "shortDistanceTrip": "Distance too short. Recording requires more than 50 meters.",
+    "finishTripTip": "Trip completed. {{localNum}} GPS points recorded locally, {{cloudNum}} points saved to cloud.",
+
+    "moveUp": "Move Up",
+    "moveDown": "Move Down"
+  },
+  "unit": {
+    "km": "km",
+    "h": "h",
+    "m": "min",
+    "s": "s"
   }
 }

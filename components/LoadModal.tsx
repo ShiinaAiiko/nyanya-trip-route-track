@@ -24,6 +24,7 @@ import MapLayerModal from './MapLayer'
 import WeatherAppModal from './WeatherApp'
 import PrivacyGeofenceModal from './PrivacyGeofence'
 import SelectFilesModal from './SelectFilesModal'
+import { AltitudeWatermarkModal } from './AltitudeWatermarkModal'
 
 const d = new Debounce()
 
@@ -281,6 +282,13 @@ export const LoadModalsComponent = () => {
         ns: 'selectFilesModal',
       }),
       component: <SelectFilesModal />,
+    },
+    {
+      type: 'AltitudeWatermarkModal',
+      name: t('pageTitle', {
+        ns: 'altitudeWatermarkModal',
+      }),
+      component: <AltitudeWatermarkModal />,
     },
   ]
 

@@ -274,10 +274,10 @@ const VehiclePage = () => {
             state.pageType === 'AddVehicle'
               ? t('addVehicle')
               : state.pageType === 'EditVehicle'
-              ? t('editVehicle')
-              : state.pageType === 'AddTripHere'
-              ? t('addTripHere')
-              : t('pageTitle')
+                ? t('editVehicle')
+                : state.pageType === 'AddTripHere'
+                  ? t('addTripHere')
+                  : t('pageTitle')
           }
         >
           <div

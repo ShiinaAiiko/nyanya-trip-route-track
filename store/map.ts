@@ -38,7 +38,7 @@ export const clearLayer = ({
   type,
 }: {
   map: Leaflet.Map
-  type: ('Polyline' | 'CityName')[]
+  type: ('Polyline' | 'CityName' | 'Waypoint')[]
 }) => {
   const L: typeof Leaflet = (window as any).L
 
@@ -69,21 +69,32 @@ export const clearLayer = ({
 
         // map.removeLayer(layer)
 
-        console.log('clearLayer Polyline', layer)
+        // console.log('clearLayer Polyline', layer)
         removeLayer(map, layer)
       }
     }
     if (type.includes('CityName')) {
-      console.log(
-        'CityName',
-        (layer as any)?._icon?.classList.contains('map-city-marker')
-      )
+      // console.log(
+      //   'CityName',
+      //   type,
+      //   (layer as any)?._icon?.classList.contains('map-city-marker')
+      // )
       if ((layer as any)?._icon?.classList?.contains?.('map-city-marker')) {
         // const cityId = layer.getPopup()?.getContent()?.toString() || ""
 
         // map.removeLayer(layer)
 
         // console.log("clearLayer Polyline", layer)
+        removeLayer(map, layer)
+      }
+    }
+    if (type.includes('Waypoint')) {
+      // console.log(
+      //   'CityName Waypoint',
+      //   type,
+      //   (layer as any)?._icon?.classList?.contains?.('waypoint-map-marker')
+      // )
+      if ((layer as any)?._icon?.classList?.contains?.('waypoint-map-marker')) {
         removeLayer(map, layer)
       }
     }
@@ -160,6 +171,8 @@ export const renderPolyline = async ({
   speedRange,
   altitudeRange,
   privacyGeofence = false,
+  allowZoom = true,
+  allowSetView = true,
 }: {
   map: Leaflet.Map
   trips: protoRoot.trip.ITripPositions[]
@@ -174,35 +187,9 @@ export const renderPolyline = async ({
   speedRange?: protoRoot.configure.Configure.Filter.FilterItem.IRangeItem
   altitudeRange?: protoRoot.configure.Configure.Filter.FilterItem.IRangeItem
   privacyGeofence?: boolean
+  allowZoom?: boolean
+  allowSetView?: boolean
 }) => {
-  // setTimeout(() => {
-  //   const { trip } = store.getState()
-
-  //   const L: typeof Leaflet = (window as any).L
-
-  //   const mapUrl = (map as any)?.mapUrl || ''
-  //   const polygon = L.polygon(
-  //     trip.privacyGeofencePointsPolygon.map((v) => {
-  //       return v.map((sv) => {
-  //         return getLatLng(mapUrl, Number(sv[0]), Number(sv[1]))
-  //       })
-  //     }) as any,
-  //     {
-  //       color: 'rgb(230,110,70)', // 边框颜色
-  //       fillOpacity: 0.3, // 填充透明度
-  //     }
-  //   ).addTo(map)
-  //   console.log(
-  //     'trip.privacyGeofencePointsPolygon',
-  //     trip.privacyGeofencePointsPolygon.map((v) => {
-  //       return v.map((sv) => {
-  //         return getLatLng(mapUrl, Number(sv[0]), Number(sv[1]))
-  //       })
-  //     }),
-  //     polygon
-  //   )
-  // }, 1000)
-
   let loadBaseData: ReturnType<typeof snackbar> | undefined
   if (alert) {
     loadBaseData = snackbar({
@@ -295,30 +282,32 @@ export const renderPolyline = async ({
       lat: (minLat + maxLat) / 2,
       lon: (minLon + maxLon) / 2,
     }
-    zoom = map.getZoom() || getZoom(minLat, minLon, maxLat, maxLon)
-    map.setView(
-      [tempLatLon.lat, tempLatLon.lon],
-      // [
-      //   120.3814, -1.09],
-      zoom
-    )
+    zoom = getZoom(minLat, minLon, maxLat, maxLon)
+    if (!allowZoom) {
+      zoom = map.getZoom()
+    }
+    allowSetView &&
+      map.setView(
+        [tempLatLon.lat, tempLatLon.lon],
+        // [
+        //   120.3814, -1.09],
+        zoom
+      )
   }
 
   showTripTrackRoute && (await renderPolylineAQ.wait.waiting())
 
   // trips.forEach((v) => {})
 
-  loadBaseData?.setMessage(
-    i18n.t('renderingCity', {
-      ns: 'prompt',
-    })
-  )
-
   let cityIds: string[] = []
 
-  // console.log('mapLayer?.cityName', showCityName)
-
   if (showCityName || showCityBoundariesType !== '') {
+    loadBaseData?.setMessage(
+      i18n.t('renderingCity', {
+        ns: 'prompt',
+      })
+    )
+
     let tripIds = trips.map((v) => v.id || '')
     const cities = await store
       .dispatch(
@@ -391,7 +380,6 @@ export const renderPolyline = async ({
       })
     }
   }
-
   loadBaseData?.close()
 }
 
@@ -661,12 +649,12 @@ export const renderPolylineItem = async ({
       : positions
   // tempPositions = positions
 
-  console.log(
-    'isPointInPolygon:',
-    tempPositions.length,
-    positions.length,
-    trip.privacyGeofencePointsPolygon?.length
-  )
+  // console.log(
+  //   'isPointInPolygon:',
+  //   tempPositions.length,
+  //   positions.length,
+  //   trip.privacyGeofencePointsPolygon?.length
+  // )
 
   tempPositions =
     params.filterAccuracy === 'NoFilter' || isSpeedRange || isAltitudeRange
@@ -677,12 +665,12 @@ export const renderPolylineItem = async ({
           minTimeInterval: 5000,
           minPointsInterval: 15,
         })
-  console.log(
-    'isPointInPolygon:',
-    tempPositions.length,
-    positions.length,
-    trip.privacyGeofencePointsPolygon?.length
-  )
+  // console.log(
+  //   'isPointInPolygon:',
+  //   tempPositions.length,
+  //   positions.length,
+  //   trip.privacyGeofencePointsPolygon?.length
+  // )
 
   // : await simplifyWithSpeed(params.tripId, positions, tolerance, speedThreshold)
 

@@ -2,6 +2,7 @@ package controllersV1
 
 import (
 	"strings"
+	"time"
 
 	conf "github.com/ShiinaAiiko/nyanya-trip-route-track/server/config"
 	"github.com/ShiinaAiiko/nyanya-trip-route-track/server/protos"
@@ -93,11 +94,12 @@ func (fc *FileController) GetUploadToken(c *gin.Context) {
 		// Path: "/trip/files/" + time.Now().Format("2006/01/02") + "/",
 		// FileName: strings.ToLower(cipher.MD5(
 		// 	data.FileInfo.Hash+nstrings.ToString(data.FileInfo.Size)+nstrings.ToString(time.Now().Unix()))) + data.FileInfo.Suffix,
-		Path:           "/trip/files/",
-		FileName:       fileName,
-		ChunkSize:      chunkSize,
-		VisitCount:     -1,
-		ExpirationTime: -1,
+		Path:             "/trip/files/",
+		FileName:         fileName,
+		ChunkSize:        chunkSize,
+		VisitCount:       -1,
+		ExpirationTime:   time.Now().AddDate(0, 0, 180).Unix(),
+		AutoExtendPeriod: 60 * 60 * 24 * 180,
 		// Type:           "File",
 		FileConflict: "Replace",
 

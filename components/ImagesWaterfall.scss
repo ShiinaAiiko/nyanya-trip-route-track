@@ -1,6 +1,14 @@
 .images-waterfall-component {
   width: 100%;
   height: 100%;
+  // display: flex;
+  // flex-direction: column;
+  // justify-content: space-between;
+
+  .th-main {
+    width: 100%;
+    height: calc(100% - 56px);
+  }
   .iw-main {
     width: 100%;
     max-width: 1200px;
@@ -18,7 +26,11 @@
           color: #fff;
           padding: 20px 6px 6px;
           font-size: 14px;
-          background: linear-gradient(0deg, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0));
+          background: linear-gradient(
+            0deg,
+            rgba(0, 0, 0, 0.3),
+            rgba(0, 0, 0, 0)
+          );
           @media (max-width: 767px) {
             font-size: 12px;
           }

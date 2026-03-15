@@ -35,7 +35,12 @@ import Chart from 'chart.js/auto'
 import { deepCopy } from '@nyanyajs/utils'
 import StatisticsComponent from './Statistics'
 import FilterComponent from './Filter'
-import { getTrips, reupdateTripPositions } from '../store/trip'
+import {
+  formartAddrName,
+  getTrips,
+  reupdateTripPositions,
+  tripMethods,
+} from '../store/trip'
 import { deviceType, eventListener, TabsTripType } from '../store/config'
 import { uploadFile } from '../store/file'
 // import { isCorrectedData } from '../store/trip'
@@ -156,15 +161,15 @@ const TripHistoryComponent = () => {
         config.deviceType === 'Mobile'
           ? '100%'
           : enlarge && !closeIcon
-          ? '100%'
-          : '780px'
+            ? '100%'
+            : '780px'
       }
       max-height={
         config.deviceType === 'Mobile'
           ? '100%'
           : enlarge && !closeIcon
-          ? '100%'
-          : '780px'
+            ? '100%'
+            : '780px'
       }
       mask
       border-radius={config.deviceType === 'Mobile' ? '0px' : ''}
@@ -232,22 +237,22 @@ const TripHistoryComponent = () => {
                       ns: 'tripPage',
                     })}]`
                   : !trip.detailPage.trip?.authorId
-                  ? t('loadingData', {
-                      ns: 'prompt',
-                    })
-                  : trip.detailPage.trip?.status === 1
-                  ? t((trip.detailPage.trip?.type || '')?.toLowerCase(), {
-                      ns: 'tripPage',
-                    }) +
-                    ' · ' +
-                    Math.round(
-                      (trip.detailPage.trip?.statistics?.distance || 0) / 10
-                    ) /
-                      100 +
-                    'km'
-                  : t('unfinished', {
-                      ns: 'tripPage',
-                    })
+                    ? t('loadingData', {
+                        ns: 'prompt',
+                      })
+                    : trip.detailPage.trip?.status === 1
+                      ? t((trip.detailPage.trip?.type || '')?.toLowerCase(), {
+                          ns: 'tripPage',
+                        }) +
+                        ' · ' +
+                        Math.round(
+                          (trip.detailPage.trip?.statistics?.distance || 0) / 10
+                        ) /
+                          100 +
+                        'km'
+                      : t('unfinished', {
+                          ns: 'tripPage',
+                        })
                 : t('pageTitle')
             }
           >
@@ -509,7 +514,7 @@ const TripHistoryPage = ({
           ).unwrap()
         }
 
-        loadNewData()
+        // loadNewData()
       }
 
       init()
@@ -528,8 +533,7 @@ const TripHistoryPage = ({
   }
 
   const loadNewData = () => {
-    // console.log('loadNewData', loadNewData)
-    setTrips([])
+    // console.trace('getTripHistory loadNewData')
     setPageNum(1)
     setLoadStatus('loaded')
   }
@@ -553,18 +557,39 @@ const TripHistoryPage = ({
   useEffect(() => {
     const init = async () => {
       // console.log(
-      // 	'openTripHistoryModal loadNewData',
-      // 	user.isLogin,
-      // 	layout.openTripHistoryModal,
-      // 	layout.openTripItemModal?.visible,
-      // 	layout.openTripHistoryModal && !layout.openTripItemModal?.visible
+      //   'getTripStatistics loadNewData',
+      //   trip.tripStatistics,
+      //   user.isLogin,
+      //   layout.openTripHistoryModal,
+      //   layout.openTripItemModal?.visible,
+      //   layout.openTripHistoryModal && !layout.openTripItemModal?.visible
       // )
       if (
         layout.openTripHistoryModal &&
-        tripStatistics.length &&
+        trip.tripStatistics.length &&
+        tripStatistics.length
+      ) {
+        if (user.isLogin && isLoadLocal) {
+          await getTripStatistics()
+        }
+      }
+    }
+    init()
+  }, [
+    tripStatistics.length,
+    trip.tripStatistics.length,
+    isLoadLocal,
+    type,
+    time,
+  ])
+
+  useEffect(() => {
+    const init = async () => {
+      console.log('getTripHistory init ', pageNum, trips)
+      if (
+        layout.openTripHistoryModal &&
         pageNum === 1 &&
-        loadStatus === 'loaded' &&
-        trips.length === 0
+        loadStatus === 'loaded'
       ) {
         if (layout.tripHistoryType === 'Local') {
           await getLocalTrips()
@@ -572,12 +597,12 @@ const TripHistoryPage = ({
         }
         if (user.isLogin && isLoadLocal) {
           await getTripHistory()
-          await getTripStatistics()
         }
       }
     }
     init()
-  }, [pageNum, loadStatus, trips, tripStatistics.length, isLoadLocal])
+  }, [pageNum, loadStatus, isLoadLocal])
+
   useEffect(() => {
     const init = async () => {
       dispatch(layoutSlice.actions.setTripHistoryType(type))
@@ -592,7 +617,7 @@ const TripHistoryPage = ({
 
   useEffect(() => {
     // mergeTripStatistics()
-    console.log('listlist', tripStatistics)
+    console.log('outSpeedLineChart tripStatistics', tripStatistics)
     outSpeedLineChart()
   }, [tripStatistics])
 
@@ -621,7 +646,7 @@ const TripHistoryPage = ({
       res,
       res?.data?.statistics,
       type,
-      trip.tripStatistics.filter((v) => v.type === type)?.[0]?.list || []
+      trip.tripStatistics
     )
     if (res.code === 200 && res?.data?.statistics?.count) {
       // console.log('getTripsCloud', trips)
@@ -666,7 +691,7 @@ const TripHistoryPage = ({
           return v.type === type
         })?.[0]?.list || []
 
-      console.log('listlist', time, list, tripStatistics)
+      console.log('outSpeedLineChart', time, list, tripStatistics)
       const tripData: {
         [key: string]: number
       } = {}
@@ -909,8 +934,6 @@ const TripHistoryPage = ({
     })
     console.log('getTripHistory', res, pageNum)
     if (res.code === 200) {
-      setLoadStatus(Number(res.data.total) === pageSize ? 'loaded' : 'noMore')
-
       let promiseAll: any[] = []
       res.data.list?.forEach((v, i) => {
         promiseAll.push(
@@ -921,10 +944,46 @@ const TripHistoryPage = ({
         )
       })
 
-      Promise.all(promiseAll).then(() => {
-        res.data.list && setTrips(trips.concat(res.data.list))
+      Promise.all(promiseAll).then(async () => {
+        if (res.data.list?.length) {
+          const list = (pageNum === 1 ? [] : trips).concat(res.data.list)
+          setTrips(list)
+
+          let isGetAddr = false
+          list.some((v) => {
+            // console.log('GetTripAddresses start', list, v.addresses?.length)
+            if (!v.addresses?.length) {
+              isGetAddr = true
+              return true
+            }
+          })
+
+          console.log('GetTripAddresses start', isGetAddr, list)
+          if (isGetAddr) {
+            // 没有address才获取，并且只获取以此
+            const addresse = await dispatch(
+              tripMethods.GetTripAddresses({
+                trips: list,
+              })
+            ).unwrap()
+
+            console.log('GetTripAddresses addresse', addresse)
+            setTrips(
+              list.map((v) => {
+                return {
+                  ...v,
+                  addresses:
+                    addresse?.filter((sv) => v.id === sv.id)?.[0]?.addresses ||
+                    v.addresses,
+                }
+              })
+            )
+          }
+        }
 
         setPageNum(pageNum + 1)
+
+        setLoadStatus(Number(res.data.total) === pageSize ? 'loaded' : 'noMore')
       })
 
       // res.data.list && setTripId(res.data.list[0]?.id || '')
@@ -1251,6 +1310,7 @@ const TripHistoryPage = ({
                             })}
                             padding="8px 10px"
                             type="Primary"
+                            loading={trip.tripStatistics?.length === 0}
                           >
                             {t('statistics', {
                               ns: 'tripPage',
@@ -1659,6 +1719,9 @@ export const TripListItemComponent = ({
 
   const dispatch = useDispatch<AppDispatch>()
 
+  const startAddr = trip?.addresses?.[0]
+  const endAddr = trip?.addresses?.[trip?.addresses.length - 1]
+
   return (
     <div
       ref={(e) => {
@@ -1724,17 +1787,18 @@ export const TripListItemComponent = ({
       }}
       className={'trip-list-item-component ' + config.deviceType}
     >
-      <div className="th-l-i-left">
-        <div className="th-l-i-l-title">
-          <span>
-            {t((trip.type || '')?.toLowerCase(), {
-              ns: 'tripPage',
-            })}
-            {' · '}
-            {formatDistance(trip.statistics?.distance || 0)}
-          </span>
+      <div className={'th-l-i-top ' + config.deviceType}>
+        <div className="th-l-i-left">
+          <div className="th-l-i-l-title">
+            <span>
+              {t((trip.type || '')?.toLowerCase(), {
+                ns: 'tripPage',
+              })}
+              {' · '}
+              {formatDistance(trip.statistics?.distance || 0)}
+            </span>
 
-          {/* {isResumeTrip(trip) ? (
+            {/* {isResumeTrip(trip) ? (
             <div className="th-l-i-l-t-local">
               {t('resumeTrip', {
                 ns: 'tripPage',
@@ -1743,118 +1807,142 @@ export const TripListItemComponent = ({
           ) : (
             ''
           )} */}
-          {trip.permissions?.customTrip ? (
-            <div className="th-l-i-l-t-customTrip">
-              {t('customTrip', {
-                ns: 'tripPage',
-              })}
-            </div>
-          ) : (
-            ''
-          )}
-          {(trip.id || '').indexOf('IDB_') >= 0 ? (
-            <div className="th-l-i-l-t-local">
-              {t('local', {
-                ns: 'tripPage',
-              })}
-            </div>
-          ) : (
-            ''
-          )}
-          {/* 
+            {trip.permissions?.customTrip ? (
+              <div className="th-l-i-l-t-customTrip">
+                {t('customTrip', {
+                  ns: 'tripPage',
+                })}
+              </div>
+            ) : (
+              ''
+            )}
+            {(trip.id || '').indexOf('IDB_') >= 0 ? (
+              <div className="th-l-i-l-t-local">
+                {t('local', {
+                  ns: 'tripPage',
+                })}
+              </div>
+            ) : (
+              ''
+            )}
+            {/* 
       {v.correctedData === 1 ? (
       ) : (
         ''
       )} */}
 
-          <span
-            style={{
-              display: 'none',
-            }}
-            className="ti-d-tip"
-          >
-            {t('tripDataCanBeCorrected', {
-              ns: 'tripPage',
-            })}
-          </span>
-        </div>
-        <div className="th-l-i-l-info">
-          <span className="info-item">
-            {t('duration', {
-              ns: 'tripPage',
-            })}{' '}
-            {Number(trip.endTime || 0) > 0
-              ? formatTime(Number(trip.startTime), Number(trip.endTime))
-              : t('unfinished', {
-                  ns: 'tripPage',
-                })}
-          </span>
-          {/* <div className='info-item'>配速 10'05</div> */}
+            <span
+              style={{
+                display: 'none',
+              }}
+              className="ti-d-tip"
+            >
+              {t('tripDataCanBeCorrected', {
+                ns: 'tripPage',
+              })}
+            </span>
+          </div>
+          <div className="th-l-i-l-info">
+            <span className="info-item">
+              {t('duration', {
+                ns: 'tripPage',
+              })}{' '}
+              {Number(trip.endTime || 0) > 0
+                ? formatTime(Number(trip.startTime), Number(trip.endTime))
+                : t('unfinished', {
+                    ns: 'tripPage',
+                  })}
+            </span>
+            {/* <div className='info-item'>配速 10'05</div> */}
 
-          {
-            type === 'Walking' ||
-            type === 'PowerWalking' ||
-            type === 'Running' ? (
+            {
+              type === 'Walking' ||
+              type === 'PowerWalking' ||
+              type === 'Running' ? (
+                <span className="info-item">
+                  {t('averagePace', {
+                    ns: 'tripPage',
+                  })}{' '}
+                  {formatAvgPace(
+                    trip.statistics?.distance || 0,
+                    Number(trip.startTime) || 0,
+                    Number(trip.endTime) || 0
+                  )}
+                </span>
+              ) : (
+                <span className="info-item">
+                  {t(
+                    config.deviceType === 'Mobile'
+                      ? 'avgSpeed'
+                      : 'averageSpeed',
+                    {
+                      ns: 'tripPage',
+                    }
+                  )}{' '}
+                  {(trip?.statistics?.averageSpeed || 0) <= 0
+                    ? 0
+                    : Math.round(
+                        ((trip?.statistics?.averageSpeed || 0) * 3600) / 100
+                      ) / 10}{' '}
+                  km/h
+                </span>
+              )
+              // config.deviceType !== 'Mobile' ? (
+              // <div className='info-item'>
+              // 	{t('averageSpeed', {
+              // 		ns: 'tripPage',
+              // 	})}{' '}
+              // 	{(v?.statistics?.maxSpeed || 0) <= 0
+              // 		? 0
+              // 		: Math.round(
+              // 				((v?.statistics?.maxSpeed || 0) * 3600) / 100
+              // 		  ) / 10}{' '}
+              // 	km/h
+              // </div>
+              // ) : (
+              // 	''
+              // )
+            }
+
+            {config.deviceType !== 'Mobile' ? (
               <span className="info-item">
-                {t('averagePace', {
+                {t('maxSpeed', {
                   ns: 'tripPage',
                 })}{' '}
-                {formatAvgPace(
-                  trip.statistics?.distance || 0,
-                  Number(trip.startTime) || 0,
-                  Number(trip.endTime) || 0
-                )}
-              </span>
-            ) : (
-              <span className="info-item">
-                {t(
-                  config.deviceType === 'Mobile' ? 'avgSpeed' : 'averageSpeed',
-                  {
-                    ns: 'tripPage',
-                  }
-                )}{' '}
-                {(trip?.statistics?.averageSpeed || 0) <= 0
+                {(trip?.statistics?.maxSpeed || 0) <= 0
                   ? 0
                   : Math.round(
-                      ((trip?.statistics?.averageSpeed || 0) * 3600) / 100
+                      ((trip?.statistics?.maxSpeed || 0) * 3600) / 100
                     ) / 10}{' '}
                 km/h
               </span>
-            )
-            // config.deviceType !== 'Mobile' ? (
-            // <div className='info-item'>
-            // 	{t('averageSpeed', {
-            // 		ns: 'tripPage',
-            // 	})}{' '}
-            // 	{(v?.statistics?.maxSpeed || 0) <= 0
-            // 		? 0
-            // 		: Math.round(
-            // 				((v?.statistics?.maxSpeed || 0) * 3600) / 100
-            // 		  ) / 10}{' '}
-            // 	km/h
-            // </div>
-            // ) : (
-            // 	''
-            // )
-          }
+            ) : (
+              ''
+            )}
 
-          {config.deviceType !== 'Mobile' ? (
-            <span className="info-item">
-              {t('maxSpeed', {
-                ns: 'tripPage',
-              })}{' '}
-              {(trip?.statistics?.maxSpeed || 0) <= 0
-                ? 0
-                : Math.round(((trip?.statistics?.maxSpeed || 0) * 3600) / 100) /
-                  10}{' '}
-              km/h
-            </span>
-          ) : (
-            ''
-          )}
-
-          {/* <div className='info-item'>平均时速 10'05</div> */}
+            {/* <div className='info-item'>平均时速 10'05</div> */}
+          </div>
         </div>
+        {trip?.addresses?.length ? (
+          <>
+            <div className="th-l-i-center">
+              <div className="th-l-i-c-startaddr">
+                <div className="addr-icon"></div>
+                <div className="addr-name text-two-elipsis">
+                  {formartAddrName(startAddr)}
+                </div>
+              </div>
+              <div className="th-l-i-c-endaddr">
+                <div className="addr-icon"></div>
+                <div className="addr-name text-two-elipsis">
+                  {formartAddrName(endAddr)}
+                </div>
+              </div>
+            </div>
+          </>
+        ) : (
+          ''
+        )}
       </div>
       <div className="th-l-i-right">
         <div className="th-l-i-r-date">

@@ -461,6 +461,80 @@ export const createMyPositionMarker = (
   )
 }
 
+export const createWaypointMarker = ({
+  map,
+  lat,
+  lng,
+  title,
+  subtitle,
+  type,
+  alwaysShowTooltip,
+  tooltipText,
+  color,
+}: {
+  map: Leaflet.Map
+  lat: number
+  lng: number
+  title: string
+  subtitle: string
+  type: 'Day' | 'Waypoint'
+  alwaysShowTooltip: boolean
+  tooltipText: string
+  color: 'Pink' | 'Blue' | 'Red'
+}) => {
+  const { user, config } = store.getState()
+  const L: typeof Leaflet = (window as any).L
+
+  // console.log('createWaypointMarker', lat, lng, text)
+
+  if (!lat || !lng) return
+  const marker = L.marker([lat, lng], {
+    icon: L.divIcon({
+      html: `<div class='waypoint-map-marker-main'>
+     <svg viewBox="0 0 24 32" xmlns="http://www.w3.org/2000/svg">
+  <path d="M12 0C5.37 0 0 5.37 0 12c0 3.18 1.32 6.06 3.45 8.1L12 32l8.55-11.9C22.68 18.06 24 15.18 24 12c0-6.63-5.37-12-12-12z" 
+        fill="${color === 'Pink' ? '#f29cb2' : color === 'Red' ? '#ea4f8b' : '#009cf9'}"/>
+</svg>
+
+    <div class="wp-main">
+      <span class="wp-title D${title.length}">${title}</span>
+      <span class="wp-subtitle">${subtitle}</span>
+    </div>
+
+
+      </div>`,
+      className: 'waypoint-map-marker ',
+      iconSize: [25, 33],
+    }),
+  }).addTo(map)
+
+  tooltipText &&
+    marker.bindTooltip(tooltipText, {
+      permanent: alwaysShowTooltip,
+      direction: type === 'Day' ? 'top' : 'right',
+      offset: type === 'Day' ? [0, -20] : [14, 0],
+      className: 'waypoint-map-tooltip ' + type,
+    })
+
+  // marker.bindPopup(
+  //   `<div>
+  //   111111111111111
+  //   </div>`,
+  //   {
+  //     closeButton: false, // 如果你自己用 saki-icon 做关闭按钮
+  //     autoClose: false, // 点击地图其他地方自动关闭（可改 false）
+  //     closeOnClick: false, // 点击地图关闭
+  //     className: 'map-target-city-weather-popup', // 给 popup 加类，便于自定义样式
+  //     maxWidth: 280, // 控制宽度，防止太宽
+
+  //     offset: [0, -10],
+  //   }
+  // )
+  // marker.openPopup()
+
+  return marker
+}
+
 export let state = {
   syncPositionIntervalTime: 5,
   selectRealTimeMarkerId: '',

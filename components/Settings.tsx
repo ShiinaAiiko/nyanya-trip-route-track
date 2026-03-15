@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 
 import { useSelector, useDispatch } from 'react-redux'
 import store, { RootState, AppDispatch, methods, layoutSlice } from '../store'
@@ -25,6 +25,7 @@ import { getPositionShareText } from './Vehicle'
 import { getSpeed } from 'geolib'
 import { protoRoot } from '../protos'
 import { loadModal } from '../store/layout'
+import { config } from 'process'
 
 const SettingsComponent = ({
   visible,
@@ -608,7 +609,7 @@ const Account = ({ show }: { show: boolean }) => {
 
 const Language = ({ show }: { show: boolean }) => {
   const { t, i18n } = useTranslation('settings')
-  const language = useSelector((state: RootState) => state.config.language)
+  const { config } = useSelector((state: RootState) => state)
 
   const dispatch = useDispatch<AppDispatch>()
   // useEffect(() => {
@@ -616,22 +617,26 @@ const Language = ({ show }: { show: boolean }) => {
   // }, [appearance.mode])
   const router = useRouter()
 
-  useEffect(() => {}, [language])
-
-  const [languages, setLanguages] = useState([
-    {
-      value: 'zh-CN',
-      content: '中文(简体) - Chinese(Simplified)',
-    },
-    {
-      value: 'zh-TW',
-      content: '中文(繁體) - Chinese(Traditional)',
-    },
-    {
-      value: 'en-US',
-      content: 'English - English',
-    },
-  ])
+  const languages = useMemo(() => {
+    return [
+      {
+        value: 'system',
+        content: t('system'),
+      },
+      {
+        value: 'zh-CN',
+        content: '中文(简体) - Chinese(Simplified)',
+      },
+      {
+        value: 'zh-TW',
+        content: '中文(繁體) - Chinese(Traditional)',
+      },
+      {
+        value: 'en-US',
+        content: 'English - English',
+      },
+    ]
+  }, [config.lang])
 
   let basePathname = router.pathname.replace('/[lang]', '')
 
@@ -678,24 +683,23 @@ const Language = ({ show }: { show: boolean }) => {
                 // store.dispatch(methods.config.setLanguage(e.detail.value))
               },
             })}
-            value={language}
+            value={config.language}
             flex-direction="Column"
             type="Radio"
           >
-            <saki-checkbox-item margin="14px 8px 14px 0" value="system">
-              {t('system')}
-            </saki-checkbox-item>
-            {languages.map((v, i) => {
-              return (
-                <saki-checkbox-item
-                  margin="14px 8px 14px 0"
-                  key={i}
-                  value={v.value}
-                >
-                  {v.content}
-                </saki-checkbox-item>
-              )
-            })}
+            <>
+              {languages.map((v, i) => {
+                return (
+                  <saki-checkbox-item
+                    margin="14px 8px 14px 0"
+                    key={i}
+                    value={v.value}
+                  >
+                    <span>{v.content}</span>
+                  </saki-checkbox-item>
+                )
+              })}
+            </>
           </saki-checkbox>
         )}
       ></SettingsItem>

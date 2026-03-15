@@ -1108,7 +1108,7 @@ const Maps = ({
               flex-direction="Column"
               type="Radio"
             >
-              {['Red', 'Blue', 'Pink'].map((v, i) => {
+              {['Red', 'Blue', 'Green', 'Pink'].map((v, i) => {
                 return (
                   <saki-checkbox-item key={i} margin="6px 8px 6px 0" value={v}>
                     <saki-row

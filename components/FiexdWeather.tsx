@@ -216,11 +216,12 @@ const FiexdWeatherComponent = ({
     },
     mouseDown: (e: any) => {
       cityClickEvent.startTime = e.timeStamp
-      cityClickEvent.timer = setTimeout(() => {
-        cityClickEvent.copyText()
-        // voiceBroadcast(cityInfo.address)
-        return
-      }, 700)
+      cityClickEvent.copyText()
+      // cityClickEvent.timer = setTimeout(() => {
+      //   cityClickEvent.copyText()
+      //   // voiceBroadcast(cityInfo.address)
+      //   return
+      // }, 700)
     },
     mouseUp: (e: any) => {
       cityClickEvent?.timer && clearTimeout(cityClickEvent.timer)

@@ -27,4 +27,6 @@ func (r *Routerv1) Init() {
 	r.InitFile()
 	r.InitRoad()
 	r.InitPrivacyGeofence()
+	r.InitRoadbook()
+	r.InitNavigation()
 }

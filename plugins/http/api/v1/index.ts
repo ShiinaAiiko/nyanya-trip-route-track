@@ -8,6 +8,9 @@ import { journeyMemoryApi } from './journeyMemory'
 import { fileApi } from './file'
 import { roadApi } from './road'
 import { privacyGeofenceApi } from './privacyGeofence'
+import { roadbookApi } from './roadbook'
+import { navigationApi } from './navigation'
+import { geoApi } from './geo'
 
 export const v1 = {
   ...tripApi,
@@ -20,4 +23,7 @@ export const v1 = {
   ...fileApi,
   ...roadApi,
   ...privacyGeofenceApi,
+  ...roadbookApi,
+  ...navigationApi,
+  ...geoApi,
 }

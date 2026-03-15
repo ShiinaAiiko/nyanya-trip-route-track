@@ -25,7 +25,7 @@ import { AsyncQueue } from '@nyanyajs/utils'
 // import { AsyncQueue } from "./asyncQueue"
 import { t } from 'i18next'
 import { toolApiUrl } from '../config'
-import { cityMethods, GeoJSON } from './city'
+import { cityMethods, GeoJSON, regeo } from './city'
 import moment from 'moment'
 import { updateRoadTime } from './geo'
 import { createBins } from '@turf/turf'
@@ -920,6 +920,31 @@ let loadStatus = {
   GetTripStatistics: 'loaded',
 }
 
+export const formartAddrName = (
+  v: protoRoot.trip.ITripAddresses | undefined
+) => {
+  const roadTypes = [
+    'road',
+    'highway',
+    'motorway',
+    'primary',
+    'secondary',
+    'tertiary',
+    'residential',
+    'unclassified',
+  ]
+
+  return roadTypes.includes(v?.address?.type || '')
+    ? (v?.address?.fullName || '')
+        .split('·')
+        .reverse()
+        .filter((v, i) => {
+          return !Number(v) && i !== 0
+        })
+        .join('')
+    : v?.address?.name
+}
+
 export const tripSlice = createSlice({
   name: modelName,
   initialState: state,
@@ -1552,6 +1577,18 @@ export const tripMethods = {
 
       console.log('GetTripPositions pospos', tripPositions, startTime)
       if (res.code === 200 && res?.data?.trip) {
+        if (!res?.data?.trip.addresses?.length) {
+          const tempTrip = await dispatch(
+            tripMethods.GetTripAddresses({
+              trips: [res?.data?.trip],
+            })
+          ).unwrap()
+
+          if (tempTrip?.[0]?.addresses) {
+            res.data.trip.addresses = tempTrip[0].addresses
+          }
+        }
+
         if (tripPositions) {
           res.data.trip.positions = formatPositionsStr(
             startTime,
@@ -2180,6 +2217,138 @@ export const tripMethods = {
           )
         }
         loadStatus.GetTripStatistics = 'loaded'
+      } catch (error) {
+        console.error(error)
+      }
+    }
+  ),
+
+  GetTripAddresses: createAsyncThunk(
+    modelName + '/GetTripAddresses',
+    async (
+      {
+        trips,
+      }: {
+        trips: protoRoot.trip.ITrip[]
+      },
+      thunkAPI
+    ) => {
+      const dispatch = thunkAPI.dispatch
+
+      const { user, trip, config } = store.getState()
+
+      try {
+        console.log('GetTripAddresses', trips)
+        const aq = new AsyncQueue({
+          maxQueueConcurrency: 1,
+        })
+        const tripsData: protoRoot.trip.UpdateTripAddresses.Request.ITripItem[] =
+          []
+        trips.forEach((v, i) => {
+          if (v.addresses?.length) return
+          aq.increase(async () => {
+            let isAdd = true
+            const addresses: protoRoot.trip.ITripAddresses[] = []
+
+            // 获取起点和终点的定位
+            const res = await httpApi.v1.GetTripPositions({
+              id: v.id,
+            })
+
+            if (res.code !== 200) {
+              isAdd = false
+              return
+            }
+
+            const positions = formatPositionsStr(
+              Number(res.data.tripPositions?.startTime) || 0,
+              res.data.tripPositions?.positions || []
+            )
+
+            ;[positions[0], positions[positions.length - 1]].forEach(
+              (sv, si) => {
+                addresses.push({
+                  latitude: sv.latitude,
+                  longitude: sv.longitude,
+                  altitude: sv.altitude,
+                  entryTime: sv.timestamp,
+                })
+              }
+            )
+
+            for (let i = 0; i < addresses.length; i++) {
+              console.log('GetTripAddresses addresses', i)
+              const res = await regeo({
+                lat: Number(addresses[i].latitude),
+                lng: Number(addresses[i].longitude),
+              })
+              if (res) {
+                addresses[i].city = {
+                  country: res.country,
+                  state: res.state,
+                  region: res.region,
+                  city: res.city,
+                  town: res.town,
+                  road: res.road,
+                }
+              } else {
+                isAdd = false
+                return
+              }
+              console.log('GetTripAddresses addresses regeo', i, res, addresses)
+
+              const res1 = await httpApi.v1.Regeo({
+                lat: Number(addresses[i].latitude),
+                lng: Number(addresses[i].longitude),
+                lang: config.lang,
+              })
+              console.log('GetTripAddresses res1', res1)
+
+              if (res1) {
+                addresses[i].address = {
+                  fullName: res1?.display_name
+                    ?.split(',')
+                    ?.map((v: string) => v.trim())
+                    .join('·'),
+                  type: res1?.addresstype,
+                  name: res1?.name,
+                }
+              } else {
+                isAdd = false
+                return
+              }
+            }
+
+            // console.log(
+            //   'GetTripAddresses res',
+            //   res,
+            //   positions.length,
+            //   addresses
+            // )
+
+            isAdd &&
+              tripsData.push({
+                id: v.id,
+                addresses: addresses,
+              })
+          })
+        })
+        aq.increase(async () => {})
+
+        await aq.wait.waiting()
+
+        console.log('GetTripAddresses tripsData', tripsData)
+        if (!tripsData.length) {
+          return []
+        }
+        const res2 = await httpApi.v1.UpdateTripAddresses({
+          trips: tripsData,
+        })
+        console.log('GetTripAddresses UpdateTripAddresses', res2, tripsData)
+        if (res2.code === 200) {
+          return tripsData
+        }
+        return []
       } catch (error) {
         console.error(error)
       }

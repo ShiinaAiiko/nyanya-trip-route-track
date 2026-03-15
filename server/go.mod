@@ -13,8 +13,8 @@ require (
 )
 
 require (
-	github.com/cherrai/nyanyago-utils v1.0.19
-	github.com/cherrai/saki-sso-go v1.0.4
+	github.com/cherrai/nyanyago-utils v1.0.20
+	github.com/cherrai/saki-sso-go v1.0.5
 	github.com/fatih/structs v1.1.0
 	github.com/gin-contrib/gzip v1.0.0
 	github.com/gin-gonic/gin v1.10.0

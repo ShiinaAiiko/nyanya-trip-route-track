@@ -53,10 +53,12 @@ import { useRouter } from 'next/router'
 import { Debounce, deepCopy } from '@nyanyajs/utils'
 import { VehicleLogo } from './Vehicle'
 import {
+  formartAddrName,
   initTripCity,
   initTripItemCity,
   initTripItemRoad,
   reupdateTripPositions,
+  tripMethods,
 } from '../store/trip'
 import {
   CityInfo,
@@ -1057,10 +1059,10 @@ const TripItemComponent = memo(
             speedColorLimit.maxSpeed * 3.6 > 50
               ? 5
               : speedColorLimit.maxSpeed * 3.6 > 30
-              ? 3
-              : speedColorLimit.maxSpeed * 3.6 > 10
-              ? 2
-              : 1,
+                ? 3
+                : speedColorLimit.maxSpeed * 3.6 > 10
+                  ? 2
+                  : 1,
         }).reverse()
 
         const speedRanges: string[] = []
@@ -1335,7 +1337,9 @@ const TripItemComponent = memo(
 
         if (trip) {
           console.log('initMap GetTrip', trip)
+
           onTrip(trip || undefined)
+
           setLoadStatus('noMore')
 
           // initTripCity(trip)
@@ -2487,6 +2491,28 @@ const TripItemComponent = memo(
                           </div>
                         </div>
                       </div>
+                      {trip?.addresses?.length ? (
+                        <>
+                          <div className={'ti-addr ' + config.deviceType}>
+                            <div className="th-l-i-c-startaddr">
+                              <div className="addr-icon"></div>
+                              <div className="addr-name text-two-elipsis">
+                                {formartAddrName(trip?.addresses?.[0])}
+                              </div>
+                            </div>
+                            <div className="th-l-i-c-endaddr">
+                              <div className="addr-icon"></div>
+                              <div className="addr-name text-two-elipsis">
+                                {formartAddrName(
+                                  trip?.addresses?.[trip?.addresses.length - 1]
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        ''
+                      )}
                       <div className="ti-color">
                         <div
                           style={{
@@ -2896,6 +2922,30 @@ const TripItemComponent = memo(
                                     ''
                                   )}
                                 </div>
+                                {v.type === 'StartTrip' ? (
+                                  <div className="tp-i-c-startaddr ">
+                                    <div className="addr-icon"></div>
+                                    <div className="addr-name text-two-elipsis">
+                                      {formartAddrName(trip?.addresses?.[0])}
+                                    </div>
+                                  </div>
+                                ) : (
+                                  ''
+                                )}
+                                {v.type === 'EndTrip' ? (
+                                  <div className="tp-i-c-endaddr">
+                                    <div className="addr-icon"></div>
+                                    <div className="addr-name text-two-elipsis">
+                                      {formartAddrName(
+                                        trip?.addresses?.[
+                                          trip?.addresses.length - 1
+                                        ]
+                                      )}
+                                    </div>
+                                  </div>
+                                ) : (
+                                  ''
+                                )}
                                 <div className="tp-i-c-content">
                                   {v.type === 'EnterNewCity' ? (
                                     <span>{`${t('eetryTime', {
@@ -2919,8 +2969,8 @@ const TripItemComponent = memo(
                                                 config.lang === 'zh-CN'
                                                   ? 'zhHans'
                                                   : config.lang === 'zh-TW'
-                                                  ? 'zhHant'
-                                                  : 'en'
+                                                    ? 'zhHant'
+                                                    : 'en'
                                               ] || (v.name as any)['zhHans']) +
                                               ''
                                             }

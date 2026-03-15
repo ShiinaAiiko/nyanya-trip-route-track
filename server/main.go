@@ -83,6 +83,9 @@ func main() {
 		conf.InitFsDB()
 
 		ntimer.SetTimeout(func() {
+			if conf.Config.Server.Mode == "debug" {
+				conf.FsDB.ClearAll()
+			}
 
 			cityDbx.InitCityDistricts()
 

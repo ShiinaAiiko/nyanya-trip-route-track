@@ -69,6 +69,7 @@ import {
   initTripCity,
   reupdateTripPositions,
   Statistics,
+  tripMethods,
   tripSlice,
 } from '../../store/trip'
 import DashboardComponent, { DashboardLayer } from '../../components/Dashboard'
@@ -1878,6 +1879,15 @@ const TripPage = () => {
           horizontal: 'center',
         }).open()
         // 检测是否没传完，没传完的在这里继续，然后重新FinshTrip
+
+        setTimeout(() => {
+          dispatch(
+            tripMethods.GetTripAddresses({
+              trips: [trip],
+            })
+          ).unwrap()
+        }, 50)
+
         if (res?.data?.positionLength !== tempPositions.current.length) {
           await httpApi.v1.ResumeTrip({
             id: trip?.id,

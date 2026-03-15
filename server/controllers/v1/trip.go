@@ -40,7 +40,29 @@ func formartTrip(v *models.Trip) *protos.Trip {
 	marks := []*protos.TripMark{}
 	cities := []*protos.TripCity{}
 	roads := []*protos.TripRoad{}
+	addresses := []*protos.TripAddresses{}
 
+	for _, v := range v.Addresses {
+		addresses = append(addresses, (&protos.TripAddresses{
+			Latitude:  v.Latitude,
+			Longitude: v.Longitude,
+			Altitude:  v.Altitude,
+			City: &protos.TripAddressesCity{
+				Country: v.City.Country,
+				State:   v.City.State,
+				Region:  v.City.Region,
+				City:    v.City.City,
+				Town:    v.City.Town,
+				Road:    v.City.Road,
+			},
+			Address: &protos.TripAddressesAddress{
+				FullName: v.Address.FullName,
+				Type:     v.Address.Type,
+				Name:     v.Address.Name,
+			},
+			EntryTime: v.EntryTime,
+		}))
+	}
 	for _, v := range v.Positions {
 		postions = append(postions, formartPosition(&protos.TripPosition{
 			Latitude:         v.Latitude,
@@ -115,6 +137,7 @@ func formartTrip(v *models.Trip) *protos.Trip {
 		Id:        v.Id,
 		Name:      v.Name,
 		Positions: postions,
+		Addresses: addresses,
 		Marks:     marks,
 		Cities:    cities,
 		Roads:     roads,
@@ -2200,6 +2223,85 @@ func (cl *TripController) ClearTripRoads(c *gin.Context) {
 	}
 
 	protoData := &protos.ClearTripRoads_Response{}
+
+	res.Data = protos.Encode(protoData)
+
+	res.Call(c)
+}
+
+func (fc *TripController) UpdateTripAddresses(c *gin.Context) {
+	// 1、请求体
+	var res response.ResponseProtobufType
+	res.Code = 200
+
+	// 2、获取参数
+	data := new(protos.UpdateTripAddresses_Request)
+	var err error
+	if err = protos.DecodeBase64(c.GetString("data"), data); err != nil {
+		res.Error = err.Error()
+		res.Code = 10002
+		res.Call(c)
+		return
+	}
+
+	// log.Info("data", data)
+
+	// 3、验证参数
+	if err = validation.ValidateStruct(
+		data,
+		// validation.Parameter(&data.Trips, validation.GreaterEqual(0), validation.Required()),
+	); err != nil {
+		res.Errors(err)
+		res.Code = 10002
+		res.Call(c)
+		return
+	}
+
+	userInfoAny, exists := c.Get("userInfo")
+	if !exists {
+		res.Errors(err)
+		res.Code = 10004
+		res.Call(c)
+		return
+	}
+	userInfo := userInfoAny.(*sso.UserInfo)
+
+	// log.Info(userInfo.Uid, data.Id, sk, data.Name, data.Type)
+
+	for _, v := range data.Trips {
+		if err = tripDbx.UpdateTripAddresses(
+			userInfo.Uid, v.Id, narrays.Map(v.Addresses, func(sv *protos.TripAddresses, i int) *models.TripAddresses {
+
+				return &models.TripAddresses{
+					Latitude:  sv.Latitude,
+					Longitude: sv.Longitude,
+					Altitude:  sv.Altitude,
+					City: &models.TripAddressesCity{
+						Country: sv.City.Country,
+						State:   sv.City.State,
+						Region:  sv.City.Region,
+						City:    sv.City.City,
+						Town:    sv.City.Town,
+						Road:    sv.City.Road,
+					},
+					Address: &models.TripAddressesAddress{
+						FullName: sv.Address.FullName,
+						Type:     sv.Address.Type,
+						Name:     sv.Address.Name,
+					},
+					EntryTime: sv.EntryTime,
+				}
+			}),
+		); err != nil {
+			log.Error(err)
+			res.Errors(err)
+			res.Code = 10011
+			res.Call(c)
+			return
+		}
+	}
+
+	protoData := &protos.UpdateTripAddresses_Response{}
 
 	res.Data = protos.Encode(protoData)
 

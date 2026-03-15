@@ -1271,6 +1271,7 @@ const ReplayTripPage = ({
           clickFunc({ params, reRender }) {},
           filterAccuracy: 'High',
           privacyGeofence: mapLayer?.privacyGeofence || false,
+          allowZoom: false,
         })
     }, 700)
   }

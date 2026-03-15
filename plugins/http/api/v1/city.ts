@@ -1,6 +1,12 @@
 import { protoRoot, PARAMS, Request } from '../../../../protos'
 import store from '../../../../store'
 import { getUrl } from '..'
+import {
+  networkConnectionStatusDetection,
+  networkConnectionStatusDetectionEnum,
+} from '@nyanyajs/utils/dist/common/common'
+import { R } from '../../../../store/config'
+import { toolApiUrl } from '../../../../config'
 
 export const cityApi = {
   async UpdateCity(params: protoRoot.city.UpdateCity.IRequest) {
@@ -33,7 +39,9 @@ export const cityApi = {
       protoRoot.city.GetCityDetails.Response
     )
   },
-  async GetAllCitiesVisitedByUser(params: protoRoot.city.GetAllCitiesVisitedByUser.IRequest) {
+  async GetAllCitiesVisitedByUser(
+    params: protoRoot.city.GetAllCitiesVisitedByUser.IRequest
+  ) {
     const { apiUrls } = store.getState().api
 
     return await Request<protoRoot.city.GetAllCitiesVisitedByUser.IResponse>(
@@ -47,5 +55,62 @@ export const cityApi = {
       },
       protoRoot.city.GetAllCitiesVisitedByUser.Response
     )
+  },
+
+  searchWaypoint: async ({
+    keywords,
+    lang,
+  }: {
+    keywords: string
+    lang?: string
+  }) => {
+    const { config } = store.getState()
+
+    const url = `https://nominatim.openstreetmap.org/search?q=${keywords}&format=jsonv2&addressdetails=1&accept-language=${
+      lang || config.lang
+    }`
+
+    const connectionOpenStreetMap = await networkConnectionStatusDetection(
+      networkConnectionStatusDetectionEnum.openStreetMap
+    )
+    console.log(
+      'searchWaypoint1 networkConnectionStatusDetection connectionOpenStreetMap',
+      connectionOpenStreetMap
+    )
+    // if (connectionOpenStreetMap) {
+    //   const res = await R.request({
+    //     method: 'GET',
+    //     url,
+    //   })
+    //   if (res.data) {
+    //     return res.data
+    //   }
+    // }
+
+    const res = await R.request({
+      method: 'GET',
+      url: connectionOpenStreetMap
+        ? url
+        : `${
+            toolApiUrl
+          }/api/v1/net/httpProxy?method=GET&url=${encodeURIComponent(url)}`,
+    })
+
+    let data = res?.data?.data as any
+    if (connectionOpenStreetMap) {
+      data = res?.data
+    }
+
+    if (!data?.length) {
+      const res = await R.request({
+        method: 'GET',
+        url: `https://nominatim.aiiko.club/search?q=${keywords}&format=jsonv2&addressdetails=1&accept-language=${
+          lang || config.lang
+        }`,
+      })
+
+      return res?.data
+    }
+    return data
   },
 }

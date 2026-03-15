@@ -301,63 +301,124 @@
     // }
   }
 
-  .th-l-i-left {
+  .th-l-i-top {
     display: flex;
-    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    flex: 1;
 
-    .th-l-i-l-title {
-      display: flex;
-      justify-content: flex-start;
-      align-items: center;
-
-      .th-l-i-l-t-local,
-      .th-l-i-l-t-customTrip {
-        background-color: var(--saki-default-color);
-        color: #fff;
-        border-radius: 4px;
-        padding: 2px 6px;
-        margin-left: 6px;
+    &.Mobile {
+      flex-direction: column;
+      .th-l-i-left {
+        width: 100%;
       }
-
-      .th-l-i-l-t-customTrip {
-        background-color: #62c3e8;
-      }
-
-      .ti-d-tip {
-        font-size: 10px;
-        margin: 0 0 0 4px;
-        color: #999;
-        font-style: italic;
-        background-color: #eee;
-        padding: 4px 8px;
-        border-radius: 6px;
+      .th-l-i-center {
+        width: 100%;
+        flex-direction: row;
+        margin: 6px 0 0;
+        gap: 10px;
       }
     }
 
-    .th-l-i-l-info {
+    .th-l-i-left {
       display: flex;
-      justify-content: flex-start;
-      flex-wrap: wrap;
-      position: relative;
+      flex-direction: column;
+      flex: 1.5;
 
-      // padding: 0 0 0 12px;
-      // &::before {
-      // 	content: '';
-      // 	width: 6px;
-      // 	height: 6px;
-      // 	background-color: var(--saki-default-color);
-      // 	border-radius: 50%;
-      // 	position: absolute;
-      // 	left: 0;
-      // 	top: 50%;
-      // 	transform: translate(0, -50%);
-      // }
-      .info-item {
-        // display: inline-block;
-        color: #555;
-        margin-right: 10px;
-        white-space: nowrap;
-        font-size: 12px;
+      .th-l-i-l-title {
+        display: flex;
+        justify-content: flex-start;
+        align-items: center;
+
+        .th-l-i-l-t-local,
+        .th-l-i-l-t-customTrip {
+          background-color: var(--saki-default-color);
+          color: #fff;
+          border-radius: 4px;
+          padding: 2px 6px;
+          margin-left: 6px;
+        }
+
+        .th-l-i-l-t-customTrip {
+          background-color: #62c3e8;
+        }
+
+        .ti-d-tip {
+          font-size: 10px;
+          margin: 0 0 0 4px;
+          color: #999;
+          font-style: italic;
+          background-color: #eee;
+          padding: 4px 8px;
+          border-radius: 6px;
+        }
+      }
+
+      .th-l-i-l-info {
+        display: flex;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        position: relative;
+
+        // padding: 0 0 0 12px;
+        // &::before {
+        // 	content: '';
+        // 	width: 6px;
+        // 	height: 6px;
+        // 	background-color: var(--saki-default-color);
+        // 	border-radius: 50%;
+        // 	position: absolute;
+        // 	left: 0;
+        // 	top: 50%;
+        // 	transform: translate(0, -50%);
+        // }
+        .info-item {
+          // display: inline-block;
+          color: #555;
+          margin-right: 10px;
+          white-space: nowrap;
+          font-size: 12px;
+        }
+      }
+    }
+
+    .th-l-i-center {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 4px;
+      .th-l-i-c-startaddr,
+      .th-l-i-c-endaddr {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        .addr-icon {
+          background-color: #d64a45;
+          width: 8px;
+          height: 8px;
+          border-radius: 4px;
+          margin: 0 4px 0 0;
+        }
+        .addr-name {
+          font-size: 12px;
+          color: #444;
+          flex: 1;
+        }
+      }
+      .th-l-i-c-startaddr {
+        .addr-icon {
+          background-color: #51b150;
+        }
+        .addr-name {
+        }
+      }
+      .th-l-i-c-endaddr {
+        .addr-icon {
+        }
+        .addr-name {
+        }
       }
     }
   }

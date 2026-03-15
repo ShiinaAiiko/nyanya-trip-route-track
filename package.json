@@ -17,7 +17,7 @@
   },
   "dependencies": {
     "@akaguny/open-meteo-wmo-to-emoji": "^0.1.0",
-    "@nyanyajs/utils": "^1.0.36",
+    "@nyanyajs/utils": "^1.0.40",
     "@reduxjs/toolkit": "^1.7.0",
     "@saki-ui/core": "^1.0.6",
     "@turf/area": "^7.2.0",

@@ -267,6 +267,23 @@ export const tripApi = {
       protoRoot.trip.GetTripHistoryPositions.Response
     )
   },
+  async UpdateTripAddresses(
+    params: protoRoot.trip.UpdateTripAddresses.IRequest
+  ) {
+    const { apiUrls } = store.getState().api
+
+    return await Request<protoRoot.trip.UpdateTripAddresses.IResponse>(
+      {
+        method: 'POST',
+        data: PARAMS<protoRoot.trip.UpdateTripAddresses.IRequest>(
+          params,
+          protoRoot.trip.UpdateTripAddresses.Request
+        ),
+        url: getUrl(apiUrls.v1.baseUrl, apiUrls.v1.UpdateTripAddresses),
+      },
+      protoRoot.trip.UpdateTripAddresses.Response
+    )
+  },
 
   // async GetHistoricalStatistics(
   //   params: protoRoot.trip.GetHistoricalStatistics.IRequest
