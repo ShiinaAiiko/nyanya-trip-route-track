@@ -20,8 +20,8 @@ import { vehicleSlice, vehicleMethods } from './vehicle'
 import { positionSlice, positionMethods } from './position'
 import { citySlice, cityMethods } from './city'
 import { journeyMemorySlice, journeyMemoryMethods } from './journeyMemory'
+import { networkSlice, networkMethods } from './network'
 import { Dispatch } from 'react'
-
 
 // export interface IContext<T = any> {
 //   state: T
@@ -30,7 +30,6 @@ import { Dispatch } from 'react'
 //     payload?: Partial<T>
 //   }>
 // }
-
 
 export const reducer = <T>(preState: T, newState: Partial<T>) => {
   return {
@@ -41,7 +40,7 @@ export const reducer = <T>(preState: T, newState: Partial<T>) => {
 
 export interface IContext<T = any> {
   state: T
-  setState: Dispatch<Partial<T>>,
+  setState: Dispatch<Partial<T>>
 }
 // export interface IContext<T = any> {
 //   state: T
@@ -49,12 +48,10 @@ export interface IContext<T = any> {
 //   // setState: Dispatch<Partial<T>>,
 // }
 
-
 export interface ActionParams<T = any> {
   type: string
   payload: T
 }
-
 
 const rootReducer = combineReducers({
   config: configSlice.reducer,
@@ -68,7 +65,8 @@ const rootReducer = combineReducers({
   vehicle: vehicleSlice.reducer,
   position: positionSlice.reducer,
   city: citySlice.reducer,
-  journeyMemory: journeyMemorySlice.reducer
+  journeyMemory: journeyMemorySlice.reducer,
+  network: networkSlice.reducer,
 })
 
 const store = configureStore({
@@ -89,7 +87,10 @@ export {
   layoutSlice,
   storageSlice,
   vehicleSlice,
-  positionSlice, citySlice, journeyMemorySlice
+  positionSlice,
+  citySlice,
+  journeyMemorySlice,
+  networkSlice,
 }
 export const methods = {
   config: configMethods,
@@ -103,7 +104,8 @@ export const methods = {
   vehicle: vehicleMethods,
   position: positionMethods,
   city: cityMethods,
-  journeyMemory: journeyMemoryMethods
+  journeyMemory: journeyMemoryMethods,
+  network: networkMethods,
 }
 
 // console.log(store.getState())

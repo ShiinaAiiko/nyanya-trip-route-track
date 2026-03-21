@@ -9,7 +9,15 @@ import {
   useRef,
   useState,
 } from 'react'
-import { createCityMarker, deleteAllCityMarker, regeo } from '../../store/city'
+import {
+  CityInfo,
+  convertCityLevelToTypeString,
+  createCityMarker,
+  deleteAllCityMarker,
+  filterGridPoints,
+  levelMap,
+  regeo,
+} from '../../store/city'
 import {
   AppDispatch,
   layoutSlice,
@@ -26,6 +34,7 @@ import { useDispatch } from 'react-redux'
 import axios from 'axios'
 import moment from 'moment'
 import {
+  copyOrOpenAlert,
   copyText,
   formatDurationI18n,
   getLatLng,
@@ -46,7 +55,12 @@ import {
 } from '../../components/Roadbook/Context'
 
 import * as Leaflet from 'leaflet'
-import { clearLayer, removeLayer, renderPolyline } from '../../store/map'
+import {
+  clearLayer,
+  removeLayer,
+  renderPolyline,
+  renderPolylineItem,
+} from '../../store/map'
 import {
   createMyPositionMarker,
   createWaypointMarker,
@@ -69,9 +83,14 @@ import {
   SakiScrollLoading,
 } from '../../components/saki-ui-react/components'
 import Head from 'next/head'
-import { getMapLayer, getTrackRouteColor } from '../../store/config'
+import {
+  eventListener,
+  getMapLayer,
+  getTrackRouteColor,
+} from '../../store/config'
 import { createDistanceScaleControl } from '../../plugins/map'
 import { storage } from '../../store/storage'
+import ButtonsComponent from '../../components/Buttons'
 
 const RoadBookPage = () => {
   const { t, i18n } = useTranslation('roadBookPage')
@@ -140,11 +159,12 @@ const RoadBookPage = () => {
     console.log('GetRoadbookList setMounted')
     setMounted(true)
 
-    dispatch(layoutSlice.actions.setBottomNavigator(true))
-    dispatch(layoutSlice.actions.setLayoutHeader(true))
     dispatch(layoutSlice.actions.setLayoutHeaderFixed(true))
-
     const init = async () => {
+      eventListener.on('roadbook:ResetMap', () => {
+        setLoadedMap(false)
+      })
+
       window.addEventListener('resize', () => {
         refreshMapSizeDebounce.current.increase(() => {
           map.current?.invalidateSize(true)
@@ -155,15 +175,21 @@ const RoadBookPage = () => {
   }, [])
 
   useEffect(() => {
+    dispatch(layoutSlice.actions.setBottomNavigator(!state.fullScreen))
+    dispatch(layoutSlice.actions.setLayoutHeader(!state.fullScreen))
+  }, [state.fullScreen])
+
+  useEffect(() => {
     refreshMapSizeDebounce.current.increase(() => {
       map.current?.invalidateSize(true)
     }, 400)
-  }, [config.deviceWH.w, config.deviceWH.h, state.fullMap])
+  }, [config.deviceWH.w, config.deviceWH.h, state.fullScreen, state.fullMap])
 
   state.backPage = () => {
     const nextPage = state.pageTypes.slice(0, state.pageTypes.length - 1)
     setState({
       pageTypes: nextPage?.length === 0 ? ['List'] : nextPage,
+      fullMap: nextPage[nextPage.length - 1] === 'List' ? false : state.fullMap,
     })
 
     if (lastPageType === 'Detail' || nextPage[nextPage.length - 1] === 'List') {
@@ -232,24 +258,14 @@ const RoadBookPage = () => {
   }
 
   state.share = (roadbookItem: protoRoot.roadbook.IRoadbookItem) => {
-    const copy = () => {
-      copyText(`${roadbookItem.title}
-${location.href}`)
-
-      snackbar({
-        message: t('copySuccessfully', {
-          ns: 'prompt',
-        }),
-        autoHideDuration: 2000,
-        vertical: 'top',
-        horizontal: 'center',
-        backgroundColor: 'var(--saki-default-color)',
-        color: '#fff',
-      }).open()
-    }
+    const url = `${location.origin}/${
+      router.query?.lang ? router.query?.lang + '/' : ''
+    }roadbook?id=${roadbookItem.id || ''}`
+    const copyText = `${roadbookItem.title}
+${url}`
 
     if (roadbookItem.permissions?.allowShare) {
-      copy()
+      copyOrOpenAlert(copyText, url)
       return
     }
 
@@ -277,7 +293,7 @@ ${location.href}`)
         })
 
         if (res.code === 200) {
-          copy()
+          copyOrOpenAlert(copyText, url)
           return
         }
         snackbar({
@@ -344,21 +360,41 @@ ${location.href}`)
   state.openPopup = (tlId: string, wId: string) => {
     console.log('openPopup', tlId, wId)
 
-    state.waypointsMakers.some((v) => {
-      if (v.tlId === tlId && v.wId === wId) {
-        // v.marker?.toggleTooltip()
-
-        const latlng = v.marker.getLatLng()
-        map.current?.setView(
-          // [29.886385, 106.276923],
-          [latlng.lat, latlng.lng],
-          // [
-          //   120.3814, -1.09],
-          13
-        )
-        return true
+    state.roadBookItem?.timelines?.forEach((v) => {
+      if (v.id === tlId) {
+        v.waypoints?.forEach((sv) => {
+          if (sv.id === wId) {
+            map.current?.setView(
+              // [29.886385, 106.276923],
+              getLatLng(
+                mapUrl,
+                Number(sv.coords?.latitude),
+                Number(sv.coords?.longitude)
+              ) as any,
+              // [
+              //   120.3814, -1.09],
+              13
+            )
+          }
+        })
       }
     })
+
+    // state.waypointsMakers.some((v) => {
+    //   if (v.tlId === tlId && v.wId === wId) {
+    //     // v.marker?.toggleTooltip()
+
+    //     const latlng = v.marker.getLatLng()
+    //     map.current?.setView(
+    //       // [29.886385, 106.276923],
+    //       [latlng.lat, latlng.lng],
+    //       // [
+    //       //   120.3814, -1.09],
+    //       13
+    //     )
+    //     return true
+    //   }
+    // })
   }
   state.showPolyline = (tlId: string, wId: string) => {
     // console.log('openPopup', tlId, wId)
@@ -423,7 +459,8 @@ ${location.href}`)
 
     state.customMarker && removeLayer(map.current, state.customMarker)
 
-    const latlng = getLatLng(mapUrl, lat, lng)
+    let latlng = getLatLng(mapUrl, lat, lng)
+    // latlng = [lat, lng]
     const marker = createWaypointMarker({
       map: map.current,
       lat: latlng[0],
@@ -441,7 +478,7 @@ ${location.href}`)
 
     map.current?.setView(
       // [29.886385, 106.276923],
-      [lat, lng],
+      [latlng[0], latlng[1]],
       // [
       //   120.3814, -1.09],
       autoZoom ? 11 : map.current.getZoom()
@@ -505,6 +542,9 @@ ${location.href}`)
           loadStatus: 'loaded',
           polylines: [],
           roadBookItem: undefined,
+          updateWaypointId: '',
+          selectedTimelineId: '',
+          addNewWaypointAfterThisWaypointId: '',
         })
         setLoadedMap(false)
 
@@ -590,8 +630,11 @@ ${location.href}`)
       mapUrl
     ) {
       console.log('initMap1 开始加载！')
-      let lat = toFixed(geo.position?.coords.latitude) || 0
-      let lon = toFixed(geo.position?.coords.longitude) || 0
+      const [lat, lon] = getLatLng(
+        mapUrl,
+        toFixed(geo.position?.coords.latitude) || 0,
+        toFixed(geo.position?.coords.longitude) || 0
+      )
       if (map.current) {
         map.current?.remove()
         marker.current?.remove()
@@ -686,26 +729,47 @@ ${location.href}`)
   const bindMapEvent = () => {
     if (!map.current) return
 
+    map.current?.removeEventListener('moveend')
+    map.current?.removeEventListener('zoomend')
+    map?.current?.on('moveend', () => {
+      eventListener.getEventNames().forEach((v) => {
+        if (v.includes('MoveEnd')) {
+          eventListener.dispatch(v, undefined)
+        }
+      })
+      eventListener.dispatch('InitCityMarkerMoveEnd', undefined)
+    })
+    map?.current?.on('zoomend', () => {
+      eventListener.getEventNames().forEach((v) => {
+        if (v.includes('ZoomEnd')) {
+          eventListener.dispatch(v, undefined)
+        }
+      })
+      eventListener.dispatch('InitCityMarkerZoomEnd', undefined)
+    })
+
     map.current?.removeEventListener('click')
     state.selectedTimelineId &&
       state.selectWaypointOnMap.allow &&
       map.current.on('click', (e) => {
         let popLocation = e.latlng
-        console.log(
-          'searchWaypointsByCoordinates',
-          state.selectWaypointOnMap.allow,
-          popLocation,
-          {
-            latitude: Math.round(popLocation.lat * 1000000) / 1000000,
-            longitude: Math.round(popLocation.lng * 1000000) / 1000000,
-          }
-        )
+        // console.log(
+        //   'searchWaypointsByCoordinates',
+        //   state.selectWaypointOnMap.allow,
+        //   popLocation,
+        //   {
+        //     latitude: Math.round(popLocation.lat * 1000000) / 1000000,
+        //     longitude: Math.round(popLocation.lng * 1000000) / 1000000,
+        //   }
+        // )
 
-        const latlng = getLatLngGcj02ToWgs84(
+        let latlng = getLatLngGcj02ToWgs84(
           mapUrl,
           popLocation.lat,
           popLocation.lng
         )
+
+        // latlng = [popLocation.lat, popLocation.lng]
 
         const latlng2 = normalizeLeafletCoordinates(latlng[0], latlng[1])
 
@@ -723,8 +787,15 @@ ${location.href}`)
 
   useEffect(() => {
     initMyPositionMarker()
-  }, [geo.position, mapUrl, mapLayer, user.isInit])
+  }, [
+    geo.position,
+    mapUrl,
+    mapLayer?.showAvatarAtCurrentPosition,
+    mapLayer?.headingUp,
+    user.isInit,
+  ])
 
+  const lastAvatar = useRef('')
   const initMyPositionMarker = () => {
     if (map.current && mapUrl && geo.position.coords?.latitude) {
       const [lat, lon] = getLatLng(
@@ -733,20 +804,25 @@ ${location.href}`)
         toFixed(geo?.position?.coords.longitude) || 0
       )
 
-      if (!marker.current) {
+      if (!marker.current || lastAvatar.current !== user.userInfo.avatar) {
         // if (!iconOptions.iconUrl) {
         // 	delete iconOptions.iconUrl
         // }
+        if (marker.current) {
+          removeLayer(map.current, marker.current)
+        }
+
         marker.current = createMyPositionMarker(
           map.current,
           [lat, lon],
           mapLayer?.showAvatarAtCurrentPosition || false,
           mapLayer?.headingUp || false
         )
+        lastAvatar.current = user.userInfo.avatar
       }
       marker.current.setLatLng([lat, lon])
     }
-    console.log('geo.position', geo.position)
+    // console.log('geo.position', geo.position)
   }
   const initRenderPolylinesDebounce = useRef(new Debounce())
 
@@ -758,10 +834,10 @@ ${location.href}`)
       initRenderPolylinesDebounce.current.increase(async () => {
         console.log('initRenderPolylinesDebounce1 deb')
         if (!map.current) return
-        // clearLayer({
-        //   map: map.current,
-        //   type: ['Polyline'],
-        // })
+        clearLayer({
+          map: map.current,
+          type: ['Polyline'],
+        })
 
         let minLat = 100000
         let minLon = 100000
@@ -769,48 +845,78 @@ ${location.href}`)
         let maxLon = -100000
 
         if (state.polylines?.length) {
-          await renderPolyline({
-            map: map.current,
-            alert: true,
+          for (let i = 0; i < state.polylines.length; i++) {
+            await renderPolylineItem({
+              params: {
+                tripId: '',
+                map: map.current,
+                positions: state.polylines[i].polyline.map((v) => {
+                  const latlng = getLatLng(mapUrl, v.lat, v.lng)
 
-            showTripTrackRoute: true,
-            showCityName: mapLayer?.cityName || false,
-            showCityBoundariesType: '',
-            allowZoom: false,
-            allowSetView: false,
+                  minLat = Math.min(minLat, latlng[0])
+                  minLon = Math.min(minLon, latlng[1])
+                  maxLat = Math.max(maxLat, latlng[0])
+                  maxLon = Math.max(maxLon, latlng[1])
 
-            trips: state.polylines
-              .filter((v) => {
-                // return v.waypointId === 'xkW6dleBOcd'
-                return true
-              })
-              .map((v) => {
-                // console.log('polyline1 renderPolyline({', v)
-                return {
-                  positionList: v.polyline?.map((v) => {
-                    const latlng = getLatLng(mapUrl, v.lat, v.lng)
+                  return {
+                    latitude: latlng[0],
+                    longitude: latlng[1],
+                  }
+                }),
+                type: '',
+                speedColor: getTrackRouteColor(
+                  (mapLayer?.trackRouteColor as any) || 'Red',
+                  false
+                ),
+                weight: Number(mapLayer?.polylineWidth),
+                filterAccuracy: 'NoFilter',
+                privacyGeofence: mapLayer?.privacyGeofence || false,
+              },
+            })
+          }
 
-                    minLat = Math.min(minLat, latlng[0])
-                    minLon = Math.min(minLon, latlng[1])
-                    maxLat = Math.max(maxLat, latlng[0])
-                    maxLon = Math.max(maxLon, latlng[1])
+          // await renderPolyline({
+          //   map: map.current,
+          //   alert: true,
 
-                    return {
-                      latitude: latlng[0],
-                      longitude: latlng[1],
-                    }
-                  }),
-                }
-              }),
-            speedColor: getTrackRouteColor(
-              (mapLayer?.trackRouteColor as any) || 'Red',
-              false
-            ),
-            weight: Number(mapLayer?.polylineWidth),
-            clickFunc({ params, reRender }) {},
-            filterAccuracy: 'NoFilter',
-            privacyGeofence: mapLayer?.privacyGeofence || false,
-          })
+          //   showTripTrackRoute: true,
+          //   showCityName: mapLayer?.cityName || false,
+          //   showCityBoundariesType: '',
+          //   allowZoom: false,
+          //   allowSetView: false,
+
+          //   trips: state.polylines
+          //     .filter((v) => {
+          //       // return v.waypointId === 'xkW6dleBOcd'
+          //       return true
+          //     })
+          //     .map((v) => {
+          //       // console.log('polyline1 renderPolyline({', v)
+          //       return {
+          //         positionList: v.polyline?.map((v) => {
+          //           const latlng = getLatLng(mapUrl, v.lat, v.lng)
+
+          //           minLat = Math.min(minLat, latlng[0])
+          //           minLon = Math.min(minLon, latlng[1])
+          //           maxLat = Math.max(maxLat, latlng[0])
+          //           maxLon = Math.max(maxLon, latlng[1])
+
+          //           return {
+          //             latitude: latlng[0],
+          //             longitude: latlng[1],
+          //           }
+          //         }),
+          //       }
+          //     }),
+          //   speedColor: getTrackRouteColor(
+          //     (mapLayer?.trackRouteColor as any) || 'Red',
+          //     false
+          //   ),
+          //   weight: Number(mapLayer?.polylineWidth),
+          //   clickFunc({ params, reRender }) {},
+          //   filterAccuracy: 'NoFilter',
+          //   privacyGeofence: mapLayer?.privacyGeofence || false,
+          // })
         }
 
         state.roadBookItem?.timelines
@@ -943,7 +1049,8 @@ ${location.href}`)
         //     [tempLatLon.lat, tempLatLon.lng],
         //     zoom + (config.deviceType === 'Mobile' ? 0 : 1)
         //   )
-        //   console.log(
+
+        //      console.log(
         //     'tempLatLon',
         //     zoom,
         //     tempLatLon,
@@ -953,6 +1060,8 @@ ${location.href}`)
         //     maxLon
         //   )
         // }
+
+        // initCityMarker()
       }, 700)
     }
     init()
@@ -1121,53 +1230,135 @@ ${location.href}`)
     }
   }
 
+  const initCityMarkerDeb = useRef(new Debounce())
   const initCityMarker = () => {
-    if (!map.current) return
-    // console.log(
-    //   'createCityMarker CityName',
-    //   !mapLayer?.showPositionMarker && mapLayer?.cityName
-    // )
-    clearLayer({
-      map: map.current,
-      type: ['CityName'],
-    })
-    deleteAllCityMarker('roadbook')
+    eventListener.removeEvent('InitCityMarkerMoveEnd')
+    eventListener.removeEvent('InitCityMarkerZoomEnd')
+    initCityMarkerDeb.current.increase(() => {
+      if (!map.current) return
+      // console.log(
+      //   'finalCities createCityMarker CityName',
+      //   !mapLayer?.showPositionMarker && mapLayer?.cityName
+      // )
+      clearLayer({
+        map: map.current,
+        type: ['CityName'],
+      })
+      deleteAllCityMarker('roadbook')
 
-    if (!mapLayer?.showPositionMarker && map.current) {
-      const tempWaypointsMakers: typeof state.waypointsMakers = []
+      if (!mapLayer?.showPositionMarker && map.current) {
+        const tempWaypointsMakers: typeof state.waypointsMakers = []
 
-      state.roadBookItem?.timelines?.forEach((v, i) => {
-        v.waypoints?.forEach((sv, si) => {
-          if (!map.current) return
+        const cities: CityInfo[] = []
 
-          // 渲染waypoint的标记
-          const latlng = getLatLng(
-            mapUrl,
-            Number(sv.coords?.latitude),
-            Number(sv.coords?.longitude)
-          )
+        state.roadBookItem?.timelines?.forEach((v, i) => {
+          v.waypoints?.forEach((sv, si) => {
+            // 渲染waypoint的标记
+            const latlng = getLatLng(
+              mapUrl,
+              Number(sv.coords?.latitude),
+              Number(sv.coords?.longitude)
+            )
+            if (!map.current || !latlng[0] || !latlng[1]) return
 
-          // console.log('createCityMarker CityName', latlng)
-          const marker = createCityMarker(
-            map.current,
-            mapLayer?.cityName ? sv?.address || '' : '',
-            [latlng[0], latlng[1]],
-            4,
-            sv.id || '',
-            'roadbook'
-          )
-          marker &&
-            tempWaypointsMakers.push({
-              tlId: v.id || '',
-              wId: sv.id || '',
-              marker,
-            })
+            // console.log('createCityMarker CityName', latlng, mapLayer?.cityName)
+
+            if (!mapLayer?.cityName) {
+              const marker = createCityMarker(
+                map.current,
+                '',
+                [latlng[0], latlng[1]],
+                4,
+                sv.id || '',
+                'roadbook'
+              )
+              marker &&
+                tempWaypointsMakers.push({
+                  tlId: v.id || '',
+                  wId: sv.id || '',
+                  marker,
+                })
+            } else {
+              cities.push({
+                id: (v.id || '') + ',' + (sv.id || ''),
+                name: sv.address || '',
+                lat: latlng[0],
+                lng: latlng[1],
+                coordinates: [latlng[0], latlng[1]],
+                level: 4,
+                levelStr: convertCityLevelToTypeString(4),
+                parentCityId: '',
+              })
+            }
+          })
         })
-      })
-      setState({
-        waypointsMakers: tempWaypointsMakers,
-      })
-    }
+        if (cities.length) {
+          // console.log('finalCities', cities, mapLayer?.cityName)
+
+          const f = () => {
+            if (!map.current) return
+
+            clearLayer({
+              map: map.current,
+              type: ['CityName'],
+            })
+            deleteAllCityMarker('roadbook')
+
+            const finalCities = filterGridPoints({
+              map: map.current,
+              citiesArr: cities,
+              levelMap: {
+                0: ['city'],
+                4: ['city'],
+                6: ['city'],
+                7: ['city'],
+                9: ['city'],
+                11: ['city'],
+              },
+              zoom: map.current?.getZoom(),
+            })
+
+            // console.log('finalCities', cities, finalCities, mapLayer?.cityName)
+
+            finalCities?.forEach((v) => {
+              if (!map.current) return
+              const marker = createCityMarker(
+                map.current,
+                v.name,
+                [v.lat, v.lng],
+                4,
+                v.id || '',
+                'roadbook'
+              )
+
+              let ids = v.id.split(',')
+              marker &&
+                tempWaypointsMakers.push({
+                  tlId: ids[0],
+                  wId: ids[1],
+                  marker,
+                })
+            })
+          }
+
+          const initGridCityMarkerDeb = new Debounce()
+          f()
+          eventListener.on('InitCityMarkerMoveEnd', () => {
+            initGridCityMarkerDeb.increase(() => {
+              f()
+            }, 50)
+          })
+          eventListener.on('InitCityMarkerZoomEnd', () => {
+            initGridCityMarkerDeb.increase(() => {
+              f()
+            }, 50)
+          })
+        }
+        setState({
+          waypointsMakers: tempWaypointsMakers,
+        })
+      }
+    }, 100)
   }
 
   const { pageNum, pageSize, list, loadStatus, setLoadStatus } = {
@@ -1276,7 +1467,9 @@ ${location.href}`)
               'rp-main ' +
               config.deviceType +
               ' ' +
-              (state.fullMap ? 'full' : '') +
+              (state.fullMap ? 'fullMap' : '') +
+              ' ' +
+              (state.fullScreen ? 'fullScreen' : '') +
               ' '
             }
           >
@@ -1288,7 +1481,7 @@ ${location.href}`)
                   close-icon={false}
                   left-width={'calc(100% - 60px)'}
                   // right-width={'60px'}
-                  center-width={config.deviceType === 'Mobile' ? '0px' : ''}
+                  center-width={config.deviceType === 'Mobile' ? '0px' : '0px'}
                   padding={'0 10px 0 10px'}
                   ref={bindEvent({
                     close() {},
@@ -1344,7 +1537,7 @@ ${location.href}`)
                           <SakiIcon
                             // width='14px'
                             // height='14px'
-                            color="#555"
+                            color="#999"
                             type="Add"
                           ></SakiIcon>
                         </SakiButton>
@@ -1612,7 +1805,7 @@ ${location.href}`)
                                               type="CircleIconGrayHover"
                                             >
                                               <saki-icon
-                                                color="#555"
+                                                color="#999"
                                                 type="More"
                                               ></saki-icon>
                                             </saki-button>
@@ -1800,12 +1993,12 @@ ${location.href}`)
               >
                 <LayerButtons
                   mapLayer={mapLayer}
-                  show={true}
+                  show={!state.fullScreen}
                   style={
                     config.deviceType === 'Mobile'
                       ? {
-                          right: '10px',
-                          bottom: '10px',
+                          left: '10px',
+                          bottom: '32px',
                         }
                       : {
                           right: '20px',
@@ -1822,6 +2015,79 @@ ${location.href}`)
                   mapLayerType={mapLayerType}
                 ></LayerButtons>
               </div>
+              <ButtonsComponent
+                position={
+                  config.deviceType === 'Mobile'
+                    ? state.fullMap
+                      ? {
+                          right: 10,
+                          bottom: 70,
+                        }
+                      : state.fullScreen
+                        ? {
+                            right: 10,
+                            bottom: 40,
+                          }
+                        : {
+                            right: 10,
+                            top: 90,
+                          }
+                    : {
+                        right: 20,
+                        bottom: 40,
+                      }
+                }
+                buttonStyle={
+                  config.deviceType === 'Mobile'
+                    ? {
+                        width: '30px',
+                        height: '30px',
+                        margin: '8px 0 0',
+                        iconSize: '16px',
+                      }
+                    : {
+                        width: '36px',
+                        height: '36px',
+                        margin: '10px 0 0',
+                        iconSize: '18px',
+                      }
+                }
+                // indexPage
+                // trackRoute
+                // realTimePosition
+                // filter
+                // layer
+                // aichat
+                // mark
+                currentPosition={!state.fullScreen}
+                fullScreen
+                zoom={!state.fullScreen}
+                onCurrentPosition={() => {
+                  if (geo.position) {
+                    const [lat, lon] = getLatLng(
+                      mapUrl,
+                      toFixed(geo.position?.coords.latitude) || 0,
+                      toFixed(geo.position?.coords.longitude) || 0
+                    )
+                    map.current?.setView([lat, lon], 15)
+                  }
+                }}
+                onZoom={(type) => {
+                  if (!map.current) return
+
+                  const latlng = map.current?.getCenter()
+
+                  map.current?.setView(
+                    [latlng.lat, latlng.lng],
+                    map.current?.getZoom() + (type === 'ZoomIn' ? 0.5 : -0.5)
+                  )
+                }}
+                onFullScreen={(b) => {
+                  setState({
+                    fullScreen: b,
+                  })
+                }}
+              ></ButtonsComponent>
             </div>
           </div>
         </div>

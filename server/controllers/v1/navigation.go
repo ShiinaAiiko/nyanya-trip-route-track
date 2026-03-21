@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
@@ -177,6 +178,10 @@ func (fc *NavigationController) GetNavigationData(c *gin.Context) {
 		return []float64{v.Longitude, v.Latitude}
 	})
 
+	sort.SliceStable(data.Waypoints, func(i, j int) bool {
+		return data.Waypoints[i].Latitude < data.Waypoints[j].Latitude
+	})
+
 	fileName := cipher.MD5(strings.Join(narrays.Map(data.Waypoints, func(v *protos.GetNavigationData_Request_Coords, i int) string {
 		return nstrings.ToString(v.Longitude) + "," + nstrings.ToString(v.Latitude)
 	}), ","))
@@ -193,6 +198,8 @@ func (fc *NavigationController) GetNavigationData(c *gin.Context) {
 		},
 		"radiuses": []int{5000, 5000},
 	}
+
+	// log.Info("params", data.TravelOptions, data.RouteOptions, getSupportedAvoidFeatures(data.TravelOptions, data.RouteOptions))
 
 	jsonData, _ := json.Marshal(params)
 

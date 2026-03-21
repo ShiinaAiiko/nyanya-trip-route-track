@@ -105,22 +105,29 @@ type TripAddresses struct {
 	EntryTime int64 `bson:"entryTime" json:"entryTime,omitempty"`
 }
 
+type TripNetworkStatus struct {
+	//  1 online; 2 offline'
+	Status    int32 `bson:"status" json:"status,omitempty"`
+	Timestamp int64 `bson:"timestamp" json:"timestamp,omitempty"`
+}
+
 type Trip struct {
 	// 使用短ID
 	Id string `bson:"_id" json:"id,omitempty"`
 	// 非必填
 	Name string `bson:"name" json:"name,omitempty"`
 	// Running、Bike、Drive、Motorcycle、Walking、PowerWalking
-	Type        string           `bson:"type" json:"type,omitempty"`
-	Positions   []*TripPosition  `bson:"positions" json:"positions,omitempty"`
-	Addresses   []*TripAddresses `bson:"addresses" json:"addresses,omitempty"`
-	Marks       []*TripMark      `bson:"marks" json:"marks,omitempty"`
-	Cities      []*TripCity      `bson:"cities" json:"cities,omitempty"`
-	Roads       []*TripRoad      `bson:"roads" json:"roads,omitempty"`
-	Statistics  *TripStatistics  `bson:"statistics" json:"statistics,omitempty"`
-	Permissions *TripPermissions `bson:"permissions" json:"permissions,omitempty"`
-	AuthorId    string           `bson:"authorId" json:"authorId,omitempty"`
-	VehicleId   string           `bson:"vehicleId" json:"vehicleId,omitempty"`
+	Type          string               `bson:"type" json:"type,omitempty"`
+	Positions     []*TripPosition      `bson:"positions" json:"positions,omitempty"`
+	Addresses     []*TripAddresses     `bson:"addresses" json:"addresses,omitempty"`
+	NetworkStatus []*TripNetworkStatus `bson:"networkStatus" json:"networkStatus,omitempty"`
+	Marks         []*TripMark          `bson:"marks" json:"marks,omitempty"`
+	Cities        []*TripCity          `bson:"cities" json:"cities,omitempty"`
+	Roads         []*TripRoad          `bson:"roads" json:"roads,omitempty"`
+	Statistics    *TripStatistics      `bson:"statistics" json:"statistics,omitempty"`
+	Permissions   *TripPermissions     `bson:"permissions" json:"permissions,omitempty"`
+	AuthorId      string               `bson:"authorId" json:"authorId,omitempty"`
+	VehicleId     string               `bson:"vehicleId" json:"vehicleId,omitempty"`
 
 	// 1 normal 0 ing -1 delete
 	Status int64 `bson:"status" json:"status,omitempty"`
@@ -155,6 +162,9 @@ func (s *Trip) Default() error {
 	if s.Addresses == nil {
 		s.Addresses = []*TripAddresses{}
 	}
+	if s.NetworkStatus == nil {
+		s.NetworkStatus = []*TripNetworkStatus{}
+	}
 	if s.Statistics == nil {
 		s.Statistics = &TripStatistics{}
 	}
@@ -185,9 +195,10 @@ func (s *Trip) GetCollectionName() string {
 }
 
 type TripFsDB struct {
-	Trip       *fileStorageDB.Model[*Trip]
-	TripIds    *fileStorageDB.Model[[]string]
-	Expiration time.Duration
+	Trip         *fileStorageDB.Model[*Trip]
+	TripPosition *fileStorageDB.Model[[]*TripPosition]
+	TripIds      *fileStorageDB.Model[[]string]
+	Expiration   time.Duration
 }
 
 var tripFsDB *TripFsDB
@@ -202,6 +213,11 @@ func (s *Trip) GetFsDB() *TripFsDB {
 		log.Error(err)
 		return nil
 	}
+	tripPositionDB, err := fileStorageDB.CreateModel[[]*TripPosition](conf.FsDB, s.GetCollectionName())
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
 	tripIdsDB, err := fileStorageDB.CreateModel[[]string](conf.FsDB, s.GetCollectionName()+"list")
 	if err != nil {
 		log.Error(err)
@@ -209,6 +225,7 @@ func (s *Trip) GetFsDB() *TripFsDB {
 	}
 	db := new(TripFsDB)
 	db.Trip = tripDB
+	db.TripPosition = tripPositionDB
 	db.TripIds = tripIdsDB
 	db.Expiration = 15 * time.Minute
 

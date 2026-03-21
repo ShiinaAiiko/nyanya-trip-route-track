@@ -2249,7 +2249,7 @@ func (fc *TripController) UpdateTripAddresses(c *gin.Context) {
 	// 3、验证参数
 	if err = validation.ValidateStruct(
 		data,
-		// validation.Parameter(&data.Trips, validation.GreaterEqual(0), validation.Required()),
+		validation.Parameter(&data.Trips, validation.Length(1, 100000000), validation.Required()),
 	); err != nil {
 		res.Errors(err)
 		res.Code = 10002
@@ -2302,6 +2302,68 @@ func (fc *TripController) UpdateTripAddresses(c *gin.Context) {
 	}
 
 	protoData := &protos.UpdateTripAddresses_Response{}
+
+	res.Data = protos.Encode(protoData)
+
+	res.Call(c)
+}
+
+func (fc *TripController) UpdateTripNetworkStatus(c *gin.Context) {
+	// 1、请求体
+	var res response.ResponseProtobufType
+	res.Code = 200
+
+	// 2、获取参数
+	data := new(protos.UpdateTripNetworkStatus_Request)
+	var err error
+	if err = protos.DecodeBase64(c.GetString("data"), data); err != nil {
+		res.Error = err.Error()
+		res.Code = 10002
+		res.Call(c)
+		return
+	}
+
+	// log.Info("data", data)
+
+	// 3、验证参数
+	if err = validation.ValidateStruct(
+		data,
+		validation.Parameter(&data.Id, validation.Type("string"), validation.Required()),
+		validation.Parameter(&data.NetworkStatus, validation.Length(1, 100000000), validation.Required()),
+	); err != nil {
+		res.Errors(err)
+		res.Code = 10002
+		res.Call(c)
+		return
+	}
+
+	userInfoAny, exists := c.Get("userInfo")
+	if !exists {
+		res.Errors(err)
+		res.Code = 10004
+		res.Call(c)
+		return
+	}
+	userInfo := userInfoAny.(*sso.UserInfo)
+
+	// log.Info(userInfo.Uid, data.Id)
+
+	if err = tripDbx.UpdateTripNetworkStatus(
+		userInfo.Uid, data.Id, narrays.Map(data.NetworkStatus, func(sv *protos.TripNetworkStatus, i int) *models.TripNetworkStatus {
+			return &models.TripNetworkStatus{
+				Status:    sv.Status,
+				Timestamp: sv.Timestamp,
+			}
+		}),
+	); err != nil {
+		log.Error(err)
+		res.Errors(err)
+		res.Code = 10011
+		res.Call(c)
+		return
+	}
+
+	protoData := &protos.UpdateTripNetworkStatus_Response{}
 
 	res.Data = protos.Encode(protoData)
 

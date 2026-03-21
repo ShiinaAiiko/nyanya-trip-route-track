@@ -17,6 +17,15 @@
       color: #444;
       font-size: 14px;
       margin: 0 0 10px;
+      display: flex;
+      justify-content: flex-start;
+      flex-wrap: wrap;
+      .rdhd-desc {
+      }
+      .rdhd-expand {
+        color: var(--saki-default-color);
+        cursor: pointer;
+      }
     }
     .rdh-data {
       font-size: 12px;
@@ -307,5 +316,38 @@
         }
       }
     }
+  }
+}
+
+.navigationsettings-dp {
+  max-width: 300px;
+  padding: 10px;
+  .nd-header {
+    .ndh-left {
+    }
+  }
+  .nd-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 10px 0 10px;
+
+    .ndl-item {
+      background-color: #eee;
+      color: #000;
+      padding: 6px 14px;
+      height: 32px;
+      border-radius: 16px;
+      font-size: 12px;
+      cursor: pointer;
+      &.active {
+        background-color: var(--saki-default-color);
+        color: #fff;
+      }
+    }
+  }
+  .nd-buttons {
+    display: flex;
+    justify-content: flex-end;
   }
 }

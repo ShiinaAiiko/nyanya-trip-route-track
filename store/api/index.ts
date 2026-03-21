@@ -29,6 +29,7 @@ export const apiSlice = createSlice({
         clearTripCities: '/trip/cities/clear',
         clearTripRoads: '/trip/roads/clear',
         UpdateTripAddresses: '/trip/addresses/update',
+        UpdateTripNetworkStatus: '/trip/networkStatus/update',
 
         addVehicle: '/vehicle/add',
         getVehicles: '/vehicle/get/list',

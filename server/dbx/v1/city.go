@@ -505,9 +505,12 @@ func (t *CityDbx) GetCities(ids []string) ([]*models.City, error) {
 	if len(cities) == 0 {
 		tempCities, err := t.getCities(ids, []string{})
 
+		log.Error("tempCities", len(tempCities))
 		if err != nil {
 			return nil, err
 		}
+
+		// return tempCities, nil
 
 		tempCities, err = t.CitiesI18n(tempCities)
 
@@ -975,7 +978,7 @@ func (t *CityDbx) GetOsmInfo(fullName string) (*OsmInfo, error) {
 	err := conf.Redisdb.GetStruct(key.GetKey(fullName), result)
 
 	// log.Info(err, result, fullName)
-	if err != nil || result == nil || true {
+	if err != nil {
 		resp, err := conf.RestyClient.R().SetQueryParams(map[string]string{
 			"q":      fullName,
 			"format": "jsonv2",
@@ -1104,7 +1107,7 @@ func (t *CityDbx) CityI18n(city *models.City, cities []*models.City) (*I18nInfo,
 		city.Names = new(models.CityNames)
 	}
 
-	// log.Info(city.Names.CreateTime >= timestamp && len(city.Names.Names) > 0)
+	// log.Info("CityI18n", city.Names.CreateTime >= timestamp, len(city.Names.Names))
 
 	if city.Names.CreateTime >= timestamp && len(city.Names.Names) > 0 {
 		result = t.FortmatNames(city, &OsmInfo{
@@ -1112,37 +1115,55 @@ func (t *CityDbx) CityI18n(city *models.City, cities []*models.City) (*I18nInfo,
 		})
 		return result, nil
 	}
-	fn := t.getFullName(city.Id, cities)
-	// log.Info(fn)
 
-	osmInfo, err := t.GetOsmInfo(fn)
-	if err != nil {
-		return nil, err
+	fsdb := city.GetFsDB()
+
+	isCacheFetched := false
+
+	if b, err := fsdb.CityNamesCache.Get(city.Id); err == nil {
+		isCacheFetched = b.Value()
 	}
-	log.Info(osmInfo)
 
-	if osmInfo == nil {
-		osmInfo, err = t.GetOsmInfo(
-			nstrings.StringOr(city.Name.ZhCN, city.Name.En))
+	// log.Warn("isCacheFetched", isCacheFetched)
+	if !isCacheFetched {
+		fn := t.getFullName(city.Id, cities)
+		// log.Info(fn)
+
+		osmInfo, err := t.GetOsmInfo(fn)
 		if err != nil {
 			return nil, err
 		}
+		log.Info("osmInfo", osmInfo, fn)
+
 		if osmInfo == nil {
-			return result, nil
+
+			osmInfo, err = t.GetOsmInfo(
+				nstrings.StringOr(city.Name.ZhCN, city.Name.En))
+			if err != nil {
+				return nil, err
+			}
+			err := fsdb.CityNamesCache.Set(city.Id, true, 0)
+			if err != nil {
+				log.Error(err)
+			}
+			if osmInfo == nil {
+				return result, nil
+			}
+
 		}
 
-	}
+		result = t.FortmatNames(city, osmInfo)
 
-	result = t.FortmatNames(city, osmInfo)
+		if err := t.UpdateCity(city.Id, fn, nil, &models.CityNames{
+			Names:      osmInfo.Names,
+			CreateTime: timestamp + 3600*24*30*6,
+		}); err != nil {
+			log.Error(err)
+			return result, err
+		}
+		// log.Info(city.Id, fn, osmInfo, osmInfo.Names, err)
 
-	if err := t.UpdateCity(city.Id, fn, nil, &models.CityNames{
-		Names:      osmInfo.Names,
-		CreateTime: timestamp + 3600*24*30,
-	}); err != nil {
-		log.Error(err)
-		return result, err
 	}
-	// log.Info(city.Id, fn, osmInfo, osmInfo.Names, err)
 
 	return result, nil
 }

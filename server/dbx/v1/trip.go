@@ -2,11 +2,9 @@ package dbxV1
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
-	"os"
 	"sort"
 	"time"
 
@@ -228,7 +226,7 @@ func (t *TripDbx) UpdateTripPosition(authorId, id string, positions []*models.Tr
 	// }
 
 	// 1、获取positions
-	if _, err := readTempGPSFile(trip, false); err != nil {
+	if _, err := readGPSFile(trip); err != nil {
 		log.Error("readGPSFile", err)
 		return err
 	}
@@ -271,7 +269,7 @@ func (t *TripDbx) UpdateTripPosition(authorId, id string, positions []*models.Tr
 	// 之后根据时间戳排序
 
 	// 3、写入positions
-	if _, err := writeGPSFile(trip, false); err != nil {
+	if err := writeGPSFile(trip, false); err != nil {
 		log.Error("writeGPSFile", err)
 		return err
 	}
@@ -703,6 +701,41 @@ func (t *TripDbx) UpdateTripAddresses(authorId, id string, addresses []*models.T
 	return nil
 }
 
+func (t *TripDbx) UpdateTripNetworkStatus(authorId, id string, networkStatus []*models.TripNetworkStatus) error {
+	trip := new(models.Trip)
+
+	updateResult, err := trip.GetCollection().UpdateOne(context.TODO(),
+		bson.M{
+			"$and": []bson.M{
+				{
+					"_id": id,
+				},
+				{
+					"authorId": authorId,
+					"status": bson.M{
+						"$in": []int64{1, 0},
+					},
+				},
+			},
+		}, bson.M{
+			"$set": bson.M{
+				"networkStatus":  networkStatus,
+				"lastUpdateTime": time.Now().Unix(),
+			},
+		}, options.Update().SetUpsert(false))
+
+	if err != nil {
+		return err
+	}
+	if updateResult.ModifiedCount == 0 {
+		return errors.New("update fail")
+	}
+
+	// 删除对应redis
+	t.DeleteRedisData(authorId, id)
+	return nil
+}
+
 func (t *TripDbx) ResumeTrip(id, authorId string) error {
 	trip := new(models.Trip)
 
@@ -876,7 +909,7 @@ func (t *TripDbx) UpdateTripAllPositions(authorId, id string, positions []*model
 
 	trip.Positions = positions
 
-	if _, err := writeGPSFile(trip, true); err != nil {
+	if err := writeGPSFile(trip, false); err != nil {
 		return err
 	}
 
@@ -1028,7 +1061,7 @@ func (t *TripDbx) TempDownloadTripPositionsToLocal(pageNum, pageSize int64) {
 	log.Info(len(results), pageSize, pageNum)
 
 	for _, v := range results {
-		writeGPSFile(v, true)
+		writeGPSFile(v, false)
 	}
 
 	if len(results) == 5 {
@@ -1185,74 +1218,170 @@ func (t *TripDbx) TempUpdateTripPositions(pageNum, pageSize int64) {
 // （每次新版本号就删除之前的。
 // （这样就可以避免每次都检测出问题后重复更新数据库了
 // 万一发现代码逻辑问题，数据好回调
-func writeGPSFile(trip *models.Trip, tempFile bool) (string, error) {
+
+func writeGPSFile(trip *models.Trip, isOnlyTempFile bool) error {
 	if trip == nil || trip.CreateTime == 0 {
-		return "", nil
+		return nil
 	}
 
-	tempFolderPath := "./static/gps/" + time.Unix(trip.CreateTime, 0).Format("2006/01/02")
+	fsdb := trip.GetFsDB()
 
-	if tempFile {
-		tempFolderPath = "./static/gps/temp/" + conf.Config.Version + "/" + time.Unix(trip.CreateTime, 0).Format("2006/01/02")
-	} else {
-		os.Remove("./static/gps/temp/" + conf.Config.Version + "/" + time.Unix(trip.CreateTime, 0).Format("2006/01/02") + "/" + trip.Id)
-	}
-	if err := os.MkdirAll(tempFolderPath, os.ModePerm); err != nil {
-		return tempFolderPath, err
-	}
-
-	// log.Info("writeGPSFile5", trip.CreateTime, len(trip.Positions), trip.Id, tempFolderPath)
-	gpsFile, err := os.Create(tempFolderPath + "/" + trip.Id)
-	if err != nil {
+	if err := fsdb.TripPosition.Set(trip.Id, trip.Positions, 0); err != nil {
 		log.Error(err)
-		return "", err
 	}
-	str, _ := json.Marshal(trip.Positions)
 
-	if _, err := gpsFile.Write([]byte(str)); err != nil {
-		return "", err
+	if !isOnlyTempFile {
+
+		// 未来如果上传压力大，可以考虑用deb
+		tempFolderPath := "./gps/" + time.Unix(trip.CreateTime, 0).Format("2006/01/02") + "/"
+
+		csf := conf.SAaSS.CreateCloudServiceFile()
+		if err := csf.UploadFile(trip.Positions, tempFolderPath, trip.Id, -1); err != nil {
+			log.Error(err)
+			return err
+		}
+		return nil
 	}
-	return tempFolderPath, nil
+	return nil
+
+	// // tempFolderPath := "./static/gps/" + time.Unix(trip.CreateTime, 0).Format("2006/01/02")
+
+	// tempFolderPath := "./static/gps/temp/" + conf.Config.Version + "/" + time.Unix(trip.CreateTime, 0).Format("2006/01/02")
+	// if err := os.MkdirAll(tempFolderPath, os.ModePerm); err != nil {
+	// 	return tempFolderPath, err
+	// }
+
+	// // log.Info("writeGPSFile5", trip.CreateTime, len(trip.Positions), trip.Id, tempFolderPath)
+	// gpsFile, err := os.Create(tempFolderPath + "/" + trip.Id)
+	// if err != nil {
+	// 	log.Error(err)
+	// 	return "", err
+	// }
+	// str, _ := json.Marshal(trip.Positions)
+
+	// if _, err := gpsFile.Write([]byte(str)); err != nil {
+	// 	return "", err
+	// }
+
+	// if !isOnlyTempFile {
+	// 	tempFolderPath := "./gps/" + time.Unix(trip.CreateTime, 0).Format("2006/01/02") + "/"
+
+	// 	csf := conf.SAaSS.CreateCloudServiceFile()
+	// 	if err := csf.UploadFile(trip.Positions, tempFolderPath, trip.Id, -1); err != nil {
+	// 		log.Error(err)
+	// 		return "", err
+	// 	}
+	// 	// return tempFolderPath, nil
+	// }
+
+	// // if tempFile {
+
+	// // } else {
+	// // 	// os.Remove("./static/gps/temp/" + conf.Config.Version + "/" + time.Unix(trip.CreateTime, 0).Format("2006/01/02") + "/" + trip.Id)
+	// // }
+
 }
 
 func readGPSFile(trip *models.Trip) (*models.Trip, error) {
-	return readTempGPSFile(trip, true)
+
+	// return readGPSFileBySAaSS(trip)
+
+	fsdb := trip.GetFsDB()
+
+	if results, err := fsdb.TripPosition.Get(trip.Id); err == nil {
+		trip.Positions = results.Value()
+		return trip, nil
+	}
+
+	tripPositions, err := readGPSFileBySAaSS(trip)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+
+	trip.Positions = tripPositions
+
+	// return readTempGPSFile(trip, true)
+
+	return trip, nil
+
 }
 
-func readTempGPSFile(trip *models.Trip, tempFile bool) (*models.Trip, error) {
-	tempTrip := new([]*models.TripPosition)
+func readGPSFileBySAaSS(trip *models.Trip) ([]*models.TripPosition, error) {
+	tempTripPosition := new([]*models.TripPosition)
 
-	// log.Info("v ...interface{}", trip.CreateTime)
+	// log.Warn("readGPSFileBySAaSS", tempTripPosition)
 	if trip == nil || trip.CreateTime == 0 {
 		return nil, nil
 	}
-	trip.Positions = *tempTrip
+	// trip.Positions = *tempTripPosition
 
-	tempFolderPath := "./static/gps/" + time.Unix(trip.CreateTime, 0).Format("2006/01/02")
+	tempFolderPath := "./gps/" + time.Unix(trip.CreateTime, 0).Format("2006/01/02") + "/"
 
-	if tempFile {
-		tempFolderPath = "./static/gps/temp/" + conf.Config.Version + "/" + time.Unix(trip.CreateTime, 0).Format("2006/01/02")
-	}
+	csf := conf.SAaSS.CreateCloudServiceFile()
 
-	// log.Info(tempFolderPath + "/" + trip.Id)
-
-	jsonFile, _ := os.Open(tempFolderPath + "/" + trip.Id)
-
-	defer jsonFile.Close()
-	decoder := json.NewDecoder(jsonFile)
-
-	err := decoder.Decode(&tempTrip)
-	// log.Error("tempTrip", tempTrip)
-	if err != nil || tempTrip == nil || len(*tempTrip) == 0 {
-		if tempFile {
-			return readTempGPSFile(trip, false)
-		}
-		log.Error(err, trip.Id)
+	file, err := csf.GetFile(tempFolderPath, trip.Id)
+	if err != nil {
+		log.Error(err)
 		return nil, err
 	}
-	trip.Positions = *tempTrip
-	return trip, nil
+	// log.Warn("readGPSFileBySAaSS cdFile", file)
+
+	if err = file.JSON(tempTripPosition); err != nil {
+		log.Error(file, err)
+		return nil, err
+	}
+
+	// log.Warn("readGPSFileBySAaSS", len(*tempTripPosition))
+
+	// trip.Positions = *tempTripPosition
+
+	// 下载了就缓存到本地
+	writeGPSFile(trip, true)
+	return *tempTripPosition, nil
 }
+
+// func readTempGPSFile(trip *models.Trip, tempFile bool) (*models.Trip, error) {
+// 	tempTrip := new([]*models.TripPosition)
+
+// 	// log.Info("v ...interface{}", trip.CreateTime)
+// 	if trip == nil || trip.CreateTime == 0 {
+// 		return nil, nil
+// 	}
+// 	// return readGPSFileBySAaSS(trip)
+// 	if !tempFile {
+// 		return readGPSFileBySAaSS(trip)
+// 	}
+
+// 	trip.Positions = *tempTrip
+
+// 	tempFolderPath := "./static/gps/" + time.Unix(trip.CreateTime, 0).Format("2006/01/02")
+
+// 	if tempFile {
+// 		tempFolderPath = "./static/gps/temp/" + conf.Config.Version + "/" + time.Unix(trip.CreateTime, 0).Format("2006/01/02")
+// 	}
+
+// 	// log.Info(tempFolderPath + "/" + trip.Id)
+
+// 	jsonFile, _ := os.Open(tempFolderPath + "/" + trip.Id)
+
+// 	defer jsonFile.Close()
+// 	decoder := json.NewDecoder(jsonFile)
+
+// 	err := decoder.Decode(&tempTrip)
+// 	// log.Error("tempTrip", tempTrip)
+// 	if err != nil || tempTrip == nil || len(*tempTrip) == 0 {
+// 		if tempFile {
+// 			// 为false，则直接去saass拿，再没有就G
+// 			return readGPSFileBySAaSS(trip)
+// 			// return readTempGPSFile(trip, false)
+// 		}
+// 		log.Error(err, trip.Id)
+// 		return nil, err
+// 	}
+// 	trip.Positions = *tempTrip
+// 	return trip, nil
+// }
 
 func (t *TripDbx) GetTripPositions(id string, authorId string) (*models.Trip, error) {
 	trip := new(models.Trip)

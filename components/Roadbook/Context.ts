@@ -17,6 +17,7 @@ export interface TimelineDaysItem {
   daysIntoTrip: number
   startDate: string
   endDate: string
+  distanceTraveled: number
 }
 
 export const initValue = {
@@ -88,6 +89,7 @@ export const initValue = {
 
   selectedTimelineId: '',
   updateWaypointId: '',
+  addNewWaypointAfterThisWaypointId: '',
   selectWaypointOnMap: {
     allow: true,
     coordinates: {
@@ -140,6 +142,7 @@ export const initValue = {
   },
 
   fullMap: false,
+  fullScreen: false,
 
   // loadedMap: false,
 
@@ -150,6 +153,8 @@ export const initValue = {
   initTimelineDays(rb: protoRoot.roadbook.IRoadbookItem | undefined) {
     const startTime = Number(rb?.startTime) * 1000
     let daysIntoTrip = 1
+    let distanceTraveled = 0
+    // let days = 0
     const timelineDays = rb?.timelines?.reduce((t, v, i, arr) => {
       // if (i === 0) {
       //   t.push({
@@ -161,23 +166,41 @@ export const initValue = {
       //   return t
       // }
       const startDate = moment(startTime).add(daysIntoTrip - 1, 'days')
-      const endDate = startDate.clone().add(Number(v.days) - 1, 'days')
+      const endDate = moment(startTime).add(
+        daysIntoTrip + Number(v.days) - 1,
+        'days'
+      )
       t.push({
         id: v.id || '',
         daysIntoTrip: daysIntoTrip,
         startDate: startDate.format('YYYY.M.D'),
         endDate: endDate.format('YYYY.M.D'),
+        distanceTraveled: distanceTraveled,
       })
       daysIntoTrip = daysIntoTrip + Number(v.days)
+      distanceTraveled =
+        distanceTraveled +
+        (v.waypoints?.reduce((t, sv, si, sarr) => {
+          return t + (sv.navigation?.distance || 0)
+        }, 0) || 0)
 
+      // days = days + Number(v.days)
+      // console.log(
+      //   'daysIntoTrip',
+      //   daysIntoTrip,
+      //   startDate.format('MM.DD'),
+      //   endDate.format('MM.DD'),
+      //   days
+      // )
       if (i === arr.length - 1) {
         const startDate = moment(startTime)
-        const endDate = startDate.clone().add(daysIntoTrip - 1, 'days')
+        const endDate = startDate.clone().add(daysIntoTrip - 2, 'days')
         t.push({
           id: rb.id || '',
           daysIntoTrip: daysIntoTrip - 1,
           startDate: startDate.format('YYYY.M.D'),
           endDate: endDate.format('YYYY.M.D'),
+          distanceTraveled: distanceTraveled,
         })
       }
 

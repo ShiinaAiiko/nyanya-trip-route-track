@@ -35,6 +35,7 @@ import {
   SakiButton,
   SakiDropdown,
   SakiIcon,
+  SakiRow,
   SakiTitle,
 } from './saki-ui-react/components'
 import { getMapThumbnail } from '../store/map'
@@ -607,13 +608,35 @@ const Maps = ({
     >
       {featuresList.mapLayer ? (
         <>
-          <SakiTitle margin="0 0 6px 0" color="default" level={5}>
-            <span>
-              {t('basemap', {
-                ns: 'settings',
-              })}
-            </span>
-          </SakiTitle>
+          <SakiRow justifyContent="space-between" alignItems="center">
+            <SakiTitle margin="0 0 6px 0" color="default" level={5}>
+              <span>
+                {t('basemap', {
+                  ns: 'settings',
+                })}
+              </span>
+            </SakiTitle>
+
+            <SakiButton
+              onTap={() => {
+                eventListener.getEventNames().forEach((v) => {
+                  if (v.includes('ResetMap')) {
+                    eventListener.dispatch(v, undefined)
+                  }
+                })
+              }}
+              margin="0 -6px 0 0"
+              type="Normal"
+              color="#666"
+              border=""
+            >
+              <span>
+                {t('resetMap', {
+                  ns: 'prompt',
+                })}
+              </span>
+            </SakiButton>
+          </SakiRow>
 
           {new Array(Math.ceil(mapLayers.length / 4)).fill(0).map((_, i) => {
             console.log('mapLayers', i)

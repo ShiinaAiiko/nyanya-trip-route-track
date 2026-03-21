@@ -399,7 +399,7 @@ export interface CityInfo {
 }
 
 // 2. 配置常量（保持您的原始命名和值）
-const levelMap: { [key: number]: string[] } = {
+export const levelMap: { [key: number]: string[] } = {
   0: ['country'],
   4: ['state'],
   6: ['region'],
@@ -414,6 +414,130 @@ const minPixelDistance = 50 // 保持您原始的50像素距离
 export const cityNameMarkerCache = new WeakMap<L.Map, Map<string, L.Marker>>()
 
 // 4. 核心函数（完全保持您的业务逻辑）
+
+export const filterGridPoints = ({
+  map,
+  citiesArr,
+  levelMap,
+  zoom,
+}: {
+  map: L.Map
+  citiesArr: CityInfo[]
+  levelMap: {
+    [key: number]: string[]
+  }
+  zoom: number
+}) => {
+  if (!map) return
+  const L: typeof Leaflet = (window as any).L
+
+  // 1. 获取当前应显示的层级（完全一致）
+  let displayLevels: string[] = []
+  for (const [zoomLevel, levels] of Object.entries(levelMap)) {
+    if (zoom >= parseInt(zoomLevel)) {
+      displayLevels = levels
+    } else {
+      break
+    }
+  }
+
+  // 2. 筛选要显示的城市（保持递归添加父级逻辑）
+  const citiesToDisplay: CityInfo[] = []
+  const addedNames = new Set<string>()
+
+  citiesArr.forEach((city) => {
+    if (!displayLevels.includes(city.levelStr)) return
+
+    // 添加当前城市（确保名称唯一）
+    if (!addedNames.has(city.name)) {
+      citiesToDisplay.push(city)
+      addedNames.add(city.name)
+    }
+
+    // 完全保持您的父级添加逻辑
+    let parentId = city.parentCityId
+    while (parentId) {
+      const parentCity = citiesArr.find((c) => c.id === parentId)
+      if (
+        parentCity &&
+        displayLevels.includes(parentCity.levelStr) &&
+        !addedNames.has(parentCity.name)
+      ) {
+        citiesToDisplay.push(parentCity)
+        addedNames.add(parentCity.name)
+      }
+      parentId = parentCity?.parentCityId || ''
+    }
+  })
+
+  // 3. 网格分区（完全一致）
+  const gridSize = 1 / Math.pow(2, zoom - 5)
+  const grid: { [key: string]: CityInfo[] } = {}
+
+  citiesToDisplay.forEach((city) => {
+    const [lat, lng] = city.coordinates
+    const gridKey = `${Math.floor(lat / gridSize)}-${Math.floor(
+      lng / gridSize
+    )}`
+    if (!grid[gridKey]) {
+      grid[gridKey] = []
+    }
+    grid[gridKey].push(city)
+  })
+
+  // 4. 网格内过滤（严格保持您的层级关系检查）
+  const filteredGrid: { [key: string]: CityInfo[] } = {}
+
+  for (const gridKey in grid) {
+    const gridCities = grid[gridKey]
+
+    // 完全保持您的优先级排序逻辑
+    gridCities.sort((a, b) => {
+      const priorityA = levelPriority(a.levelStr, displayLevels)
+      const priorityB = levelPriority(b.levelStr, displayLevels)
+      return priorityA - priorityB
+    })
+
+    // 完全保持您的层级关系检查
+    const selectedCities: CityInfo[] = []
+    for (const city of gridCities) {
+      const isRelated = selectedCities.some((selected) =>
+        isInSameHierarchy(selected, city, citiesArr)
+      )
+      if (!isRelated) {
+        selectedCities.push(city)
+      }
+    }
+    filteredGrid[gridKey] = selectedCities
+  }
+
+  // 5. 像素距离检测（完全一致的计算公式）
+  const finalCities: CityInfo[] = []
+  const usedPositions: { x: number; y: number }[] = []
+
+  Object.values(filteredGrid)
+    .flat()
+    .forEach((city) => {
+      // console.log('finalCities map', map?.latLngToLayerPoint, city.coordinates)
+      const point = map.latLngToLayerPoint(L.latLng(city.coordinates as any))
+
+      // console.log('finalCities point', point)
+
+      const isTooClose = usedPositions.some((pos) => {
+        const dx = point.x - pos.x
+        const dy = point.y - pos.y
+        return Math.sqrt(dx * dx + dy * dy) < minPixelDistance
+      })
+
+      if (!isTooClose) {
+        finalCities.push(city)
+        usedPositions.push({ x: point.x, y: point.y })
+      }
+    })
+
+  return finalCities
+}
+
 export function updateCityMarkers(
   map: L.Map,
   citiesArr: CityInfo[],
@@ -1198,6 +1322,8 @@ export const cityMethods = {
     ) => {
       const dispatch = thunkAPI.dispatch
 
+      console.trace('GetAllCitiesVisitedByUser')
+
       const { city } = store.getState()
 
       // if (
@@ -1241,7 +1367,12 @@ export const cityMethods = {
           jmId,
           tripId,
         })
-        console.log('renderPolyline res gcv', tripIds, res)
+        console.log(
+          'renderPolyline res gcv',
+          tripIds.length,
+          res,
+          JSON.stringify(res).length
+        )
         if (res.code === 200) {
           await storage.global.set(
             'GetAllCitiesVisitedByUser' + jmId + tripId,

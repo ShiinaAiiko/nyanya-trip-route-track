@@ -932,6 +932,7 @@ export const formartAddrName = (
     'tertiary',
     'residential',
     'unclassified',
+    'town',
   ]
 
   return roadTypes.includes(v?.address?.type || '')
@@ -1759,6 +1760,7 @@ export const tripMethods = {
       },
       thunkAPI
     ) => {
+      console.log('GetTripHistoryData load')
       const dispatch = thunkAPI.dispatch
       const { trip, config, user } = store.getState()
 
@@ -1801,7 +1803,7 @@ export const tripMethods = {
               tripIds: [],
             })
           ).unwrap()
-          console.log('gcv', cities)
+          console.log('GetAllCitiesVisitedByUser gcv', cities)
 
           const cityDetailsMap = cities.reduce(
             (results, v, i) => {
@@ -2255,7 +2257,10 @@ export const tripMethods = {
               id: v.id,
             })
 
-            if (res.code !== 200) {
+            if (
+              res.code !== 200 ||
+              !res.data.tripPositions?.positions?.length
+            ) {
               isAdd = false
               return
             }

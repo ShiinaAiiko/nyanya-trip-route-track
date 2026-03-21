@@ -16,6 +16,8 @@ import {
 import NoSSR from '../NoSSR'
 import { bindEvent } from '@saki-ui/core'
 import { DataContext } from './Context'
+import { getLatLng, getLatLngGcj02ToWgs84 } from '../../plugins/methods'
+import { getMapLayer } from '../../store/config'
 
 interface Address {
   district: string
@@ -120,6 +122,14 @@ export const SearchWaypointModal = ({
 
     setLoadStatus('loading')
 
+    // const ml = getMapLayer('roadbookPage')
+
+    // let latlng = getLatLng(
+    //   ml.mapUrl,
+    //   state.selectWaypointOnMap.coordinates.lat,
+    //   state.selectWaypointOnMap.coordinates.lng
+    // )
+
     markerRef.current = state.showLatlng(
       state.selectWaypointOnMap.coordinates.lat,
       state.selectWaypointOnMap.coordinates.lng,
@@ -143,8 +153,8 @@ export const SearchWaypointModal = ({
           licence: '',
           osm_type: '',
           osm_id: 0,
-          lat: res.lat.toString(),
-          lon: res.lng.toString(),
+          lat: String(state.selectWaypointOnMap.coordinates.lat),
+          lon: String(state.selectWaypointOnMap.coordinates.lng),
           category: '',
           type: '',
           place_rank: 0,
@@ -184,8 +194,8 @@ export const SearchWaypointModal = ({
       markerRef.current.close()
 
       markerRef.current = state.showLatlng(
-        res.lat,
-        res.lng,
+        state.selectWaypointOnMap.coordinates.lat,
+        state.selectWaypointOnMap.coordinates.lng,
         res.road || res.town || res.city || res.region || res.state || '',
         false
       )

@@ -114,13 +114,8 @@ const NewDashboardComponent = ({
 
   const { t, i18n } = useTranslation('tripPage')
   const [mounted, setMounted] = useState(false)
-  const { config, vehicle, trip } = useSelector((state: RootState) => {
-    const { config, vehicle, trip } = state
-    return {
-      config,
-      vehicle,
-      trip,
-    }
+  const { config, vehicle, trip, network } = useSelector((state: RootState) => {
+    return state
   })
   // const trip = useSelector((state: RootState) => state.trip)
   // const layout = useSelector((state: RootState) => state.layout)
@@ -1518,18 +1513,33 @@ const NewDashboardComponent = ({
 								''
 							)}
 						</div> */}
+          {/* <span>{textTheme}</span> */}
+          {/* <span>{dataTheme}</span> */}
           {!povMode ? (
-            <saki-icon
-              margin="0px 4px 0 6px"
-              color={
-                gpsSignalStatus === 1
-                  ? 'var(--saki-default-color)'
-                  : gpsSignalStatus === 0
-                    ? '#eccb56'
-                    : '#b0aa93'
-              }
-              type="GPSFill"
-            ></saki-icon>
+            <>
+              <saki-icon
+                margin="0px 10px"
+                color={
+                  network.status === 'online'
+                    ? dataTheme === 'Dark'
+                      ? '#fff'
+                      : '#000'
+                    : '#eccb56'
+                }
+                type={network.status === 'online' ? 'Online' : 'Offline'}
+              ></saki-icon>
+              <saki-icon
+                margin="0px 6px 0 10px"
+                color={
+                  gpsSignalStatus === 1
+                    ? 'var(--saki-default-color)'
+                    : gpsSignalStatus === 0
+                      ? '#eccb56'
+                      : '#b0aa93'
+                }
+                type="GPSFill"
+              ></saki-icon>
+            </>
           ) : (
             ''
           )}

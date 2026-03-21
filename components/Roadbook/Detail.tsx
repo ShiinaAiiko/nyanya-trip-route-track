@@ -70,6 +70,8 @@ export const RoadBookDetailPage = ({ show }: { show: boolean }) => {
 
   const [navigationSettings, setNavigationSettings] = useState(false)
 
+  const [copyTimelineId, setCopyTimelineId] = useState('')
+
   const { polylines, setPolylines } = {
     polylines: state.polylines,
     setPolylines: (v: typeof state.polylines) => {
@@ -380,16 +382,35 @@ export const RoadBookDetailPage = ({ show }: { show: boolean }) => {
     }).open()
   }
 
-  const addTimeline = async () => {
+  const addTimeline = async (id?: string) => {
+    const timelines = (roadBookItem?.timelines || []).reduce((t, v, i, arr) => {
+      t.push(v)
+
+      if ((!id && i === arr.length - 1) || (id && v.id === id)) {
+        t.push({
+          id: getShortId(11),
+          title: '',
+          desc: '',
+          days: 1,
+          waypoints: [],
+        })
+      }
+
+      return t
+    }, [] as protoRoot.roadbook.IRoadbookTimelineItem[])
     setRoadBookItem({
       ...roadBookItem,
-      timelines: (roadBookItem?.timelines || []).concat({
-        id: getShortId(11),
-        title: '',
-        desc: '',
-        days: 1,
-        waypoints: [],
-      }),
+      timelines: timelines.length
+        ? timelines
+        : [
+            {
+              id: getShortId(11),
+              title: '',
+              desc: '',
+              days: 1,
+              waypoints: [],
+            },
+          ],
     })
 
     setLastUpdateTime(new Date().getTime())
@@ -690,8 +711,7 @@ export const RoadBookDetailPage = ({ show }: { show: boolean }) => {
     wId: string,
     waypoints: protoRoot.roadbook.IRoadbookWaypointItem
   ) => {
-    console.log('updateWaypoints', tlId, wId)
-
+    let curIndex = -1
     setState({
       roadBookItem: {
         ...roadBookItem,
@@ -699,38 +719,68 @@ export const RoadBookDetailPage = ({ show }: { show: boolean }) => {
           if (v.id === tlId) {
             return {
               ...v,
-              waypoints: (v.waypoints || [])?.map((sv, si, sarr) => {
-                if (sarr?.[si - 1]) {
-                  return state.deleteNavigationData(v)
-                }
+              waypoints: (v.waypoints || [])
+                ?.map((sv, si, sarr) => {
+                  // if (sarr?.[si - 1]) {
+                  //   return state.deleteNavigationData(v)
+                  // }
 
-                if (sv.id === wId) {
-                  const lastWp = sarr?.[si - 1]
-                  // console.log(
-                  //   'getDistance',
-                  //   lastWp,
-                  //   getDistance(
-                  //     Number(waypoints.coords?.latitude),
-                  //     Number(waypoints.coords?.latitude),
-                  //     Number(lastWp?.coords?.latitude),
-                  //     Number(lastWp?.coords?.latitude)
-                  //   )
-                  // )
-
-                  waypoints.navigation = {
-                    distance: 0,
-                    duration: 0,
-                    travelMode: '',
-                    urls: {
-                      domainUrl: '',
-                      shortUrl: '',
-                      url: '',
-                    },
+                  if (sv.id === wId) {
+                    curIndex = si
+                    waypoints.navigation = {
+                      distance: 0,
+                      duration: 0,
+                      travelMode: '',
+                      urls: {
+                        domainUrl: '',
+                        shortUrl: '',
+                        url: '',
+                      },
+                    }
+                    return waypoints
                   }
-                  return waypoints
+                  return sv
+                })
+                .map((sv, si, sarr) => {
+                  if (curIndex > 0 && si === curIndex - 1) {
+                    return state.deleteNavigationData(sv)
+                  }
+                  return sv
+                }),
+            }
+          }
+          return v
+        }),
+      },
+
+      updateWaypointId: '',
+      selectedTimelineId: '',
+    })
+
+    setLastUpdateTime(new Date().getTime())
+  }
+
+  const addNewWaypointAfterThisWaypointId = async (
+    tlId: string,
+    oldWpId: string,
+    waypoints: protoRoot.roadbook.IRoadbookWaypointItem
+  ) => {
+    setState({
+      roadBookItem: {
+        ...roadBookItem,
+        timelines: roadBookItem?.timelines?.map((v) => {
+          if (v.id === tlId) {
+            return {
+              ...v,
+              waypoints: (v.waypoints || [])?.reduce((t, sv, si, sarr) => {
+                if (sv.id === oldWpId) {
+                  t.push(state.deleteNavigationData(sv))
+                  t.push(waypoints)
+                } else {
+                  t.push(sv)
                 }
-                return sv
-              }),
+                return t
+              }, [] as protoRoot.roadbook.IRoadbookWaypointItem[]),
             }
           }
           return v
@@ -768,17 +818,18 @@ export const RoadBookDetailPage = ({ show }: { show: boolean }) => {
               if (v.id === tlId) {
                 return {
                   ...v,
-                  waypoints: [
-                    ...(v.waypoints?.filter((sv) => sv.id !== wpId) || []),
-                  ].map((sv, si, sarr) => {
-                    if (si === sarr.length - 1) {
-                      return {
-                        ...state.deleteNavigationData(sv),
-                        // lastNavigationTime: sv.lastNavigationTime,
+                  waypoints: v.waypoints?.reduce((t, sv, si, sarr) => {
+                    if (sv.id !== wpId) {
+                      t.push(sv)
+                    } else {
+                      if (t[t.length - 1]) {
+                        t[t.length - 1] = state.deleteNavigationData(
+                          t[t.length - 1]
+                        )
                       }
                     }
-                    return sv
-                  }),
+                    return t
+                  }, [] as protoRoot.roadbook.IRoadbookWaypointItem[]),
                 }
               }
               return v
@@ -947,17 +998,40 @@ export const RoadBookDetailPage = ({ show }: { show: boolean }) => {
     setLastUpdateTime(new Date().getTime())
   }
 
+  const [expandDesc, setExpandDesc] = useState(false)
+  const descEl = useRef<HTMLDivElement>(null)
+
   return (
-    <div className="roadbook-detail-page scrollBarHover page-transition">
+    <div className={`roadbook-detail-page scrollBarHover page-transition`}>
       <div className="rd-header">
         {/* <div className="rdh-date">2026.01.01 - 2026.01.02</div>
         <div className="rdh-title">{roadBookItem?.title}</div> */}
-        <div
-          className="rdh-desc"
-          dangerouslySetInnerHTML={{
-            __html: roadBookItem?.desc || '',
-          }}
-        ></div>
+        <div className={`rdh-desc`}>
+          <div
+            ref={descEl}
+            className={`rdhd-desc ${expandDesc ? '' : 'text-three-elipsis'}`}
+            dangerouslySetInnerHTML={{
+              __html: roadBookItem?.desc || '',
+            }}
+          ></div>
+
+          {!expandDesc &&
+          Number(descEl.current?.scrollHeight) >
+            Number(descEl.current?.clientHeight) ? (
+            <div
+              className="rdhd-expand"
+              onClick={() => {
+                setExpandDesc(!expandDesc)
+              }}
+            >
+              {t(!expandDesc ? 'expand' : '', {
+                ns: 'prompt',
+              })}
+            </div>
+          ) : (
+            ''
+          )}
+        </div>
         <div className="rdh-data">
           <span>
             {t('dataFull', {
@@ -1161,31 +1235,71 @@ export const RoadBookDetailPage = ({ show }: { show: boolean }) => {
                       <div className="nd-buttons">
                         <SakiButton
                           onTap={() => {
-                            setState({
-                              roadBookItem: {
-                                ...roadBookItem,
-                                timelines: state.roadBookItem?.timelines?.map(
-                                  (v) => {
-                                    v.waypoints = v.waypoints?.map((sv) => {
-                                      return {
-                                        ...sv,
-                                        lastNavigationTime: -1,
-                                      }
-                                    })
+                            alert({
+                              title: t('resetNavigationRoute', {
+                                ns: 'roadBookPage',
+                              }),
+                              content: t('resetNavigationRouteContent', {
+                                ns: 'roadBookPage',
+                              }),
+                              cancelText: t('cancel', {
+                                ns: 'prompt',
+                              }),
+                              confirmText: t('confirm', {
+                                ns: 'prompt',
+                              }),
+                              onCancel() {},
+                              async onConfirm() {
+                                setState({
+                                  roadBookItem: {
+                                    ...roadBookItem,
+                                    timelines:
+                                      state.roadBookItem?.timelines?.map(
+                                        (v) => {
+                                          v.waypoints = v.waypoints?.map(
+                                            (sv) => {
+                                              return {
+                                                ...sv,
+                                                lastNavigationTime: -1,
+                                              }
+                                            }
+                                          )
 
-                                    return v
-                                  }
-                                ),
+                                          return v
+                                        }
+                                      ),
+                                  },
+                                })
+
+                                setNavigationSettings(false)
                               },
-                            })
-
-                            setNavigationSettings(false)
+                            }).open()
                           }}
-                          margin="20px 0 0"
+                          margin="20px 10px 0"
+                          padding="6px 18px"
                           height="36px"
                           type="Primary"
                         >
-                          <span>{t('resetNavigationRoute')}</span>
+                          <span>
+                            {t('reset', {
+                              ns: 'prompt',
+                            })}
+                          </span>
+                        </SakiButton>
+                        <SakiButton
+                          onTap={() => {
+                            setNavigationSettings(false)
+                          }}
+                          margin="20px 0 0"
+                          padding="6px 18px"
+                          height="36px"
+                          type="Normal"
+                        >
+                          <span>
+                            {t('confirm', {
+                              ns: 'prompt',
+                            })}
+                          </span>
                         </SakiButton>
                       </div>
                     </div>
@@ -1302,9 +1416,12 @@ export const RoadBookDetailPage = ({ show }: { show: boolean }) => {
                   data-day={`D${timelineDaysItem.daysIntoTrip}`}
                 >
                   <div className="ih-left">
-                    <span className="ihl-date">
+                    <span
+                      title={`已驶过${Math.round(timelineDaysItem.distanceTraveled / 10) / 100}公里`}
+                      className="ihl-date"
+                    >
                       {`${timelineDaysItem.startDate}${
-                        timelineDaysItem.startDate !== timelineDaysItem.endDate
+                        (v.days || 0) > 1
                           ? ` · ${t('durationInDays', {
                               days: v.days || 1,
                             })}`
@@ -1395,6 +1512,38 @@ export const RoadBookDetailPage = ({ show }: { show: boolean }) => {
                                   case 'Delete':
                                     deleteTimeline()
                                     break
+                                  case 'AddNewDayAfterThisTimeline':
+                                    addTimeline(v.id || '')
+                                    break
+                                  case 'CopyThisTimeline':
+                                    setCopyTimelineId(v.id || '')
+                                    break
+                                  case 'PasteAfterThisTimeline':
+                                    let copyItem: protoRoot.roadbook.IRoadbookTimelineItem
+
+                                    setRoadBookItem({
+                                      ...roadBookItem,
+                                      timelines: (roadBookItem?.timelines || [])
+                                        .filter((v) => {
+                                          if (v.id === copyTimelineId) {
+                                            copyItem = v
+                                            return false
+                                          }
+                                          return true
+                                        })
+                                        .reduce((t, sv, i, arr) => {
+                                          t.push(sv)
+
+                                          if (v.id === sv.id) {
+                                            t.push(copyItem)
+                                          }
+
+                                          return t
+                                        }, [] as protoRoot.roadbook.IRoadbookTimelineItem[]),
+                                    })
+                                    setLastUpdateTime(new Date().getTime())
+
+                                    break
                                   case 'MoveUp':
                                     const timelines =
                                       state.roadBookItem?.timelines || []
@@ -1408,6 +1557,7 @@ export const RoadBookDetailPage = ({ show }: { show: boolean }) => {
                                         timelines: [...timelines],
                                       },
                                     })
+                                    setLastUpdateTime(new Date().getTime())
                                     break
                                   case 'MoveDown':
                                     const timelines2 =
@@ -1422,6 +1572,7 @@ export const RoadBookDetailPage = ({ show }: { show: boolean }) => {
                                         timelines: [...timelines2],
                                       },
                                     })
+                                    setLastUpdateTime(new Date().getTime())
                                     break
 
                                   default:
@@ -1449,6 +1600,37 @@ export const RoadBookDetailPage = ({ show }: { show: boolean }) => {
                                 <span>{t('setDays')}</span>
                               </div>
                             </saki-menu-item>
+
+                            <saki-menu-item
+                              padding="10px 18px"
+                              value={'AddNewDayAfterThisTimeline'}
+                            >
+                              <div className="dp-menu-item">
+                                <span>
+                                  {t('addNewDayAfterThisTimeline', {})}
+                                </span>
+                              </div>
+                            </saki-menu-item>
+                            <saki-menu-item
+                              padding="10px 18px"
+                              value={'CopyThisTimeline'}
+                            >
+                              <div className="dp-menu-item">
+                                <span>{t('copyThisTimeline', {})}</span>
+                              </div>
+                            </saki-menu-item>
+                            {copyTimelineId ? (
+                              <saki-menu-item
+                                padding="10px 18px"
+                                value={'PasteAfterThisTimeline'}
+                              >
+                                <div className="dp-menu-item">
+                                  <span>{t('pasteAfterThisTimeline', {})}</span>
+                                </div>
+                              </saki-menu-item>
+                            ) : (
+                              ''
+                            )}
                             {i !== 0 ? (
                               <saki-menu-item
                                 padding="10px 18px"
@@ -1589,6 +1771,7 @@ export const RoadBookDetailPage = ({ show }: { show: boolean }) => {
                                     setState({
                                       selectedTimelineId: v?.id || '',
                                       updateWaypointId: sv.id || '',
+                                      addNewWaypointAfterThisWaypointId: '',
                                     })
                                   }}
                                   width="30px"
@@ -1650,6 +1833,13 @@ export const RoadBookDetailPage = ({ show }: { show: boolean }) => {
                                                 v.id || '',
                                                 sv.id || ''
                                               )
+                                              break
+                                            case 'AddNewWaypointAfterThisWaypoint':
+                                              setState({
+                                                selectedTimelineId: v?.id || '',
+                                                addNewWaypointAfterThisWaypointId:
+                                                  sv.id || '',
+                                              })
                                               break
                                             case 'MoveUp':
                                               const waypoints =
@@ -1757,6 +1947,21 @@ export const RoadBookDetailPage = ({ show }: { show: boolean }) => {
                                         <div className="dp-menu-item">
                                           <span>
                                             {t('updateWaypointAddress', {})}
+                                          </span>
+                                        </div>
+                                      </saki-menu-item>
+                                      <saki-menu-item
+                                        padding="10px 18px"
+                                        value={
+                                          'AddNewWaypointAfterThisWaypoint'
+                                        }
+                                      >
+                                        <div className="dp-menu-item">
+                                          <span>
+                                            {t(
+                                              'addNewWaypointAfterThisWaypoint',
+                                              {}
+                                            )}
                                           </span>
                                         </div>
                                       </saki-menu-item>
@@ -1984,6 +2189,7 @@ export const RoadBookDetailPage = ({ show }: { show: boolean }) => {
                               onTap={() => {
                                 setState({
                                   selectedTimelineId: v?.id || '',
+                                  addNewWaypointAfterThisWaypointId: '',
                                 })
                               }}
                               border="none"
@@ -1992,7 +2198,13 @@ export const RoadBookDetailPage = ({ show }: { show: boolean }) => {
                               type="Normal"
                               bg-color="transparent"
                             >
-                              <span>{t('addStartWaypoint')}</span>
+                              <span>
+                                {t(
+                                  v.waypoints?.length
+                                    ? 'addNextWaypoint'
+                                    : 'addStartWaypoint'
+                                )}
+                              </span>
                             </SakiButton>
                           </div>
                           <span className="rdtiwhl-date"></span>
@@ -2011,7 +2223,9 @@ export const RoadBookDetailPage = ({ show }: { show: boolean }) => {
           {roadBookItem?.id && user.userInfo.uid === roadBookItem?.authorId ? (
             <div className="rdt-buttons">
               <SakiButton
-                onTap={addTimeline}
+                onTap={() => {
+                  addTimeline()
+                }}
                 height="36px"
                 margin="30px 0 0px"
                 type="Primary"
@@ -2036,6 +2250,15 @@ export const RoadBookDetailPage = ({ show }: { show: boolean }) => {
       <SearchWaypointModal
         onWaypoints={(waypoints) => {
           console.log('searchWaypoint1 waypoints', waypoints)
+
+          if (state.addNewWaypointAfterThisWaypointId) {
+            addNewWaypointAfterThisWaypointId(
+              state.selectedTimelineId,
+              state.addNewWaypointAfterThisWaypointId,
+              waypoints
+            )
+            return
+          }
 
           if (state.updateWaypointId) {
             updateWaypoints(

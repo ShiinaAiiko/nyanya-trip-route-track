@@ -1,7 +1,7 @@
 import Head from 'next/head'
 import TripLaout, { getLayout } from '../../layouts/Trip'
 import Link from 'next/link'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import axios from 'axios'
 import { useRouter } from 'next/router'
 import FooterComponent from '../../components/Footer'
@@ -105,13 +105,11 @@ const TripPage = () => {
   const [mounted, setMounted] = useState(false)
   const [gpsStatusDebounce] = useState(new Debounce())
 
-  const config = useSelector((state: RootState) => {
-    return state.config
-  })
-
-  const user = useSelector((state: RootState) => state.user)
-  const geo = useSelector((state: RootState) => state.geo)
-  const vehicle = useSelector((state: RootState) => state.vehicle)
+  const { config, user, geo, vehicle, network, position } = useSelector(
+    (state: RootState) => {
+      return state
+    }
+  )
 
   const startTrip = useSelector((state: RootState) => state.trip.startTrip)
   const { weatherInfo, tripStatistics, cityInfo, historicalStatistics } =
@@ -120,8 +118,6 @@ const TripPage = () => {
       const { weatherInfo, tripStatistics, historicalStatistics } = state.trip
       return { weatherInfo, tripStatistics, cityInfo, historicalStatistics }
     })
-
-  const position = useSelector((state: RootState) => state.position)
 
   const router = useRouter()
 
@@ -1207,8 +1203,11 @@ const TripPage = () => {
       mapUrl
     ) {
       console.log('initMap1 开始加载！')
-      let lat = toFixed(geo.position?.coords.latitude) || 0
-      let lon = toFixed(geo.position?.coords.longitude) || 0
+      const [lat, lon] = getLatLng(
+        mapUrl,
+        toFixed(geo.position?.coords.latitude) || 0,
+        toFixed(geo.position?.coords.longitude) || 0
+      )
       if (map.current) {
         map.current?.remove()
         marker.current?.remove()
@@ -1565,6 +1564,40 @@ const TripPage = () => {
     }
   }
 
+  const networkStatus = useRef<protoRoot.trip.ITripNetworkStatus[]>([])
+  useEffect(() => {
+    if (startTrip && trip?.id && !trip?.id.includes('IDB')) {
+      const status = network.status === 'online' ? 1 : -1
+
+      if (
+        networkStatus.current[networkStatus.current.length - 1]?.status !==
+        status
+      ) {
+        networkStatus.current.push({
+          status: status,
+          timestamp: moment().unix(),
+        })
+        updateNetworkStatus()
+      }
+    }
+  }, [network, startTrip, trip?.id])
+
+  const updateNetworkStatus = useCallback(async () => {
+    // console.log('network2', network.status, startTrip, networkStatus, trip?.id)
+    if (trip?.id && !trip?.id.includes('IDB') && network.status === 'online') {
+      const res = await httpApi.v1.UpdateTripNetworkStatus({
+        id: trip?.id,
+        networkStatus: networkStatus.current || [],
+      })
+
+      // console.log(
+      //   'network2 UpdateTripNetworkStatus',
+      //   res,
+      //   networkStatus.current
+      // )
+    }
+  }, [network, startTrip, trip?.id])
+
   const updatePosition = async () => {
     const pl = tempPositions.current
       .filter((_, i) => {
@@ -1603,6 +1636,9 @@ const TripPage = () => {
     if (trip.id.includes('IDB')) {
       updatedPositionIndex.current = pLength - 1
     } else {
+      if (network.status === 'offline') {
+        return
+      }
       const params: protoRoot.trip.UpdateTripPosition.IRequest = {
         id: trip?.id || '',
         distance: statistics.current.distance,
@@ -1860,6 +1896,8 @@ const TripPage = () => {
 
     await updatePosition()
 
+    await updateNetworkStatus()
+
     // console.log('tempTrip getLocalTrips', tempTrip)
     // }
     if (trip.id.indexOf('IDB') < 0) {
@@ -2079,12 +2117,13 @@ const TripPage = () => {
             onCurrentPosition={() => {
               setDisablePanTo(true)
               geo.position && panToMap(geo.position, true)
-              map.current?.setView(
-                [geo.position.coords.latitude, geo.position.coords.longitude],
-                // [
-                //   120.3814, -1.09],
-                15
+              const [lat, lon] = getLatLng(
+                mapUrl,
+                toFixed(geo.position?.coords.latitude) || 0,
+                toFixed(geo.position?.coords.longitude) || 0
               )
+              map.current?.setView([lat, lon], 15)
+
               dispatch(
                 geoSlice.actions.setSelectPosition({
                   latitude: -10000,

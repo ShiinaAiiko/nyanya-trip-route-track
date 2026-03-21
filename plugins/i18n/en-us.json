@@ -161,7 +161,7 @@
     "timeline": "Daily Itinerary",
     "addTimeline": "Add New Day",
     "addStartWaypoint": "Search and add the starting point for this day",
-    "addNextWaypoint": "Search and add next destination",
+    "addNextWaypoint": "Search and add next waypoint",
     "deleteTimeline": "Delete this day?",
     "deleteTimelineContent": "Are you sure you want to delete this day's itinerary?",
     "deleteWaypoint": "Delete this waypoint?",
@@ -195,9 +195,14 @@
     "recommended": "Recommended",
     "days": "Day {{day}}",
     "resetNavigationRoute": "Reset Navigation Route",
+    "resetNavigationRouteContent": "Are you sure you want to reset all navigation routes? They will be re-fetched with the new navigation rules.",
     "renderingTracks": "Downloading navigation data",
     "tracksRendered": "{{num}} navigation routes downloaded",
-    "updateWaypointAddress": "Edit Waypoint Name"
+    "updateWaypointAddress": "Edit Waypoint Name",
+    "addNewDayAfterThisTimeline": "Add a new day after this",
+    "pasteAfterThisTimeline": "Paste after this",
+    "copyThisTimeline": "Copy this day",
+    "addNewWaypointAfterThisWaypoint": "Add a new waypoint after this"
   },
   "searchWaypointModal": {
     "pageTitle": "Search Waypoint or Click on Map"
@@ -528,7 +533,11 @@
     "finishTripTip": "Trip completed. {{localNum}} GPS points recorded locally, {{cloudNum}} points saved to cloud.",
 
     "moveUp": "Move Up",
-    "moveDown": "Move Down"
+    "moveDown": "Move Down",
+
+    "copyOrOpen": "Copy and Open",
+    "reset": "Reset",
+    "resetMap": "Reset Map"
   },
   "unit": {
     "km": "km",

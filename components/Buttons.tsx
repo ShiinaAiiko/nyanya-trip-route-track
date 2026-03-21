@@ -34,15 +34,23 @@ const ButtonsComponent = ({
     bottom: 50,
     // top: 50,
   },
+  buttonStyle = {
+    width: '36px',
+    height: '36px',
+    margin: '10px 0 0',
+    iconSize: '18px',
+  },
   indexPage = false,
   trackRoute = false,
   currentPosition = false,
   realTimePosition = false,
   filter = false,
   layer = false,
-  aichat = true,
+  aichat = false,
   mark = false,
   markCount = 0,
+  fullScreen = false,
+  zoom = false,
   mapLayerModalConfig = {
     vertical: 'Bottom',
     horizontal: 'Right',
@@ -54,12 +62,20 @@ const ButtonsComponent = ({
   onCurrentPosition,
   onMark,
   onFilter,
+  onZoom,
+  onFullScreen,
 }: {
   position?: {
     left?: number
     right?: number
     bottom?: number
     top?: number
+  }
+  buttonStyle?: {
+    width: string
+    height: string
+    margin: string
+    iconSize: string
   }
   indexPage?: boolean
   trackRoute?: boolean
@@ -70,6 +86,8 @@ const ButtonsComponent = ({
   layer?: boolean
   mark?: boolean
   markCount?: number
+  fullScreen?: boolean
+  zoom?: boolean
   mapLayerStyle?: {
     left?: string
     right?: string
@@ -87,6 +105,8 @@ const ButtonsComponent = ({
   onCurrentPosition: () => void
   onMark?: () => void
   onFilter?: () => void
+  onZoom?: (type: 'ZoomIn' | 'ZoomOut') => void
+  onFullScreen?: (isFullScreen: boolean) => void
 }) => {
   const { t, i18n } = useTranslation('tripPage')
   const [mounted, setMounted] = useState(false)
@@ -102,6 +122,8 @@ const ButtonsComponent = ({
 
   const [openUserPositionShareDropdown, setOpenUserPositionShareDropdown] =
     useState(false)
+
+  const [isFullScreen, setIsFullScreen] = useState(false)
 
   return (
     <div
@@ -127,17 +149,17 @@ const ButtonsComponent = ({
                   location.replace('/' + (router.query.lang || ''))
                 },
               })}
-              width="40px"
-              height="40px"
+              width={buttonStyle.width}
+              height={buttonStyle.height}
               // padding="24px"
-              margin="16px 0 0 0"
+              margin={buttonStyle.margin}
               type="CircleIconGrayHover"
               box-shadow="0 0 10px rgba(0, 0, 0, 0.3)"
             >
               <saki-icon
                 color="var(--saki-default-color)"
-                width="18px"
-                height="18px"
+                width={buttonStyle.iconSize}
+                height={buttonStyle.iconSize}
                 type="Index"
               ></saki-icon>
             </saki-button>
@@ -154,17 +176,17 @@ const ButtonsComponent = ({
                 // dispatch(layoutSlice.actions.setOpenTripTrackRoute(true))
               },
             })}
-            width="40px"
-            height="40px"
+            width={buttonStyle.width}
+            height={buttonStyle.height}
             // padding="24px"
-            margin="16px 0 0 0"
+            margin={buttonStyle.margin}
             type="CircleIconGrayHover"
             box-shadow="0 0 10px rgba(0, 0, 0, 0.3)"
           >
             <saki-icon
               color="var(--saki-default-color)"
-              width="18px"
-              height="18px"
+              width={buttonStyle.iconSize}
+              height={buttonStyle.iconSize}
               type="Route"
             ></saki-icon>
           </saki-button>
@@ -172,6 +194,12 @@ const ButtonsComponent = ({
 
         {realTimePosition ? (
           <div
+            style={
+              {
+                '--rpb-after-w': `calc(14px * ${buttonStyle.width} / 36px)`,
+                '--rpb-after-top': `calc(12px * ${buttonStyle.width} / 36px)`,
+              } as any
+            }
             className={
               'realTimePosition-button ' +
               (config.userPositionShare >= 0 ? 'start' : 'close') +
@@ -197,17 +225,17 @@ const ButtonsComponent = ({
                     setOpenUserPositionShareDropdown(true)
                   },
                 })}
-                width="40px"
-                height="40px"
+                width={buttonStyle.width}
+                height={buttonStyle.height}
                 // padding="24px"
-                margin="12px 0 0 0"
+                margin={buttonStyle.margin}
                 type="CircleIconGrayHover"
                 box-shadow="0 0 10px rgba(0, 0, 0, 0.3)"
               >
                 <saki-icon
                   color="var(--saki-default-color)"
-                  width="18px"
-                  height="18px"
+                  width={buttonStyle.iconSize}
+                  height={buttonStyle.iconSize}
                   type="PositionShare"
                 ></saki-icon>
               </saki-button>
@@ -307,17 +335,17 @@ const ButtonsComponent = ({
                   onFilter?.()
                 },
               })}
-              width="40px"
-              height="40px"
+              width={buttonStyle.width}
+              height={buttonStyle.height}
               // padding="24px"
-              margin="16px 0 0 0"
+              margin={buttonStyle.margin}
               type="CircleIconGrayHover"
               box-shadow="0 0 10px rgba(0, 0, 0, 0.3)"
             >
               <saki-icon
                 color="var(--saki-default-color)"
-                width="22px"
-                height="22px"
+                width={`calc(${buttonStyle.iconSize} + 4px)`}
+                height={`calc(${buttonStyle.iconSize} + 4px)`}
                 type="FilterFill"
               ></saki-icon>
             </saki-button>
@@ -343,17 +371,17 @@ const ButtonsComponent = ({
                 })
               },
             })}
-            width="40px"
-            height="40px"
+            width={buttonStyle.width}
+            height={buttonStyle.height}
             // padding="24px"
-            margin="12px 0 0 0"
+            margin={buttonStyle.margin}
             type="CircleIconGrayHover"
             box-shadow="0 0 10px rgba(0, 0, 0, 0.3)"
           >
             <saki-icon
               color="var(--saki-default-color)"
-              width="18px"
-              height="18px"
+              width={buttonStyle.iconSize}
+              height={buttonStyle.iconSize}
               type="Layer"
             ></saki-icon>
           </saki-button>
@@ -366,17 +394,17 @@ const ButtonsComponent = ({
                 dispatch(layoutSlice.actions.setOpenSettingsModal(true))
               })
             }}
-            width="40px"
-            height="40px"
+            width={buttonStyle.width}
+            height={buttonStyle.height}
             // padding="24px"
-            margin="12px 0 0 0"
+            margin={buttonStyle.margin}
             type="CircleIconGrayHover"
             box-shadow="0 0 10px rgba(0, 0, 0, 0.3)"
           >
             <SakiIcon
               color="var(--saki-default-color)"
-              width="18px"
-              height="18px"
+              width={buttonStyle.iconSize}
+              height={buttonStyle.iconSize}
               type="ChatFill"
             ></SakiIcon>
           </SakiButton>
@@ -388,17 +416,17 @@ const ButtonsComponent = ({
                 onCurrentPosition()
               },
             })}
-            width="40px"
-            height="40px"
+            width={buttonStyle.width}
+            height={buttonStyle.height}
             // padding="24px"
-            margin="12px 0 0 0"
+            margin={buttonStyle.margin}
             type="CircleIconGrayHover"
             box-shadow="0 0 10px rgba(0, 0, 0, 0.3)"
           >
             <saki-icon
               color="var(--saki-default-color)"
-              width="22px"
-              height="22px"
+              width={`calc(${buttonStyle.iconSize} + 4px)`}
+              height={`calc(${buttonStyle.iconSize} + 4px)`}
               type="CurrentPosition"
             ></saki-icon>
           </saki-button>
@@ -436,10 +464,10 @@ const ButtonsComponent = ({
                   onMark?.()
                 },
               })}
-              width="40px"
-              height="40px"
+              width={buttonStyle.width}
+              height={buttonStyle.height}
               // padding="24px"
-              margin="12px 0 0 0"
+              margin={buttonStyle.margin}
               type="CircleIconGrayHover"
               bg-color="#58c8f2"
               bg-hover-color="#4eb2d6"
@@ -448,8 +476,8 @@ const ButtonsComponent = ({
             >
               <div className="mark-content">
                 <saki-icon
-                  width="18px"
-                  height="18px"
+                  width={buttonStyle.iconSize}
+                  height={buttonStyle.iconSize}
                   color="#fff"
                   type="Flag"
                 ></saki-icon>
@@ -461,6 +489,74 @@ const ButtonsComponent = ({
               </div>
             </saki-button>
           </div>
+        )}
+        {zoom && (
+          <div
+            style={{
+              margin: buttonStyle.margin,
+              borderRadius: `var(${buttonStyle.width} / 2)`,
+            }}
+            className="mb-zoom"
+          >
+            <SakiButton
+              onTap={() => {
+                onZoom?.('ZoomIn')
+              }}
+              width={buttonStyle.width}
+              height={buttonStyle.height}
+              // padding="24px"
+              borderRadius="0"
+              type="CircleIconGrayHover"
+            >
+              <SakiIcon
+                color="var(--saki-default-color)"
+                width={buttonStyle.iconSize}
+                height={buttonStyle.iconSize}
+                type="Add"
+              ></SakiIcon>
+            </SakiButton>
+            <div className="mbz-border"> </div>
+            <SakiButton
+              onTap={() => {
+                onZoom?.('ZoomOut')
+              }}
+              width={buttonStyle.width}
+              height={buttonStyle.height}
+              // padding="24px"
+              borderRadius="0"
+              type="CircleIconGrayHover"
+            >
+              <saki-icon
+                color="var(--saki-default-color)"
+                width={buttonStyle.iconSize}
+                height={buttonStyle.iconSize}
+                type="Minus"
+              ></saki-icon>
+            </SakiButton>
+          </div>
+        )}
+        {fullScreen && (
+          <saki-button
+            ref={bindEvent({
+              tap: () => {
+                setIsFullScreen(!isFullScreen)
+                onFullScreen?.(!isFullScreen)
+              },
+            })}
+            width={buttonStyle.width}
+            height={buttonStyle.height}
+            // padding="24px"
+            margin={buttonStyle.margin}
+            type="CircleIconGrayHover"
+            box-shadow="0 0 10px rgba(0, 0, 0, 0.3)"
+          >
+            <saki-icon
+              color="var(--saki-default-color)"
+              width={buttonStyle.iconSize}
+              height={buttonStyle.iconSize}
+              type={!isFullScreen ? 'FullScreen2' : 'ExitFullScreen'}
+            ></saki-icon>
+          </saki-button>
         )}
       </NoSSR>
     </div>

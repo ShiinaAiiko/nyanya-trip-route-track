@@ -66,10 +66,11 @@ func (m *City) GetCollectionName() string {
 }
 
 type CityFsDB struct {
-	City        *fileStorageDB.Model[*City]
-	Cities      *fileStorageDB.Model[[]*City]
-	CitiesProto *fileStorageDB.Model[[]*protos.CityItem]
-	Expiration  time.Duration
+	City           *fileStorageDB.Model[*City]
+	Cities         *fileStorageDB.Model[[]*City]
+	CitiesProto    *fileStorageDB.Model[[]*protos.CityItem]
+	CityNamesCache *fileStorageDB.Model[bool]
+	Expiration     time.Duration
 }
 
 var cityFsDB *CityFsDB
@@ -94,11 +95,17 @@ func (m *City) GetFsDB() *CityFsDB {
 		log.Error(err)
 		return nil
 	}
+	cityNamesCacheDB, err := fileStorageDB.CreateModel[bool](conf.FsDB, m.GetCollectionName()+"listproto")
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
 
 	db := new(CityFsDB)
 	db.City = cityDB
 	db.Cities = citiesDB
 	db.CitiesProto = citiesProtoDB
+	db.CityNamesCache = cityNamesCacheDB
 	db.Expiration = 24 * time.Hour
 
 	cityFsDB = db

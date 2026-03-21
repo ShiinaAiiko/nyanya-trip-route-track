@@ -161,7 +161,7 @@
     "timeline": "每日路書",
     "addTimeline": "新增一天",
     "addStartWaypoint": "搜尋並新增這一天的起點",
-    "addNextWaypoint": "搜尋並新增下一個目的地",
+    "addNextWaypoint": "搜尋並新增途經點",
     "deleteTimeline": "刪除此天路書？",
     "deleteTimelineContent": "您確定要刪除此天路書嗎？",
     "deleteWaypoint": "刪除此途經點？",
@@ -174,7 +174,7 @@
     "setDays": "設定持續天數",
     "updateDesc": "更新介紹",
     "todayDesc": "今日路書介紹",
-    "dataFull": "歷時{{day}}天 · 行駛約{{distance}} · 耗時{{time}} · {{waypoints}}個途徑點",
+    "dataFull": "歷時{{day}}天 · 預計約{{distance}} · 耗時{{time}} · {{waypoints}}個途徑點",
     "durationInDays": "共{{days}}天",
     "allowShare": "允許所有人存取",
     "allowShareContent": "是否允許所有人存取？",
@@ -195,9 +195,14 @@
     "recommended": "推薦路線",
     "days": "第 {{day}} 天",
     "resetNavigationRoute": "重置導航路線",
+    "resetNavigationRouteContent": "您確定要重置所有導航線路嗎？將會重新以新的導航規則取得。",
     "renderingTracks": "正在下載導航資料",
     "tracksRendered": "已下載 {{num}} 條導航資料",
-    "updateWaypointAddress": "編輯途經點名稱"
+    "updateWaypointAddress": "編輯途經點名稱",
+    "addNewDayAfterThisTimeline": "在此之後新增一天",
+    "pasteAfterThisTimeline": "貼上到此之後",
+    "copyThisTimeline": "複製此日",
+    "addNewWaypointAfterThisWaypoint": "在此之後新增途經點"
   },
   "searchWaypointModal": {
     "pageTitle": "搜尋途經點 或 點擊地圖選點"
@@ -527,7 +532,11 @@
     "finishTripTip": "已完成本次行程，本地共記錄 {{localNum}} 個 GPS 節點，已成功保存至雲端 {{cloudNum}} 個 GPS 節點",
 
     "moveUp": "上移",
-    "moveDown": "下移"
+    "moveDown": "下移",
+
+    "copyOrOpen": "複製並開啟",
+    "reset": "重置",
+    "resetMap": "重置地圖"
   },
   "unit": {
     "km": "公里",

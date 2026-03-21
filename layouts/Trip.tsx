@@ -177,6 +177,8 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
     setMounted(true)
     setProgressBar(progressBar + 0.2 >= 1 ? 1 : progressBar + 0.2)
 
+    dispatch(methods.network.Init()).unwrap()
+
     dispatch(methods.config.init()).unwrap()
 
     dispatch(methods.user.Init()).unwrap()

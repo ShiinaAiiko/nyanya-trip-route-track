@@ -413,7 +413,7 @@ func (fc *JourneyMemoryController) GetJMList(c *gin.Context) {
 
 		copier.Copy(jmProto, v)
 
-		log.Info("tripIds", tripIds)
+		// log.Info("tripIds", tripIds)
 
 		if len(tripIds) != 0 {
 

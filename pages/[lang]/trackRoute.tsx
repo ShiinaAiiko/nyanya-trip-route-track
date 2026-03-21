@@ -394,7 +394,7 @@ const TrackRoutePage = () => {
         methods.trip.GetTripHistoryData({
           loadCloudData: true,
           alert: true,
-          cityDetails: true,
+          cityDetails: false,
         })
       )
         .unwrap()

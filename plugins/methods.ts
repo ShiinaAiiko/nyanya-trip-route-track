@@ -13,6 +13,7 @@ import { protoRoot } from '../protos'
 // import { imageColorInversion } from './imageColorInversion'
 import { imageColorInversion } from '@nyanyajs/utils/dist/images/imageColorInversion'
 import { t } from './i18n/i18n'
+import { alert, snackbar } from '@saki-ui/core'
 
 export const getRegExp = (type: 'email') => {
   return /^\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$/
@@ -917,4 +918,49 @@ export function getLatLngUnit(
   const lng = longitude >= 0 ? 'E' : 'W'
 
   return { lat, lng }
+}
+
+export const copyOrOpenAlert = (text: string, url: string) => {
+  alert({
+    title: t('share', {
+      ns: 'prompt',
+    }),
+    content: text,
+    cancelText: t('copy', {
+      ns: 'common',
+    }),
+    confirmText: t('copyOrOpen', {
+      ns: 'prompt',
+    }),
+    onCancel() {
+      copyText(text)
+
+      snackbar({
+        message: t('copySuccessfully', {
+          ns: 'prompt',
+        }),
+        autoHideDuration: 2000,
+        vertical: 'top',
+        horizontal: 'center',
+        backgroundColor: 'var(--saki-default-color)',
+        color: '#fff',
+      }).open()
+    },
+    async onConfirm() {
+      copyText(text)
+
+      snackbar({
+        message: t('copySuccessfully', {
+          ns: 'prompt',
+        }),
+        autoHideDuration: 2000,
+        vertical: 'top',
+        horizontal: 'center',
+        backgroundColor: 'var(--saki-default-color)',
+        color: '#fff',
+      }).open()
+
+      window.open(url)
+    },
+  }).open()
 }

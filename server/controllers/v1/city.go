@@ -305,7 +305,7 @@ func (cl *CityController) GetAllCitiesVisitedByUser(c *gin.Context) {
 		return
 	}
 
-	log.Info("data", data)
+	// log.Info("data", data)
 
 	// 3、验证参数
 	if err = validation.ValidateStruct(
@@ -516,7 +516,7 @@ func (cl *CityController) GetAllCitiesVisitedByUser(c *gin.Context) {
 			return cities
 		}
 
-		log.Info("ids", len(citiesProto))
+		// log.Info("ids", len(citiesProto))
 		for _, city := range citiesProto {
 			// log.Info(city.ParentCityId == "", city.Name)
 			if city.ParentCityId == "" {

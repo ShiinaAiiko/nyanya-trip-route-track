@@ -157,9 +157,9 @@
     "timeline": "每日路书",
     "addTimeline": "添加新的一天",
     "addStartWaypoint": "搜索添加这一天的起点",
-    "addNextWaypoint": "搜索添加新的目的地",
-    "deleteTimeline": "删除此时间线？",
-    "deleteTimelineContent": "您确定要删除此时间线吗",
+    "addNextWaypoint": "搜索添加新的途径点",
+    "deleteTimeline": "删除此日路书？",
+    "deleteTimelineContent": "您确定要删除此日路书吗",
     "deleteWaypoint": "删除此途径点？",
     "deleteWaypointContent": "您确定要删除此途径点吗",
     "directionsToThisWaypoint": "前往此途径点的路线",
@@ -170,7 +170,7 @@
     "setDays": "设置持续天数",
     "updateDesc": "更新介绍",
     "todayDesc": "今日路书介绍",
-    "dataFull": "历经{{day}}天 · 行驶约{{distance}} · 耗时{{time}} · {{waypoints}}个途径点",
+    "dataFull": "历经{{day}}天 · 预计约{{distance}} · 耗时{{time}} · {{waypoints}}个途径点",
     "durationInDays": "共{{days}}天",
     "allowShare": "允许所有人访问",
     "allowShareContent": "是否允许所有人访问？",
@@ -191,9 +191,14 @@
     "recommended": "推荐路线",
     "days": "第{{day}}天",
     "resetNavigationRoute": "重置导航线路",
+    "resetNavigationRouteContent": "您确定要重置所有导航线路吗？将会重新以新的导航规则获取。",
     "renderingTracks": "正在下载导航数据",
     "tracksRendered": "已下载{{num}}条导航数据",
-    "updateWaypointAddress": "编辑途径点名称"
+    "updateWaypointAddress": "编辑途径点名称",
+    "addNewDayAfterThisTimeline": "在此之后添加新的一天",
+    "pasteAfterThisTimeline": "粘贴到此之后",
+    "copyThisTimeline": "复制此日",
+    "addNewWaypointAfterThisWaypoint": "在此之后添加新的途径点"
   },
   "searchWaypointModal": {
     "pageTitle": "搜索途径点 或 点击地图选点"
@@ -524,7 +529,14 @@
     "finishTripTip": "已完成本次行程，程序已记录{{localNum}}个GPS节点，已保存至云端{{cloudNum}}个GPS节点",
 
     "moveUp": "上移",
-    "moveDown": "下移"
+    "moveDown": "下移",
+
+    "expand": "展开",
+    "collapse": "收起",
+
+    "copyOrOpen": "复制并打开",
+    "reset": "重置",
+    "resetMap": "重置地图"
   },
   "unit": {
     "km": "公里",

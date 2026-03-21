@@ -95,6 +95,7 @@ message TripAddressesAddress {
   string type = 6;
   string name = 7;
 }
+
 message TripAddresses {
   double latitude = 1;
   double longitude = 2;
@@ -102,6 +103,12 @@ message TripAddresses {
   TripAddressesCity city = 4;
   TripAddressesAddress address = 5;
   int64 entryTime = 8;
+}
+
+message TripNetworkStatus {
+  //  1 online; 2 offline'
+  int32 status = 1;
+  int64 timestamp = 2;
 }
 
 message Trip {
@@ -115,6 +122,7 @@ message Trip {
   // string vehicleId = 15;
   repeated TripPosition positions = 4;
   repeated TripAddresses addresses = 18;
+  repeated TripNetworkStatus networkStatus = 19;
   TripStatistics statistics = 5;
   TripPermissions permissions = 11;
   // 1 normal 0 ing -1 delete
@@ -438,6 +446,14 @@ message UpdateTripAddresses {
       repeated TripAddresses addresses = 2;
     }
     repeated TripItem trips = 1;
+  }
+  message Response {}
+}
+
+message UpdateTripNetworkStatus {
+  message Request {
+    string id = 1;
+    repeated TripNetworkStatus networkStatus = 2;
   }
   message Response {}
 }

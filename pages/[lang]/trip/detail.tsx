@@ -42,7 +42,11 @@ const TripDetailPage = () => {
   }, [])
 
   useEffect(() => {
-    dispatch(layoutSlice.actions.setLayoutHeaderLogoText(t('pageTitle')))
+    dispatch(
+      layoutSlice.actions.setLayoutHeaderLogoText(
+        t('appTitle', { ns: 'common' })
+      )
+    )
   }, [i18n.language])
 
   const onTrip = useCallback((trip?: protoRoot.trip.ITrip) => {
@@ -66,10 +70,6 @@ const TripDetailPage = () => {
               }) +
               ' - '
             : '') +
-            t('pageTitle', {
-              ns: 'tripPage',
-            }) +
-            ' - ' +
             t('appTitle', {
               ns: 'common',
             })}
