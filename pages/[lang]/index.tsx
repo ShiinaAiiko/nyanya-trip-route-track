@@ -123,7 +123,8 @@ const TripPage = () => {
 
   const updatedPositionIndex = useRef(-1)
   const tDistance = useRef(0)
-  const syncPositionInterval = useRef(10)
+  // 未来如果有他人同步查看再提升
+  const syncPositionInterval = useRef(120)
   const climbAltitude = useRef(0)
   const descendAltitude = useRef(0)
   const timer = useRef<NodeJS.Timeout>()
@@ -1010,7 +1011,7 @@ const TripPage = () => {
         updatePosition()
 
       // 30秒一次初始化容器
-      if (Math.floor(listenTime / 1000) % 30 === 0) {
+      if (Math.floor(listenTime / 1000) % 45 === 0) {
         if (config.appConfig.version) {
           rnJSBridge.keepScreenOn(true)
           rnJSBridge.enableBackgroundTasks(true)
@@ -1603,7 +1604,7 @@ const TripPage = () => {
       .filter((_, i) => {
         return i > updatedPositionIndex.current
       })
-      .slice(0, 100)
+      .slice(0, 200)
     console.log('updatePosition1', trip, pl, updatedPositionIndex.current)
     if (!trip?.id || !pl.length) return
     // console.log('updatePositionparams', params)
