@@ -118,8 +118,48 @@ message Configure {
     string preference = 2;
     string travelOptions = 3;
   }
+  // 导航习惯设置
   NavigationSettings navigation = 4;
-  int64 lastUpdateTime = 5;
+  message AISettings {
+    message AICoDriver {
+      // 是否启用
+      bool enabled = 1;
+      bool autoPlayVoice = 2;
+      int32 autoCloseTime = 3;
+
+      // Live
+      bool autoLaunchLiveAfterStartTrip = 4;
+      // bool isVoiceInputAllowedInLive = 5;
+
+      // 触发器
+
+      message AICoDriverTrigger {
+        // 里程触发 (单位: 米)
+        int32 first_open_distance = 1; // 首次开启触发里程
+        int32 milestone_step = 2;      // 里程步进触发间隔
+
+        // 海拔与环境 (单位: 米/摄氏度)
+        int32 altitude_step = 3;     // 海拔瞬时跳变阈值
+        int32 climb_milestone = 4;   // 累计爬升触发阈值
+        int32 descend_milestone = 5; // 累计下降触发阈值
+        int32 temp_step = 6;         // 温差预警阈值
+
+        // 驾驶行为与状态
+        int32 speed_drop_threshold = 7;    // 速度骤降判定 (m/s)
+        int32 min_movement_threshold = 8;  // 最小有效位移 (m)
+        int32 rest_awake_threshold_ms = 9; // 重新出发判定时长 (ms)
+        int32 drowsy_driving_ms = 10;      // 疲劳驾驶判定时长 (ms)
+
+        // 策略控制
+        int32 global_cooldown_ms = 11;     // 全局冷却时间 (ms)
+        repeated int32 special_hours = 12; // 特殊时间点 (如 12, 18, 22)
+      }
+      AICoDriverTrigger trigger = 5;
+    }
+    AICoDriver aiCoDriver = 1;
+  }
+  AISettings ai = 7;
+  int64 lastUpdateTime = 6;
   // Local
   //  bool roadColorFade = 11;
 

@@ -19,7 +19,7 @@ export const apiSlice = createSlice({
         correctedTripData: '/trip/correctedData',
         updateTrip: '/trip/update',
         updateTrips: '/trip/list/update',
-        deleteTrip: '/trip/delete',
+        deleteTrip: '/trip/delete', 
         getTrip: '/trip/get',
         getTripPositions: '/trip/positions/get',
         getTripHistoryPositions: '/trip/history/positions/get',
@@ -30,6 +30,7 @@ export const apiSlice = createSlice({
         clearTripRoads: '/trip/roads/clear',
         UpdateTripAddresses: '/trip/addresses/update',
         UpdateTripNetworkStatus: '/trip/networkStatus/update',
+        UpdateTripWeather: '/trip/weather/update',
 
         addVehicle: '/vehicle/add',
         getVehicles: '/vehicle/get/list',
@@ -75,6 +76,9 @@ export const apiSlice = createSlice({
         getPrivacyGeofence: '/privacyGeofence/get',
 
         GetNavigationData: '/navigation/get',
+
+        AIRoadbook: '/ai/roadbook',
+        AICoDriver: '/ai/coDriver',
       },
     },
   },

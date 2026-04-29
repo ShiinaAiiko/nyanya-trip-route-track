@@ -666,6 +666,39 @@ func (t *TripDbx) UpdateTrip(authorId, id string, allowShare, name, typeStr, veh
 	return nil
 }
 
+func (t *TripDbx) UpdateLastSegmentationTime(
+	ctx context.Context,
+	id, authorId string, lastSegmentationTime int64) error {
+	trip := new(models.Trip)
+
+	updateResult, err := trip.GetCollection().UpdateOne(ctx,
+		bson.M{
+			"$and": []bson.M{
+				{
+					"_id": id,
+				},
+				{
+					"authorId": authorId,
+				},
+			},
+		}, bson.M{
+			"$set": bson.M{
+				"lastSegmentationTime": time.Now().Unix(),
+			},
+		}, options.Update().SetUpsert(false))
+
+	if err != nil {
+		return err
+	}
+	if updateResult.ModifiedCount == 0 {
+		return errors.New("update fail")
+	}
+
+	// 删除对应redis
+	t.DeleteRedisData(authorId, id)
+	return nil
+}
+
 func (t *TripDbx) UpdateTripAddresses(authorId, id string, addresses []*models.TripAddresses) error {
 	trip := new(models.Trip)
 
@@ -736,6 +769,42 @@ func (t *TripDbx) UpdateTripNetworkStatus(authorId, id string, networkStatus []*
 	return nil
 }
 
+func (t *TripDbx) UpdateTripWeather(id, authorId string,
+	weather *models.TripWeather) error {
+	trip := new(models.Trip)
+
+	setUp := bson.M{}
+
+	log.Info(id, authorId, weather)
+
+	updateResult, err := trip.GetCollection().UpdateOne(context.TODO(),
+		bson.M{
+			"$and": []bson.M{
+				{
+					"_id":      id,
+					"authorId": authorId,
+					"status":   0,
+				},
+			},
+		}, bson.M{
+			"$push": bson.M{
+				"weather": weather,
+			},
+			"$set": setUp,
+		}, options.Update().SetUpsert(false))
+
+	if err != nil {
+		return err
+	}
+	if updateResult.ModifiedCount == 0 {
+		return errors.New("update fail")
+	}
+
+	// 删除对应redis
+	t.DeleteRedisData(authorId, id)
+	return nil
+}
+
 func (t *TripDbx) ResumeTrip(id, authorId string) error {
 	trip := new(models.Trip)
 
@@ -755,6 +824,7 @@ func (t *TripDbx) ResumeTrip(id, authorId string) error {
 		}, bson.M{
 			"$set": bson.M{
 				"status":         0,
+				"endTime":        -1,
 				"lastUpdateTime": time.Now().Unix(),
 			},
 		}, options.Update().SetUpsert(false))
@@ -928,32 +998,56 @@ var tripProject = bson.M{
 	// "positions.accuracy":  1,
 	// "positions.speed":     1,
 	// "positions.timestamp": 1,
-	"vehicleId":   1,
-	"marks":       1,
-	"cities":      1,
-	"roads":       1,
-	"statistics":  1,
+	"vehicleId":            1,
+	"marks":                1,
+	"cities":               1,
+	"roads":                1,
+	"networkStatus":        1,
+	"weather":              1,
+	"statistics":           1,
+	"permissions":          1,
+	"addresses":            1,
+	"authorId":             1,
+	"status":               1,
+	"createTime":           1,
+	"startTime":            1,
+	"endTime":              1,
+	"deleteTime":           1,
+	"lastSegmentationTime": 1,
+}
+
+var tripPositionsProject = bson.M{
+	"_id":       1,
+	"name":      1,
+	"type":      1,
+	"vehicleId": 1,
+	// "positions.latitude":   1,
+	// "positions.longitude":  1,
+	// "positions.altitude":   1,
+	// "positions.accuracy":   1,
+	// "positions.altitudeAccuracy":   1,
+	// "positions.speed":      1,
+	// "positions.heading":      1,
+	// "positions.timestamp":  1,
 	"permissions": 1,
-	"addresses":   1,
 	"authorId":    1,
 	"status":      1,
 	"createTime":  1,
 	"startTime":   1,
 	"endTime":     1,
-	"deleteTime":  1,
 }
 
 func (t *TripDbx) GetTrip(id string, authorId string) (*models.Trip, error) {
 	trip := new(models.Trip)
 
 	fsdb := trip.GetFsDB()
-	log.Info("GetTrip", id, authorId)
+	// log.Info("GetTrip", id, authorId)
 
 	val, err := fsdb.Trip.Get(id)
 
 	if err == nil {
 		tempTrip := val.Value()
-		log.Info("tempTrip", tempTrip)
+		// log.Info("tempTrip", tempTrip)
 		if authorId != "" && tempTrip.AuthorId == authorId {
 			return tempTrip, err
 		} else {
@@ -961,7 +1055,7 @@ func (t *TripDbx) GetTrip(id string, authorId string) (*models.Trip, error) {
 		}
 	}
 
-	log.Info("trip", trip)
+	// log.Info("trip", trip)
 
 	if trip.Id == "" {
 		params := bson.M{
@@ -986,27 +1080,6 @@ func (t *TripDbx) GetTrip(id string, authorId string) (*models.Trip, error) {
 	}
 
 	return trip, nil
-}
-
-var tripPositionsProject = bson.M{
-	"_id":       1,
-	"name":      1,
-	"type":      1,
-	"vehicleId": 1,
-	// "positions.latitude":   1,
-	// "positions.longitude":  1,
-	// "positions.altitude":   1,
-	// "positions.accuracy":   1,
-	// "positions.altitudeAccuracy":   1,
-	// "positions.speed":      1,
-	// "positions.heading":      1,
-	// "positions.timestamp":  1,
-	"permissions": 1,
-	"authorId":    1,
-	"status":      1,
-	"createTime":  1,
-	"startTime":   1,
-	"endTime":     1,
 }
 
 func (t *TripDbx) TempDownloadTripPositionsToLocal(pageNum, pageSize int64) {
@@ -1229,6 +1302,9 @@ func writeGPSFile(trip *models.Trip, isOnlyTempFile bool) error {
 	if err := fsdb.TripPosition.Set(trip.Id, trip.Positions, 0); err != nil {
 		log.Error(err)
 	}
+	// log.Error("writeGPSFile", len(trip.Positions))
+	// log.Warn("writeGPSFile", len(trip.Positions))
+	// log.Error(fsdb.TripPosition.Get(trip.Id))
 
 	if !isOnlyTempFile {
 
@@ -1290,8 +1366,13 @@ func readGPSFile(trip *models.Trip) (*models.Trip, error) {
 
 	if results, err := fsdb.TripPosition.Get(trip.Id); err == nil {
 		trip.Positions = results.Value()
-		return trip, nil
+		if len(trip.Positions) > 0 {
+			log.Info("fsdb 获取", len(trip.Positions))
+			return trip, nil
+		}
 	}
+	// log.Info(len(trip.Positions))
+	// log.Info(fsdb.TripPosition.Get(trip.Id))
 
 	tripPositions, err := readGPSFileBySAaSS(trip)
 	if err != nil {
@@ -1334,7 +1415,7 @@ func readGPSFileBySAaSS(trip *models.Trip) ([]*models.TripPosition, error) {
 
 	// log.Warn("readGPSFileBySAaSS", len(*tempTripPosition))
 
-	// trip.Positions = *tempTripPosition
+	trip.Positions = *tempTripPosition
 
 	// 下载了就缓存到本地
 	writeGPSFile(trip, true)
@@ -1437,7 +1518,7 @@ func (t *TripDbx) GetTripPositions(id string, authorId string) (*models.Trip, er
 	if _, err := readGPSFile(trip); err != nil {
 		return nil, err
 	}
-	log.Info("readGPSFile", len(trip.Positions), err)
+	// log.Info("readGPSFile", len(trip.Positions), err)
 	// }
 	// err = conf.Redisdb.SetStruct(key.GetKey(id), trip, key.GetExpiration())
 	// if err != nil {
@@ -1511,7 +1592,7 @@ func (t *TripDbx) GetTripById(id string) (*models.Trip, error) {
 
 func (t *TripDbx) GetTripAllPositions(authorId, typeStr string,
 	pageNum, pageSize int64, ids []string,
-	startTime, endTime int64, vehicleLimit []string) ([]*models.Trip, error) {
+	startTime, endTime int64, vehicleLimit []string, fullField bool) ([]*models.Trip, error) {
 	trip := new(models.Trip)
 	var results []*models.Trip
 
@@ -1549,7 +1630,7 @@ func (t *TripDbx) GetTripAllPositions(authorId, typeStr string,
 		match["_id"] = bson.M{
 			"$in": ids,
 		}
-		log.Info(ids)
+		// log.Info(ids)
 	}
 
 	params := []bson.M{
@@ -1565,7 +1646,7 @@ func (t *TripDbx) GetTripAllPositions(authorId, typeStr string,
 			},
 		},
 		{
-			"$project": tripPositionsProject,
+			"$project": ncommon.IfElse(fullField, tripProject, tripPositionsProject),
 		},
 		{
 			"$skip": pageSize * (pageNum - 1),
@@ -1858,7 +1939,6 @@ func (t *TripDbx) GetTripsBaseData(
 				"$lt":  maxDistance,
 			}
 		}
-
 		params := []bson.M{
 			{
 				"$match": bson.M{
@@ -1928,6 +2008,127 @@ func (t *TripDbx) GetTripsBaseData(
 	// if err != nil {
 	// 	log.Info(err)
 	// }
+
+	return results, nil
+}
+
+func (t *TripDbx) getAllTrips(
+	ctx context.Context,
+	ids []string,
+	authorId, typeStr string,
+	pageNum, pageSize int64,
+	createTimeLimit []int64,
+	lastUpdateTimeLimit []int64,
+	vehicleLimit []string,
+	minDistance int64,
+	maxDistance int64,
+	lastSegmentationTimeLimit []int64) ([]*models.Trip, error) {
+	trip := new(models.Trip)
+	var results []*models.Trip
+	match := bson.M{
+		"status": bson.M{
+			"$in": []int64{1, 0},
+		},
+		"createTime": bson.M{
+			"$gte": 0,
+			"$lt":  time.Now().Unix(),
+		},
+		"lastUpdateTime": bson.M{
+			"$gte": 0,
+			"$lt":  time.Now().Unix(),
+		},
+		"statistics.distance": bson.M{
+			"$gte": minDistance,
+		},
+	}
+
+	if authorId != "" {
+		match["authorId"] = authorId
+	}
+
+	if len(createTimeLimit) == 2 {
+		match["createTime"] = bson.M{
+			"$gte": createTimeLimit[0],
+			"$lt":  createTimeLimit[1],
+		}
+	}
+	if len(lastUpdateTimeLimit) == 2 {
+		match["lastUpdateTime"] = bson.M{
+			"$gte": lastUpdateTimeLimit[0],
+			"$lt":  lastUpdateTimeLimit[1],
+		}
+	}
+
+	if len(lastSegmentationTimeLimit) == 2 {
+		if lastSegmentationTimeLimit[0] == -1 && lastSegmentationTimeLimit[1] == 0 {
+			match["lastSegmentationTime"] = bson.M{
+				"$in": bson.A{-1, nil},
+			}
+		} else {
+
+			match["lastSegmentationTime"] = bson.M{
+				"$gte": lastSegmentationTimeLimit[0],
+				"$lt":  lastSegmentationTimeLimit[1],
+			}
+		}
+	}
+
+	log.Info(match["lastSegmentationTime"])
+
+	if typeStr != "All" {
+		match["type"] = typeStr
+	}
+	if len(ids) > 0 {
+		match["_id"] = bson.M{
+			"$in": ids,
+		}
+	}
+	if len(vehicleLimit) > 0 {
+		match["vehicleId"] = bson.M{
+			"$in": vehicleLimit,
+		}
+	}
+
+	if maxDistance < 500*1000 {
+		match["statistics.distance"] = bson.M{
+			"$gte": minDistance,
+			"$lt":  maxDistance,
+		}
+	}
+	params := []bson.M{
+		{
+			"$match": bson.M{
+				"$and": []bson.M{
+					match,
+				},
+			},
+		}, {
+			"$sort": bson.M{
+				"status":     1,
+				"createTime": -1,
+				// "lastUpdateTime": -1,
+			},
+		},
+		{
+			"$skip": pageSize * (pageNum - 1),
+		},
+		{
+			"$limit": pageSize,
+		},
+		{
+			"$project": tripProject,
+		},
+	}
+
+	opts, err := trip.GetCollection().Aggregate(ctx, params)
+	if err != nil {
+		// log.Error(err)
+		return nil, err
+	}
+	if err = opts.All(ctx, &results); err != nil {
+		// log.Error(err)
+		return nil, err
+	}
 
 	return results, nil
 }
@@ -2147,5 +2348,252 @@ func (t *TripDbx) DeleteRedisData(authorId, id string) error {
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func (t *TripDbx) FindCityByTime(cities []*models.TripCity, targetTime int64) ([]*models.City, error) {
+	var cityId string
+	var lastEntryTime int64 = -1
+
+	for _, city := range cities {
+		for _, entry := range city.EntryTimes {
+			// 如果进入时间小于等于目标时间
+			if entry.Timestamp <= targetTime {
+				// 我们要找的是所有符合条件的进入时间里，最大的那一个
+				// (即离 targetTime 最近的那次进入)
+				if entry.Timestamp > lastEntryTime {
+					lastEntryTime = entry.Timestamp
+					cityId = city.CityId
+				}
+			}
+		}
+	}
+
+	log.Info("cityId", cityId)
+	tempCities, err := cityDbx.GetCities([]string{
+		cityId,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return tempCities, nil
+}
+
+func (t *TripDbx) FindRoadByTime(roads []*models.TripRoad, targetTime int64) *models.TripRoad {
+	var targetRoad *models.TripRoad
+	var lastEntryTime int64 = -1
+
+	for _, road := range roads {
+		if road == nil {
+			continue
+		} // 健壮性检查
+
+		for _, entry := range road.EntryTimes {
+			if entry == nil {
+				continue
+			}
+
+			// 核心逻辑：找到不晚于 targetTime 的最大(最近)一个时间点
+			if entry.Timestamp <= targetTime {
+				if entry.Timestamp > lastEntryTime {
+					lastEntryTime = entry.Timestamp
+					targetRoad = road
+				}
+			}
+		}
+	}
+
+	return targetRoad
+}
+
+func (t *TripDbx) FindNetworkStatusByTime(list []*models.TripNetworkStatus, targetTime int64) *models.TripNetworkStatus {
+	var lastStatus *models.TripNetworkStatus
+	var lastEntryTime int64 = -1
+
+	for _, item := range list {
+		if item == nil {
+			continue
+		}
+
+		if item.Timestamp <= targetTime {
+			if item.Timestamp > lastEntryTime {
+				lastEntryTime = item.Timestamp
+				lastStatus = item
+			}
+		}
+	}
+
+	return lastStatus
+}
+
+func (t *TripDbx) FindWeatherByTime(list []*models.TripWeather, targetTime int64) *models.TripWeather {
+	var lastVal *models.TripWeather
+	var lastEntryTime int64 = -1
+
+	for _, item := range list {
+		if item == nil {
+			continue
+		}
+
+		if item.Timestamp <= targetTime {
+			if item.Timestamp > lastEntryTime {
+				lastEntryTime = item.Timestamp
+				lastVal = item
+			}
+		}
+	}
+
+	return lastVal
+}
+
+func (d *TripDbx) GetAllTripMemory() error {
+
+	t := log.Time()
+	defer t.TimeEnd("GetAllTripMemory")
+
+	// aiDbx.IngestTripMemory("bDkFXZVgq")
+	// aiDbx.IngestTripMemory("BwI3GUqrg")
+
+	// aiDbx.IngestTripMemory("p3HXr8cwR")
+	// 测试数据，记得到时候删了
+	// aiDbx.IngestTripMemory("yNPLv432D")
+
+	// userIds := []string{
+	// 	"78L2tkleM",
+	// 	"cXJoHSb9q",
+	// 	"gM1b4llDU",
+	// 	"GUUtjtg_S",
+	// 	"w79TqUMqM",
+	// }
+
+	var count int64
+
+	// maxConcurrent := 5
+	// semaphore := make(chan struct{}, maxConcurrent)
+	// var wg sync.WaitGroup
+
+	// for _, userId := range userIds {
+	// 	log.Warn("下一个用户", userId)
+
+	// for i := range 1645 / 5 {
+
+	// 	wg.Add(1)
+
+	// 	pageNum := int64(i + 1)
+
+	// 	go func(pageNum int64) { // 请根据你实际的 poi 类型替换 POI_TYPE
+	// 		defer wg.Done()
+
+	// 		// 获取信号量：如果通道满了，这里会阻塞，直到有其他协程退出
+	// 		semaphore <- struct{}{}
+	// 		defer func() { <-semaphore }() // 任务结束释放信号量
+
+	// 		count += 5
+	// 		t := log.Time()
+	// 		trips, err := d.GetTripAllPositions(userId, "All",
+	// 			pageNum, 5, []string{}, 0, 0, []string{}, false)
+
+	// 		log.Info(len(trips), count)
+	// 		t.TimeEnd("GetTripAllPositions page => " + nstrings.ToString(pageNum))
+
+	// 		if err != nil {
+	// 			log.Info(err)
+	// 			return
+	// 		}
+	// 		if len(trips) == 0 {
+	// 			return
+	// 		}
+
+	// 	}(pageNum)
+
+	// }
+
+	// break
+	startPageNum := int64(1)
+	// startPageNum = 323
+	for i := range 100 * 10000 {
+		// for i := range 2 {
+
+		pageNum := (int64(i) + startPageNum)
+
+		next, err := func() (bool, error) {
+
+			ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
+			defer cancel()
+
+			count++
+
+			ids := []string{
+				// "bDkFXZVgq",
+				// "BwI3GUqrg",
+				// "hXO0ztKpZ",
+				// "ykMRlTUd2",
+			}
+
+			trips, err := d.getAllTrips(
+				ctx,
+				ids,
+				"", "All", pageNum, int64(1),
+				[]int64{},
+				[]int64{}, []string{},
+				0,
+				500*1000, []int64{
+					-1, 0,
+				})
+			if err != nil {
+				log.Info(err)
+				return false, err
+			}
+			log.Info(len(trips))
+
+			if len(trips) == 0 {
+				return false, nil
+			}
+			trip := trips[0]
+			// log.Info("pageNum", trip.Id, userId, trip.AuthorId, pageNum, count)
+
+			// log.Info(len(trips), trip.Id, count)
+			// time := time.Unix(trip.CreateTime, 0).Format("2006-01-02 15:04")
+
+			// point, err := aiDbx.GetPointByTripIdAndAuthorId(ctx, trip.Id, trip.AuthorId)
+			// if err != nil {
+			// 	log.Info(err)
+			// 	return false, err
+			// }
+
+			// if point != nil {
+			// 	log.Error("已存在", len(trips), trip.Id, trip.AuthorId, pageNum, count, point.Id, point != nil, time)
+			// 	return true, nil
+			// }
+
+			// log.Warn("开始生成切片！！！！", ctx, trip.Id, trip.AuthorId, pageNum, count, time)
+
+			if err := tripMemoryDbx.IngestTripMemory(trip); err != nil {
+				log.Error(err)
+				return false, err
+			}
+
+			return true, nil
+		}()
+
+		if err != nil {
+			log.Error("报错了！彻底结束", next, err, count, startPageNum+count)
+			return err
+		}
+		if !next {
+			log.Info("cancelIneer", next, count, startPageNum+count)
+			break
+		}
+
+		// break
+	}
+
+	// break
+	// }
+	// wg.Wait()
+
+	log.Error("正常彻底结束", startPageNum, count, startPageNum+count)
+
 	return nil
 }

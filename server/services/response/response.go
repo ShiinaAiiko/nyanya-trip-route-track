@@ -226,6 +226,18 @@ func (res *ResponseType) GetResponse() *ResponseType {
 	switch res.Code {
 	case 200:
 
+	case 10022:
+		res.Msg = "Failed to retrieve weather"
+		res.CnMsg = "获取天气失败"
+
+	case 10021:
+		res.Msg = "Failed to retrieve POIs"
+		res.CnMsg = "获取POIs失败"
+
+	case 10020:
+		res.Msg = "Failed to get Trip RGA slice."
+		res.CnMsg = "获取Trip RGA切片失败"
+
 	case 10019:
 		res.Msg = "The time limit has exceeded 4 hours and the trip cannot be continued."
 		res.CnMsg = "已超时4小时，不可继续行程"

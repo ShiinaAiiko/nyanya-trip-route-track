@@ -1,0 +1,176 @@
+syntax = "proto3";
+
+option go_package = "./;protos";
+package ai;
+import "trip.proto";
+
+message AITokenUsage {
+  message TokenUsageItem {
+    // --- 1. 当前这轮 (This Turn) 的瞬时消耗 ---
+    // 本轮发送的总量 (含历史+检索上下文)
+    int32 promptTokens = 1;
+    // 本轮生成的量
+    int32 completionTokens = 2;
+    // 本轮总消耗
+    int32 totalTokens = 3;
+
+    // --- 输入明细 (对应 PromptTokensDetails) ---
+    // 命中缓存的 Token 数（这是省钱的关键，值越高越好）
+    int32 promptCachedTokens = 4;
+
+    // --- 输出明细 (对应 CompletionTokensDetails) ---
+    // 推理 Token（如 o1/DeepSeek-R1 的思考过程，计费但不在正文显示）
+    int32 completionReasoningTokens = 5;
+
+    int32 loopCount = 6;
+    int32 retryCount = 7;
+  }
+
+  // 多轮历史总计
+  repeated TokenUsageItem tokenUsageHistory = 1;
+  // --- 2. 累计 (Total Session) 的消耗 ---
+  // 帮助前端计算“这一路下来花了多少钱/流量”
+  int32 totalSessionTokens = 4;
+
+  // --- 3. 细分明细 (Optional: 用于调试) ---
+  // 对话历史占用的部分
+  int32 contextHistoryTokens = 5;
+  // 注入的RGA或第三方数据的token
+  int32 contextDataTokens = 6;
+}
+
+// A. 最终响应结构 (非流式或完整数据)
+message AIResponse {
+  message Status {
+    bool isRelevant = 1;
+    bool isSafetyFenced = 2;
+  }
+
+  message Meta {
+    // 操作名
+    string action = 1;
+    // function / rga
+    string type = 2;
+    // calling / success / failed
+    string status = 3;
+    string value = 4;
+    string error = 5;
+    int64 createTime = 6;
+    int64 endTime = 7;
+  }
+
+  message Reasoning { string message = 1; }
+
+  message Display {
+    string message = 1;
+    string warning = 2; // proto3 默认支持空值，不需要显式标记可选
+  }
+
+  // 200 成功 / 10001 失败 / 9999 正在流式输出
+  string sessionId = 17;
+  int32 code = 10;
+  Status status = 1;
+  string model = 6;
+  repeated Meta meta = 2;
+  Reasoning reasoning = 3;
+  Display display = 4;
+  string data = 5;
+  string error = 9;
+  int64 createTime = 7;
+  int64 thinkingStartedTime = 11;
+  int64 thinkingEndedTime = 12;
+  int64 endTime = 8;
+  repeated AIResponse historyMessages = 13;
+  AITokenUsage tokenUsage = 14;
+  string actionId = 15;
+  message ActionItem {
+    message ActionPathItem {
+      string type = 1;
+      string title = 2;
+      string path = 3;
+    }
+    string title = 1;
+    string content = 2;
+    repeated ActionPathItem paths = 3;
+  }
+  ActionItem action = 16;
+}
+
+// B. 流式响应碎片 (StreamResponse)
+// 考虑到流式场景对性能要求极高，建议使用更轻量化的结构
+message AIStreamResponse {
+  // message / reasoning / error / meta / final / model / nextLoop
+  string type = 1;
+  string action = 2;  // 比如 "update_title"
+  string value = 3;   // 操作的值
+  string content = 4; // AI 吐出的字符碎片
+}
+
+message AIMessageItem {
+  string id = 1;
+  string message = 2;
+  string authorId = 3;
+  // 发送成功 1 失败 -1 正在 0
+  int32 status = 4;
+  int64 createTime = 7;
+  int64 editTime = 8;
+}
+
+message AIRoadbook {
+  message Request {
+    string id = 1;
+    repeated string messages = 2;
+  }
+  message Response {}
+}
+
+// 具体的行车实时指标
+message AICoDriverCurrentTripData {
+  // 城市名称
+  string city = 1;
+  // 海拔 (单位: m)
+  double altitude = 2;
+  // 时速 (单位: m/s)
+  double speed = 3;
+  // 当前天气描述 (如: 晴、大雨)
+  string weather = 5;
+  // 当前温度 (单位: ℃)
+  double temp = 6;
+  // 当前道路
+  string road = 8;
+  // 本次行程的历史数据
+  trip.TripStatistics statistics = 7;
+
+  message CityCoords {
+    double latitude = 1;
+    double longitude = 2;
+  }
+  CityCoords coords = 9;
+  int64 time = 10;
+}
+
+// 对话历史条目（极简设计，仅保留文本用于指代消解）
+message ChatContextItem {
+  // 2条内全部，2条~5条 仅问题，5条外全丢
+  string id = 1;
+  string question = 2; // 用户之前问过的问题
+  string answer = 3;   // AI 之前给出的 display.message 文本
+}
+
+message AICoDriver {
+  message Request {
+    string sessionId = 7;
+    string messageId = 8;
+    // 是否已开始行程，用于判断驾驶状态
+    bool startTrip = 1;
+    // 嵌套行程数据
+    AICoDriverCurrentTripData currentTripData = 2;
+    AICoDriverCurrentTripData lastTripData = 5;
+    // 触发条件
+    string triggerReason = 3;
+    // 用户主动输入的信息
+    string message = 4;
+    // repeated ChatContextItem contexts = 6;
+  }
+  message Response {}
+}

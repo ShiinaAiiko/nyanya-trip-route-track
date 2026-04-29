@@ -70,7 +70,6 @@ const CreateCustomTripComponent = () => {
   const layout = useSelector((state: RootState) => state.layout)
   const config = useSelector((state: RootState) => state.config)
   const geo = useSelector((state: RootState) => state.geo)
-  const user = useSelector((state: RootState) => state.user)
 
   const dispatch = useDispatch<AppDispatch>()
 

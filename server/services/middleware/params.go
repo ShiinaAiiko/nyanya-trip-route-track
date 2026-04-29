@@ -25,6 +25,8 @@ func Params() gin.HandlerFunc {
 		res := response.ResponseProtobufType{}
 		res.Code = 10015
 
+		// log.Info("roles", roles)
+
 		if roles.RequestDataType == "protobuf" {
 			data := ""
 			switch c.Request.Method {
@@ -49,7 +51,7 @@ func Params() gin.HandlerFunc {
 				c.Abort()
 				return
 			}
-			// log.Info(dataProto.Token)
+			// log.Info(dataProto)
 			c.Set("data", dataProto.Data)
 			c.Set("token", dataProto.Token)
 			c.Set("deviceId", dataProto.DeviceId)
@@ -58,8 +60,11 @@ func Params() gin.HandlerFunc {
 			copier.Copy(ua, dataProto.UserAgent)
 			c.Set("userAgent", ua)
 
-			c.Set("openAppKey", dataProto.Open.AppKey)
-			c.Set("openUserId", dataProto.Open.UserId)
+			if dataProto.Open != nil {
+				c.Set("openAppKey", dataProto.Open.AppKey)
+				c.Set("openUserId", dataProto.Open.UserId)
+
+			}
 
 			c.Next()
 			return

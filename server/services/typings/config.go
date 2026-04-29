@@ -14,8 +14,19 @@ type Config struct {
 	NominatimApiUrl  string
 	ToolsApiUrl      string
 	OpenRouteService OpenRouteService
+	LLM              LLM    `json:"llm"`
+	Qdrant           Qdrant `json:"qdrant"`
 }
 
+type Qdrant struct {
+	GrpcUrl string
+	ApiKey  string
+}
+type LLM struct {
+	ApiKey  string
+	BaseURL string
+	Model   string
+}
 type OpenRouteService struct {
 	ApiKey string
 }

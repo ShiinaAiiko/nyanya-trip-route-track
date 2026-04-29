@@ -134,7 +134,9 @@
     "YRoad": "{{road}}",
     "ORoad": "{{road}}",
 
-    "customTrip": "Custom Trip"
+    "customTrip": "Custom Trip",
+    "aiModelTitle": "AI Navigator Agent",
+    "aiModelSubtitle": "Go further with you, see deeper within."
   },
   "altitudePage": {
     "pageTitle": "Real-time Altitude",
@@ -202,7 +204,17 @@
     "addNewDayAfterThisTimeline": "Add a new day after this",
     "pasteAfterThisTimeline": "Paste after this",
     "copyThisTimeline": "Copy this day",
-    "addNewWaypointAfterThisWaypoint": "Add a new waypoint after this"
+    "addNewWaypointAfterThisWaypoint": "Add a new waypoint after this",
+
+    "aiModelTitle": "AI Roadbook",
+    "aiModelSubtitle": "Roadbook Agent",
+
+    "historyVersion": "History ({{num}})",
+    "restore": "Restore Roadbook",
+    "restoreContent": "Restore to the version from {{time}}",
+    "needsSaveBeforeUpdate": "To update the roadbook, please confirm if this version is saved first",
+
+    "comfirVersion": "Confirm this version"
   },
   "searchWaypointModal": {
     "pageTitle": "Search Waypoint or Click on Map"
@@ -352,6 +364,93 @@
   "mapLayerModal": {
     "title": "Map layer"
   },
+  "aiChatModal": {
+    "title": "AI Chat",
+    "subtitle": "Agent",
+    "writeMmessage": "Ask AI Co-driver",
+    "edited": "Edited",
+    "editMessage": "Edit message",
+    "thinkReq": "Requesting AI...",
+    "thinkAnalyzing": "Analyzing with {{model}}...",
+    "thinkRunning": "Thinking... {{seconds}}s elapsed ({{model}})",
+
+    "ragActionSearch": "🔍 Searching information from your knowledge base...",
+    "ragActionSearchSuccess": "✅ Relevant references found",
+    "ragActionSearchFailed": "❌ Unable to read knowledge base data",
+
+    "callToolChain": "Calling {{function}} ({{model}})",
+    "callToolChainSuccess": "✅ {{function}} called successfully ({{model}})",
+    "callToolChainFaild": "❌ {{function}} call failed ({{model}})",
+
+    "thinkFinished": "Thought for {{seconds}}s ({{model}})",
+    "thinkFailed": "Request failed, please try again",
+    "thinkStopped": "Analysis stopped",
+
+    "coDriverPlaceholder1": "AI Navigator at work...",
+    "coDriverPlaceholder2": "Watching the road ahead for you...",
+    "coDriverPlaceholder3": "Keeping an eye on the road (๑•̀ㅂ•́)و",
+    "coDriverPlaceholder4": "Deeply analyzing this stretch of road...",
+    "coDriverPlaceholder5": "Analyzing traffic, please wait a sec...",
+    "coDriverPlaceholder6": "Observing road conditions for you...",
+    "coDriverPlaceholder7": "Scouting information ahead, heave-ho!",
+    "coDriverPlaceholder8": "Rubbing my eyes and looking closely (⊙o⊙)",
+    "coDriverPlaceholder9": "Reporting! Syncing real-time environmental data",
+    "coDriverPlaceholder10": "Monitoring altitude and temperature, I'll be good!",
+    "coDriverPlaceholder11": "Thinking hard, brain whirring at full speed...",
+    "coDriverPlaceholder12": "Watching the scenery and the road (✿◡‿◡)",
+    "coDriverPlaceholder13": "Detecting dynamics ahead, coming right up!",
+    "coDriverPlaceholder14": "Generating navigation advice, give me a moment",
+
+    "aiAgentRemindsYou": "AI Navigator Reminds You:",
+
+    "safetyWarning": "Sorry, the Co-Pilot is strictly prohibited from discussing sensitive topics.",
+
+    "loadingTokens": "{{tokens}} Tokens consumed",
+    "totalTokens": "Total: {{tokens}} Tokens consumed",
+
+    "aiCoDriver": "AI Co-Pilot",
+    "autoPlayVoice": "Auto-play Audio",
+    "autoCloseTime": "Auto-close Modal",
+
+    "isUserSpeaking": "Me: {{message}}",
+    "isAISpeaking": "AI Co-Pilot: {{message}}",
+
+    "aiCoDriverLive": "AI Co-Pilot Live",
+    "autoLaunchLiveAfterStartTrip": "Auto-launch Live after starting trip",
+    "isVoiceInputAllowedInLive": "Enable Voice Input",
+
+    "quickInput": "Quick Features",
+    "searchGeo": "Query Coordinates & Altitude",
+    "searchWeather": "Weather Forecast",
+    "searchCity": "About this City",
+    "searchCityData": "About {{city}}",
+    "myTripHistory": "Summarize my trip history",
+    "searchPOIs": "Search nearby POIs",
+    "learnAboutFeatures": "About route tracks",
+    "queryFunction": "Explore all features",
+    "aboutMe": "About AI Co-Pilot",
+    "contactDeveloper": "Contact Developer",
+    "welcomeToYou": "Welcome",
+    "welcomeToYou1": "AI Co-Pilot is at your service~",
+    "openModal": "Open {{title}}",
+    "openLink": "Go to {{title}}",
+
+    "aiCoDriverTriggerConfig": "AI Co-Pilot Trigger Config",
+    "firstOpenDistance": "Initial Trigger Distance",
+    "milestoneStep": "Distance Milestone",
+    "altitudeStep": "Altitude Change",
+    "climbMilestone": "Altitude Climb",
+    "descendMilestone": "Altitude Descent",
+    "tempStep": "Temperature Sense",
+
+    "speedDropThreshold": "Sudden Speed Drop",
+    "minMovementThreshold": "Min Movement Threshold",
+    "restAwakeThresholdMs": "Trip Reset Threshold (Parking)",
+    "drowsyDrivingMs": "Fatigue Driving",
+
+    "globalCooldownMs": "Global Cooldown",
+    "specialHours": "Special Care Hours"
+  },
   "settings": {
     "title": "Settings",
     "tripHistory": "Trip history",
@@ -465,6 +564,8 @@
     "deleteAllTrip50m": "There are {{uselessDataCount}} trips with invalid data. Are you sure you want to delete these trips?",
     "loadingData": "Data is loading",
     "loadedData": "{{percentage}} of trip data loaded",
+    "loadingTripAddresses": "Fetching trip addresses...",
+    "loadedTripAddresses": "{{percentage}} of trip addresses fetched",
     "noLoginTrip": "You need to log in to your account to continue accessing",
     "share": "Share",
     "unshare": "Unshare",
@@ -537,12 +638,18 @@
 
     "copyOrOpen": "Copy and Open",
     "reset": "Reset",
-    "resetMap": "Reset Map"
+    "resetMap": "Reset Map",
+
+    "restore": "Restore",
+    "clearMessages": "Clear Messages",
+    "clearMessagesContent": "Are you sure you want to clear the current message list?",
+    "clearSuccessfully": "Cleared successfully!"
   },
   "unit": {
     "km": "km",
     "h": "h",
     "m": "min",
-    "s": "s"
+    "s": "s",
+    "meters": "m"
   }
 }

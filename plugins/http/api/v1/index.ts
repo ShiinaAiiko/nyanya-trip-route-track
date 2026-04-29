@@ -11,6 +11,7 @@ import { privacyGeofenceApi } from './privacyGeofence'
 import { roadbookApi } from './roadbook'
 import { navigationApi } from './navigation'
 import { geoApi } from './geo'
+import { aiApi } from './ai'
 
 export const v1 = {
   ...tripApi,
@@ -26,4 +27,5 @@ export const v1 = {
   ...roadbookApi,
   ...navigationApi,
   ...geoApi,
+  ...aiApi,
 }

@@ -1,6 +1,7 @@
 package conf
 
 import (
+	"github.com/ShiinaAiiko/nyanya-trip-route-track/server/protos"
 	"github.com/cherrai/nyanyago-utils/fileStorageDB"
 )
 
@@ -10,6 +11,9 @@ var (
 	// BackupsFS     *fileStorage.FileStorage[*protos.BackupItem]
 
 	FsDB *fileStorageDB.DB
+
+	GlobalFsDB    *fileStorageDB.Model[any]
+	AISessionFsDB *fileStorageDB.Model[[]*protos.ChatContextItem]
 	// TestFS *fileStorageDB.Model[fileStorageDB.H]
 	// DeviceTokenFS *fileStorageDB.Model[*typings.DeviceTokenInfo]
 	// BackupsFS     *fileStorageDB.Model[*protos.BackupItem]
@@ -28,6 +32,23 @@ func InitFsDB() {
 		log.Error(err)
 	}
 	FsDB = db
+
+	if GlobalFsDB == nil {
+		db, err := fileStorageDB.CreateModel[any](FsDB, "Global")
+		if err != nil {
+			log.Error(err)
+		} else {
+			GlobalFsDB = db
+		}
+	}
+	if AISessionFsDB == nil {
+		db, err := fileStorageDB.CreateModel[[]*protos.ChatContextItem](FsDB, "AISession")
+		if err != nil {
+			log.Error(err)
+		} else {
+			AISessionFsDB = db
+		}
+	}
 
 	// type AAAA struct {
 	// 	BBBBB string

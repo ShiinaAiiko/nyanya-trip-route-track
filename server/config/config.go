@@ -12,14 +12,33 @@ import (
 	"github.com/cherrai/nyanyago-utils/nshortid"
 	"github.com/cherrai/nyanyago-utils/saass"
 	sso "github.com/cherrai/saki-sso-go"
+	"github.com/go-ego/gse"
 	"github.com/go-resty/resty/v2"
+	"github.com/sashabaranov/go-openai"
 )
 
 var (
-	log           = nlog.New()
-	Config        *typings.Config
-	SSO           *sso.SakiSSO
-	SAaSS         *saass.SAaSS
+	log          = nlog.New()
+	Config       *typings.Config
+	SSO          *sso.SakiSSO
+	SAaSS        *saass.SAaSS
+	Qdrant       *QdrantDB
+	Seg          gse.Segmenter
+	OpenAIClient *openai.Client
+	OpenAIModel  = "glm-4.7-flash"
+
+	QdrantCollectionName = struct {
+		IntentTemplates string
+		Trip            string
+		POI             string
+	}{
+		Trip:            "trip_segments",
+		IntentTemplates: "intent_templates",
+		POI:             "poi",
+	}
+
+	// 设置最大循环次数，防止死循环
+	MaxIterations = 3
 	RestyClient   = resty.New()
 	G             = goroutinepanic.G
 	FileTokenSign = "saass_2022_6_4"

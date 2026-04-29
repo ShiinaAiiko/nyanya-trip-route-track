@@ -55,7 +55,7 @@ import LoadModalComponent, {
   LoadModalsComponent,
 } from '../components/LoadModal'
 import { loadPwaNewVersion } from '../plugins/loadPwaNewVersion'
-import { SakiI18n } from '../components/saki-ui-react/components'
+import { SakiI18n, SakiInit } from '../components/saki-ui-react/components'
 import { ReactNativeWebJSBridge } from '../plugins/reactNativeWebJsBridge'
 import { loadModal } from '../store/layout'
 import { sakisso } from '../config'
@@ -482,22 +482,26 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
         <NoSSR>
           <>
             <saki-base-style></saki-base-style>
-            <saki-init
-              ref={bindEvent({
-                mounted(e) {
-                  console.log('mounted', e)
-                  setSakiuiInit(true)
-                  // store.dispatch(
-                  // 	configSlice.actions.setStatus({
-                  // 		type: 'sakiUIInitStatus',
-                  // 		v: true,
-                  // 	})
-                  // )
-                  // setProgressBar(progressBar + 0.2 >= 1 ? 1 : progressBar + 0.2)
-                  // setProgressBar(.6)
-                },
-              })}
-            ></saki-init>
+            <SakiInit
+              ref={
+                bindEvent({
+                  mounted(e) {
+                    console.log('mounted', e)
+                    setSakiuiInit(true)
+                    // store.dispatch(
+                    // 	configSlice.actions.setStatus({
+                    // 		type: 'sakiUIInitStatus',
+                    // 		v: true,
+                    // 	})
+                    // )
+                    // setProgressBar(progressBar + 0.2 >= 1 ? 1 : progressBar + 0.2)
+                    // setProgressBar(.6)
+                  },
+                }) as any
+              }
+              debug={process.env.CLIENT_ENV === 'development'}
+              debugWSUrl={'ws://192.168.204.130:32300'}
+            ></SakiInit>
             {user.isInit && !user.isLogin ? (
               <saki-sso-init
                 ref={bindEvent({

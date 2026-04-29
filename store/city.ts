@@ -14,6 +14,7 @@ import {
   getDistance,
   parseQuery,
   random,
+  WebVoiceBroadcast,
 } from '../plugins/methods'
 import { eventListener, R, TabsTripType } from './config'
 import { httpApi } from '../plugins/http/api'
@@ -1135,36 +1136,7 @@ export const getCityName = (
 }
 
 export const voiceBroadcast = (city: string, msg?: boolean) => {
-  // const tripArrivalMessages = [
-  //   '你已经到了 {{city}}，记下这一站喽',
-  //   '抵达 {{city}}！旅途的小标记 +1',
-  //   '现在是 {{city}}，继续出发咯',
-  //   '{{city}}，打卡成功～前方还有很多风景',
-  //   '你好呀，{{city}}！旅程继续咯',
-  //   '{{city}} 到啦，这段路也成了回忆的一部分',
-  //   '成功抵达 {{city}}，愿这站也值得收藏',
-  //   '已进入 {{city}}，小小记录仪已就位',
-  //   '旅程更新：你现在在 {{city}}',
-  //   '到达 {{city}}～继续向前走，不回头',
-  //   '终于到了 {{city}}，这次的风景很美哦',
-  //   '欢迎来到 {{city}}，新的冒险开始了',
-  //   '{{city}}，新的印记！继续探索这个地方吧',
-  //   '到了 {{city}}，踏上了这片神奇的土地',
-  //   '抵达 {{city}}，旅途中的每一站都是故事',
-  //   '哇，{{city}}！继续往前走，精彩还在后头',
-  //   '成功到达 {{city}}，放慢脚步享受这一站的魅力',
-  //   '终于在 {{city}}，小小的心情有了归属',
-  //   '你已经来到了 {{city}}，让我们继续前行吧',
-  //   '当前所在：{{city}}，风景就在前方',
-  // ]
-
-  // for (let i = 0; i < 50; i++) {
-  //   console.log('VoiceBroadcast', random(0, tripArrivalMessages.length))
-  // }
-
-  // const text = tripArrivalMessages[
-  //   Number(random(0, tripArrivalMessages.length))
-  // ].replace('{{city}}', city)
+  const { config } = store.getState()
 
   const text = t('voiceBroadcastText', {
     ns: 'tripPage',
@@ -1185,19 +1157,7 @@ export const voiceBroadcast = (city: string, msg?: boolean) => {
 
     msgSnackbar.open()
   }
-  ;(window as any).responsiveVoice.speak(
-    text,
-    'Chinese Female', // 中文女声
-    {
-      pitch: 1, // 音调
-      rate: 1, // 语速
-      volume: 2, // 音量
-      onend: () => {
-        msg && msgSnackbar?.close()
-        console.log('播放完成！')
-      },
-    }
-  )
+  WebVoiceBroadcast(text, '', config.lang)
 }
 
 const asyncQueue = new AsyncQueue({

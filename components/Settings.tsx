@@ -609,7 +609,7 @@ const Account = ({ show }: { show: boolean }) => {
 
 const Language = ({ show }: { show: boolean }) => {
   const { t, i18n } = useTranslation('settings')
-  const { config } = useSelector((state: RootState) => state)
+  const config = useSelector((state: RootState) => state.config)
 
   const dispatch = useDispatch<AppDispatch>()
   // useEffect(() => {

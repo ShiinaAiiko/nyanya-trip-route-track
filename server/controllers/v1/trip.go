@@ -466,6 +466,16 @@ func (fc *TripController) AddTripToOnline(c *gin.Context) {
 	postions := []*models.TripPosition{}
 	marks := []*models.TripMark{}
 
+	cities := []*models.TripCity{}
+	roads := []*models.TripRoad{}
+	networkStatus := narrays.Map(data.NetworkStatus, func(sv *protos.TripNetworkStatus, i int) *models.TripNetworkStatus {
+		return &models.TripNetworkStatus{
+			Status:    sv.Status,
+			Timestamp: sv.Timestamp,
+		}
+	})
+	weather := []*models.TripWeather{}
+
 	for _, v := range data.Positions {
 		postions = append(postions, &models.TripPosition{
 			Latitude:         v.Latitude,
@@ -483,17 +493,73 @@ func (fc *TripController) AddTripToOnline(c *gin.Context) {
 			Timestamp: v.Timestamp,
 		})
 	}
+	for _, v := range data.Cities {
+		entryTimes := []*models.TripCityEntryTimeItem{}
+		for _, sv := range v.EntryTimes {
+			entryTimes = append(entryTimes, &models.TripCityEntryTimeItem{
+				Timestamp: sv.Timestamp,
+			})
+		}
+		cities = append(cities, &models.TripCity{
+			CityId:     v.CityId,
+			EntryTimes: entryTimes,
+		})
+	}
+	for _, v := range data.Roads {
+		entryTimes := []*models.TripCityEntryTimeItem{}
+		for _, sv := range v.EntryTimes {
+			entryTimes = append(entryTimes, &models.TripCityEntryTimeItem{
+				Timestamp: sv.Timestamp,
+			})
+		}
+		roadsList := []*models.TripRoadInfo{}
+
+		for _, road := range v.Roads {
+
+			roadsList = append(roadsList, &models.TripRoadInfo{
+				Type: road.Type,
+				Code: road.Code,
+				Name: &models.TypeRoadName{
+					ZhHans: road.Name.ZhHans,
+					ZhHant: road.Name.ZhHant,
+					En:     road.Name.En,
+				},
+				ShortCityName: road.ShortCityName,
+			})
+		}
+
+		roads = append(roads, &models.TripRoad{
+			Roads:      roadsList,
+			EntryTimes: entryTimes,
+		})
+	}
+	for _, v := range data.Weather {
+		weather = append(weather, &models.TripWeather{
+			WeatherCode:         v.WeatherCode,
+			Temperature:         v.Temperature,
+			ApparentTemperature: v.ApparentTemperature,
+			WindSpeed:           v.WindSpeed,
+			WindDirection:       v.WindDirection,
+			Humidity:            v.Humidity,
+			Precipitation:       v.Precipitation,
+			Timestamp:           v.Timestamp,
+		})
+	}
 	// log.Info("userInfo", userInfo)
 
 	trip := &models.Trip{
 		Type: data.Type,
 		// Positions:  postions,
-		Marks:      marks,
-		AuthorId:   userInfo.Uid,
-		Status:     0,
-		CreateTime: data.CreateTime,
-		StartTime:  data.StartTime,
-		EndTime:    data.EndTime,
+		Marks:         marks,
+		Cities:        cities,
+		Roads:         roads,
+		NetworkStatus: networkStatus,
+		Weather:       weather,
+		AuthorId:      userInfo.Uid,
+		Status:        0,
+		CreateTime:    data.CreateTime,
+		StartTime:     data.StartTime,
+		EndTime:       data.EndTime,
 	}
 	if data.CustomTrip {
 		trip.Permissions = &models.TripPermissions{
@@ -764,17 +830,32 @@ func (fc *TripController) FinishTrip(c *gin.Context) {
 		return
 	}
 
-	err = tripDbx.FinishTrip(
+	if err = tripDbx.FinishTrip(
 		userInfo.Uid, data.Id,
 		s,
 		&models.TripPermissions{
 			AllowShare: false,
 		},
 		endTime,
-	)
-	if err != nil {
+	); err != nil {
 		res.Errors(err)
 		res.Code = 10011
+		res.Call(c)
+		return
+	}
+
+	trip, err := tripDbx.GetTrip(data.Id, userInfo.Uid)
+
+	if err != nil {
+		res.Errors(err)
+		res.Code = 10006
+		res.Call(c)
+		return
+	}
+
+	if err := tripMemoryDbx.IngestTripMemory(trip); err != nil {
+		res.Errors(err)
+		res.Code = 10020
 		res.Call(c)
 		return
 	}
@@ -1445,7 +1526,7 @@ func (fc *TripController) GetTripHistoryPositions(c *gin.Context) {
 	// log.Error("pgp", pgp)
 
 	// log.Info(authorId)
-	trips, err := tripDbx.GetTripAllPositions(authorId, data.Type, data.PageNum, data.PageSize, data.Ids, data.TimeLimit[0], data.TimeLimit[1], data.VehicleLimit)
+	trips, err := tripDbx.GetTripAllPositions(authorId, data.Type, data.PageNum, data.PageSize, data.Ids, data.TimeLimit[0], data.TimeLimit[1], data.VehicleLimit, false)
 	// log.Info("trips, err ", trips, err)
 	if err != nil || len(trips) == 0 {
 		res.Errors(err)
@@ -1759,7 +1840,9 @@ func (fc *TripController) GetTripStatistics(c *gin.Context) {
 	// 3、验证参数
 	if err = validation.ValidateStruct(
 		data,
-		validation.Parameter(&data.Type, validation.Required(), validation.Enum([]string{"All", "Running",
+		validation.Parameter(&data.Type, validation.Required(), validation.Enum([]string{
+			"All",
+			"Running",
 			"Bike",
 			"Drive",
 			"Motorcycle",
@@ -2364,6 +2447,80 @@ func (fc *TripController) UpdateTripNetworkStatus(c *gin.Context) {
 	}
 
 	protoData := &protos.UpdateTripNetworkStatus_Response{}
+
+	res.Data = protos.Encode(protoData)
+
+	res.Call(c)
+}
+
+func (fc *TripController) UpdateTripWeather(c *gin.Context) {
+	// 1、请求体
+	var res response.ResponseProtobufType
+	res.Code = 200
+
+	// 2、获取参数
+	data := new(protos.UpdateTripWeather_Request)
+	var err error
+	if err = protos.DecodeBase64(c.GetString("data"), data); err != nil {
+		res.Error = err.Error()
+		res.Code = 10002
+		res.Call(c)
+		return
+	}
+
+	// log.Info("data", data)
+
+	// 3、验证参数
+	if err = validation.ValidateStruct(
+		data,
+		validation.Parameter(&data.Id, validation.Type("string"), validation.Required()),
+	); err != nil {
+		res.Errors(err)
+		res.Code = 10002
+		res.Call(c)
+		return
+	}
+	if err = validation.ValidateStruct(
+		data.Weather,
+		validation.Parameter(&data.Weather.Timestamp, validation.Type("int64"), validation.Required()),
+	); err != nil {
+		res.Errors(err)
+		res.Code = 10002
+		res.Call(c)
+		return
+	}
+
+	userInfoAny, exists := c.Get("userInfo")
+	if !exists {
+		res.Errors(err)
+		res.Code = 10004
+		res.Call(c)
+		return
+	}
+	userInfo := userInfoAny.(*sso.UserInfo)
+
+	// log.Info(userInfo.Uid, data.Id)
+
+	if err = tripDbx.UpdateTripWeather(
+		data.Id, userInfo.Uid, &models.TripWeather{
+			WeatherCode:         data.Weather.WeatherCode,
+			Temperature:         data.Weather.Temperature,
+			ApparentTemperature: data.Weather.ApparentTemperature,
+			WindSpeed:           data.Weather.WindSpeed,
+			WindDirection:       data.Weather.WindDirection,
+			Humidity:            data.Weather.Humidity,
+			Precipitation:       data.Weather.Precipitation,
+			Timestamp:           data.Weather.Timestamp,
+		},
+	); err != nil {
+		log.Error(err)
+		res.Errors(err)
+		res.Code = 10011
+		res.Call(c)
+		return
+	}
+
+	protoData := &protos.UpdateTripWeather_Response{}
 
 	res.Data = protos.Encode(protoData)
 

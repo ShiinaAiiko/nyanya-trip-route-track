@@ -134,7 +134,9 @@
     "YRoad": "{{road}}鄉道",
     "ORoad": "{{road}}",
 
-    "customTrip": "自訂行程"
+    "customTrip": "自訂行程",
+    "aiModelTitle": "AI 领航员 Agent",
+    "aiModelSubtitle": "陪你走得更远，看得更深"
   },
   "altitudePage": {
     "pageTitle": "即時海拔",
@@ -202,7 +204,17 @@
     "addNewDayAfterThisTimeline": "在此之後新增一天",
     "pasteAfterThisTimeline": "貼上到此之後",
     "copyThisTimeline": "複製此日",
-    "addNewWaypointAfterThisWaypoint": "在此之後新增途經點"
+    "addNewWaypointAfterThisWaypoint": "在此之後新增途經點",
+
+    "aiModelTitle": "AI 自駕路書",
+    "aiModelSubtitle": "自駕路書 Agent",
+
+    "historyVersion": "歷史版本 ({{num}})",
+    "restore": "恢復自駕路書",
+    "restoreContent": "恢復到 {{time}} 時的版本",
+    "needsSaveBeforeUpdate": "若需更新路書，請先確認此版本是否保存",
+
+    "comfirVersion": "確認此版本"
   },
   "searchWaypointModal": {
     "pageTitle": "搜尋途經點 或 點擊地圖選點"
@@ -352,6 +364,93 @@
   "mapLayerModal": {
     "title": "地圖圖層"
   },
+  "aiChatModal": {
+    "title": "AI 對話",
+    "subtitle": "Agent",
+    "writeMmessage": "諮詢 AI 領航員",
+    "edited": "已編輯",
+    "editMessage": "編輯消息",
+    "thinkReq": "正在請求 AI",
+    "thinkAnalyzing": "正在使用 {{model}} 分析中",
+    "thinkRunning": "思考中...已持續 {{seconds}} 秒 ({{model}})",
+
+    "ragActionSearch": "🔍 正在從您的知識庫中搜尋資料...",
+    "ragActionSearchSuccess": "✅ 已為您找到相關參考資料",
+    "ragActionSearchFailed": "❌ 暫時無法讀取知識庫資料",
+
+    "callToolChain": "正在調用 {{function}} ({{model}})",
+    "callToolChainSuccess": "✅ {{function}} 調用成功 ({{model}})",
+    "callToolChainFaild": "❌ {{function}} 調用失敗 ({{model}})",
+
+    "thinkFinished": "思考了 {{seconds}} 秒 ({{model}})",
+    "thinkFailed": "請求失敗，請重試",
+    "thinkStopped": "已停止分析",
+
+    "coDriverPlaceholder1": "AI 領航員工作中...",
+    "coDriverPlaceholder2": "正在幫你盯著前方...",
+    "coDriverPlaceholder3": "正在努力幫你中看路中 (๑•̀ㅂ•́)و",
+    "coDriverPlaceholder4": "正在深度研判這段路...",
+    "coDriverPlaceholder5": "路況分析中，請稍等下下哦",
+    "coDriverPlaceholder6": "正在為你觀察路況...",
+    "coDriverPlaceholder7": "前方情報打探中，嘿咻嘿咻！",
+    "coDriverPlaceholder8": "正在揉眼睛，仔細看路中 (⊙o⊙)",
+    "coDriverPlaceholder9": "報告！正在同步實時環境數據",
+    "coDriverPlaceholder10": "海拔氣溫都在監測中，我會乖乖噠",
+    "coDriverPlaceholder11": "正在認真思考，大腦飛速運轉裡...",
+    "coDriverPlaceholder12": "我在幫你中看風景，也在看路哦 (✿◡‿◡)",
+    "coDriverPlaceholder13": "正在探測前方動態，馬上就來！",
+    "coDriverPlaceholder14": "領航建議生成中，等我一下下嘛",
+
+    "aiAgentRemindsYou": "AI 領航員提醒您：",
+
+    "safetyWarning": "抱歉，領航員嚴禁討論任何敏感話題。",
+
+    "loadingTokens": "當前已消耗 {{tokens}} Tokens",
+    "totalTokens": "累計消耗 {{tokens}} Tokens",
+
+    "aiCoDriver": "AI 領航員",
+    "autoPlayVoice": "自動播放音訊",
+    "autoCloseTime": "自動關閉Modal",
+
+    "isUserSpeaking": "我：{{message}}",
+    "isAISpeaking": "AI領航員：{{message}}",
+
+    "aiCoDriverLive": "AI領航員 Live",
+    "autoLaunchLiveAfterStartTrip": "開始行程後自動啟動 Live",
+    "isVoiceInputAllowedInLive": "啟用語音輸入",
+
+    "quickInput": "快捷功能",
+    "searchGeo": "查詢經緯度、海拔",
+    "searchWeather": "天氣預報",
+    "searchCity": "介紹這座城市",
+    "searchCityData": "介紹 {{city}}",
+    "myTripHistory": "總結我的行程歷史",
+    "searchPOIs": "搜尋周圍POIs",
+    "learnAboutFeatures": "關於行程路線軌跡",
+    "queryFunction": "了解所有功能",
+    "aboutMe": "關於AI領航員",
+    "contactDeveloper": "聯繫開發者",
+    "welcomeToYou": "歡迎使用",
+    "welcomeToYou1": "AI領航員持續為您服務~",
+    "openModal": "打開 {{title}}",
+    "openLink": "前往 {{title}}",
+
+    "aiCoDriverTriggerConfig": "AI領航員觸發器配置",
+    "firstOpenDistance": "首次開啟距離",
+    "milestoneStep": "距離觸發",
+    "altitudeStep": "海拔變化",
+    "climbMilestone": "海拔爬升",
+    "descendMilestone": "海拔下降",
+    "tempStep": "溫差感知",
+
+    "speedDropThreshold": "速度驟降",
+    "minMovementThreshold": "最小有效位移閾值",
+    "restAwakeThresholdMs": "停車重置旅程閾值",
+    "drowsyDrivingMs": "疲勞駕駛",
+
+    "globalCooldownMs": "全局冷卻時間",
+    "specialHours": "特殊關懷時段"
+  },
   "settings": {
     "title": "設置",
     "tripHistory": "行程歷史",
@@ -465,6 +564,8 @@
     "deleteAllTrip50m": "有{{uselessDataCount}}個行程是無效數據，您確定要刪除這些行程嗎？",
     "loadingData": "正在載入數據",
     "loadedData": "已載入 {{percentage}} 的行程資料",
+    "loadingTripAddresses": "正在取得行程地址",
+    "loadedTripAddresses": "已獲取 {{percentage}} 的行程地址",
     "noLoginTrip": "您需要登入您的帳戶才能繼續訪問",
     "share": "分享",
     "unshare": "取消分享",
@@ -536,12 +637,18 @@
 
     "copyOrOpen": "複製並開啟",
     "reset": "重置",
-    "resetMap": "重置地圖"
+    "resetMap": "重置地圖",
+
+    "restore": "恢復",
+    "clearMessages": "清空消息列表",
+    "clearMessagesContent": "您確定要清空當前消息列表嗎？",
+    "clearSuccessfully": "清空成功!"
   },
   "unit": {
     "km": "公里",
     "h": "小時",
     "m": "分鐘",
-    "s": "秒"
+    "s": "秒",
+    "meters": "公尺"
   }
 }

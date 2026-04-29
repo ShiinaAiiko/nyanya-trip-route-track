@@ -1,223 +1,231 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>隐私围栏绘制工具</title>
-    <!-- Leaflet CSS -->
-    <link
-      rel="stylesheet"
-      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    />
-    <!-- Leaflet Draw CSS -->
-    <link
-      rel="stylesheet"
-      href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css"
-    />
+    <title>Gemini Live Pro Control</title>
     <style>
+      :root {
+        --bg-color: #05070a;
+        --accent-blue: #4285f4;
+      }
+
       body {
         margin: 0;
-        padding: 0;
-        font-family: Arial, sans-serif;
-      }
-      #map {
+        background-color: var(--bg-color);
+        color: white;
+        font-family: -apple-system, system-ui, sans-serif;
         height: 100vh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      /* 画布容器 */
+      #geminiCanvas {
+        position: absolute;
+        bottom: 0;
+        left: 0;
         width: 100%;
+        height: 80%;
+        filter: blur(25px) contrast(1.1);
+        z-index: 1;
       }
-      #controls {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        z-index: 1000;
-        background: white;
-        padding: 10px;
-        border-radius: 5px;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+
+      /* 顶部控制面板 */
+      .controls {
+        position: relative;
+        z-index: 100;
+        margin-top: 40px;
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(20px);
+        padding: 20px 30px;
+        border-radius: 24px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        display: flex;
+        gap: 30px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
       }
-      button {
-        margin: 5px;
-        padding: 8px 12px;
+
+      .control-group {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      label {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.6);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      input[type='range'] {
         cursor: pointer;
+        width: 150px;
       }
-      #coordinates {
+
+      /* 底部 UI */
+      .ui-footer {
         position: absolute;
-        bottom: 10px;
-        left: 10px;
-        z-index: 1000;
-        background: white;
-        padding: 10px;
-        border-radius: 5px;
-        max-height: 200px;
-        overflow-y: auto;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+        bottom: 40px;
+        z-index: 100;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+      }
+
+      .status-pill {
+        background: rgba(16, 20, 28, 0.8);
+        backdrop-filter: blur(20px);
+        padding: 12px 28px;
+        border-radius: 40px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+      }
+
+      .dot {
+        width: 8px;
+        height: 8px;
+        background: #00ffcc;
+        border-radius: 50%;
+        box-shadow: 0 0 10px #00ffcc;
+        animation: pulse 1.5s infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 0.5;
+          transform: scale(1);
+        }
+        50% {
+          opacity: 1;
+          transform: scale(1.2);
+        }
       }
     </style>
   </head>
   <body>
-    <div id="map"></div>
-    <div id="controls">
-      <button id="draw">绘制隐私围栏</button>
-      <button id="edit">编辑围栏</button>
-      <button id="delete">删除围栏</button>
-      <button id="save">保存围栏</button>
+    <div class="controls">
+      <div class="control-group">
+        <label>波动高度 (Height)</label>
+        <input type="range" id="heightCtrl" min="20" max="250" value="100" />
+      </div>
+      <div class="control-group">
+        <label>动画速度 (Speed)</label>
+        <input type="range" id="speedCtrl" min="1" max="10" value="4" />
+      </div>
     </div>
-    <div id="coordinates"></div>
 
-    <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <!-- Leaflet Draw JS -->
-    <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+    <canvas id="geminiCanvas"></canvas>
+
+    <div class="ui-footer">
+      <div class="status-pill">
+        <div class="dot"></div>
+        <span>Gemini Live · 动态控制模式</span>
+      </div>
+    </div>
 
     <script>
-      // 初始化地图
-      const map = L.map('map').setView([39.9042, 116.4074], 12) // 默认北京中心
+      const canvas = document.getElementById('geminiCanvas')
+      const ctx = canvas.getContext('2d')
+      const heightCtrl = document.getElementById('heightCtrl')
+      const speedCtrl = document.getElementById('speedCtrl')
 
-      // 添加OpenStreetMap底图
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution:
-          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      }).addTo(map)
+      let width, height
+      function resize() {
+        width = canvas.width = window.innerWidth
+        height = canvas.height = window.innerHeight * 0.8
+      }
+      window.addEventListener('resize', resize)
+      resize()
 
-      // 创建要素组来存储围栏
-      const drawnItems = new L.FeatureGroup()
-      map.addLayer(drawnItems)
-
-      // 初始化绘制控件
-      const drawControl = new L.Control.Draw({
-        draw: {
-          polygon: {
-            title: '绘制隐私围栏',
-            allowIntersection: false, // 禁止自相交
-            shapeOptions: {
-              color: '#d62728', // 红色边框
-              fillColor: '#d62728', // 红色填充
-              fillOpacity: 0.3, // 半透明
-              weight: 2,
-            },
-            showArea: true, // 显示面积
-            metric: true, // 使用公制单位
-          },
-          polyline: false, // 禁用折线
-          circle: false, // 禁用圆形
-          rectangle: false, // 禁用矩形
-          marker: false, // 禁用标记
+      // 优化的颜色：更高的饱和度和亮度
+      const waveConfigs = [
+        {
+          y: 0.6,
+          length: 0.004,
+          amplitude: 100,
+          speed: 0.01,
+          color: 'rgba(66, 133, 244, 0.8)', // 明亮蓝
+          offset: 0,
         },
-        edit: {
-          featureGroup: drawnItems, // 可编辑的要素组
+        {
+          y: 0.65,
+          length: 0.006,
+          amplitude: 80,
+          speed: -0.008,
+          color: 'rgba(161, 66, 244, 0.7)', // 鲜艳紫
+          offset: 100,
         },
-      })
+        {
+          y: 0.7,
+          length: 0.005,
+          amplitude: 120,
+          speed: 0.012,
+          color: 'rgba(0, 255, 230, 0.6)', // 明亮青
+          offset: 200,
+        },
+      ]
 
-      // 添加绘制控件到地图
-      map.addControl(drawControl)
+      let time = 0
 
-      // 监听绘制完成事件
-      map.on(L.Draw.Event.CREATED, function (e) {
-        const type = e.layerType
-        const layer = e.layer
+      function animate() {
+        ctx.clearRect(0, 0, width, height)
 
-        if (type === 'polygon') {
-          // 计算面积（平方米）
-          const area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0])
+        // 获取实时控制参数
+        const globalAmp = parseInt(heightCtrl.value)
+        const globalSpeed = parseInt(speedCtrl.value) * 0.005
 
-          // 面积至少1000平方米
-          if (area < 1000) {
-            alert('隐私围栏面积不能小于1000平方米')
-            return
+        time += globalSpeed
+
+        // 设置混合模式，让颜色交汇处“发光”
+        ctx.globalCompositeOperation = 'screen'
+
+        waveConfigs.forEach((config, i) => {
+          ctx.beginPath()
+
+          // 增强的垂直渐变
+          const gradient = ctx.createLinearGradient(
+            0,
+            height * config.y - globalAmp,
+            0,
+            height
+          )
+          gradient.addColorStop(0, config.color)
+          gradient.addColorStop(0.6, config.color.replace('0.', '0.1')) // 中段淡出
+          gradient.addColorStop(1, 'rgba(5, 7, 10, 0)') // 底部彻底融入背景
+
+          ctx.fillStyle = gradient
+
+          for (let x = 0; x <= width; x += 2) {
+            // 多层波形合成：基础波 + 谐波
+            const baseWave = Math.sin(x * config.length + time + config.offset)
+            const harmonic = Math.sin(x * config.length * 0.5 + time * 0.5)
+
+            // 最终 Y 坐标计算
+            const y =
+              height * config.y + (baseWave + harmonic * 0.5) * globalAmp
+
+            if (x === 0) ctx.moveTo(x, y)
+            else ctx.lineTo(x, y)
           }
 
-          // 添加面积信息到弹出窗口
-          layer.bindPopup(`隐私围栏 (面积: ${area.toFixed(0)} m²)`)
-          drawnItems.addLayer(layer)
-          updateCoordinates()
-        }
-      })
-
-      // 监听编辑事件
-      map.on(L.Draw.Event.EDITED, function (e) {
-        updateCoordinates()
-      })
-
-      // 监听删除事件
-      map.on(L.Draw.Event.DELETED, function (e) {
-        updateCoordinates()
-      })
-
-      // 手动控制按钮
-      document.getElementById('draw').addEventListener('click', function () {
-        new L.Draw.Polygon(map, drawControl.options.draw.polygon).enable()
-      })
-
-      document.getElementById('edit').addEventListener('click', function () {
-        drawControl._toolbars.edit._modes.edit.handler.enable()
-      })
-
-      document.getElementById('delete').addEventListener('click', function () {
-        drawControl._toolbars.edit._modes.remove.handler.enable()
-      })
-
-      document.getElementById('save').addEventListener('click', function () {
-        if (drawnItems.getLayers().length === 0) {
-          alert('请先绘制隐私围栏')
-          return
-        }
-
-        const geofences = []
-        drawnItems.eachLayer(function (layer) {
-          if (layer instanceof L.Polygon) {
-            const coordinates = layer
-              .getLatLngs()[0]
-              .map((latlng) => [latlng.lat, latlng.lng])
-            geofences.push({
-              type: 'Feature',
-              geometry: {
-                type: 'Polygon',
-                coordinates: [coordinates],
-              },
-              properties: {
-                area: L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]),
-              },
-            })
-          }
+          ctx.lineTo(width, height)
+          ctx.lineTo(0, height)
+          ctx.fill()
         })
 
-        console.log('保存的围栏数据:', geofences)
-        alert(`已保存 ${geofences.length} 个隐私围栏\n查看控制台获取数据`)
-
-        // 这里可以添加AJAX请求将数据发送到服务器
-        // fetch('/api/privacy-geofences', {
-        //     method: 'POST',
-        //     body: JSON.stringify(geofences)
-        // });
-      })
-
-      // 更新坐标显示
-      function updateCoordinates() {
-        const layers = drawnItems.getLayers()
-        let html = '<h3>当前隐私围栏</h3>'
-
-        if (layers.length === 0) {
-          html += '<p>没有围栏</p>'
-        } else {
-          layers.forEach((layer, index) => {
-            if (layer instanceof L.Polygon) {
-              const coordinates = layer
-                .getLatLngs()[0]
-                .map((latlng) => [latlng.lat, latlng.lng])
-              const area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0])
-
-              html += `<div><strong>围栏 ${
-                index + 1
-              }</strong> (面积: ${area.toFixed(0)} m²)<br>`
-              html += `坐标: ${JSON.stringify(coordinates)}</div><hr>`
-            }
-          })
-        }
-
-        document.getElementById('coordinates').innerHTML = html
+        requestAnimationFrame(animate)
       }
 
-      // 初始化坐标显示
-      updateCoordinates()
+      animate()
     </script>
   </body>
 </html>

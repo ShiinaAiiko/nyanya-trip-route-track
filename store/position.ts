@@ -26,6 +26,8 @@ let realTimePositionListMarker: {
 const d = new Debounce()
 // const [selectRealTimeMarkkerId, setSelectRealTimeMarkkerId] = useState('')
 
+let isFirstInitSyncPosition = false
+
 export const initSyncPosition = (
   map: Leaflet.Map,
   showPositionMarker: boolean
@@ -41,15 +43,18 @@ export const initSyncPosition = (
       map &&
       (trip.startTrip ? config.syncLocationWhileTraveling : true) &&
       showPositionMarker
-    console.log(
-      'initSyncPosition',
-      b,
-      config.syncLocationWhileTraveling,
-      position.syncPositionIntervalTime
-    )
+    // console.log(
+    //   'initSyncPosition',
+    //   b,
+    //   config.syncLocationWhileTraveling,
+    //   position.syncPositionIntervalTime
+    // )
 
     if (b && map) {
-      getUserPositionAndVehiclePosition(map)
+      if (!isFirstInitSyncPosition) {
+        getUserPositionAndVehiclePosition(map)
+        isFirstInitSyncPosition = true
+      }
       realTimePositionTimer = setInterval(() => {
         getUserPositionAndVehiclePosition(map)
       }, position.syncPositionIntervalTime * 1000)
@@ -172,6 +177,8 @@ const getUserPositionAndVehiclePosition = async (map: Leaflet.Map) => {
       }
       return false
     })
+
+    // console.log('iTime', iTime)
 
     store.dispatch(positionSlice.actions.setSyncPositionIntervalTime(iTime))
 

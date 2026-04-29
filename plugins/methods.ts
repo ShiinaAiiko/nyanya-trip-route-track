@@ -14,6 +14,7 @@ import { protoRoot } from '../protos'
 import { imageColorInversion } from '@nyanyajs/utils/dist/images/imageColorInversion'
 import { t } from './i18n/i18n'
 import { alert, snackbar } from '@saki-ui/core'
+import { edgeTTS } from '../config'
 
 export const getRegExp = (type: 'email') => {
   return /^\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$/
@@ -890,6 +891,22 @@ export function stripHtmlTags(html: string): string {
   return text
 }
 
+export const newStripHtmlTags = (html: string) => {
+  if (!html) return ''
+
+  return (
+    html
+      // 1. 处理常见的换行标签，替换为真正的换行符
+      .replace(/<\/p>|<br\s*\/?>|<\/div>/gi, '\n')
+      // 2. 去除所有剩余的 HTML 标签
+      .replace(/<[^>]+>/g, '')
+      // 3. 处理可能产生的多余空行（可选：将连续三个及以上换行缩减为两个）
+      .replace(/\n\s*\n\s*\n/g, '\n\n')
+      // 4. 去除首尾空白字符
+      .trim()
+  )
+}
+
 // 判断点是否在多边形内（射线法）
 export function isPointInPolygon(point: number[], polygon: number[][]) {
   const x = point[0],
@@ -963,4 +980,406 @@ export const copyOrOpenAlert = (text: string, url: string) => {
       window.open(url)
     },
   }).open()
+}
+
+export const cleanMarkdown = (text: string): string => {
+  return (
+    text
+      // 1. 去除代码块
+      .replace(/```[\s\S]*?```/g, '')
+      // 2. 去除行内代码
+      .replace(/`(.+?)`/g, '$1')
+      // 3. 去除粗体和斜体 (***, **, *)
+      .replace(/[\*_]{1,3}(.+?)[\*_]{1,3}/g, '$1')
+      // 4. 去除标题 (### Title)
+      .replace(/^#+\s+/gm, '')
+      // 5. 去除链接 [text](url) -> 只保留 text
+      .replace(/\[(.+?)\]\(.+?\)/g, '$1')
+      // 6. 去除图片 ![alt](url) -> 全部去掉
+      .replace(/!\[.*?\]\(.*?\)/g, '')
+      // 7. 去除引用符号 (>)
+      .replace(/^>\s+/gm, '')
+      // 8. 去除水平线 (---, ***)
+      .replace(/^[-\*_]{3,}\s*$/gm, '')
+      // 9. 去除多余的换行，换成空格或停顿
+      .replace(/\n+/g, ' ')
+      // 10. 特殊符号清理（比如你的 UI 里常有的 ⚠️）
+      .replace(/[⚠️🛑🛡️📌]/g, '')
+      .trim()
+  )
+}
+
+interface VoiceTask {
+  text: string
+  key: string
+  lang: string
+  resolve: (key: string) => void
+}
+
+let currentAudio: AudioBufferSourceNode | null = null
+let queue: VoiceTask[] = []
+let isProcessing = false
+let currentProcessingTask: VoiceTask | null = null
+
+const VOICE_CONFIG: Record<string, string> = {
+  'zh-CN': 'zh-CN-XiaoxiaoNeural',
+  'zh-TW': 'zh-TW-HsiaoChenNeural',
+  'en-US': 'en-US-AvaNeural',
+}
+
+/**
+ * 停止播放
+ * @param targetKey 如果传入 key，则只有当前播放的是该 key 时才停止；不传则全部停止并清空队列
+ */
+export const StopVoiceBroadcast = (targetKey?: string) => {
+  // 1. 如果指定了 key 且当前正在播的不是它，则只从队列移除
+  if (targetKey) {
+    if (currentProcessingTask?.key === targetKey) {
+      stopCurrentExecution()
+    } else {
+      queue = queue.filter((task) => task.key !== targetKey)
+    }
+    return
+  }
+
+  // 2. 全部停止
+  queue = []
+  stopCurrentExecution()
+}
+
+// 内部私有方法：停止当前物理播放
+const stopCurrentExecution = () => {
+  if (currentAudio) {
+    currentAudio.stop()
+    currentAudio = null
+  }
+  if ((window as any).responsiveVoice?.isPlaying()) {
+    ;(window as any).responsiveVoice.cancel()
+  }
+  // 触发当前任务的结束
+  isProcessing = false
+  currentProcessingTask?.resolve(currentProcessingTask.key)
+  currentProcessingTask = null
+}
+
+/**
+ * 队列处理器
+ */
+const processQueue = async () => {
+  if (isProcessing || queue.length === 0) return
+
+  isProcessing = true
+  const task = queue.shift()
+  if (!task) {
+    isProcessing = false
+    return
+  }
+
+  currentProcessingTask = task
+
+  // 执行播放逻辑
+  await executeBroadcast(task)
+
+  // 播放结束后逻辑
+  isProcessing = false
+  currentProcessingTask = null
+  task.resolve(task.key) // 通知调用方 ：播报完毕
+
+  // 继续下一条
+  processQueue()
+}
+
+/**
+ * 核心播放逻辑（原逻辑封装）
+ */
+const executeBroadcast = (task: VoiceTask) => {
+  return new Promise((resolve) => {
+    const { text, key, lang } = task
+
+    const fallbackSpeak = () => {
+      if ((window as any).responsiveVoice) {
+        if (currentProcessingTask?.key !== task.key) {
+          return resolve(key)
+        }
+
+        ;(window as any).responsiveVoice.speak(
+          text,
+          lang === 'en-US' ? 'US English Female' : 'Chinese Female',
+          {
+            onend: () => resolve(key),
+            onerror: () => resolve(key),
+          }
+        )
+      } else {
+        resolve(key)
+      }
+    }
+
+    const runTTS = async () => {
+      let audioCtx: AudioContext | null = null
+      try {
+        if (currentProcessingTask?.key !== task.key) {
+          return resolve(key)
+        }
+        const response = await fetch(`${edgeTTS.url}/v1/audio/speech`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${edgeTTS.apiKey}`,
+          },
+          body: JSON.stringify({
+            model: 'tts-1',
+            input: text,
+            voice: VOICE_CONFIG[lang] || VOICE_CONFIG['zh-CN'],
+            response_format: 'mp3',
+            speed: 1,
+          }),
+        })
+        // console.log('AI领航员 runTTS', response)
+
+        if (!response.ok) throw new Error('TTS 请求失败')
+
+        // 新的播放逻辑，和音乐App共存
+
+        // --- 修改部分开始：改用 Web Audio API 播放 ---
+
+        // 1. 获取 ArrayBuffer 而不是 Blob
+        const arrayBuffer = await response.arrayBuffer()
+
+        // 2. 身份声明 (核心：告诉车机这是“导航”或“瞬时”消息)
+        if ('mediaSession' in navigator) {
+          navigator.mediaSession.playbackState = 'playing'
+          navigator.mediaSession.metadata = new MediaMetadata({
+            title: 'AI 语音播报',
+            album: '语音导航播报', // 某些车机会识别这个关键词，从而不切断音乐
+          })
+          navigator.mediaSession.setActionHandler('play', () => {})
+        }
+
+        const nav = navigator as any
+        if (nav?.audioSession) {
+          nav.audioSession.type = 'transient'
+        }
+
+        // 2. 初始化 AudioContext（单例模式更佳，这里演示基础用法）
+        // 某些浏览器要求必须在点击事件后初始化，或调用 resume()
+        audioCtx = new (
+          window.AudioContext || (window as any)?.webkitAudioContext
+        )()
+
+        // 3. 解码音频数据
+        let audioBuffer
+        try {
+          audioBuffer = await audioCtx.decodeAudioData(arrayBuffer)
+        } catch (decodeError) {
+          console.error('音频解码失败:', decodeError)
+          throw new Error('DECODE_ERROR') // 抛出异常进入统一的 catch
+        }
+
+        // 4. 创建音频源节点
+        const source = audioCtx.createBufferSource()
+        currentAudio = source
+        console.log('runTTS source', source, audioCtx)
+
+        source.buffer = audioBuffer
+
+        // // 5. 连接到输出设备
+        // source.connect(audioCtx.destination)
+
+        // 1. 创建增益节点 (音量控制器)
+        const gainNode = audioCtx.createGain()
+
+        // 2. 设置音量值 (0.0 到 1.0 之间，1.0 是原音，也可以超过 1.0 放大)
+        const volume = 1
+        gainNode.gain.setValueAtTime(volume, audioCtx.currentTime)
+
+        // 3. 连接音频链
+        // Source -> GainNode -> Destination
+        source.connect(gainNode)
+        gainNode.connect(audioCtx.destination)
+
+        // 6. 监听结束
+        source.onended = () => {
+          console.log('runTTS source.onended', audioCtx)
+          // 释放资源
+          audioCtx?.close()
+          audioCtx = null
+          if ('mediaSession' in navigator) {
+            navigator.mediaSession.playbackState = 'none'
+          }
+          resolve(key)
+        }
+
+        if (currentProcessingTask?.key !== task.key) {
+          audioCtx?.close()
+          return resolve(key)
+        }
+
+        // 4. 执行播放
+        // 注意：在车机 Android 上，如果 AudioContext.state 为 'suspended'，通常需要 resume
+        if (audioCtx?.state === 'suspended') {
+          await audioCtx.resume()
+        }
+
+        // 7. 开始播放
+        source.start(0)
+
+        // --- 修改部分结束 ---
+
+        // 原来播放逻辑
+        // const blob = await response.blob()
+        // const audioUrl = URL.createObjectURL(blob)
+
+        // // console.log('AI领航员 audioUrl', audioUrl)
+
+        // currentAudio = new Audio(audioUrl)
+
+        // currentAudio.onended = () => {
+        //   URL.revokeObjectURL(audioUrl)
+        //   resolve(key)
+        // }
+
+        // currentAudio.onerror = () => {
+        //   URL.revokeObjectURL(audioUrl)
+        //   fallbackSpeak()
+        // }
+
+        // if (currentProcessingTask?.key !== task.key) {
+        //   return resolve(key)
+        // }
+        // await currentAudio.play()
+      } catch (error) {
+        console.error('AI领航员播放流程出错:', error)
+        audioCtx?.close()
+        audioCtx = null
+        fallbackSpeak()
+      }
+    }
+
+    runTTS()
+  })
+}
+
+/**
+ * 外部调用接口
+ */
+export const WebVoiceBroadcast = (
+  text: string,
+  key: string,
+  lang: string = 'zh-CN'
+): Promise<string> => {
+  return new Promise((resolve) => {
+    // 将新任务加入队列
+    queue.push({ text, key, lang, resolve })
+    // 尝试启动处理器
+    processQueue()
+  })
+}
+
+export class SpeechPilot {
+  private recognition: any = null
+  private silenceTimer: ReturnType<typeof setTimeout> | null = null
+  private SILENCE_TIMEOUT = 5000 // 5秒静音阈值
+
+  onClose?: () => void
+
+  constructor({
+    autoStopTimeout,
+    onClose,
+  }: {
+    autoStopTimeout?: number
+    onClose?: () => void
+  }) {
+    this.SILENCE_TIMEOUT = autoStopTimeout || 5000
+    this.onClose = onClose
+    this.initRecognition()
+  }
+
+  private initRecognition() {
+    const SpeechApi =
+      (window as any).webkitSpeechRecognition ||
+      (window as any).SpeechRecognition
+
+    if (!SpeechApi) {
+      console.error('当前环境不支持 Web Speech API')
+      return
+    }
+
+    this.recognition = new SpeechApi()
+
+    // 配置
+    this.recognition.continuous = true // 核心：连续识别
+    this.recognition.interimResults = true // 实时反馈
+    this.recognition.lang = 'zh-CN' // 中文识别
+
+    // 监听识别事件
+    this.recognition.onresult = (event: any) => {
+      this.resetSilenceTimer() // 只要有声音产生，就重置5秒计时
+
+      let transcript = ''
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript
+      }
+
+      this.onSpeechUpdate(
+        transcript,
+        event.results[event.results.length - 1].isFinal
+      )
+    }
+
+    this.recognition.onend = () => {
+      this.clearTimer()
+      this.onClose?.()
+      console.log('识别链路关闭')
+    }
+
+    this.recognition.onerror = (err: any) => {
+      console.error('语音识别错误:', err.error)
+      this.clearTimer()
+      this.onClose?.()
+    }
+  }
+
+  // 供外部重写的钩子函数
+  public onSpeechUpdate = (text: string, isFinal: boolean) => {
+    console.log(`${isFinal ? '最终结果' : '中间过程'}: ${text}`)
+  }
+
+  // 启动识别
+  public start() {
+    if (!this.recognition) return
+    try {
+      this.recognition.start()
+      this.resetSilenceTimer()
+      console.log('领航员开始倾听...')
+    } catch (e) {
+      console.warn('识别已在运行中')
+    }
+  }
+
+  // 需求1：手动停止
+  public stopManually() {
+    if (this.recognition) {
+      this.recognition.stop() // 停止录音，触发 onend
+      this.clearTimer()
+      this.onClose?.()
+      console.log('手动停止识别')
+    }
+  }
+
+  // 需求2：逻辑管理 - 重置静音计时器
+  private resetSilenceTimer() {
+    this.clearTimer()
+    this.silenceTimer = setTimeout(() => {
+      console.log('检测到5秒静音，自动停止...')
+      this.stopManually()
+    }, this.SILENCE_TIMEOUT)
+  }
+
+  private clearTimer() {
+    if (this.silenceTimer) {
+      clearTimeout(this.silenceTimer)
+      this.silenceTimer = null
+    }
+  }
 }

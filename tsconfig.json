@@ -16,7 +16,7 @@
     "jsx": "preserve",
     "incremental": true
   },
-  "include": ["next-env.d.ts", "global.d.ts", "**/*.ts", "**/*.tsx"],
+  "include": ["next-env.d.ts", "global.d.ts", "**/*.ts", "**/*.tsx", "../../saki-ui/saki-ui/src/components/ChatUI/chatLanguages.ts"],
   "exclude": [
     "rnApp",
     "node_modules",

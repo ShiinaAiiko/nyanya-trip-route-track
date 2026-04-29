@@ -80,7 +80,10 @@ import {
   SakiAvatar,
   SakiButton,
   SakiIcon,
+  SakiMenuItem,
   SakiScrollLoading,
+  SakiScrollView,
+  SakiTitle,
 } from '../../components/saki-ui-react/components'
 import Head from 'next/head'
 import {
@@ -89,12 +92,14 @@ import {
   getTrackRouteColor,
 } from '../../store/config'
 import { createDistanceScaleControl } from '../../plugins/map'
-import { storage } from '../../store/storage'
+import { RoadbookHistoryVersionItem, storage } from '../../store/storage'
 import ButtonsComponent from '../../components/Buttons'
 
 const RoadBookPage = () => {
   const { t, i18n } = useTranslation('roadBookPage')
-  const { config, geo, user } = useSelector((state: RootState) => state)
+  const config = useSelector((state: RootState) => state.config)
+  const geo = useSelector((state: RootState) => state.geo)
+  const user = useSelector((state: RootState) => state.user)
 
   const dispatch = useDispatch<AppDispatch>()
 
@@ -148,6 +153,7 @@ const RoadBookPage = () => {
   // const [pageTitle, setPageTitle] = useState('')
 
   const [showDetailMoreDP, setShowDetailMoreDP] = useState(false)
+  const [showVersionHistoryDP, setShowVersionHistoryDP] = useState(false)
   const [activeRIdDropdown, setActiveRIdDropdown] = useState('')
   const refreshMapSizeDebounce = useRef(new Debounce())
 
@@ -319,7 +325,21 @@ ${url}`
           })
         },
       }
-      if (loadStatus === 'loading' || loadStatus === 'noMore') return
+
+      if (state.historyVersion.selectedVersion >= 0) {
+        snackbar({
+          message: t('needsSaveBeforeUpdate', {}),
+          autoHideDuration: 2000,
+          vertical: 'top',
+          horizontal: 'center',
+          backgroundColor: 'var(--saki-default-color)',
+          color: '#fff',
+        }).open()
+        return
+      }
+      if (loadStatus === 'loading' || loadStatus === 'noMore') {
+        return
+      }
 
       setLoadStatus('loading')
       const res = await httpApi.v1.UpdateRoadbook({
@@ -335,6 +355,7 @@ ${url}`
       setLoadStatus('loaded')
 
       if (res.code === 200) {
+        state.historyVersion.save(roadBookItem)
         snackbar({
           message: t('updatedSuccessfully', {
             ns: 'prompt',
@@ -345,6 +366,7 @@ ${url}`
           backgroundColor: 'var(--saki-default-color)',
           color: '#fff',
         }).open()
+
         return
       }
 
@@ -547,6 +569,15 @@ ${url}`
           addNewWaypointAfterThisWaypointId: '',
         })
         setLoadedMap(false)
+
+        dispatch(
+          layoutSlice.actions.setOpenAiChatModalInfo({
+            type: 'roadbook',
+            subtitle: t('aiModelSubtitle', {
+              ns: 'roadBookPage',
+            }),
+          })
+        )
 
         break
 
@@ -1381,8 +1412,31 @@ ${url}`
   // )
 
   useEffect(() => {
+    if (user.isLogin) {
+      eventListener.on('AIRoadbookAgent:create_roadbook', async (val) => {
+        // getDetail()
+        console.log('AIRoadbook:create_roadbook')
+        const rb = JSON.parse(val)
+
+        if (lastPageType === 'List') {
+          setState({
+            pageNum: 1,
+          })
+        }
+        console.log('AIRoadbook:create_roadbook', router.asPath, rb)
+        if (rb?.roadbookId) {
+          router.push(
+            Query(router.asPath.split('?')[0], {
+              id: rb?.roadbookId,
+            })
+          )
+        }
+      })
+    }
+
     if (user.isLogin && lastPageType === 'List' && pageNum === 1) {
       console.log('GetRoadbookList user')
+
       getRBList()
 
       // setTimeout(() => {
@@ -1434,6 +1488,41 @@ ${url}`
       vertical: 'top',
       horizontal: 'center',
     }).open()
+  }
+
+  const [historyVersionRBList, setHistoryVersionRBList] = useState<
+    RoadbookHistoryVersionItem[]
+  >([])
+
+  state.historyVersion.init = async (rb?: protoRoot.roadbook.IRoadbookItem) => {
+    setHistoryVersionRBList(
+      rb?.id && user.userInfo.uid === rb.authorId
+        ? (await storage.roadbookHistoryVersion.get(rb.id)) || []
+        : []
+    )
+  }
+
+  const historyVersionDeb = useRef(new Debounce())
+  state.historyVersion.save = async (rb?: protoRoot.roadbook.IRoadbookItem) => {
+    historyVersionDeb.current.increase(async () => {
+      if (rb?.id && user.userInfo.uid === rb.authorId) {
+        let rbList = (await storage.roadbookHistoryVersion.get(rb.id)) || []
+        rbList.length >= 100 && rbList.shift()
+
+        rbList.push({
+          saveTime: moment().unix(),
+          rb,
+        })
+
+        console.log('AIRoadbook  saveLocalHistoryVersion', rbList)
+
+        rbList.sort((a, b) => b.saveTime - a.saveTime)
+
+        setHistoryVersionRBList(rbList)
+
+        await storage.roadbookHistoryVersion.set(rb.id, rbList)
+      }
+    }, 5000)
   }
 
   return (
@@ -1494,9 +1583,13 @@ ${url}`
                 >
                   <div className="rpmlh-left" slot="left">
                     <span className="rpmlhl-title">{state.headerTitle}</span>
-                    <span className="rpmlhl-subtitle">
-                      {state.headerSubtitle}
-                    </span>
+                    {state.headerSubtitle ? (
+                      <span className="rpmlhl-subtitle">
+                        {state.headerSubtitle}
+                      </span>
+                    ) : (
+                      ''
+                    )}
                   </div>
                   <div className="rpmlh-right" style={{}} slot="right">
                     {(lastPageType === 'List' || lastPageType === 'Detail') &&
@@ -1546,94 +1639,187 @@ ${url}`
                       )
                     ) : lastPageType === 'Detail' ? (
                       <>
-                        <SakiButton
-                          onTap={() => {
-                            state.roadBookItem &&
-                              state.share(state.roadBookItem)
-                          }}
-                          type="CircleIconGrayHover"
-                        >
-                          <SakiIcon
-                            // width='14px'
-                            // height='14px'
-                            color={
-                              state.roadBookItem?.permissions?.allowShare
-                                ? '#555'
-                                : '#ccc'
-                            }
-                            type="Share"
-                          ></SakiIcon>
-                        </SakiButton>
                         {user.userInfo.uid === state.roadBookItem?.authorId ? (
-                          <saki-dropdown
-                            visible={showDetailMoreDP}
-                            floating-direction="Left"
-                            ref={bindEvent({
-                              close: () => {
-                                setShowDetailMoreDP(false)
-                              },
-                            })}
-                          >
-                            <saki-button
+                          <>
+                            <saki-dropdown
+                              visible={showVersionHistoryDP}
+                              floating-direction="Left"
                               ref={bindEvent({
-                                tap: () => {
-                                  setShowDetailMoreDP(true)
+                                close: () => {
+                                  setShowVersionHistoryDP(false)
                                 },
                               })}
-                              type="CircleIconGrayHover"
                             >
-                              <saki-icon
-                                // width='14px'
-                                // height='14px'
-                                color="#999"
-                                type="More"
-                              ></saki-icon>
-                            </saki-button>
-                            <div slot="main">
-                              <saki-menu
+                              <saki-button
                                 ref={bindEvent({
-                                  selectvalue: async (e) => {
-                                    console.log(e.detail.value)
-                                    switch (e.detail.value) {
-                                      case 'Edit':
-                                        setTimeout(() => {
-                                          setState({
-                                            pageTypes:
-                                              state.pageTypes.concat('Edit'),
-                                          })
-                                        }, 50)
-                                        break
-                                      case 'Delete':
-                                        state.deleteRoadbook(
-                                          state.roadBookItem?.id || ''
-                                        )
-
-                                      default:
-                                        break
-                                    }
-                                    setShowDetailMoreDP(false)
+                                  tap: async () => {
+                                    setHistoryVersionRBList([])
+                                    await state.historyVersion.init(
+                                      state.roadBookItem
+                                    )
+                                    setShowVersionHistoryDP(true)
                                   },
                                 })}
+                                type="CircleIconGrayHover"
+                                loading={state.loadDetailStatus === 'loading'}
                               >
-                                <saki-menu-item
-                                  padding="10px 18px"
-                                  value={'Edit'}
+                                <saki-icon
+                                  // width='14px'
+                                  // height='14px'
+                                  color="#999"
+                                  type="Time"
+                                ></saki-icon>
+                              </saki-button>
+                              <div slot="main">
+                                <SakiTitle
+                                  fontSize="11px"
+                                  padding="0 12px"
+                                  margin="6px 0"
+                                  fontWeight="400"
+                                  color="#aaa"
                                 >
-                                  <div className="dp-menu-item">
-                                    <span>{t('editRoadBook')}</span>
-                                  </div>
-                                </saki-menu-item>
-                                <saki-menu-item
-                                  padding="10px 18px"
-                                  value={'Delete'}
+                                  {t('historyVersion', {
+                                    num: historyVersionRBList?.length,
+                                  })}
+                                </SakiTitle>
+
+                                <SakiScrollView maxHeight="300px">
+                                  <saki-menu
+                                    ref={bindEvent({
+                                      selectvalue: async (e) => {
+                                        console.log(e.detail.value)
+
+                                        let st = Number(e.detail.value)
+                                        const curRB =
+                                          historyVersionRBList.filter(
+                                            (v) => v.saveTime === st
+                                          )?.[0]
+
+                                        alert({
+                                          title: t('restore'),
+                                          content: t('restoreContent', {
+                                            time: moment(
+                                              curRB.saveTime * 1000
+                                            ).format('YYYY.MM.DD HH:mm:ss'),
+                                          }),
+                                          cancelText: t('cancel', {
+                                            ns: 'prompt',
+                                          }),
+                                          onCancel() {},
+                                          confirmText: t('restore', {
+                                            ns: 'prompt',
+                                          }),
+                                          onConfirm() {
+                                            setState({
+                                              ...state,
+                                              roadBookItem: curRB.rb,
+                                              historyVersion: {
+                                                ...state.historyVersion,
+                                                oldRB: state.roadBookItem,
+                                                selectedVersion: st,
+                                              },
+                                            })
+                                            setHistoryVersionRBList([])
+                                          },
+                                        }).open()
+
+                                        setShowVersionHistoryDP(false)
+                                      },
+                                    })}
+                                    padding={'0'}
+                                  >
+                                    {historyVersionRBList?.map((v, i) => {
+                                      return (
+                                        <SakiMenuItem
+                                          key={i}
+                                          subtitle={''}
+                                          padding="10px 18px"
+                                          value={String(v.saveTime)}
+                                        >
+                                          <div className="dp-menu-item">
+                                            <span>
+                                              {moment(v.saveTime * 1000).format(
+                                                'YYYY.MM.DD HH:mm:ss'
+                                              )}
+                                            </span>
+                                          </div>
+                                        </SakiMenuItem>
+                                      )
+                                    })}
+                                  </saki-menu>
+                                </SakiScrollView>
+                              </div>
+                            </saki-dropdown>
+                            <saki-dropdown
+                              visible={showDetailMoreDP}
+                              floating-direction="Left"
+                              ref={bindEvent({
+                                close: () => {
+                                  setShowDetailMoreDP(false)
+                                },
+                              })}
+                            >
+                              <saki-button
+                                ref={bindEvent({
+                                  tap: () => {
+                                    setShowDetailMoreDP(true)
+                                  },
+                                })}
+                                type="CircleIconGrayHover"
+                              >
+                                <saki-icon
+                                  // width='14px'
+                                  // height='14px'
+                                  color="#999"
+                                  type="More"
+                                ></saki-icon>
+                              </saki-button>
+                              <div slot="main">
+                                <saki-menu
+                                  ref={bindEvent({
+                                    selectvalue: async (e) => {
+                                      console.log(e.detail.value)
+                                      switch (e.detail.value) {
+                                        case 'Edit':
+                                          setTimeout(() => {
+                                            setState({
+                                              pageTypes:
+                                                state.pageTypes.concat('Edit'),
+                                            })
+                                          }, 50)
+                                          break
+                                        case 'Delete':
+                                          state.deleteRoadbook(
+                                            state.roadBookItem?.id || ''
+                                          )
+
+                                        default:
+                                          break
+                                      }
+                                      setShowDetailMoreDP(false)
+                                    },
+                                  })}
                                 >
-                                  <div className="dp-menu-item">
-                                    <span>{t('deleteRoadBook')}</span>
-                                  </div>
-                                </saki-menu-item>
-                              </saki-menu>
-                            </div>
-                          </saki-dropdown>
+                                  <saki-menu-item
+                                    padding="10px 18px"
+                                    value={'Edit'}
+                                  >
+                                    <div className="dp-menu-item">
+                                      <span>{t('editRoadBook')}</span>
+                                    </div>
+                                  </saki-menu-item>
+                                  <saki-menu-item
+                                    padding="10px 18px"
+                                    value={'Delete'}
+                                  >
+                                    <div className="dp-menu-item">
+                                      <span>{t('deleteRoadBook')}</span>
+                                    </div>
+                                  </saki-menu-item>
+                                </saki-menu>
+                              </div>
+                            </saki-dropdown>
+                          </>
                         ) : (
                           ''
                         )}
@@ -1735,7 +1921,7 @@ ${url}`
                                         })
 
                                         router.push(
-                                          Query(router.asPath, {
+                                          Query(router.asPath.split('?')[0], {
                                             id: v.id || '',
                                           })
                                         )
@@ -1830,9 +2016,14 @@ ${url}`
                                                             )?.[0],
                                                         })
                                                         router.push(
-                                                          Query(router.asPath, {
-                                                            id: v.id || '',
-                                                          })
+                                                          Query(
+                                                            router.asPath.split(
+                                                              '?'
+                                                            )[0],
+                                                            {
+                                                              id: v.id || '',
+                                                            }
+                                                          )
                                                         )
                                                         break
                                                       case 'Delete':
@@ -2057,7 +2248,7 @@ ${url}`
                 // realTimePosition
                 // filter
                 // layer
-                // aichat
+                aichat
                 // mark
                 currentPosition={!state.fullScreen}
                 fullScreen

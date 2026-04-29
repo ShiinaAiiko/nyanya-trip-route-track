@@ -16,9 +16,7 @@ const AltitudeDashboard = ({
 }) => {
   const { t, i18n } = useTranslation('altitudePage')
 
-  const { config, user, geo } = useSelector((state: RootState) => {
-    return state
-  })
+  const config = useSelector((state: RootState) => state.config)
 
   const altitudeData = useMemo(() => {
     const num = altitude.toFixed(2).split('.')

@@ -48,7 +48,7 @@ module.exports = withPWA({
     prependData: `@import "./assets/style/base.scss";`,
   },
   env: {
-    DEFAULT_LANGUAGE: 'en-US',
+    DEFAULT_LANGUAGE: 'zh-CN',
     CLIENT_ENV: process.env.CLIENT_ENV,
     DOCKER_LOCALHOST: process.env.DOCKER_LOCALHOST,
   },

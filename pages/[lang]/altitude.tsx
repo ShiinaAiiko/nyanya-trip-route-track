@@ -109,9 +109,8 @@ const AltitudePage = () => {
   const { t, i18n } = useTranslation('altitudePage')
   const [mounted, setMounted] = useState(false)
 
-  const { config, user, geo } = useSelector((state: RootState) => {
-    return state
-  })
+  const config = useSelector((state: RootState) => state.config)
+  const geo = useSelector((state: RootState) => state.geo)
 
   const startTrip = useSelector((state: RootState) => state.trip.startTrip)
 

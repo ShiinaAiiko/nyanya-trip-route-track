@@ -24,11 +24,14 @@ import { formatDurationI18n, stripHtmlTags } from '../../plugins/methods'
 import { SearchWaypointModal } from './SearchWaypointModal'
 import { DataContext, PolylineItem } from './Context'
 import { storage } from '../../store/storage'
+import { layoutSlice, loadModal } from '../../store/layout'
+import { eventListener } from '../../store/config'
 
 export const RoadBookDetailPage = ({ show }: { show: boolean }) => {
   const { t, i18n } = useTranslation('roadBookPage')
 
-  const { config, geo, user } = useSelector((state: RootState) => state)
+  const config = useSelector((state: RootState) => state.config)
+  const user = useSelector((state: RootState) => state.user)
 
   const router = useRouter()
 
@@ -157,7 +160,24 @@ export const RoadBookDetailPage = ({ show }: { show: boolean }) => {
   useEffect(() => {
     console.log('GetRoadbookDetail show', id, roadBookItem)
     if (show && id && user.isInit) {
+      dispatch(
+        layoutSlice.actions.setOpenAiChatModalInfo({
+          id: id,
+          type: 'roadbook',
+          subtitle: t('aiModelSubtitle', {
+            ns: 'roadBookPage',
+          }),
+        })
+      )
+
       d.current.increase(() => {
+        const f = () => {
+          console.log('AIRoadbook update_roadbook')
+          getDetail()
+        }
+        eventListener.on('AIRoadbookAgent:update_roadbook', f)
+        eventListener.on('AIRoadbookAgent:"update_roadbook_detail', f)
+        eventListener.on('AIRoadbookAgent:update_roadbook_timeline', f)
         getDetail()
       }, 100)
     }
@@ -194,7 +214,6 @@ export const RoadBookDetailPage = ({ show }: { show: boolean }) => {
         backgroundColor: 'var(--saki-default-color)',
         color: '#fff',
       })
-      loadBaseData?.open()
 
       aq.current.increase(async () => {})
 
@@ -222,6 +241,7 @@ export const RoadBookDetailPage = ({ show }: { show: boolean }) => {
           ) {
             // console.log('polyline1 isexits', sv)
             aq.current.increase(async () => {
+              renderedNum === 0 && loadBaseData?.open()
               renderedNum++
               loadBaseData?.setMessage(
                 i18n.t('tracksRendered', {
@@ -363,13 +383,45 @@ export const RoadBookDetailPage = ({ show }: { show: boolean }) => {
     const res = await httpApi.v1.GetRoadbookDetail({
       id,
     })
-    console.log('GetRoadbookDetail res', id, res)
+    console.log('GetRoadbookDetail res', id, res, router)
 
     setLoadStatus('loaded')
     if (res.code === 200) {
       if (res.data?.roadbook && location.href.includes(id)) {
         setRoadBookItem(res.data.roadbook)
       }
+
+      // setTimeout(() => {
+      //   loadModal('AiChatModal', () => {
+      //     dispatch(
+      //       layoutSlice.actions.setOpenAiChatModal({
+      //         visible: true,
+      //         id: id,
+      //         // title: t('aiModelTitle', {
+      //         //   ns: 'roadBookPage',
+      //         // }),
+      //         subtitle: t('aiModelSubtitle', {
+      //           ns: 'roadBookPage',
+      //         }),
+      //       })
+      //     )
+      //     // setTimeout(async () => {
+      //     //   const res1 = await httpApi.v1.AIRoadbook(
+      //     //     {
+      //     //       id,
+      //     //       messages: ['SpaceX是什么？'],
+      //     //       // messages: ['帮我修改标题为 渝东北自驾游'],
+      //     //     },
+      //     //     (type, res) => {
+      //     //       console.log('AIRoadbook res', type, deepCopy(res))
+      //     //     }
+      //     //   )
+
+      //     //   console.log('AIRoadbook res1', res1)
+      //     // }, 1500)
+      //     return
+      //   })
+      // }, 1000)
 
       return
     }
@@ -1003,6 +1055,73 @@ export const RoadBookDetailPage = ({ show }: { show: boolean }) => {
 
   return (
     <div className={`roadbook-detail-page scrollBarHover page-transition`}>
+      {state.historyVersion.selectedVersion >= 0 ? (
+        <div className="rb-confirmversion">
+          <saki-button
+            ref={bindEvent({
+              tap: () => {
+                setState({
+                  ...state,
+                  roadBookItem: state.historyVersion.oldRB,
+                  historyVersion: {
+                    ...state.historyVersion,
+                    oldRB: undefined,
+                    selectedVersion: -1,
+                  },
+                })
+              },
+            })}
+            height="40px"
+            type="Normal"
+            bg-color="#eee"
+            bg-hover-color="#ddd"
+            bg-active-color="#ccc"
+            border-radius={'10px 0 0 10px'}
+            loading={loadStatus === 'loading'}
+          >
+            {t('cancel', {
+              ns: 'prompt',
+            })}
+          </saki-button>
+          <saki-button
+            ref={bindEvent({
+              tap: () => {
+                setState({
+                  ...state,
+                  historyVersion: {
+                    ...state.historyVersion,
+                    oldRB: undefined,
+                    selectedVersion: -1,
+                  },
+                })
+
+                setLastUpdateTime(new Date().getTime())
+              },
+            })}
+            height="40px"
+            padding="10px 10px"
+            type="Primary"
+            border-radius={'0 10px 10px 0'}
+            loading={loadStatus === 'loading'}
+          >
+            <div className="rbc-confirm">
+              <span>
+                {t('comfirVersion', {
+                  ns: 'roadBookPage',
+                })}
+              </span>
+              <span>
+                {moment(state.historyVersion.selectedVersion * 1000).format(
+                  'YYYY.MM.DD HH:mm:ss'
+                )}
+              </span>
+            </div>
+          </saki-button>
+        </div>
+      ) : (
+        ''
+      )}
+
       <div className="rd-header">
         {/* <div className="rdh-date">2026.01.01 - 2026.01.02</div>
         <div className="rdh-title">{roadBookItem?.title}</div> */}
@@ -1086,6 +1205,23 @@ export const RoadBookDetailPage = ({ show }: { show: boolean }) => {
           </div>
           <div className="rdth-right">
             <NoSSR>
+              <SakiButton
+                onTap={() => {
+                  state.roadBookItem && state.share(state.roadBookItem)
+                }}
+                type="CircleIconGrayHover"
+              >
+                <SakiIcon
+                  width="14px"
+                  height="14px"
+                  color={
+                    state.roadBookItem?.permissions?.allowShare
+                      ? '#999'
+                      : '#ccc'
+                  }
+                  type="Share"
+                ></SakiIcon>
+              </SakiButton>
               {user.userInfo.uid === roadBookItem?.authorId ? (
                 <saki-dropdown
                   visible={navigationSettings}
@@ -1335,7 +1471,6 @@ export const RoadBookDetailPage = ({ show }: { show: boolean }) => {
                 height="30px"
                 bg-color="transparent"
                 type="CircleIconGrayHover"
-                loading={loadStatus === 'loading'}
               >
                 <div
                   style={{

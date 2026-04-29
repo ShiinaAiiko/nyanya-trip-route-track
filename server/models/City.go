@@ -16,6 +16,15 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
+type CityAddresses struct {
+	Country string `bson:"country" json:"country,omitempty"`
+	State   string `bson:"state" json:"state,omitempty"`
+	Region  string `bson:"region" json:"region,omitempty"`
+	City    string `bson:"city" json:"city,omitempty"`
+	Town    string `bson:"town" json:"town,omitempty"`
+	Address string `bson:"address" json:"address,omitempty"`
+}
+
 type CityCoords struct {
 	Latitude  float64 `bson:"latitude" json:"latitude,omitempty"`
 	Longitude float64 `bson:"longitude" json:"longitude,omitempty"`

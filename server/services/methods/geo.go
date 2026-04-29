@@ -1,9 +1,15 @@
 package methods
 
 import (
+	"encoding/json"
+	"fmt"
+	"io"
 	"math"
+	"net/http"
+	"net/url"
 	"strings"
 
+	conf "github.com/ShiinaAiiko/nyanya-trip-route-track/server/config"
 	"github.com/ShiinaAiiko/nyanya-trip-route-track/server/models"
 	"github.com/cherrai/nyanyago-utils/nstrings"
 )
@@ -119,4 +125,75 @@ func min(a, b float64) float64 {
 		return a
 	}
 	return b
+}
+
+func FormatDistance(distance float64) string {
+	if distance < 1000 {
+		// 不足 1000m，输出为整数米
+		// 使用 %.0f 会进行四舍五入，如果需要直接截断可以 int(distance)
+		return fmt.Sprintf("%.0fm", distance)
+	}
+
+	// 超过 1000m，转换为 km，保留 2 位小数
+	km := distance / 1000
+	return fmt.Sprintf("%.2fkm", km)
+}
+
+type GeoResponse struct {
+	Author      string   `json:"author"`
+	CnMsg       string   `json:"cnMsg"`
+	Code        int      `json:"code"`
+	Data        *GeoData `json:"data"`
+	Msg         string   `json:"msg"`
+	Platform    string   `json:"platform"`
+	RequestTime int64    `json:"requestTime"`
+}
+
+type GeoData struct {
+	Address   string  `json:"address"`
+	City      string  `json:"city"`
+	Country   string  `json:"country"`
+	Latitude  float64 `json:"latitude"`
+	Level     string  `json:"level"`
+	Longitude float64 `json:"longitude"`
+	Region    string  `json:"region"`
+	Road      string  `json:"road"`
+	State     string  `json:"state"`
+	Town      string  `json:"town"`
+}
+
+// GetGeocode 获取指定地址的地理编码信息
+func Geo(address string) (*GeoData, error) {
+	// 1. 构建 URL 并进行转义
+	baseURL := conf.Config.ToolsApiUrl + "/api/v1/geocode/geo"
+	params := url.Values{}
+	params.Add("address", address)
+	params.Add("platform", "Amap")
+
+	fullURL := fmt.Sprintf("%s?%s", baseURL, params.Encode())
+
+	log.Info("Geo fullURL", fullURL)
+
+	// 2. 发起 GET 请求
+	resp, err := http.Get(fullURL)
+	if err != nil {
+		return nil, fmt.Errorf("network request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	// 3. 读取响应体
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read body failed: %v", err)
+	}
+
+	// 4. 解析 JSON
+	var result GeoResponse
+	err = json.Unmarshal(body, &result)
+	if err != nil {
+		log.Error("Geo body", string(body))
+		return nil, fmt.Errorf("json unmarshal failed: %v", err)
+	}
+
+	return result.Data, nil
 }

@@ -30,6 +30,7 @@ export type ModalType =
   | 'SelectFilesModal'
   | 'AltitudeWatermarkModal'
   | 'CamerakModal'
+  | 'AiChatModal'
 
 export interface IWMediaItem
   extends protoRoot.journeyMemory.IJourneyMemoryMediaItem {
@@ -53,6 +54,22 @@ export const defaultMapLayerModalFeaturesList = {
   polylineWidth: true,
   speedColorLimit: true,
 }
+
+export type TriggerReason =
+  | ''
+  | 'FIRST_OPEN_DISTANCE'
+  | 'MILESTONE_DISTANCE'
+  | 'ALTITUDE_JUMP'
+  | 'CLIMB_ACHIEVEMENT'
+  | 'DESCEND_WARNING'
+  | 'TEMPERATURE_DROP'
+  | 'SUDDEN_STOP'
+  | 'CHANGE_ROAD'
+  | 'CHANGE_CITY'
+  | 'WEATHER_CHANGE'
+  | 'TIME_EVENT'
+  | 'REST_WELCOME_BACK'
+  | 'DROWSY_DRIVING'
 
 export const layoutSlice = createSlice({
   name: 'layout',
@@ -143,6 +160,29 @@ export const layoutSlice = createSlice({
         latitude: number
         longitude: number
       } | null,
+    },
+    openAiChatModal: {
+      visible: false,
+      type: 'coDriver' as 'coDriver' | 'roadbook',
+      triggerReason: '' as TriggerReason,
+      startTrip: false,
+      currentTripData: undefined as
+        | protoRoot.ai.IAICoDriverCurrentTripData
+        | undefined,
+      lastTripData: undefined as
+        | protoRoot.ai.IAICoDriverCurrentTripData
+        | undefined,
+      autoPlayVoice: false,
+      autoCloseTime: 0,
+      id: '',
+      title: '',
+      subtitle: '',
+
+      aiCoDriverQueue: [] as {
+        triggerReason: TriggerReason
+        currentTripData: protoRoot.ai.IAICoDriverCurrentTripData
+        lastTripData: protoRoot.ai.IAICoDriverCurrentTripData
+      }[],
     },
   },
   reducers: {
@@ -494,6 +534,60 @@ export const layoutSlice = createSlice({
         params.payload.selectFile || null
       state.openAltitudeWatermarkModal.position =
         params.payload.position || null
+    },
+    setOpenAiChatModal: (
+      state,
+      params: {
+        payload: {
+          visible: boolean
+          startTrip?: boolean
+          currentTripData?: (typeof state)['openAiChatModal']['currentTripData']
+          lastTripData?: (typeof state)['openAiChatModal']['lastTripData']
+          autoPlayVoice?: (typeof state)['openAiChatModal']['autoPlayVoice']
+          autoCloseTime?: (typeof state)['openAiChatModal']['autoCloseTime']
+          triggerReason?: (typeof state)['openAiChatModal']['triggerReason']
+        }
+        type: string
+      }
+    ) => {
+      state.openAiChatModal.visible = params.payload.visible
+      state.openAiChatModal.startTrip = params.payload.startTrip || false
+      state.openAiChatModal.currentTripData =
+        params.payload.currentTripData || undefined
+      state.openAiChatModal.lastTripData =
+        params.payload.lastTripData || undefined
+      state.openAiChatModal.triggerReason = params.payload.triggerReason || ''
+      state.openAiChatModal.autoPlayVoice =
+        params.payload.autoPlayVoice || false
+      state.openAiChatModal.autoCloseTime = params.payload.autoCloseTime || 0
+    },
+    setOpenAiChatModalInfo: (
+      state,
+      params: {
+        payload: {
+          id?: string
+          type?: (typeof state)['openAiChatModal']['type']
+          title?: string
+          subtitle?: string
+        }
+        type: string
+      }
+    ) => {
+      state.openAiChatModal.id = params.payload.id || ''
+      state.openAiChatModal.title = params.payload.title || ''
+      state.openAiChatModal.subtitle = params.payload.subtitle || ''
+      state.openAiChatModal.type = params.payload.type || 'coDriver'
+    },
+    setAiCoDriverQueue: (
+      state,
+      params: {
+        payload: {
+          aiCoDriverQueue: (typeof state)['openAiChatModal']['aiCoDriverQueue']
+        }
+        type: string
+      }
+    ) => {
+      state.openAiChatModal.aiCoDriverQueue = params.payload.aiCoDriverQueue
     },
   },
 })

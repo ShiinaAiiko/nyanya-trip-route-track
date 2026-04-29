@@ -5,6 +5,7 @@ import { Buffer } from 'buffer'
 import { R } from '../store/config'
 import { AES, deepCopy } from '@nyanyajs/utils'
 import { snackbar } from '@saki-ui/core'
+import { openApp } from '../config'
 let RequestType = protoRoot.base.RequestType
 let ResponseType = protoRoot.base.ResponseType
 let ResponseEncryptDataType = protoRoot.base.ResponseEncryptDataType
@@ -85,8 +86,8 @@ R.interceptors.request.use(async (config) => {
         userAgent: config.data.userAgent,
         data: config.data.data,
         open: {
-          appKey: 'KfVaIIU5ccxJyQjqr0uPQfhB',
-          userId: AES.encrypt('78L2tkleM', 'KfVaIIU5ccxJyQjqr0uPQfhB').value,
+          appKey: openApp.apiKey,
+          userId: AES.encrypt(user.userInfo.uid, openApp.apiKey).value,
         },
       })
     ).finish()

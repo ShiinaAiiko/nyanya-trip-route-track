@@ -228,4 +228,15 @@ func (r *Routerv1) InitTrip() {
 			ResponseDataType:   "protobuf",
 		}),
 		tc.UpdateTripNetworkStatus)
+
+	r.Group.POST(
+		role.SetRole("/trip/weather/update", &middleware.RoleOptionsType{
+			CheckApp:           false,
+			Authorize:          true,
+			RequestEncryption:  false,
+			ResponseEncryption: false,
+			RequestDataType:    "protobuf",
+			ResponseDataType:   "protobuf",
+		}),
+		tc.UpdateTripWeather)
 }

@@ -82,7 +82,9 @@ export const state = {
     apparentTemperature: -273.15,
     windSpeed: 0,
     windDirection: '',
+    windDirectionNum: 0,
     visibility: 0,
+    precipitation: 0,
   },
 
   historicalStatistics: {} as {
@@ -1944,11 +1946,12 @@ export const tripMethods = {
               'wind_speed_10m',
               'wind_direction_10m',
               'visibility',
+              'precipitation',
             ].join(',')}&hourly=temperature_2m&forecast_days=2&past_days=1`
           )}`,
         })
         const data = res?.data?.data as any
-        console.log('weatherdata', data)
+        console.log('GetWeather weatherdata', data)
         if (res?.data?.code !== 200 || !data) return
 
         const { trip, config, user } = store.getState()
@@ -1959,6 +1962,7 @@ export const tripMethods = {
           windSpeed:
             Number((data?.current?.wind_speed_10m / 3.6).toFixed(1)) || 0,
           windDirection: data?.current?.wind_direction_10m || 0,
+          windDirectionNum: data?.current?.wind_direction_10m || 0,
           humidity: data?.current?.relative_humidity_2m || 0,
           visibility: data?.current?.visibility || 0,
           weatherCode: data?.current?.weather_code || '',
@@ -1969,6 +1973,7 @@ export const tripMethods = {
             Math.min(...data.hourly?.temperature_2m),
             Math.max(...data.hourly?.temperature_2m),
           ],
+          precipitation: data?.current?.precipitation || 0,
         }
         let temp = data.hourly.temperature_2m.slice(12, 36)
         const h = new Date().getUTCHours()
@@ -2230,8 +2235,10 @@ export const tripMethods = {
     async (
       {
         trips,
+        isSnackbar = true,
       }: {
         trips: protoRoot.trip.ITrip[]
+        isSnackbar?: boolean
       },
       thunkAPI
     ) => {
@@ -2241,6 +2248,24 @@ export const tripMethods = {
 
       try {
         console.log('GetTripAddresses', trips)
+
+        let _snackbar: ReturnType<typeof snackbar> | undefined
+
+        if (isSnackbar) {
+          _snackbar = snackbar({
+            message: t('loadingTripAddresses', {
+              ns: 'prompt',
+            }),
+            vertical: 'top',
+            horizontal: 'center',
+            backgroundColor: 'var(--saki-default-color)',
+            color: '#fff',
+          })
+          _snackbar.open()
+        }
+        let loadCount = 0
+        let totalCount = 0
+
         const aq = new AsyncQueue({
           maxQueueConcurrency: 1,
         })
@@ -2248,6 +2273,8 @@ export const tripMethods = {
           []
         trips.forEach((v, i) => {
           if (v.addresses?.length) return
+          totalCount++
+
           aq.increase(async () => {
             let isAdd = true
             const addresses: protoRoot.trip.ITripAddresses[] = []
@@ -2336,20 +2363,50 @@ export const tripMethods = {
                 id: v.id,
                 addresses: addresses,
               })
+
+            loadCount += 1
+
+            isSnackbar &&
+              _snackbar?.setMessage(
+                t('loadedTripAddresses', {
+                  ns: 'prompt',
+                  percentage:
+                    String(
+                      loadCount && totalCount
+                        ? Math.min(
+                            100,
+                            Math.floor((loadCount / totalCount || 0) * 100)
+                          )
+                        : 0
+                    ) + '%',
+                })
+              )
           })
         })
         aq.increase(async () => {})
 
         await aq.wait.waiting()
 
+        isSnackbar &&
+          _snackbar?.setMessage(
+            t('loadedTripAddresses', {
+              ns: 'prompt',
+              percentage: '100%',
+            })
+          )
+
         console.log('GetTripAddresses tripsData', tripsData)
         if (!tripsData.length) {
+          isSnackbar && _snackbar?.close()
           return []
         }
         const res2 = await httpApi.v1.UpdateTripAddresses({
           trips: tripsData,
         })
         console.log('GetTripAddresses UpdateTripAddresses', res2, tripsData)
+
+        isSnackbar && _snackbar?.close()
+
         if (res2.code === 200) {
           return tripsData
         }

@@ -111,6 +111,25 @@ type TripNetworkStatus struct {
 	Timestamp int64 `bson:"timestamp" json:"timestamp,omitempty"`
 }
 
+type TripWeather struct {
+	// WeatherCode WMO 原始天气代码（如 0, 1, 61 等）
+	WeatherCode int32 `json:"weatherCode" bson:"weatherCode"`
+	// Temperature 实际气温 (°C)
+	Temperature float64 `json:"temperature" bson:"temperature"`
+	// ApparentTemperature 体感温度 (°C)
+	ApparentTemperature float64 `json:"apparentTemperature" bson:"apparentTemperature"`
+	// WindSpeed 风速 (km/h)
+	WindSpeed float64 `json:"windSpeed" bson:"windSpeed"`
+	// WindDirection 风向（°）
+	WindDirection int32 `json:"wind_direction" bson:"wind_direction"`
+	// Humidity 相对湿度 (%)
+	Humidity float64 `json:"humidity" bson:"humidity"`
+	// Precipitation 降水量 (mm)
+	Precipitation float64 `json:"precipitation" bson:"precipitation"`
+	// Timestamp 采样时间戳（秒）
+	Timestamp int64 `json:"timestamp" bson:"timestamp"`
+}
+
 type Trip struct {
 	// 使用短ID
 	Id string `bson:"_id" json:"id,omitempty"`
@@ -124,6 +143,7 @@ type Trip struct {
 	Marks         []*TripMark          `bson:"marks" json:"marks,omitempty"`
 	Cities        []*TripCity          `bson:"cities" json:"cities,omitempty"`
 	Roads         []*TripRoad          `bson:"roads" json:"roads,omitempty"`
+	Weather       []*TripWeather       `bson:"weather" json:"weather,omitempty"`
 	Statistics    *TripStatistics      `bson:"statistics" json:"statistics,omitempty"`
 	Permissions   *TripPermissions     `bson:"permissions" json:"permissions,omitempty"`
 	AuthorId      string               `bson:"authorId" json:"authorId,omitempty"`
@@ -141,6 +161,8 @@ type Trip struct {
 	EndTime int64 `bson:"endTime" json:"endTime,omitempty"`
 	// DeleteTime Unix timestamp
 	DeleteTime int64 `bson:"deleteTime" json:"deleteTime,omitempty"`
+	// LastSegmentationTime Unix timestamp
+	LastSegmentationTime int64 `bson:"lastSegmentationTime" json:"lastSegmentationTime,omitempty"`
 }
 
 func (s *Trip) Default() error {
@@ -165,6 +187,12 @@ func (s *Trip) Default() error {
 	if s.NetworkStatus == nil {
 		s.NetworkStatus = []*TripNetworkStatus{}
 	}
+	if s.Roads == nil {
+		s.Roads = []*TripRoad{}
+	}
+	if s.Weather == nil {
+		s.Weather = []*TripWeather{}
+	}
 	if s.Statistics == nil {
 		s.Statistics = &TripStatistics{}
 	}
@@ -182,6 +210,9 @@ func (s *Trip) Default() error {
 	}
 	if s.DeleteTime == 0 {
 		s.DeleteTime = -1
+	}
+	if s.LastSegmentationTime == 0 {
+		s.LastSegmentationTime = -1
 	}
 
 	if err := s.Validate(); err != nil {
@@ -213,7 +244,8 @@ func (s *Trip) GetFsDB() *TripFsDB {
 		log.Error(err)
 		return nil
 	}
-	tripPositionDB, err := fileStorageDB.CreateModel[[]*TripPosition](conf.FsDB, s.GetCollectionName())
+	tripPositionDB, err := fileStorageDB.CreateModel[[]*TripPosition](
+		conf.FsDB, s.GetCollectionName()+"TripPosition")
 	if err != nil {
 		log.Error(err)
 		return nil

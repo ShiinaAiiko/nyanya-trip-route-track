@@ -28,7 +28,7 @@ const JMDetailPage = () => {
   const { t, i18n } = useTranslation('journeyMemoriesModal')
 
   const jmState = useSelector((state: RootState) => state.journeyMemory)
-  const { config } = useSelector((state: RootState) => state)
+  const config = useSelector((state: RootState) => state.config)
 
   const [mounted, setMounted] = useState(false)
   const router = useRouter()

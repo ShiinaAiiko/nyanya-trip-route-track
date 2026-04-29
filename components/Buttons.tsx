@@ -47,6 +47,7 @@ const ButtonsComponent = ({
   filter = false,
   layer = false,
   aichat = false,
+  aichatParams,
   mark = false,
   markCount = 0,
   fullScreen = false,
@@ -83,6 +84,7 @@ const ButtonsComponent = ({
   realTimePosition?: boolean
   filter?: boolean
   aichat?: boolean
+  aichatParams?: Parameters<typeof layoutSlice.actions.setOpenAiChatModal>[0]
   layer?: boolean
   mark?: boolean
   markCount?: number
@@ -112,7 +114,6 @@ const ButtonsComponent = ({
   const [mounted, setMounted] = useState(false)
   const config = useSelector((state: RootState) => state.config)
   const trip = useSelector((state: RootState) => state.trip)
-  const layout = useSelector((state: RootState) => state.layout)
 
   const router = useRouter()
   const dispatch = useDispatch<AppDispatch>()
@@ -192,6 +193,34 @@ const ButtonsComponent = ({
           </saki-button>
         )}
 
+        {aichat && (
+          <SakiButton
+            onTap={() => {
+              console.log('AI领航员 aichatParams', aichatParams)
+              loadModal('AiChatModal', () => {
+                dispatch(
+                  layoutSlice.actions.setOpenAiChatModal({
+                    ...aichatParams,
+                    visible: true,
+                  })
+                )
+              })
+            }}
+            width={buttonStyle.width}
+            height={buttonStyle.height}
+            // padding="24px"
+            margin={buttonStyle.margin}
+            type="CircleIconGrayHover"
+            box-shadow="0 0 10px rgba(0, 0, 0, 0.3)"
+          >
+            <saki-icon
+              color="var(--saki-default-color)"
+              width={`calc(${buttonStyle.iconSize} + 4px)`}
+              height={`calc(${buttonStyle.iconSize} + 4px)`}
+              type="AiChatFill"
+            ></saki-icon>
+          </SakiButton>
+        )}
         {realTimePosition ? (
           <div
             style={
@@ -385,29 +414,6 @@ const ButtonsComponent = ({
               type="Layer"
             ></saki-icon>
           </saki-button>
-        )}
-        {aichat && (
-          <SakiButton
-            onTap={() => {
-              loadModal('Settings', () => {
-                dispatch(layoutSlice.actions.setSettingType('Maps'))
-                dispatch(layoutSlice.actions.setOpenSettingsModal(true))
-              })
-            }}
-            width={buttonStyle.width}
-            height={buttonStyle.height}
-            // padding="24px"
-            margin={buttonStyle.margin}
-            type="CircleIconGrayHover"
-            box-shadow="0 0 10px rgba(0, 0, 0, 0.3)"
-          >
-            <SakiIcon
-              color="var(--saki-default-color)"
-              width={buttonStyle.iconSize}
-              height={buttonStyle.iconSize}
-              type="ChatFill"
-            ></SakiIcon>
-          </SakiButton>
         )}
         {currentPosition && (
           <saki-button

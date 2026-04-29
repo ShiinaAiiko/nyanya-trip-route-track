@@ -52,8 +52,7 @@ export const SearchWaypointModal = ({
   onLatlng: (lat: number, lng: number, address: string) => void
 }) => {
   const { t, i18n } = useTranslation('searchWaypointModal')
-  const { config, geo, user } = useSelector((state: RootState) => state)
-
+  const config = useSelector((state: RootState) => state.config)
   const { state, setState } = useContext(DataContext)
 
   const [keywords, setKeywords] = useState('')

@@ -135,11 +135,18 @@
     "YRoad": "{{road}}乡道",
     "ORoad": "{{road}}",
 
-    "customTrip": "自定义行程"
+    "customTrip": "自定义行程",
+    "aiModelTitle": "AI 领航员 Agent",
+    "aiModelSubtitle": "陪你走得更远，看得更深"
   },
   "altitudePage": {
     "pageTitle": "实时海拔",
-    "subtitle": "通过网页即可以准确测量所在地的海拔和经纬度。"
+    "subtitle": "通过网页即可准确测量所在地的海拔和经纬度。",
+    "altitude": "海拔",
+    "latitude": "纬度",
+    "longitude": "经度",
+    "liveAltitude": "实时海拔",
+    "meters": "米"
   },
   "altitudeWatermarkModal": {
     "pageTitle": "海拔水印"
@@ -198,7 +205,17 @@
     "addNewDayAfterThisTimeline": "在此之后添加新的一天",
     "pasteAfterThisTimeline": "粘贴到此之后",
     "copyThisTimeline": "复制此日",
-    "addNewWaypointAfterThisWaypoint": "在此之后添加新的途径点"
+    "addNewWaypointAfterThisWaypoint": "在此之后添加新的途径点",
+
+    "aiModelTitle": "AI 自驾路书",
+    "aiModelSubtitle": "自驾路书 Agent",
+
+    "historyVersion": "历史版本 ({{num}})",
+    "restore": "恢复自驾路书",
+    "restoreContent": "恢复到 {{time}} 时的版本",
+    "needsSaveBeforeUpdate": "若需更新路书，请先确认此版本是否保存",
+
+    "comfirVersion": "确认此版本"
   },
   "searchWaypointModal": {
     "pageTitle": "搜索途径点 或 点击地图选点"
@@ -348,6 +365,92 @@
   "mapLayerModal": {
     "title": "地图图层"
   },
+  "aiChatModal": {
+    "title": "AI对话",
+    "subtitle": "Agent",
+    "writeMmessage": "咨询 AI 领航员",
+    "edited": "已编辑",
+    "editMessage": "编辑消息",
+    "thinkReq": "正在请求 AI",
+    "thinkAnalyzing": "正在使用 {{model}} 分析中",
+    "thinkRunning": "思考中...已持续 {{seconds}} 秒 ({{model}})",
+
+    "ragActionSearch": "🔍 正在从您的知识库中搜索资料...",
+    "ragActionSearchSuccess": "✅ 已为您找到相关参考资料",
+    "ragActionSearchFailed": "❌ 暂时无法读取知识库资料",
+
+    "callToolChain": "正在调用 {{function}} ({{model}})",
+    "callToolChainSuccess": "✅ {{function}} 调用成功  ({{model}})",
+    "callToolChainFaild": "❌ {{function}} 调用失败  ({{model}})",
+
+    "thinkFinished": "思考了 {{seconds}} 秒 ({{model}})",
+    "thinkFailed": "请求失败，请重试",
+    "thinkStopped": "已停止分析",
+
+    "coDriverMsg_CHANGE_CITY": "已进入 {{city}}",
+    "coDriverMsg_FIRST_OPEN_DISTANCE": "今日行程正式开始",
+    "coDriverMsg_MILESTONE_DISTANCE": "已经跑了{{dist}}",
+    "coDriverMsg_ALTITUDE_JUMP": "海拔上升到{{altitude}}米了",
+    "coDriverMsg_CLIMB_ACHIEVEMENT": "这一路爬升了{{climbAlt}}米",
+    "coDriverMsg_DESCEND_WARNING": "长下坡，注意控制车速",
+    "coDriverMsg_TEMPERATURE_DROP": "外边降温了，只有{{temp}}度",
+    "coDriverMsg_SUDDEN_STOP": "刚才这下刹车有点猛",
+    "coDriverMsg_CHANGE_ROAD": "切入{{road_name}}行驶",
+    "coDriverMsg_WEATHER_CHANGE": "前方天气从{{lastW}}转为{{curW}}",
+    "coDriverMsg_TIME_EVENT": "赶上{{time}}了，咱们还在赶路",
+    "coDriverMsg_REST_WELCOME_BACK": "休息好了，咱们继续出发",
+    "coDriverMsg_DROWSY_DRIVING": "监测到驾驶时长过长，找地方歇会儿吧",
+
+    "aiAgentRemindsYou": "AI领航员提醒您：",
+
+    "safetyWarning": "抱歉，领航员严禁讨论任何敏感话题。",
+
+    "loadingTokens": "当前已消耗 {{tokens}} Tokens",
+    "totalTokens": "累计消耗 {{tokens}} Tokens",
+
+    "aiCoDriver": "AI 领航员",
+    "autoPlayVoice": "自动播放音频",
+    "autoCloseTime": "自动关闭Modal",
+
+    "isUserSpeaking": "我：{{message}}",
+    "isAISpeaking": "AI领航员：{{message}}",
+
+    "aiCoDriverLive": "AI领航员 Live",
+    "autoLaunchLiveAfterStartTrip": "开始行程后自动启动 Live",
+    "isVoiceInputAllowedInLive": "启用语音输入",
+
+    "quickInput": "快捷功能",
+    "searchGeo": "查询经纬度、海拔",
+    "searchWeather": "天气预报",
+    "searchCity": "介绍这座城市",
+    "searchCityData": "介绍 {{city}}",
+    "myTripHistory": "总结我的行程历史",
+    "searchPOIs": "搜索周围POIs",
+    "learnAboutFeatures": "关于行程路线轨迹",
+    "queryFunction": "了解所有功能",
+    "aboutMe": "关于AI领航员",
+    "contactDeveloper": "联系开发者",
+    "welcomeToYou": "欢迎使用",
+    "welcomeToYou1": "AI领航员持续为您服务~",
+    "openModal": "打开 {{title}}",
+    "openLink": "前往 {{title}}",
+
+    "aiCoDriverTriggerConfig": "AI领航员触发器配置",
+    "firstOpenDistance": "首次开启距离",
+    "milestoneStep": "距离触发",
+    "altitudeStep": "海拔变化",
+    "climbMilestone": "海拔爬升",
+    "descendMilestone": "海拔下降",
+    "tempStep": "温差感知",
+
+    "speedDropThreshold": "速度骤降",
+    "minMovementThreshold": "最小有效位移阈值",
+    "restAwakeThresholdMs": "停车重置旅程阈值",
+    "drowsyDrivingMs": "疲劳驾驶",
+
+    "globalCooldownMs": "全局冷却时间",
+    "specialHours": "特殊关怀时段"
+  },
   "settings": {
     "title": "设置",
     "tripHistory": "行程历史",
@@ -461,6 +564,8 @@
     "deleteAllTrip50m": "有{{uselessDataCount}}个行程是无效数据，您确定要删除这些行程吗？",
     "loadingData": "正在加载数据",
     "loadedData": "已加载 {{percentage}} 的行程数据",
+    "loadingTripAddresses": "正在加载数据",
+    "loadedTripAddresses": "已加载 {{percentage}} 的行程数据",
     "noLoginTrip": "您需要登录您的帐户才能继续访问",
     "share": "分享",
     "unshare": "取消分享",
@@ -536,12 +641,18 @@
 
     "copyOrOpen": "复制并打开",
     "reset": "重置",
-    "resetMap": "重置地图"
+    "resetMap": "重置地图",
+
+    "restore": "恢复",
+    "clearMessages": "清空消息列表",
+    "clearMessagesContent": "您确定要清空当前消息列表吗？",
+    "clearSuccessfully": "清空成功!"
   },
   "unit": {
     "km": "公里",
     "h": "时",
     "m": "分",
-    "s": "秒"
+    "s": "秒",
+    "meters": "米"
   }
 }

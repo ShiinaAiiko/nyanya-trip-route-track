@@ -28,7 +28,7 @@ const loginDebounce = new Debounce()
 
 const SelectFilesModal = ({}) => {
   const { t, i18n } = useTranslation()
-  const { config, user } = useSelector((state: RootState) => state)
+  const config = useSelector((state: RootState) => state.config)
   const layout = useSelector((state: RootState) => state.layout)
   // const appearance = useSelector((state: RootState) => state.appearance)
 

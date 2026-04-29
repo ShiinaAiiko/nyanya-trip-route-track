@@ -1620,6 +1620,10 @@ const TripItemComponent = memo(
           }
         }),
         marks: trip?.marks || [],
+        cities: trip?.cities || [],
+        roads: trip?.roads || [],
+        networkStatus: trip?.networkStatus || [],
+        weather: trip?.weather || [],
         createTime: trip?.createTime,
         startTime: trip?.startTime,
         endTime: trip?.endTime,

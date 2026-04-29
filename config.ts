@@ -40,6 +40,14 @@ let appListUrl = ''
 let cloudShare = {
   url: '',
 }
+let edgeTTS = {
+  url: '',
+  apiKey: '',
+}
+
+let openApp = {
+  apiKey: '',
+}
 
 interface Config {
   isDev: typeof isDev
@@ -53,6 +61,8 @@ interface Config {
   nominatimUrl: typeof nominatimUrl
   toolUrl: typeof toolUrl
   cloudShare: typeof cloudShare
+  edgeTTS: typeof edgeTTS
+  openApp: typeof openApp
 }
 
 try {
@@ -72,6 +82,8 @@ try {
     nominatimUrl = configJson.nominatimUrl
     toolUrl = configJson.toolUrl
     cloudShare = configJson.cloudShare
+    edgeTTS = configJson.edgeTTS
+    openApp = configJson.openApp
   }
 } catch (error) {
   console.error(error)
@@ -88,6 +100,8 @@ export {
   nominatimUrl,
   toolUrl,
   cloudShare,
+  edgeTTS,
+  openApp,
 }
 export default {
   isDev,
@@ -101,4 +115,6 @@ export default {
   nominatimUrl,
   toolUrl,
   cloudShare,
+  edgeTTS,
+  openApp,
 }

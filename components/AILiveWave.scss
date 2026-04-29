@@ -1,0 +1,106 @@
+.ai-live-wave-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  // height: 110px; // 这是你指定的盒子高度
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  // background: rgba(5, 7, 10, 0.75); // 降低透明度
+  // backdrop-filter: blur(20px) saturate(150%); // 增加饱和
+  /* 注意：这里千万不能写 overflow: hidden，否则动画飘不出去 */
+
+  &.column {
+    .ui-message {
+      flex-direction: column;
+      align-items: flex-end;
+      // height: 100%;
+      // justify-content: flex-end;
+
+      .message {
+        flex: 1;
+        margin: 14px 0 0;
+      }
+      .uim-buttons {
+        width: 100%;
+        margin: 0px 0 10px;
+        justify-content: space-between;
+      }
+    }
+  }
+
+  canvas {
+    position: absolute;
+    bottom: 20px; // 底部对齐
+    left: 0;
+    display: block;
+    width: 100%;
+    height: 300px; // 物理高度远大于容器，向上溢出
+    pointer-events: none; // 穿透点击，不干扰地图
+    mix-blend-mode: screen; // 黑色变透明，亮色叠加
+    filter: blur(25px) contrast(1.2) brightness(1.2);
+    z-index: 1;
+  }
+
+  .ui-message {
+    // position: relative;
+    // transform: translate(0, -70px);
+    position: absolute;
+    bottom: 70px;
+    z-index: 2;
+    width: 90%;
+    max-width: 400px;
+    padding: 0 10px 0 16px;
+
+    // 文字背后的微弱毛玻璃，增加可读性
+    background: rgba(10, 15, 25, 0.8);
+    backdrop-filter: blur(12px) saturate(120%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+
+    color: #fff;
+    font-size: 14px;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+    // box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 0 30px rgba(66, 133, 244, 0.2);
+
+    display: flex;
+    // flex-direction: column;
+    justify-content: space-between;
+    align-items: flex-end;
+    // align-items: center;
+    .message {
+      width: 100%;
+      // height: 100%;
+      // max-height: 140px;
+      margin: 14px 0;
+      overflow: hidden;
+      .saki-richtext-component .ql-container .ql-editor::before {
+        color: #ccc;
+      }
+    }
+    .uim-buttons {
+      height: 100%;
+      display: flex;
+      flex-direction: row;
+      margin: 10px 0;
+      // &.column {
+      //   flex-direction: column;
+      // }
+
+      .uimb-left {
+        display: flex;
+        justify-content: flex-start;
+        align-items: center;
+        .tokenInfo {
+          font-size: 12px;
+          color: #ccc;
+        }
+      }
+
+      .uimb-right {
+        display: flex;
+      }
+    }
+  }
+}

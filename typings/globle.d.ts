@@ -64,9 +64,21 @@ declare global {
       'saki-circle-progress-bar': any
       'saki-app-portal': any
       'saki-sso-init': any
+      'saki-chat-bubble': any
+      'saki-chat-bubble-file': any
+      'saki-chat-edit': any
+      'saki-chat-reply': any
+      'saki-chat-ai-bubble': any
+      'saki-markdown-render': any
+      'saki-animation-loading': any
     }
   }
   namespace Window {
     electron: any
   }
+}
+
+interface IWindow extends Window {
+  webkitSpeechRecognition: any
+  SpeechRecognition: any
 }

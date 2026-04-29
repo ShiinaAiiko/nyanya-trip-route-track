@@ -17,8 +17,9 @@ export const SakiTransitionRender = ({
   ssr: boolean
   setClassName: string
 }) => {
-  const { config, geo } = useSelector((state: RootState) => state)
-
+  // ✅ 最佳写法：原子化监听
+  const config = useSelector((state: RootState) => state.config)
+  // const geo = useSelector((state: RootState) => state.geo)
   return (
     <>
       {mounted ? (

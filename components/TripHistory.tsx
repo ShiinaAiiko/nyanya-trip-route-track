@@ -938,6 +938,20 @@ const TripHistoryPage = ({
       res.data.list?.forEach((v, i) => {
         promiseAll.push(
           new Promise(async (res) => {
+            if (
+              moment(Number(v.createTime) * 1000).unix() <
+                moment().unix() - 3600 * 24 * 3 &&
+              v.status === 0 &&
+              Number(v.endTime) > 0
+            ) {
+              const res = await httpApi.v1.FinishTrip({
+                id: v.id,
+              })
+              if (res.code === 200) {
+                v.status = 1
+              }
+            }
+
             // v.correctedData = await isCorrectedData(v)
             res(v.correctedData)
           })
@@ -952,6 +966,7 @@ const TripHistoryPage = ({
           let isGetAddr = false
           list.some((v) => {
             // console.log('GetTripAddresses start', list, v.addresses?.length)
+
             if (!v.addresses?.length) {
               isGetAddr = true
               return true

@@ -5,6 +5,7 @@ import { IContext } from '../../store'
 import { protoRoot } from '../../protos'
 import { getDistance } from '../../plugins/methods'
 import moment from 'moment'
+import { RoadbookHistoryVersionItem } from '../../store/storage'
 
 export interface PolylineItem {
   timelineId: string
@@ -218,6 +219,13 @@ export const initValue = {
       startDate: '',
       endDate: '',
     } as TimelineDaysItem
+  },
+
+  historyVersion: {
+    selectedVersion: -1,
+    oldRB: undefined as protoRoot.roadbook.IRoadbookItem | undefined,
+    async init(rb?: protoRoot.roadbook.IRoadbookItem) {},
+    async save(rb?: protoRoot.roadbook.IRoadbookItem) {},
   },
 }
 

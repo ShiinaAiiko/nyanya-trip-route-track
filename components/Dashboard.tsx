@@ -114,12 +114,9 @@ const NewDashboardComponent = ({
 
   const { t, i18n } = useTranslation('tripPage')
   const [mounted, setMounted] = useState(false)
-  const { config, vehicle, trip, network } = useSelector((state: RootState) => {
-    return state
-  })
-  // const trip = useSelector((state: RootState) => state.trip)
-  // const layout = useSelector((state: RootState) => state.layout)
-  // const geo = useSelector((state: RootState) => state.geo)
+  const config = useSelector((state: RootState) => state.config)
+  const vehicle = useSelector((state: RootState) => state.vehicle)
+  const network = useSelector((state: RootState) => state.network)
 
   const router = useRouter()
   const dispatch = useDispatch<AppDispatch>()
@@ -609,7 +606,7 @@ const NewDashboardComponent = ({
 
       <div className="dashboard-item dashboard-roadIcon">
         {roads.map((v, i) => {
-          console.log('citiescities', cities)
+          // console.log('citiescities', cities)
           return (
             <RoadIcon
               key={i}
@@ -1674,9 +1671,7 @@ export const RoadIcon = ({
   roadName: string
   shortCityName: string
 }) => {
-  const { user } = useSelector((state: RootState) => {
-    return state
-  })
+  const user = useSelector((state: RootState) => state.user)
 
   const [tempRoadInfo, setTempRoadInfo] = useState<typeof roadInfo>(roadInfo)
 

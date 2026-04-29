@@ -21,6 +21,10 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+var (
+	cityDbx = CityDbx{}
+)
+
 type CityDbx struct {
 	city *models.City
 }
@@ -309,10 +313,13 @@ func (t *CityDbx) GetCity(id, parentCityId, name string, fullName string) (*mode
 func (t *CityDbx) GetFullCityForCities(id string, cities []*models.City) (results []*models.City) {
 
 	for _, v := range cities {
+		// log.Info(v.Id, v.Name, id)
 		if v.Id == id {
 			results = append(results, v)
 			if v.ParentCityId != "" {
 				results = append(results, t.GetFullCityForCities(v.ParentCityId, cities)...)
+
+				// log.Info("results", results)
 			}
 			return
 		}
@@ -505,7 +512,7 @@ func (t *CityDbx) GetCities(ids []string) ([]*models.City, error) {
 	if len(cities) == 0 {
 		tempCities, err := t.getCities(ids, []string{})
 
-		log.Error("tempCities", len(tempCities))
+		// log.Error("tempCities", len(tempCities), ids)
 		if err != nil {
 			return nil, err
 		}
@@ -996,16 +1003,20 @@ func (t *CityDbx) GetOsmInfo(fullName string) (*OsmInfo, error) {
 		res := [](map[string]any){}
 
 		if err = json.Unmarshal(resp.Body(), &res); err != nil {
+			log.Error("json.Unmarshal => ", err, string(resp.Body()))
 			return nil, err
 		}
 		// log.Info("resp.Body()", resp.String())
-		log.Info("resp.Body()", res)
+		// log.Info("resp.Body()", res[0], len(res) == 0,
+		// 	resp.Request.URL)
 
 		if len(res) == 0 {
 			return nil, err
 		}
-		// log.Info(res[0]["osm_type"])
-		// log.Info(res[0]["osm_id"], nint.ToInt64(res[0]["osm_id"]))
+		// log.Info(res[0]["addresstype"])
+
+		// j, _ := json.MarshalIndent(res[0], "", "  ")
+		// log.Info(string(j))
 
 		result.OsmType = nstrings.ToString(res[0]["osm_type"])
 		result.OsmId = nint.ToInt64(res[0]["osm_id"])
@@ -1032,7 +1043,7 @@ func (t *CityDbx) GetOsmInfo(fullName string) (*OsmInfo, error) {
 		}
 		// log.Info("resp.Body()", res)
 
-		log.Info(res2["names"], fullName, result.OsmType, strings.ToUpper(result.OsmType[0:1]))
+		// log.Info(res2["names"], fullName, result.OsmType, strings.ToUpper(result.OsmType[0:1]))
 
 		// log.Info(res[0]["osm_id"], nint.ToInt64(res[0]["osm_id"]))
 
@@ -1107,7 +1118,7 @@ func (t *CityDbx) CityI18n(city *models.City, cities []*models.City) (*I18nInfo,
 		city.Names = new(models.CityNames)
 	}
 
-	// log.Info("CityI18n", city.Names.CreateTime >= timestamp, len(city.Names.Names))
+	// log.Info("CityI18n", city.Id, city.Names.CreateTime >= timestamp, len(city.Names.Names))
 
 	if city.Names.CreateTime >= timestamp && len(city.Names.Names) > 0 {
 		result = t.FortmatNames(city, &OsmInfo{
@@ -1127,7 +1138,11 @@ func (t *CityDbx) CityI18n(city *models.City, cities []*models.City) (*I18nInfo,
 	// log.Warn("isCacheFetched", isCacheFetched)
 	if !isCacheFetched {
 		fn := t.getFullName(city.Id, cities)
-		// log.Info(fn)
+		// log.Info(fn, city.Id, cities)
+
+		if fn == "中国" {
+			fn = "中华人民共和国"
+		}
 
 		osmInfo, err := t.GetOsmInfo(fn)
 		if err != nil {
@@ -1188,6 +1203,79 @@ func (t *CityDbx) CitiesI18n(cities []*models.City) ([]*models.City, error) {
 	}
 
 	return cities, nil
+}
+
+func (t *CityDbx) FortmatI18nNames(city *models.City, lang string) string {
+
+	cityName := &models.CityName{
+		Ref: nstrings.StringOr(
+			city.Names.Names["ref"]),
+		ShortName: nstrings.StringOr(
+			city.Names.Names["short_name"],
+			city.Names.Names["ref"]),
+		ZhCN: nstrings.StringOr(
+			city.Names.Names["name:zh"],
+			city.Names.Names["name:zh-Hans"],
+			city.Names.Names["name"]),
+		En: nstrings.StringOr(
+			city.Names.Names["name:en"],
+			city.Names.Names["name"]),
+		ZhHans: nstrings.StringOr(
+			city.Names.Names["name:zh"],
+			city.Names.Names["name:zh-Hans"],
+			city.Names.Names["name"]),
+		ZhHant: nstrings.StringOr(
+			city.Names.Names["name:zh-Hant"],
+			city.Names.Names["name:zh-Hans"],
+			city.Names.Names["name:zh"],
+			city.Names.Names["name"]),
+	}
+
+	name := cityName.ZhCN
+	switch lang {
+	case "zh-CN":
+		name = cityName.ZhCN
+	case "zh-TW":
+		name = cityName.ZhCN
+	case "en-US":
+		name = cityName.En
+
+	}
+
+	return name
+}
+
+func (t *CityDbx) GetCityAddresses(cities []*models.City, lang string) *models.CityAddresses {
+	// result := new(I18nInfo)
+
+	ca := new(models.CityAddresses)
+
+	for _, v := range cities {
+		switch v.Level {
+		case 1:
+			ca.Country = t.FortmatI18nNames(v, lang)
+		case 2:
+			ca.State = t.FortmatI18nNames(v, lang)
+		case 3:
+			ca.Region = t.FortmatI18nNames(v, lang)
+		case 4:
+			ca.City = t.FortmatI18nNames(v, lang)
+		case 5:
+			ca.Town = t.FortmatI18nNames(v, lang)
+		}
+	}
+
+	ca.Address = strings.Join(narrays.Filter([]string{
+		ca.State,
+		ca.Region,
+		ca.City,
+		ca.Town,
+	}, func(val string, i int) bool {
+
+		return val != ""
+	}), "·")
+
+	return ca
 }
 
 func (t *CityDbx) InitCityDistricts() {

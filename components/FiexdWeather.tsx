@@ -272,6 +272,10 @@ const FiexdWeatherComponent = ({
       geo.selectPosition.latitude !== -10000
         ? geo.selectPosition?.longitude
         : geo.position?.coords?.longitude
+    let altitude =
+      geo.selectPosition.latitude !== -10000
+        ? 0
+        : geo.position?.coords?.altitude
 
     const unit = getLatLngUnit(lat, lng)
 
@@ -279,6 +283,7 @@ const FiexdWeatherComponent = ({
       lat,
       lng,
       unit,
+      altitude,
     }
   }, [geo.position, geo.selectPosition])
 
@@ -371,6 +376,7 @@ const FiexdWeatherComponent = ({
           <span>
             {latlng.lng?.toFixed(6)}° {latlng.unit.lng}
           </span>
+          {latlng.altitude ? <span>{latlng.altitude?.toFixed(2)}m</span> : ''}
         </div>
       ) : (
         ''

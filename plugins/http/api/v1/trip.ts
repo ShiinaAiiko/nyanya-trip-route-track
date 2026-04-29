@@ -301,6 +301,23 @@ export const tripApi = {
       protoRoot.trip.UpdateTripNetworkStatus.Response
     )
   },
+  async UpdateTripWeather(
+    params: protoRoot.trip.UpdateTripWeather.IRequest
+  ) {
+    const { apiUrls } = store.getState().api
+
+    return await Request<protoRoot.trip.UpdateTripWeather.IResponse>(
+      {
+        method: 'POST',
+        data: PARAMS<protoRoot.trip.UpdateTripWeather.IRequest>(
+          params,
+          protoRoot.trip.UpdateTripWeather.Request
+        ),
+        url: getUrl(apiUrls.v1.baseUrl, apiUrls.v1.UpdateTripWeather),
+      },
+      protoRoot.trip.UpdateTripWeather.Response
+    )
+  },
 
   // async GetHistoricalStatistics(
   //   params: protoRoot.trip.GetHistoricalStatistics.IRequest

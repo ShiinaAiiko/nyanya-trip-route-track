@@ -45,14 +45,14 @@ message TripPosition {
   double distance = 9;
 }
 message TripStatistics {
-  double distance = 1;
-  double maxSpeed = 2;
-  double averageSpeed = 3;
-  double maxAltitude = 4;
-  double minAltitude = 5;
-  double averageAltitude = 6;
-  double climbAltitude = 7;
-  double descendAltitude = 8;
+  double distance = 1;        // 本次行程距离 (m)
+  double maxSpeed = 2;        // 最高速度 (m/s)
+  double averageSpeed = 3;    // 平均时速 (m/s)
+  double maxAltitude = 4;     // 最高海拔 (m)
+  double minAltitude = 5;     // 最低海拔 (m)
+  double averageAltitude = 6; // 平均海拔 (m)
+  double climbAltitude = 7;   // 累计爬升高度 (m)
+  double descendAltitude = 8; // 累计下降高度 (m)
 }
 
 message TripPermissions {
@@ -80,6 +80,19 @@ message TripRoad {
   repeated EntryTimeItem entryTimes = 2;
   // 仅输出
   // repeated city.CityItem cityDetails = 4;
+}
+
+message TripWeather {
+  int32 weatherCode = 1;
+  double temperature = 2;
+  double apparentTemperature = 3;
+  double windSpeed = 4;
+  int32 windDirection = 5;
+  double humidity = 6;
+  double precipitation = 7;
+
+  // 只需要存储不同的时间即可
+  int64 timestamp = 8;
 }
 
 message TripAddressesCity {
@@ -123,6 +136,7 @@ message Trip {
   repeated TripPosition positions = 4;
   repeated TripAddresses addresses = 18;
   repeated TripNetworkStatus networkStatus = 19;
+  repeated TripWeather weather = 20;
   TripStatistics statistics = 5;
   TripPermissions permissions = 11;
   // 1 normal 0 ing -1 delete
@@ -175,6 +189,11 @@ message AddTripToOnline {
     repeated TripPosition positions = 2;
 
     repeated TripMark marks = 8;
+
+    repeated TripCity cities = 10;
+    repeated TripRoad roads = 11;
+    repeated TripNetworkStatus networkStatus = 12;
+    repeated TripWeather weather = 13;
 
     // TripStatistics statistics = 3;
     // int64 status = 4;
@@ -454,6 +473,14 @@ message UpdateTripNetworkStatus {
   message Request {
     string id = 1;
     repeated TripNetworkStatus networkStatus = 2;
+  }
+  message Response {}
+}
+
+message UpdateTripWeather {
+  message Request {
+    string id = 1;
+    TripWeather weather = 2;
   }
   message Response {}
 }

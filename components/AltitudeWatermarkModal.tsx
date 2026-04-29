@@ -70,8 +70,9 @@ import { selectFiles } from '../store/file'
 
 export const AltitudeWatermarkModal = () => {
   const { t, i18n } = useTranslation('altitudeWatermarkModal')
-  const { layout, config } = useSelector((state: RootState) => state)
-
+  // ✅ 最佳实践：原子化获取
+  const layout = useSelector((state: RootState) => state.layout)
+  const config = useSelector((state: RootState) => state.config)
   const dispatch = useDispatch<AppDispatch>()
 
   const cvs = useRef<HTMLCanvasElement>(null)

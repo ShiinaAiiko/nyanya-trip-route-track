@@ -456,7 +456,7 @@ export const defaultMapLayer = {
     showPositionMarker: true,
   },
 }
-const defaultConfigure: protoRoot.configure.IConfigure = {
+export const defaultConfigure: protoRoot.configure.IConfigure = {
   general: {
     speedColorLimit: defaultSpeedColorLimit,
   },
@@ -513,6 +513,36 @@ const defaultConfigure: protoRoot.configure.IConfigure = {
     routeOptions: [],
     travelOptions: 'driving-car',
     preference: 'recommended',
+  },
+  ai: {
+    aiCoDriver: {
+      enabled: true,
+      autoPlayVoice: true,
+      autoCloseTime: 5000,
+      autoLaunchLiveAfterStartTrip: true,
+      // isVoiceInputAllowedInLive: false,
+      trigger: {
+        // --- 里程触发 (单位: m) ---
+        firstOpenDistance: 100, // 首次触发里程
+        milestoneStep: 5000, // 每 5km 步进触发
+
+        // --- 环境感知 (单位: m / ℃) ---
+        altitudeStep: 150, // 海拔瞬时跳变预警 (如入洞、爬坡)
+        climbMilestone: 500, // 累计爬升 500m 触发地理成因讲解
+        descendMilestone: 500, // 累计下降 500m 触发制动安全提醒
+        tempStep: 5, // 5℃ 温差感知 (关联气象突变)
+
+        // --- 动态驾驶判定 ---
+        speedDropThreshold: 20, // 速度骤降基准 (m/s)，用于紧急回避闲聊
+        minMovementThreshold: 500, // 最小有效位移，防止信号漂移误触发
+        restAwakeThresholdMs: 20 * 60 * 1000, // 停车 20min 视为新旅程开始
+        drowsyDrivingMs: 2 * 60 * 60 * 1000, // 2小时疲劳提醒
+
+        // --- 策略控制 ---
+        globalCooldownMs: 1 * 60 * 1000, // 5分钟全局冷却 (开发模式6秒)
+        specialHours: [12, 18, 22, 0], // 饭点与深夜的特殊关怀时间
+      },
+    },
   },
   lastUpdateTime: -1,
 }
@@ -767,6 +797,7 @@ export const configSlice = createSlice({
     vConsole: false,
 
     devTrip: process.env.CLIENT_ENV === 'production' ? false : true,
+    // devTrip: false,
 
     connectionStatus: {
       openMeteo: false,
@@ -1218,8 +1249,19 @@ export const configMethods = {
           navigator: {
             ...(config.configure.navigation || defaultConfigure.navigation),
           },
+          ai: {
+            ...(config.configure.ai || defaultConfigure.ai),
+          },
           lastUpdateTime: c.lastUpdateTime,
         }
+
+        if (!conf?.ai?.aiCoDriver?.trigger) {
+          conf.ai.aiCoDriver = {
+            ...conf.ai.aiCoDriver,
+            trigger: defaultConfigure.ai?.aiCoDriver?.trigger,
+          }
+        }
+
         console.log('filter1 GetConfigure', conf, config.configure)
         thunkAPI.dispatch(configSlice.actions.setConfigure(conf))
       }

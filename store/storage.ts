@@ -13,6 +13,11 @@ import { PolylineItem } from '../components/Roadbook/Context'
 // import { User } from './user'
 // import { WebStorage } from './webStorage'
 
+export interface RoadbookHistoryVersionItem {
+  saveTime: number
+  rb: protoRoot.roadbook.IRoadbookItem
+}
+
 export let storage = {
   global: new WebStorage({
     storage: 'IndexedDB',
@@ -47,6 +52,10 @@ export let storage = {
   navigationPolylines: new WebStorage<string, PolylineItem>({
     storage: 'IndexedDB',
     baseLabel: 'navigationPolylines',
+  }),
+  roadbookHistoryVersion: new WebStorage<string, RoadbookHistoryVersionItem[]>({
+    storage: 'IndexedDB',
+    baseLabel: 'roadbookHistoryVersion',
   }),
 }
 

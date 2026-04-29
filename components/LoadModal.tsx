@@ -25,6 +25,7 @@ import WeatherAppModal from './WeatherApp'
 import PrivacyGeofenceModal from './PrivacyGeofence'
 import SelectFilesModal from './SelectFilesModal'
 import { AltitudeWatermarkModal } from './AltitudeWatermarkModal'
+import { AiChatModal } from './AiChatModal'
 
 const d = new Debounce()
 
@@ -289,6 +290,13 @@ export const LoadModalsComponent = () => {
         ns: 'altitudeWatermarkModal',
       }),
       component: <AltitudeWatermarkModal />,
+    },
+    {
+      type: 'AiChatModal',
+      name: t('aiModelSubtitle', {
+        ns: 'roadBookPage',
+      }),
+      component: <AiChatModal />,
     },
   ]
 

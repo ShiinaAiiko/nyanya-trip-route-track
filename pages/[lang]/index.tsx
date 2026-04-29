@@ -105,26 +105,34 @@ const TripPage = () => {
   const [mounted, setMounted] = useState(false)
   const [gpsStatusDebounce] = useState(new Debounce())
 
-  const { config, user, geo, vehicle, network, position } = useSelector(
-    (state: RootState) => {
-      return state
-    }
-  )
+  // 1. 基础模块尽量原子化获取
+  // 只有当对应的 slice 对象整个替换时才会触发重绘
+  const config = useSelector((state: RootState) => state.config)
+  const layout = useSelector((state: RootState) => state.layout)
+  const user = useSelector((state: RootState) => state.user)
+  const geo = useSelector((state: RootState) => state.geo)
+  const vehicle = useSelector((state: RootState) => state.vehicle)
+  const network = useSelector((state: RootState) => state.network)
+  const position = useSelector((state: RootState) => state.position)
 
+  // 2. 具体的业务字段
   const startTrip = useSelector((state: RootState) => state.trip.startTrip)
-  const { weatherInfo, tripStatistics, cityInfo, historicalStatistics } =
-    useSelector((state: RootState) => {
-      const { cityInfo } = state.city
-      const { weatherInfo, tripStatistics, historicalStatistics } = state.trip
-      return { weatherInfo, tripStatistics, cityInfo, historicalStatistics }
-    })
 
+  // 3. 跨模块或深层属性，依然建议分开写，以获得最佳的引用拦截效果
+  const cityInfo = useSelector((state: RootState) => state.city.cityInfo)
+  const weatherInfo = useSelector((state: RootState) => state.trip.weatherInfo)
+  const tripStatistics = useSelector(
+    (state: RootState) => state.trip.tripStatistics
+  )
+  const historicalStatistics = useSelector(
+    (state: RootState) => state.trip.historicalStatistics
+  )
   const router = useRouter()
 
   const updatedPositionIndex = useRef(-1)
   const tDistance = useRef(0)
   // 未来如果有他人同步查看再提升
-  const syncPositionInterval = useRef(120)
+  const syncPositionInterval = useRef(30)
   const climbAltitude = useRef(0)
   const descendAltitude = useRef(0)
   const timer = useRef<NodeJS.Timeout>()
@@ -319,7 +327,8 @@ const TripPage = () => {
           // 'http://192.168.204.130:23203/s//ykMRlTUd2.json'
           // 'http://192.168.204.130:23203/s//lRzQNG8Pq.json'
           // 'http://192.168.204.130:23203/s//kbZ4vhU21'
-          'http://192.168.204.130:23203/s//jZwjLXZ0S'
+          // 'http://192.168.204.130:23203/s//jZwjLXZ0S'
+          'http://192.168.204.130:23203/s//bDkFXZVgq'
         )
         // console.log('testData', getTestData.data)
         // console.log('testData', getTestData.data.reverse())
@@ -534,7 +543,7 @@ const TripPage = () => {
                   }
                 ).addTo(map.current)
                 // playline.set
-                console.log('playline', pl)
+                // console.log('playline', pl)
                 polyline.current = pl
               }
 
@@ -776,6 +785,8 @@ const TripPage = () => {
           // 	true
           // )
           i++
+          // i += 10
+          // }, 300)
         }, 1000)
       }, 1000)
     }
@@ -786,6 +797,19 @@ const TripPage = () => {
       layoutSlice.actions.setLayoutHeaderLogoText(
         t('appTitle', { ns: 'common' })
       )
+    )
+
+    // console.log('AI领航员 trip layout')
+    dispatch(
+      layoutSlice.actions.setOpenAiChatModalInfo({
+        type: 'coDriver',
+        title: t('aiModelTitle', {
+          ns: 'tripPage',
+        }),
+        subtitle: t('aiModelSubtitle', {
+          ns: 'tripPage',
+        }),
+      })
     )
   }, [i18n.language])
 
@@ -822,6 +846,13 @@ const TripPage = () => {
     bindRealTimePositionListMarkerClickEvent()
     bindMapClickEvent()
     dispatch(positionSlice.actions.setSelectRealTimeMarkerId(''))
+
+    AIContext.current = {
+      startTrip: startTrip,
+      currentTripData: undefined,
+      lastTriggerData: undefined,
+      lastTriggerTime: 0,
+    }
 
     if (startTrip) {
       if (config.appConfig.version) {
@@ -979,6 +1010,10 @@ const TripPage = () => {
       averageSpeed: 0,
       distance: 0,
     }
+
+    lastWeather.current = undefined
+    tripWeather.current = []
+
     setListenTime(0)
     setGpsSignalStatus(-1)
     setStartTime(0)
@@ -1020,8 +1055,401 @@ const TripPage = () => {
           map.current?.invalidateSize(true)
         }, 400)
       }
+
+      // AI领航员
+
+      AIContext.current.currentCity = cityInfo.city
+      AIContext.current.currentTripData = {
+        city: ['state', 'region', 'city', 'town']
+          .map((v) => {
+            const si: any = cityInfo
+            let s = si[v]
+            return s
+          })
+          .filter((v) => !!v)
+          .join('·'),
+        altitude: geo.position.coords.altitude,
+        speed: geo.position.coords.speed,
+        weather: weatherInfo.weather,
+        temp: weatherInfo.temperature,
+        road: (
+          roadInfoList.current?.filter((v) => {
+            return v.code !== 'A404'
+          }) || []
+        )
+          .map((v) => {
+            return (
+              v.code +
+              ' ' +
+              ((v.name as any)?.[
+                config.lang === 'zh-CN'
+                  ? 'zhHans'
+                  : config.lang === 'zh-TW'
+                    ? 'zhHant'
+                    : 'en'
+              ] || (v.name as any)['zhHans'])
+            )
+          })
+          .join('; '),
+        coords: {
+          latitude: Number(geo.position.coords.latitude.toFixed(6)),
+          longitude: Number(geo.position.coords.longitude.toFixed(6)),
+        },
+        time: geo.position.timestamp,
+        statistics: statistics.current,
+      }
+
+      // console.log('AI领航员 config', config.configure.ai)
+
+      if (config.configure.ai?.aiCoDriver?.enabled) {
+        const triggerReason = shouldAIPilotWakeUp(AIContext.current)
+        if (triggerReason) {
+          console.log('AI领航员 isGoAi', triggerReason, AIContext.current)
+
+          loadModal('AiChatModal', () => {
+            dispatch(
+              layoutSlice.actions.setOpenAiChatModal({
+                visible: true,
+                startTrip: true,
+                triggerReason: triggerReason,
+
+                autoPlayVoice:
+                  config.configure.ai?.aiCoDriver?.autoPlayVoice || false,
+                autoCloseTime:
+                  config.configure.ai?.aiCoDriver?.autoCloseTime || 0,
+
+                currentTripData: AIContext.current.currentTripData,
+                lastTripData: AIContext.current.lastTriggerData,
+              })
+            )
+          })
+        }
+      }
     }
-  }, [listenTime])
+  }, [listenTime, config.configure.ai?.aiCoDriver])
+
+  useEffect(() => {
+    if (user.isLogin) {
+      eventListener.on('startAICoDriver', () => {
+        loadModal('AiChatModal', () => {
+          const { layout } = store.getState()
+          dispatch(
+            layoutSlice.actions.setOpenAiChatModal({
+              visible: true,
+              startTrip: layout.openAiChatModal.startTrip,
+              ...(!config.devTrip
+                ? {
+                    triggerReason: layout.openAiChatModal.startTrip
+                      ? 'MILESTONE_DISTANCE'
+                      : '',
+                    autoPlayVoice: false,
+                    autoCloseTime: 0,
+                    currentTripData: AIContext.current.currentTripData,
+                    lastTripData: AIContext.current.lastTriggerData,
+                  }
+                : {
+                    triggerReason: 'FIRST_OPEN_DISTANCE',
+                    autoPlayVoice: false,
+                    autoCloseTime: 0,
+
+                    currentTripData: {
+                      city: '四川省·甘孜藏族自治州·巴塘县·夏邛镇',
+                      altitude: 2498.44140625,
+                      speed: 0.6600000262,
+                      weather: '阴',
+                      temp: 18.5,
+                      road: '',
+                      coords: {
+                        latitude: 29.977319,
+                        longitude: 99.087103,
+                      },
+                      time: 1757218995000,
+                      statistics: {
+                        speed: 0.904,
+                        maxSpeed: 0.6600000262,
+                        climbAltitude: 0.532,
+                        descendAltitude: 0.317,
+                        maxAltitude: 2498.7595214844,
+                        minAltitude: 2498.44140625,
+                        distance: 2.445,
+                        averageSpeed: 0.61125,
+                      } as any,
+                    },
+                    lastTripData: {
+                      city: '四川省·甘孜藏族自治州·理塘县',
+                      altitude: 2498.44140625,
+                      speed: 0.6600000262,
+                      weather: '阴',
+                      temp: 18.5,
+                      road: '',
+                      coords: {
+                        latitude: 29.977319,
+                        longitude: 99.087103,
+                      },
+                      time: 1757218995000,
+                      statistics: {
+                        speed: 0.904,
+                        maxSpeed: 0.6600000262,
+                        climbAltitude: 0.532,
+                        descendAltitude: 0.317,
+                        maxAltitude: 2498.7595214844,
+                        minAltitude: 2498.44140625,
+                        distance: 2.445,
+                        averageSpeed: 0.61125,
+                      } as any,
+                    },
+                  }),
+            })
+          )
+        })
+      })
+    }
+  }, [user.isLogin])
+
+  interface AIContext {
+    startTrip: boolean
+    currentTripData?: protoRoot.ai.IAICoDriverCurrentTripData
+    lastTriggerData?: protoRoot.ai.IAICoDriverCurrentTripData // 存储上一次触发时的数据，用于对比
+    lastTriggerTime?: number // 时间戳
+    lastTriggerHour?: number // 【新增】记录上一次触发时的“小时”数
+    lastStopTime?: number // 【新增】记录上一次触发时的“小时”数
+    lastCity?: string
+    currentCity?: string
+    activeWeatherWarning?: string // 【新增】当前已预警的天气状态锁
+  }
+
+  const AIContext = useRef<AIContext>({
+    startTrip: false,
+    currentTripData: undefined,
+    lastTriggerData: undefined,
+    lastTriggerTime: 0,
+  })
+
+  /**
+   * 判定并自动更新 AI 领航员状态 (全功能完整版)
+   * 包含：里程里程碑、海拔跳变、累计爬升/下降、温度预警、速度异常、整点/时段触发、起步唤醒
+   */
+  function shouldAIPilotWakeUp(ctx: AIContext) {
+    let triggerReason: (typeof layout.openAiChatModal)['triggerReason'] = ''
+
+    // 1. 基础检查
+    if (!ctx.startTrip || !ctx.currentTripData) return triggerReason
+
+    const {
+      currentTripData,
+      lastTriggerData,
+      lastTriggerTime,
+      lastTriggerHour,
+    } = ctx
+    const now = Date.now()
+    const currentDate = new Date(now)
+    const currentHour = currentDate.getHours()
+
+    // 2. 冷启动逻辑：行程开始的第一帧初始化锚点
+    if (!lastTriggerData) {
+      ctx.lastTriggerData = JSON.parse(JSON.stringify(currentTripData))
+
+      ctx.lastTriggerHour = currentHour
+      return triggerReason
+    }
+
+    const currStats = currentTripData.statistics
+    const lastStats = lastTriggerData.statistics
+    if (!currStats || !lastStats) return triggerReason
+
+    // ==========================================
+    // 3. 阈值定义区 (根据需求可在此统一修改)
+    // ==========================================
+    const aiTrigger = config.configure?.ai?.aiCoDriver?.trigger
+
+    const FIRST_OPEN_DISTANCE = config.devTrip
+      ? 2
+      : (aiTrigger?.firstOpenDistance ?? 100) // 首次触发里程
+    // 距离触发器步进
+    const MILESTONE_STEP = config.devTrip
+      ? 500
+      : (aiTrigger?.milestoneStep ?? 5000)
+    // 海拔瞬时跳变阈值
+    const ALTITUDE_STEP = config.devTrip ? 30 : (aiTrigger?.altitudeStep ?? 150)
+    // 累计爬升触发
+    const CLIMB_MILESTONE = config.devTrip
+      ? 100
+      : (aiTrigger?.climbMilestone ?? 500)
+    // 累计下降触发
+    const DESCEND_MILESTONE = config.devTrip
+      ? 100
+      : (aiTrigger?.descendMilestone ?? 500)
+    // 温差预警阈值
+    const TEMP_STEP = config.devTrip ? 2 : (aiTrigger?.tempStep ?? 5)
+    // 速度骤降判定基准 (m/s)
+    const SPEED_DROP_THRESHOLD = config.devTrip
+      ? 10
+      : (aiTrigger?.speedDropThreshold ?? 20)
+    // 触发所需的最小位移 (m)
+    const MIN_MOVEMENT_THRESHOLD = config.devTrip
+      ? 10
+      : (aiTrigger?.minMovementThreshold ?? 500)
+    // 全局冷却时间 (ms)
+    const GLOBAL_COOLDOWN =
+      (config.devTrip ? 0.1 : (aiTrigger?.globalCooldownMs ?? 5)) * 60 * 1000
+    // 停车判定“重新出发”时长 (ms)
+    const REST_AWAKE_THRESHOLD =
+      (config.devTrip ? 1 : (aiTrigger?.restAwakeThresholdMs ?? 20)) * 60 * 1000
+
+    // 疲劳驾驶间隔 (ms)
+    const DROWSY_DRIVING = config.devTrip
+      ? 60 * 1000
+      : (aiTrigger?.drowsyDrivingMs ?? 2) * 60 * 60 * 1000
+
+    // 特殊时间点：中午、傍晚、深夜
+    const SPECIAL_HOURS = aiTrigger?.specialHours ?? [12, 18, 22, 0]
+
+    // console.log(
+    //   'AI领航员 FIRST_OPEN_DISTANCE',
+    //   FIRST_OPEN_DISTANCE,
+    //   Number(config.configure?.ai?.aiCoDriver?.trigger?.firstOpenDistance)
+    // )
+
+    // ==========================================
+    // 4. 基础校验 (冷却与位移)
+    // ==========================================
+    const distanceMoved =
+      Number(currStats.distance) - Number(lastStats.distance)
+    const timeSinceLast = now - (lastTriggerTime || 0)
+
+    // 如果位移极小（比如人在车里休息），除非是时间到了，否则不触发
+    const isMoving = distanceMoved >= MIN_MOVEMENT_THRESHOLD
+
+    // ==========================================
+    // 5. 核心判定逻辑
+    // ==========================================
+
+    // console.log(
+    //   'AI领航员',
+    //   FIRST_OPEN_DISTANCE,
+    //   Number(currStats.distance),
+    //   !ctx.lastTriggerTime,
+    //   isMoving,
+    //   currentTripData.road
+    // )
+    // A. 物理指标判定 (需满足冷却时间)
+    if (timeSinceLast >= GLOBAL_COOLDOWN && isMoving) {
+      if (distanceMoved >= MILESTONE_STEP) {
+        triggerReason = 'MILESTONE_DISTANCE'
+      }
+    }
+    if (
+      Math.abs(
+        Number(currentTripData.altitude) - Number(lastTriggerData.altitude)
+      ) >= ALTITUDE_STEP
+    ) {
+      triggerReason = 'ALTITUDE_JUMP'
+    } else if (
+      Number(currStats.climbAltitude) - Number(lastStats.climbAltitude) >=
+      CLIMB_MILESTONE
+    ) {
+      triggerReason = 'CLIMB_ACHIEVEMENT'
+    } else if (
+      Number(currStats.descendAltitude) - Number(lastStats.descendAltitude) >=
+      DESCEND_MILESTONE
+    ) {
+      triggerReason = 'DESCEND_WARNING'
+    } else if (
+      Number(lastTriggerData.temp) - Number(currentTripData.temp) >=
+      TEMP_STEP
+    ) {
+      triggerReason = 'TEMPERATURE_DROP'
+    } else if (
+      Number(lastTriggerData.speed) > SPEED_DROP_THRESHOLD &&
+      Number(currentTripData.speed) < 3
+    ) {
+      triggerReason = 'SUDDEN_STOP'
+    } else if (currentTripData.road !== currentTripData.road) {
+      triggerReason = 'CHANGE_ROAD'
+    }
+
+    if (!ctx.lastCity) {
+      ctx.lastCity = ctx.currentCity
+    }
+    if (ctx.currentCity !== ctx.lastCity) {
+      triggerReason = 'CHANGE_CITY'
+    }
+
+    // B. 天气逻辑判定 (独立于物理冷却，但受位移限制)
+    if (isMoving) {
+      const dangerousWeather = ['大雨', '暴雪', '大雾', '冰雹', '沙尘暴']
+      const currentWeather = currentTripData.weather || ''
+      if (
+        dangerousWeather.includes(currentWeather) &&
+        currentWeather !== ctx.activeWeatherWarning
+      ) {
+        ctx.activeWeatherWarning = currentWeather
+
+        triggerReason = 'WEATHER_CHANGE'
+      } else if (!dangerousWeather.includes(currentWeather)) {
+        ctx.activeWeatherWarning = undefined // 解锁
+      }
+    }
+
+    // C. 时间逻辑判定 (跨小时判定)
+    if (currentHour !== lastTriggerHour) {
+      // 如果是特殊时段，或者已经 1 小时没说话了，且车子在动
+      if (
+        (SPECIAL_HOURS.includes(currentHour) ||
+          timeSinceLast > 60 * 60 * 1000) &&
+        isMoving
+      ) {
+        triggerReason = 'TIME_EVENT'
+      }
+    }
+
+    // D. 休息唤醒逻辑 (长停后起步)
+    if (
+      timeSinceLast > REST_AWAKE_THRESHOLD &&
+      isMoving &&
+      distanceMoved > 1000
+    ) {
+      triggerReason = 'REST_WELCOME_BACK'
+    }
+
+    // 疲劳驾驶
+    if (!ctx.lastStopTime) {
+      ctx.lastStopTime = now
+    }
+    if (now - ctx.lastStopTime >= DROWSY_DRIVING) {
+      triggerReason = 'DROWSY_DRIVING'
+    }
+
+    if (
+      FIRST_OPEN_DISTANCE < Number(currStats.distance) &&
+      !ctx.lastTriggerTime
+    ) {
+      triggerReason = 'FIRST_OPEN_DISTANCE'
+    }
+
+    // ==========================================
+    // 6. 状态同步与返回
+    // ==========================================
+    if (triggerReason) {
+      console.log(
+        `[AI领航员] 触发成功 | 原因: ${triggerReason} | 时间: ${currentHour}点`
+      )
+
+      // 自动更新上下文状态
+      ctx.lastTriggerData = JSON.parse(JSON.stringify(currentTripData))
+      ctx.lastTriggerTime = now
+      ctx.lastTriggerHour = currentHour
+
+      if (triggerReason === 'DROWSY_DRIVING') {
+        ctx.lastStopTime = now
+      }
+      if (triggerReason === 'CHANGE_CITY') {
+        ctx.lastCity = ctx.currentCity
+      }
+    }
+
+    return triggerReason
+  }
 
   const roadInfoList = useRef<protoRoot.road.IRoadInfo[]>([])
   const roads = useRef<protoRoot.trip.ITripRoad[]>([])
@@ -1075,6 +1503,7 @@ const TripPage = () => {
   const realTimePositionList = useRef<
     protoRoot.position.GetUserPositionAndVehiclePosition.Response.IPositionItem[]
   >([])
+
   useEffect(() => {
     map.current &&
       initSyncPosition(map.current, mapLayer?.showPositionMarker || false)
@@ -1518,12 +1947,18 @@ const TripPage = () => {
   const addTrip = async () => {
     let id = 'IDB_' + md5(String(new Date().getTime()))
 
-    const v = {
+    const v: protoRoot.trip.ITrip = {
       id,
       type,
       positions: [],
       statistics: {},
       permissions: {},
+      weather: [],
+      networkStatus: [],
+      addresses: [],
+      cities: [],
+      roads: [],
+      marks: [],
       status: 0,
       vehicle: {
         id: vehicle.defaultVehicleId || '',
@@ -1548,6 +1983,8 @@ const TripPage = () => {
 
         console.log(res?.data?.trip)
         id = res?.data?.trip?.id
+        lastWeather.current = undefined
+        tripWeather.current = []
         setTrip(res?.data?.trip)
         await storage.trips.set(id, res?.data?.trip)
       }
@@ -1585,6 +2022,16 @@ const TripPage = () => {
 
   const updateNetworkStatus = useCallback(async () => {
     // console.log('network2', network.status, startTrip, networkStatus, trip?.id)
+
+    const tempTrip: protoRoot.trip.ITrip = {
+      ...trip,
+      weather: tripWeather.current,
+      networkStatus: networkStatus.current || [],
+    }
+
+    await storage.trips.set(trip?.id || '', tempTrip)
+    await storage.global.set('tempTripData_' + trip?.id || '', tempTrip)
+
     if (trip?.id && !trip?.id.includes('IDB') && network.status === 'online') {
       const res = await httpApi.v1.UpdateTripNetworkStatus({
         id: trip?.id,
@@ -1598,6 +2045,72 @@ const TripPage = () => {
       // )
     }
   }, [network, startTrip, trip?.id])
+
+  const lastWeather = useRef<protoRoot.trip.ITripWeather>()
+  const tripWeather = useRef<protoRoot.trip.ITripWeather[]>([])
+  useEffect(() => {
+    if (startTrip && trip?.id && Number(weatherInfo.weatherCode) >= 0) {
+      updateTripWeather()
+    }
+  }, [startTrip, trip, weatherInfo])
+
+  const updateTripWeather = useCallback(async () => {
+    const cur: protoRoot.trip.ITripWeather = {
+      weatherCode: Number(weatherInfo.weatherCode),
+      temperature: Number(weatherInfo.temperature),
+      apparentTemperature: Number(weatherInfo.apparentTemperature),
+      windSpeed: Number(weatherInfo.windSpeed),
+      windDirection: Number(weatherInfo.windDirectionNum),
+      humidity: Number(weatherInfo.humidity),
+      precipitation: Number(weatherInfo.precipitation),
+      timestamp: moment().unix(),
+    }
+    console.log('GetWeather curWeather', cur)
+
+    let last = lastWeather.current
+
+    if (
+      !last?.timestamp ||
+      cur.weatherCode !== last?.weatherCode ||
+      Math.abs(Number(cur.temperature) - Number(last?.temperature)) >= 1 ||
+      Math.abs(Number(cur.windSpeed) - Number(last?.windSpeed)) >= 10
+    ) {
+      const updateTripWeather = async () => {
+        lastWeather.current = cur
+        tripWeather.current = tripWeather.current?.concat(cur)
+
+        if (!trip?.id) return
+        const tempTrip: protoRoot.trip.ITrip = {
+          ...trip,
+          weather: tripWeather.current,
+        }
+
+        await storage.trips.set(trip?.id, tempTrip)
+        await storage.global.set('tempTripData_' + trip.id, tempTrip)
+
+        if (!trip.id.includes('IDB')) {
+          const res = await httpApi.v1.UpdateTripWeather({
+            id: trip?.id || '',
+            weather: cur,
+          })
+
+          console.log(
+            'GetWeather UpdateTripWeather',
+            res,
+            {
+              id: trip?.id || '',
+              weather: cur,
+            },
+            deepCopy(tempTrip),
+            tripWeather.current
+          )
+        } else {
+          // console.log('GetWeather UpdateTripWeather', tripWeather.current)
+        }
+      }
+      updateTripWeather()
+    }
+  }, [startTrip, trip, weatherInfo])
 
   const updatePosition = async () => {
     const pl = tempPositions.current
@@ -1923,6 +2436,7 @@ const TripPage = () => {
           dispatch(
             tripMethods.GetTripAddresses({
               trips: [trip],
+              isSnackbar: false,
             })
           ).unwrap()
         }, 50)
@@ -2105,8 +2619,76 @@ const TripPage = () => {
             }
             currentPosition={!startTrip}
             // aichat={config.showIndexPageButton}
-            aichat={false}
-            trackRoute={!startTrip && config.showIndexPageButton}
+            aichat={true}
+            aichatParams={{
+              visible: false,
+
+              ...(true
+                ? // ...(!config.devTrip
+                  {
+                    // startTrip: startTrip,
+                    // startTrip: true,
+                    startTrip: config.devTrip
+                      ? // startTrip
+                        true
+                      : startTrip,
+                    // tGetAllTripMemoryriggerReason: startTrip ? 'MILESTONE_DISTANCE' : '',
+                    // currentTripData: AIContext.current.currentTripData,
+                    // lastTripData: AIContext.current.lastTriggerData,
+                  }
+                : {
+                    startTrip: true,
+                    // triggerReason: 'MILESTONE_DISTANCE',
+
+                    // currentTripData: {
+                    //   city: '四川省·甘孜藏族自治州·巴塘县·夏邛镇',
+                    //   altitude: 2498.44140625,
+                    //   speed: 0.6600000262,
+                    //   weather: '阴',
+                    //   temp: 18.5,
+                    //   road: '',
+                    //   coords: {
+                    //     latitude: 29.977319,
+                    //     longitude: 99.087103,
+                    //   },
+                    //   time: 1757218995000,
+                    //   statistics: {
+                    //     speed: 0.904,
+                    //     maxSpeed: 0.6600000262,
+                    //     climbAltitude: 0.532,
+                    //     descendAltitude: 0.317,
+                    //     maxAltitude: 2498.7595214844,
+                    //     minAltitude: 2498.44140625,
+                    //     distance: 2.445,
+                    //     averageSpeed: 0.61125,
+                    //   } as any,
+                    // },
+                    // lastTripData: {
+                    //   city: '四川省·甘孜藏族自治州·理塘县',
+                    //   altitude: 2498.44140625,
+                    //   speed: 0.6600000262,
+                    //   weather: '阴',
+                    //   temp: 18.5,
+                    //   road: '',
+                    //   coords: {
+                    //     latitude: 29.977319,
+                    //     longitude: 99.087103,
+                    //   },
+                    //   time: 1757218995000,
+                    //   statistics: {
+                    //     speed: 0.904,
+                    //     maxSpeed: 0.6600000262,
+                    //     climbAltitude: 0.532,
+                    //     descendAltitude: 0.317,
+                    //     maxAltitude: 2498.7595214844,
+                    //     minAltitude: 2498.44140625,
+                    //     distance: 2.445,
+                    //     averageSpeed: 0.61125,
+                    //   } as any,
+                    // },
+                  }),
+            }}
+            // trackRoute={!startTrip && config.showIndexPageButton}
             realTimePosition={config.showIndexPageButton && user.isLogin}
             mark={startTrip}
             markCount={tripMarks.length}

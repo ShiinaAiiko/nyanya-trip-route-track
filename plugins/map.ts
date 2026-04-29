@@ -221,14 +221,14 @@ export function smoothSetBearing(
     // 规范化 currentBearing，防止浮点漂移
     currentBearing = ((currentBearing % 360) + 360) % 360
 
-    map.setBearing(currentBearing)
+    map?.setBearing(currentBearing)
 
     // 结束条件：progress >=1 或角度已足够接近（防无限帧）
     if (progress < 1) {
       requestAnimationFrame(animate)
     } else {
       // 最后一帧强制设到规范化目标，避免微小误差
-      map.setBearing(normTarget)
+      map?.setBearing(normTarget)
     }
   }
 

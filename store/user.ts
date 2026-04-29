@@ -144,26 +144,31 @@ export const userMethods = {
   loginAlert: createAsyncThunk(
     modeName + '/loginAlert',
     async (_, thunkAPI) => {
-      alert({
-        title: t('login', {
-          ns: 'common',
-        }),
-        content: t('noLoginTrip', {
-          ns: 'prompt',
-        }),
-        cancelText: t('cancel', {
-          ns: 'prompt',
-        }),
-        confirmText: t('login', {
-          ns: 'common',
-        }),
-        onCancel() {},
-        async onConfirm() {
-          loadModal('Login', () => {
-            thunkAPI.dispatch(layoutSlice.actions.setOpenLoginModal(true))
-          })
-        },
-      }).open()
+      return new Promise<boolean>((res, rej) => {
+        alert({
+          title: t('login', {
+            ns: 'common',
+          }),
+          content: t('noLoginTrip', {
+            ns: 'prompt',
+          }),
+          cancelText: t('cancel', {
+            ns: 'prompt',
+          }),
+          confirmText: t('login', {
+            ns: 'common',
+          }),
+          onCancel() {
+            res(false)
+          },
+          async onConfirm() {
+            loadModal('Login', () => {
+              thunkAPI.dispatch(layoutSlice.actions.setOpenLoginModal(true))
+            })
+            res(true)
+          },
+        }).open()
+      })
     }
   ),
 }
