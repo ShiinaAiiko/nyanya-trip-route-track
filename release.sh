@@ -1,174 +1,39 @@
 #! /bin/bash
 name="nyanya-trip-route-track"
-port=23202
-version="v1.0.45"
-sakiuiVersion="v1.0.14"
+runName="$name-run"
+port=23203
 branch="main"
 # configFilePath="config.dev.json"
 configFilePath="config.pro.json"
-registryUrl="https://registry.npmmirror.com/"
 DIR=$(cd $(dirname $0) && pwd)
-allowMethods=("download:saki-ui-react download:saki-ui copySakiUIReactTypes unzip zip protos stop rm npmconfig install gitpull dockerremove start logs")
-
-copySakiUIReactTypes() {
-  sakiUIPath="/media/shiina_aiiko/CodeDisk/Workspace/Development/@Aiiko/ShiinaAiikoDevWorkspace/@OpenSourceProject/saki-ui/saki-ui"
-  sakiUITypesPath=$sakiUIPath"/dist/types"
-  typesPath=$DIR/components/saki-ui-react
-
-  mkdir -p $typesPath
-  cp -r $sakiUITypesPath $typesPath
-
-}
-
-npmconfig() {
-  echo "-> 配置npm config"
-  npm config set @vue:registry $registryUrl
-  npm config set @typescript-eslint:registry $registryUrl
-  npm config set @babel:registry $registryUrl
-  npm config set @next:registry $registryUrl
-  npm config set @reduxjs:registry $registryUrl
-}
-
-install() {
-  npmconfig
-  rm -rf ./node_modules
-  rm -rf ./yarn-error.log
-  rm -rf ./yarn.lock
-  yarn install
-}
-
-gitpull() {
-  echo "-> 正在拉取远程仓库"
-  git reset --hard
-  git pull origin $branch
-}
-
-dockerremove() {
-  echo "-> 删除无用镜像"
-  docker rm $(docker ps -q -f status=exited) 2 &>/dev/null
-  docker rmi -f $(docker images | grep '<none>' | awk '{print $3}') 2 &>/dev/null
-}
-setVersion() {
-  echo "-> $version"
-  sed -i "s/\"version\":.*$/\"version\":\"${version:1}\",/" ./config.dev.json
-  # sed -i "s/\"version\":.*$/\"version\":\"${version:1}\",/" ./config.pro.json
-
-  # jsurl='https:\/\/saki-ui.aiiko.club\/packages\/'$sakiuiVersion'\/saki-ui\/saki-ui.js'
-  # sed -i "10,13s/\"jsurl\":.*$/\"jsurl\": \"$jsurl\",/" ./config.pro.json
-
-  # esmjsurl='https:\/\/saki-ui.aiiko.club\/packages\/'$sakiuiVersion'\/saki-ui\/saki-ui.esm.js'
-  # sed -i "10,13s/\"esmjsurl\":.*$/\"esmjsurl\": \"$esmjsurl\"/" ./config.pro.json
-
-  # INPUT_FILE="./config.pro.web.json"
-  # OUTPUT_FILE="./config.pro.web1.json"
-  # FIELD_TO_MODIFY="jsurl" # 要修改的字段名称
-  # NEW_VALUE="https://saki-ui.aiiko.club/packages/$version/saki-ui/saki-ui.js"
-
-  # sed -E "s/(\"$FIELD_TO_MODIFY\"[[:space:]]*:[[:space:]]*\")[^\"]*(\")/\1$NEW_VALUE\2/" "$INPUT_FILE" >"$OUTPUT_FILE"
-}
+allowMethods=("unzip backup runexec run stop gitpull protos dockerremove start logs")
 
 start() {
-  setVersion
-  echo "-> 正在启动「${name}」服务"
+	echo "-> 开始部署"
 
-  # gitpull
-  npmconfig
-  dockerremove
+	cd $DIR/web
+	./release.sh start
 
-  echo "-> 正在准备相关资源"
-  cp -r ./$configFilePath $DIR/config.temp.json
-  # 获取npm配置
-  # yarn config set cache-folder ~/.yarn/cache
-  # yarn config set prefix  ~/.yarn/prefix
-  # yarn config set global-folder  ~/.yarn/global
-  # yarn config set link-folder ~/.yarn/link
-  cp -r ~/.npmrc $DIR
-  cp -r ~/.yarnrc $DIR
-  cp -r ./server/protos $DIR/protos_temp
-
-  echo "-> 准备构建Docker"
-  docker build \
-    -t $name \
-    --network host \
-    $(cat /etc/hosts | sed 's/^#.*//g' | grep '[0-9][0-9]' | tr "\t" " " | awk '{print "--add-host="$2":"$1 }' | tr '\n' ' ') \
-    . \
-    -f Dockerfile.multi
-
-  rm $DIR/.npmrc
-  rm $DIR/.yarnrc
-  rm -rf $DIR/config.temp.json
-  rm -rf $DIR/protos_temp
-
-  echo "-> 准备运行Docker"
-  stop
-
-  docker run \
-    --name=$name \
-    -v $DIR/$configFilePath:/config.temp.json \
-    $(cat /etc/hosts | sed 's/^#.*//g' | grep '[0-9][0-9]' | tr "\t" " " | awk '{print "--add-host="$2":"$1 }' | tr '\n' ' ') \
-    -p $port:$port \
-    --restart=always \
-    -d $name
-
-  echo "-> 整理文件资源"
-  docker cp $name:/build.tgz $DIR/build.tgz
-  stop
-
-  ./ssh.sh run
-
-  rm $DIR/build.tgz
-}
-
-unzip() {
-  rm -rf ./out
-  mkdir -p ./out
-  tar -zxvf ./build.tgz -C ./out/
-  rm build.tgz
-}
-
-zip() {
-  tar cvzf /build.tgz -C /dist .
-}
-
-download:saki-ui-react() {
-  mkdir -p ./components
-  wget https://saki-ui.aiiko.club/packages/saki-ui-react-${sakiuiVersion}.tgz -O saki-ui-react.tgz
-  tar zxvf ./saki-ui-react.tgz -C ./components
-  rm -rf ./saki-ui*
-}
-download:saki-ui() {
-  wget https://saki-ui.aiiko.club/packages/saki-ui-${sakiuiVersion}.tgz -O saki-ui.tgz
-  tar zxvf ./saki-ui.tgz -C ./out
-  rm -rf ./saki-ui*
-}
-
-stop() {
-  docker stop $name
-  docker rm $name
+	cd $DIR/server
+	./release.sh start
 }
 
 protos() {
-  echo "-> 准备编译Protobuf"
-  cp -r ./server/protos $DIR/protos_temp
-  mkdir -p ./protos
-  yarn protos
-  rm -rf $DIR/protos_temp
-  echo "-> 编译Protobuf成功"
+	echo "-> 准备编译Protobuf"
 
-  cd ./server
-  ./release.sh protos
-}
+	cd $DIR/web
+	./release.sh protos
 
-logs() {
-  docker logs -f $name
+	cd $DIR/server
+	./release.sh protos
 }
 
 main() {
-  if echo "${allowMethods[@]}" | grep -wq "$1"; then
-    "$1"
-  else
-    echo "Invalid command: $1"
-  fi
+	if echo "${allowMethods[@]}" | grep -wq "$1"; then
+		"$1"
+	else
+		echo "Invalid command: $1"
+	fi
 }
 
 main "$1"

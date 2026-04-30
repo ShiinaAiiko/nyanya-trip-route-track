@@ -133,12 +133,14 @@ protos() {
 	echo "-> 准备编译Protobuf"
 	# cp -r ../protos $DIR/protos_temp
 	# cd ./protos && protoc --go_out=. *.proto
+	mkdir -p ./protos
+	cp -r ../protos/* ./protos/
 	cd ./protos
 	protoc --go_out=../protos *.proto
 	cd ..
 	# cd ../protos && protoc --go_out=../server/protos *.proto
 
-	# rm -rf $DIR/protos_temp
+	rm -f ./protos/*.proto
 	# protoc --go_out=./protos --proto_path=../protos/**/*.proto
 
 	echo "-> 编译Protobuf成功"
