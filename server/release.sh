@@ -36,10 +36,13 @@ start() {
 	cp -r ~/.ssh $DIR
 	cp -r ~/.gitconfig $DIR
 
+	cp -r ../protos $DIR/protos_temp
+
 	mkdir -p $DIR/static
 	mkdir -p $DIR/fsdb
 
 	echo "-> 准备构建Docker"
+
 	docker build \
 		-t \
 		$name \
@@ -69,12 +72,12 @@ start() {
 		-d $name
 
 	echo "-> 整理文件资源"
-	docker cp $name:/nyanya-toolbox $DIR/nyanya-toolbox
+	docker cp $name:/trip $DIR/trip
 	stop
 
 	./ssh.sh run
 
-	rm -rf $DIR/nyanya-toolbox
+	rm -rf $DIR/trip
 }
 
 backup() {

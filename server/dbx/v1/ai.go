@@ -2690,8 +2690,6 @@ func (fc *AIDbx) CallAgentToolsFunc(ctx context.Context,
 	meta.Status = "failed"
 	meta.Error = "No argument provided, nothing has changed."
 
-	return
-
 }
 
 func (fc *AIDbx) ParseTextToToolCall(content string) (bool, openai.ToolCall) {

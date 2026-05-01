@@ -1043,11 +1043,15 @@ func (s *RgaTripMemoryDbx) buildTemplateContent(seg *SegmentContext) string {
 	// log.Warn("seg.Weather", envDesc)
 
 	// 3. 信号描述 (增加西藏自驾的“荒野感”)
-	signalDesc := "网络连接正常"
-	if seg.SignalQuality == 0 {
+
+	signalDesc := ""
+	switch seg.SignalQuality {
+	case 1:
+		signalDesc = "网络连接正常"
+	case -1:
 		signalDesc = "身处信号荒原"
-	} else if seg.NetworkType != "" {
-		signalDesc = seg.NetworkType + "信号覆盖"
+	default:
+		signalDesc = "未知"
 	}
 
 	// 4. 海拔趋势描述
@@ -1561,4 +1565,117 @@ func (d *RgaTripMemoryDbx) SearchTripMemory(ctx context.Context, opt SearchTripM
 	}
 
 	return res.GetResult(), nil
+}
+
+func (d *RgaTripMemoryDbx) BatchCleanupAndReplanEmbedding(ctx context.Context) error {
+	var offset *qdrant.PointId
+	limit := uint32(50) // 涉及 AI 接口调用，建议将并发/批量大小调小，避免触发速率限制
+	totalProcessed := 0
+	count := 0
+
+	for {
+		// 1. 滚动查询 (不再需要 WithVectors，因为我们要重新生成)
+		scrollReq := &qdrant.ScrollPoints{
+			CollectionName: conf.QdrantCollectionName.Trip,
+			Limit:          &limit,
+			Offset:         offset,
+			WithPayload:    &qdrant.WithPayloadSelector{SelectorOptions: &qdrant.WithPayloadSelector_Enable{Enable: true}},
+		}
+
+		resp, err := conf.Qdrant.PointsClient.Scroll(ctx, scrollReq)
+		if err != nil {
+			return fmt.Errorf("scroll error: %w", err)
+		}
+
+		if len(resp.Result) == 0 {
+			break
+		}
+
+		var pointsToUpdate []*qdrant.PointStruct
+		target := "。。"
+		// target := "，身处信号荒原。"
+		// target := "。身处信号荒原，"
+		// target := "身处信号荒原"
+
+		for _, point := range resp.Result {
+			summaryVal, ok := point.Payload["summary"]
+			if !ok {
+				continue
+			}
+
+			summaryStr := summaryVal.GetStringValue()
+			if strings.Contains(summaryStr, target) {
+				// targets := []string{
+				// 	"，身处信号荒原。",
+				// 	"。身处信号荒原，",
+				// 	"身处信号荒原",
+				// }
+				newSummary := summaryStr
+				// for _, t := range targets {
+				// 	// 根据你的逻辑：前两个换成句号，最后一个换成空
+				// 	newSummary = strings.ReplaceAll(newSummary, t, "。")
+				// }
+				newSummary = strings.ReplaceAll(newSummary, "。。", "。")
+				newSummary = strings.ReplaceAll(newSummary, "，。", "。")
+				newSummary = strings.ReplaceAll(newSummary, "。，", "。")
+
+				newSummary = strings.TrimSpace(newSummary)
+				// 2. 清洗文本
+				// newSummary := strings.ReplaceAll(summaryStr, target, "。")
+				count++
+				log.Info(count, summaryStr)
+				log.Info(count, newSummary)
+				if newSummary == "" {
+					log.Error("结束")
+					return nil
+				}
+				// 3. 核心：重新生成向量
+				newVector, err := aiDbx.GetEmbedding(TextTypeDocument, newSummary)
+				if err != nil {
+					log.Error("点位 %s 重新生成 Embedding 失败: %v", point.Id.GetUuid(), err)
+					continue
+				}
+
+				// 更新 Payload 中的 summary
+				point.Payload["summary"] = &qdrant.Value{
+					Kind: &qdrant.Value_StringValue{StringValue: newSummary},
+				}
+
+				// 构造更新点位
+				pointsToUpdate = append(pointsToUpdate, &qdrant.PointStruct{
+					Id: point.Id,
+					Vectors: &qdrant.Vectors{
+						VectorsOptions: &qdrant.Vectors_Vector{
+							Vector: &qdrant.Vector{
+								Data: newVector, // 使用新生成的向量
+							},
+						},
+					},
+					Payload: point.Payload,
+				})
+			}
+		}
+
+		// 4. 批量写回
+		if len(pointsToUpdate) > 0 {
+			waitTrue := true
+			_, err = conf.Qdrant.PointsClient.Upsert(ctx, &qdrant.UpsertPoints{
+				CollectionName: conf.QdrantCollectionName.Trip,
+				Wait:           &waitTrue,
+				Points:         pointsToUpdate,
+			})
+			if err != nil {
+				return fmt.Errorf("batch upsert error: %w", err)
+			}
+			totalProcessed += len(pointsToUpdate)
+			fmt.Printf("已更新并重新向量化 %d 条切片...\n", totalProcessed)
+		}
+
+		if resp.NextPageOffset == nil {
+			break
+		}
+		offset = resp.NextPageOffset
+	}
+
+	return nil
 }

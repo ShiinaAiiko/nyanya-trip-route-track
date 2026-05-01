@@ -77,6 +77,9 @@ start() {
 
 	echo "-> 正在准备相关资源"
 	cp -r ./$configFilePath $DIR/config.temp.json
+
+	protos
+
 	# 获取npm配置
 	# yarn config set cache-folder ~/.yarn/cache
 	# yarn config set prefix  ~/.yarn/prefix

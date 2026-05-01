@@ -2,9 +2,9 @@ FROM alpine:3.10
 
 WORKDIR /
 
-COPY nyanya-toolbox \
+COPY trip \
   /
 
 EXPOSE 23203
 
-CMD ["./nyanya-toolbox","--config","config.json"]
+CMD ["./trip","--config","config.json"]

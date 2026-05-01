@@ -25,7 +25,7 @@ import WeatherAppModal from './WeatherApp'
 import PrivacyGeofenceModal from './PrivacyGeofence'
 import SelectFilesModal from './SelectFilesModal'
 import { AltitudeWatermarkModal } from './AltitudeWatermarkModal'
-import { AiChatModal } from './AiChatModal'
+import { AiChatModal } from './AI/AiChatModal'
 
 const d = new Debounce()
 

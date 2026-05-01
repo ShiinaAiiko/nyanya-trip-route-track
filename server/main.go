@@ -33,11 +33,12 @@ import (
 )
 
 var (
-	log     = nlog.New()
-	tripDbx = dbxv1.TripDbx{}
-	cityDbx = dbxv1.CityDbx{}
-	appDbx  = dbxv1.AppDbx{}
-	jmDbx   = dbxv1.JourneyMemoryDbx{}
+	log           = nlog.New()
+	tripDbx       = dbxv1.TripDbx{}
+	tripMemoryDbx = dbxv1.RgaTripMemoryDbx{}
+	cityDbx       = dbxv1.CityDbx{}
+	appDbx        = dbxv1.AppDbx{}
+	jmDbx         = dbxv1.JourneyMemoryDbx{}
 
 	aiController = controllersV1.AIController{}
 	aiDbx        = dbxv1.AIDbx{}
@@ -209,6 +210,7 @@ func main() {
 
 			ntimer.SetTimeout(func() {
 				// aiDbx.TestCallAgentTools()
+				// log.Error(tripMemoryDbx.BatchCleanupAndReplanEmbedding(context.Background()))
 
 				// log.Info(aiDbx.GetAgentTripTools([]string{dbxv1.SEARCH_NEARBY_POIS}))
 

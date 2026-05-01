@@ -131,43 +131,39 @@ const FiexdWeatherComponent = ({
 
   useEffect(() => {
     d.current.increase(() => {
-      const { geo } = store.getState()
       if (loadWeather && config.connectionStatus.sakiuiI18n) {
-        if (geo.position?.coords?.latitude) {
-          dispatch(
-            methods.trip.GetWeather({
-              lat: geo.position.coords.latitude,
-              lon: geo.position.coords.longitude,
-            })
-          )
-          dispatch(
-            methods.city.GetCity({
-              lat: geo.position.coords.latitude,
-              lng: geo.position.coords.longitude,
-            })
-          )
-        }
-
-        let loadCount = 1
-        timer.current = setInterval(() => {
+        const getGeoInfo = () => {
           const { geo } = store.getState()
-          if (geo.position?.coords?.latitude) {
-            if (loadCount === 4) {
-              dispatch(
-                methods.trip.GetWeather({
-                  lat: geo.position.coords.latitude,
-                  lon: geo.position.coords.longitude,
-                })
-              )
-              loadCount = 0
-            }
+          let lat =
+            geo.selectPosition.latitude !== -10000
+              ? geo.selectPosition?.latitude
+              : geo.position?.coords?.latitude
+          let lng =
+            geo.selectPosition.latitude !== -10000
+              ? geo.selectPosition?.longitude
+              : geo.position?.coords?.longitude
+
+          // console.log('GetWeather', geo.position, geo.selectPosition)
+          if (lat != -10000) {
+            dispatch(
+              methods.trip.GetWeather({
+                lat,
+                lon: lng,
+              })
+            )
             dispatch(
               methods.city.GetCity({
-                lat: geo.position.coords.latitude,
-                lng: geo.position.coords.longitude,
+                lat,
+                lng,
               })
             )
           }
+        }
+        getGeoInfo()
+
+        let loadCount = 1
+        timer.current = setInterval(() => {
+          getGeoInfo()
           loadCount += 1
           // }, 15 * 1000)
         }, 30 * 1000)
@@ -178,7 +174,12 @@ const FiexdWeatherComponent = ({
     return () => {
       clearInterval(timer.current)
     }
-  }, [loadWeather, config.lang, config.connectionStatus.sakiuiI18n])
+  }, [
+    geo.selectPosition.latitude,
+    loadWeather,
+    config.lang,
+    config.connectionStatus.sakiuiI18n,
+  ])
 
   useEffect(() => {
     if (geo.position?.coords?.latitude) {
@@ -273,9 +274,9 @@ const FiexdWeatherComponent = ({
         ? geo.selectPosition?.longitude
         : geo.position?.coords?.longitude
     let altitude =
-      geo.selectPosition.latitude !== -10000
+      (geo.selectPosition.latitude !== -10000
         ? 0
-        : geo.position?.coords?.altitude
+        : geo.position?.coords?.altitude) || 0
 
     const unit = getLatLngUnit(lat, lng)
 
@@ -303,14 +304,13 @@ const FiexdWeatherComponent = ({
       <div
         onClick={() => {
           loadModal('WeatherApp', () => {
-            const { geo } = store.getState()
             dispatch(
               layoutSlice.actions.setOpenWeatherAppModal({
                 visible: true,
                 latlng: {
-                  lat: geo.position.coords.latitude,
-                  lng: geo.position.coords.longitude,
-                  alt: geo.position.coords.altitude || 0,
+                  lat: latlng.lat,
+                  lng: latlng.lng,
+                  alt: latlng.altitude,
                 },
               })
             )
@@ -376,7 +376,13 @@ const FiexdWeatherComponent = ({
           <span>
             {latlng.lng?.toFixed(6)}° {latlng.unit.lng}
           </span>
-          {latlng.altitude ? <span>{latlng.altitude?.toFixed(2)}m</span> : ''}
+          {latlng.altitude ? (
+            <span>
+              {latlng.altitude?.toFixed(2)} {latlng.unit.altitude}
+            </span>
+          ) : (
+            ''
+          )}
         </div>
       ) : (
         ''

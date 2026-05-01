@@ -220,7 +220,7 @@ func (t *CityDbx) UpdateCity(
 	}
 
 	// 删除对应redis
-	t.DeleteRedisData(id, fullName)
+	_ = t.DeleteRedisData(id, fullName)
 	return nil
 }
 

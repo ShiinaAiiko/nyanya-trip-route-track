@@ -77,7 +77,7 @@ func (d *JourneyMemoryDbx) AddJM(jm *models.JourneyMemory) (*models.JourneyMemor
 	if err != nil {
 		return nil, err
 	}
-	d.DeleteRedisData(jm.AuthorId, jm.Id)
+	_ = d.DeleteRedisData(jm.AuthorId, jm.Id)
 
 	return jm, nil
 }
@@ -123,7 +123,7 @@ func (d *JourneyMemoryDbx) UpdateJM(id, authorId, name, desc, allowShare string,
 		return errors.New("update fail")
 	}
 
-	d.DeleteRedisData(authorId, id)
+	_ = d.DeleteRedisData(authorId, id)
 
 	return nil
 }
@@ -151,7 +151,7 @@ func (d *JourneyMemoryDbx) DeleteJM(id, authorId string) error {
 		return errors.New("delete fail")
 	}
 
-	d.DeleteRedisData(authorId, id)
+	_ = d.DeleteRedisData(authorId, id)
 
 	return nil
 }
@@ -406,7 +406,7 @@ func (d *JourneyMemoryDbx) AddJMTimeline(id, authorId string, jmt *models.Journe
 	}
 
 	// 删除对应redis
-	d.DeleteRedisData(authorId, id)
+	_ = d.DeleteRedisData(authorId, id)
 	return nil
 }
 
@@ -458,7 +458,7 @@ func (d *JourneyMemoryDbx) UpdateJMTimeline(
 	}
 
 	// 删除对应redis
-	d.DeleteRedisData(authorId, id)
+	_ = d.DeleteRedisData(authorId, id)
 	return nil
 }
 
@@ -612,6 +612,6 @@ func (d *JourneyMemoryDbx) DeleteJMTimeline(
 	}
 
 	// 删除对应redis
-	d.DeleteRedisData(authorId, id)
+	_ = d.DeleteRedisData(authorId, id)
 	return nil
 }

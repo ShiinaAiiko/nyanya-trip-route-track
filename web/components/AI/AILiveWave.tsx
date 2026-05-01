@@ -1,11 +1,11 @@
 import { bindEvent } from '@saki-ui/core'
 import React, { useEffect, useRef, useState } from 'react'
-import { SakiButton } from './saki-ui-react/components'
+import { SakiButton } from '../saki-ui-react/components'
 import { useSelector } from 'react-redux'
-import { RootState } from '../store'
+import { RootState } from '../../store'
 import { useTranslation } from 'react-i18next'
 import { Debounce } from '@nyanyajs/utils'
-import { newStripHtmlTags } from '../plugins/methods'
+import { newStripHtmlTags, StopVoiceBroadcast } from '../../plugins/methods'
 
 interface WaveConfig {
   y: number
@@ -39,6 +39,8 @@ export const AILiveWave: React.FC<{
   inputMessageRichText?: string
   onInputMessageRichText?: (messageRichText?: string) => void
   onUndo?: () => void
+  playVoiceKey?: string
+  onStopVoice?: () => void
 }> = ({
   amplitude = 60,
   speed = 4,
@@ -60,6 +62,8 @@ export const AILiveWave: React.FC<{
   inputMessageRichText,
   onInputMessageRichText,
   onUndo,
+  playVoiceKey,
+  onStopVoice,
 }) => {
   const { t, i18n } = useTranslation('aiChatModal')
   const config = useSelector((state: RootState) => state.config)
@@ -287,6 +291,10 @@ export const AILiveWave: React.FC<{
               <saki-button
                 ref={bindEvent({
                   tap: () => {
+                    if (playVoiceKey) {
+                      onStopVoice?.()
+                      return
+                    }
                     onUndo?.()
                   },
                 })}
@@ -298,12 +306,20 @@ export const AILiveWave: React.FC<{
                 bg-hover-color="#666"
                 bg-active-color="#888"
               >
-                <saki-icon
-                  type="Undo"
-                  width="18px"
-                  height="18px"
-                  color="#fff"
-                />
+                {playVoiceKey ? (
+                  <saki-animation-loading
+                    width="22px"
+                    height="22px"
+                    margin="7px"
+                  ></saki-animation-loading>
+                ) : (
+                  <saki-icon
+                    type="Undo"
+                    width="18px"
+                    height="18px"
+                    color="#fff"
+                  />
+                )}
               </saki-button>
             ) : (
               ''

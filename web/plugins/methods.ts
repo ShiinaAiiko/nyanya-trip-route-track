@@ -927,14 +927,14 @@ export function isPointInPolygon(point: number[], polygon: number[][]) {
   return inside
 }
 
-export function getLatLngUnit(
-  latitude: number,
-  longitude: number
-): { lat: string; lng: string } {
+export function getLatLngUnit(latitude: number, longitude: number) {
   const lat = latitude >= 0 ? 'N' : 'S'
   const lng = longitude >= 0 ? 'E' : 'W'
+  const altitude = t('meters', {
+    ns: 'unit',
+  })
 
-  return { lat, lng }
+  return { lat, lng, altitude }
 }
 
 export const copyOrOpenAlert = (text: string, url: string) => {
@@ -1032,19 +1032,23 @@ const VOICE_CONFIG: Record<string, string> = {
  * @param targetKey 如果传入 key，则只有当前播放的是该 key 时才停止；不传则全部停止并清空队列
  */
 export const StopVoiceBroadcast = (targetKey?: string) => {
-  // 1. 如果指定了 key 且当前正在播的不是它，则只从队列移除
-  if (targetKey) {
-    if (currentProcessingTask?.key === targetKey) {
-      stopCurrentExecution()
-    } else {
-      queue = queue.filter((task) => task.key !== targetKey)
+  try {
+    // 1. 如果指定了 key 且当前正在播的不是它，则只从队列移除
+    if (targetKey) {
+      if (currentProcessingTask?.key === targetKey) {
+        stopCurrentExecution()
+      } else {
+        queue = queue.filter((task) => task.key !== targetKey)
+      }
+      return
     }
-    return
-  }
 
-  // 2. 全部停止
-  queue = []
-  stopCurrentExecution()
+    // 2. 全部停止
+    queue = []
+    stopCurrentExecution()
+  } catch (error) {
+    console.error(error)
+  }
 }
 
 // 内部私有方法：停止当前物理播放

@@ -37,17 +37,19 @@ RUN \
 
 COPY . . 
 
+COPY protos_temp/ /protos/
+
 RUN \
   chmod -R 700 release.sh && \
   bash ./release.sh protos && \
-  go build -o nyanya-toolbox main.go 
+  go build -o trip main.go 
 
 FROM alpine:3.10
 
 WORKDIR /
 
 COPY --from=build_image \
-  /app/nyanya-toolbox \
+  /app/trip \
   /
 # COPY --from=BUILD_IMAGE \
 #   /app/client/ \
@@ -56,4 +58,4 @@ COPY --from=build_image \
 
 EXPOSE 23203
 
-CMD ["./nyanya-toolbox","--config","config.json"]
+CMD ["./trip","--config","config.json"]

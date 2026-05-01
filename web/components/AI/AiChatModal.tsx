@@ -18,19 +18,23 @@ import store, {
   layoutSlice,
   tripSlice,
   geoSlice,
-} from '../store'
+} from '../../store'
 
-import { sakisso, version } from '../config'
+import { sakisso, version } from '../../config'
 
 import moment from 'moment'
 
 import { alert, snackbar, bindEvent } from '@saki-ui/core'
 import { useTranslation } from 'react-i18next'
-import { protoRoot } from '../protos'
+import { protoRoot } from '../../protos'
 
 import { Debounce, deepCopy, getShortId, NEventListener } from '@nyanyajs/utils'
 import Leaflet, { divIcon } from 'leaflet'
-import { eventListener, getMapLayer, getTrackRouteColor } from '../store/config'
+import {
+  eventListener,
+  getMapLayer,
+  getTrackRouteColor,
+} from '../../store/config'
 import {
   SakiAnimationLoading,
   SakiAsideModal,
@@ -39,10 +43,10 @@ import {
   SakiModalHeader,
   SakiRow,
   SakiTitle,
-} from './saki-ui-react/components'
-import { selectFiles } from '../store/file'
+} from '../saki-ui-react/components'
+import { selectFiles } from '../../store/file'
 import axios from 'axios'
-import { httpApi } from '../plugins/http/api'
+import { httpApi } from '../../plugins/http/api'
 import {
   cleanMarkdown,
   copyText,
@@ -51,8 +55,8 @@ import {
   SpeechPilot,
   StopVoiceBroadcast,
   WebVoiceBroadcast,
-} from '../plugins/methods'
-import { loadModal, TriggerReason } from '../store/layout'
+} from '../../plugins/methods'
+import { loadModal, TriggerReason } from '../../store/layout'
 import { AILiveWave } from './AILiveWave'
 import { useRouter } from 'next/router'
 
@@ -108,7 +112,7 @@ export const AiChatModal = () => {
     //   authorId: '78L2tkleM',
     //   status: 1,
     //   createTime: 1776047305,
-    //   triggerReason: 'CHANGE_CITY',
+    //   triggerReason: 'CHANGE_CITY' ,
     // },
     // {
     //   id: 'F104Yitd4',
@@ -666,40 +670,41 @@ export const AiChatModal = () => {
       launchAICoDriver
     )
 
-    let _message = launchAICoDriver
+    let _message = editMessage?.message
       ? editMessage?.message
-        ? editMessage?.message
-        : t(
-            // 'coDriverMessage6',
-            'coDriverMsg_' + triggerReason,
-            {
-              ns: 'aiChatModal',
-
-              city: ['state', 'region', 'city', 'town', 'road']
-                .map((v) => {
-                  const si: any = cityInfo
-                  let s = si[v]
-                  return s
-                })
-                .filter((v) => !!v)
-                .join(''),
-              dist: formatDistance(currentTripData?.statistics?.distance || 0),
-              altitude: (
-                Math.round((currentTripData?.altitude || 0) * 10) / 10
-              ).toFixed(1),
-              climbAlt: (
-                Math.round(
-                  (currentTripData?.statistics?.climbAltitude || 0) * 10
-                ) / 10
-              ).toFixed(1),
-              temp: currentTripData?.temp,
-              road_name: currentTripData?.road,
-              lastW: lastTripData?.weather,
-              curW: currentTripData?.weather,
-              time: moment().format('HH:mm'),
-            }
-          )
       : _messageRichText || messageRichText
+
+    if (launchAICoDriver && triggerReason) {
+      _message = t(
+        // 'coDriverMessage6',
+        'coDriverMsg_' + triggerReason,
+        {
+          ns: 'aiChatModal',
+
+          city: ['state', 'region', 'city', 'town', 'road']
+            .map((v) => {
+              const si: any = cityInfo
+              let s = si[v]
+              return s
+            })
+            .filter((v) => !!v)
+            .join(''),
+          dist: formatDistance(currentTripData?.statistics?.distance || 0),
+          altitude: (
+            Math.round((currentTripData?.altitude || 0) * 10) / 10
+          ).toFixed(1),
+          climbAlt: (
+            Math.round((currentTripData?.statistics?.climbAltitude || 0) * 10) /
+            10
+          ).toFixed(1),
+          temp: currentTripData?.temp,
+          road_name: currentTripData?.road,
+          lastW: lastTripData?.weather,
+          curW: currentTripData?.weather,
+          time: moment().format('HH:mm'),
+        }
+      )
+    }
 
     if (!_message) {
       return
@@ -744,6 +749,8 @@ export const AiChatModal = () => {
 
     setKeepScrollPosition(true)
     setLoadingMessageId(id)
+
+    setLastMsgId('')
 
     let isExits = false
     abortControllerRef.current = new AbortController()
@@ -819,7 +826,7 @@ export const AiChatModal = () => {
 
     if (layout.openAiChatModal.type === 'coDriver') {
       const params: protoRoot.ai.AICoDriver.IRequest = {
-        messageId:   id,
+        messageId: id,
         sessionId,
         startTrip: !!triggerReason,
         triggerReason,
@@ -886,9 +893,11 @@ export const AiChatModal = () => {
           id,
           tempMessages,
           tempAiMessages,
-          autoPlayVoice: launchAICoDriver
-            ? !!layout.openAiChatModal.autoPlayVoice
-            : false,
+          autoPlayVoice: liveChat
+            ? true
+            : launchAICoDriver
+              ? !!layout.openAiChatModal.autoPlayVoice
+              : false,
           autoCloseTime:
             (launchAICoDriver ? layout.openAiChatModal.autoCloseTime : 0) || 0,
         })
@@ -1035,6 +1044,15 @@ export const AiChatModal = () => {
     abortControllerRef.current?.abort()
     abortControllerRef.current = undefined
 
+    const aiCoDriverQueue =
+      store.getState().layout.openAiChatModal.aiCoDriverQueue
+
+    let tempAiCoDriverQueue = aiCoDriverQueue.slice(1)
+    if (editMessage?.id !== id) {
+      setAiCoDriverQueue(tempAiCoDriverQueue)
+    }
+    setLoadingMessageId('')
+
     if (
       autoPlayVoice &&
       (aiMessage?.display?.message || aiMessage?.display?.warning)
@@ -1058,16 +1076,6 @@ export const AiChatModal = () => {
       // console.log('AI领航员 WebVoiceBroadcast res', res)
       setPlayVoiceKey('')
     }
-
-    const aiCoDriverQueue =
-      store.getState().layout.openAiChatModal.aiCoDriverQueue
-
-    let tempAiCoDriverQueue = aiCoDriverQueue.slice(1)
-    if (editMessage?.id !== id) {
-      setAiCoDriverQueue(tempAiCoDriverQueue)
-    }
-
-    setLoadingMessageId('')
 
     if (!tempAiCoDriverQueue.length && autoCloseTime) {
       clearTimeout(autoCloseTimer.current)
@@ -1521,7 +1529,12 @@ ${aiMessage?.display?.warning || ''}
                 eventListener.dispatch('startAICoDriver', undefined)
               }}
               isSend={!!message}
-              loadingMessage={playVoiceKey != '' || loadingMessageId != ''}
+              playVoiceKey={playVoiceKey}
+              onStopVoice={() => {
+                StopVoiceBroadcast(playVoiceKey)
+                setPlayVoiceKey('')
+              }}
+              loadingMessage={loadingMessageId != ''}
               onStop={() => {
                 if (playVoiceKey) {
                   StopVoiceBroadcast(playVoiceKey)
@@ -1533,8 +1546,8 @@ ${aiMessage?.display?.warning || ''}
                   tempAiMessages: aiMessages,
                 })
               }}
-              onSend={(messageRichText) => {
-                if (message || messageRichText) {
+              onSend={() => {
+                if (messageRichText) {
                   sendMessage({
                     _messageRichText: messageRichText,
                     _messages: messages,

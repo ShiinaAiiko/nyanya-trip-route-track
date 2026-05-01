@@ -96,6 +96,7 @@ import { getRoadId } from '../../store/geo'
 import { uploadFile } from '../../store/file'
 
 import * as Leaflet from 'leaflet'
+import { createIconMarker } from '../../store/map'
 // import 'leaflet-rotate'
 
 let tempTimer: any
@@ -1632,15 +1633,22 @@ const TripPage = () => {
       geo.position?.coords?.latitude !== undefined &&
       mapUrl
     ) {
-      console.log('initMap1 开始加载！')
-      const [lat, lon] = getLatLng(
+      console.log('initMap1 开始加载！', map.current)
+      let zoom = 15
+      let [lat, lon] = getLatLng(
         mapUrl,
         toFixed(geo.position?.coords.latitude) || 0,
         toFixed(geo.position?.coords.longitude) || 0
       )
       if (map.current) {
+        const latlng = map.current?.getCenter()
+        lat = latlng.lat
+        lon = latlng.lng
+        zoom = map.current?.getZoom()
+
         map.current?.remove()
         marker.current?.remove()
+        selectPositionMarker.current?.remove()
         map.current = undefined
         marker.current = undefined
         clearRealTimePositionListMarker()
@@ -1668,7 +1676,7 @@ const TripPage = () => {
           [lat, lon],
           // [
           //   120.3814, -1.09],
-          15
+          zoom
         )
         // map.current.addEventListener('zoom', (v) => {
         //   // 8 18
@@ -1741,12 +1749,20 @@ const TripPage = () => {
           }
         )
 
-        map.current.on('zoom', (e) => {
-          console.log('zoomEvent', e.target._zoom)
-        })
+        // map.current.on('zoom', (e) => {
+        //   console.log('initMap1 zoomEvent', e.target._zoom)
+        // })
         map.current.on('movestart', (e) => {
+          // console.log('initMap1 zoomEvent', e.target)
           !startTrip && setDisablePanTo(true)
         })
+        // map.current.on('moveend', (e) => {
+        //   console.log(
+        //     'initMap1 moveend',
+        //     map.current?.getZoom(),
+        //     map.current?.getCenter()
+        //   )
+        // })
       }
       geo.position && panToMap(geo.position)
       // console.log('connectionOSM', config.connectionOSM)
@@ -1783,6 +1799,8 @@ const TripPage = () => {
     }
   }, [mapLayer?.headingUp])
 
+  const selectPositionMarker = useRef<Leaflet.Marker<any>>()
+
   const bindMapClickEvent = () => {
     map.current?.removeEventListener('click')
     map.current?.on('click', (e) => {
@@ -1818,19 +1836,31 @@ const TripPage = () => {
         })
       )
 
-      !startTrip &&
-        dispatch(
-          methods.city.GetCity({
-            lat: lat,
-            lng: lng,
-            customGPS: true,
-          })
-        )
+      selectPositionMarker.current?.remove()
+
+      if (map.current) {
+        // selectPositionMarker.current = createIconMarker({
+        //   map: map.current,
+        //   latlng: [popLocation.lat, popLocation.lng],
+        //   type: 'StartPosition',
+        // })
+      }
+
+      // !startTrip &&
+      //   dispatch(
+      //     methods.city.GetCity({
+      //       lat: lat,
+      //       lng: lng,
+      //       customGPS: true,
+      //     })
+      //   )
     })
   }
 
   const panToMap = (position: GeolocationPosition, allowPanto?: boolean) => {
     const L: typeof Leaflet = (window as any).L
+
+    selectPositionMarker.current?.remove()
 
     // console.log('panToMap', position, map.current, L, marker.current)
     if (map.current && L && position?.coords) {

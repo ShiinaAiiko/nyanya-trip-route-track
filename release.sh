@@ -11,6 +11,8 @@ allowMethods=("unzip backup runexec run stop gitpull protos dockerremove start l
 start() {
 	echo "-> 开始部署"
 
+	protos
+
 	cd $DIR/web
 	./release.sh start
 
