@@ -141,7 +141,7 @@ protos() {
 	cd ./protos
 	protoc --go_out=../protos *.proto
 	cd ..
-	# cd ../protos && protoc --go_out=../server/protos *.proto
+	# cd ../protos && protoc  --go_out=../server/protos *.proto
 
 	rm -f ./protos/*.proto
 	# protoc --go_out=./protos --proto_path=../protos/**/*.proto

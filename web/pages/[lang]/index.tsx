@@ -1105,7 +1105,12 @@ const TripPage = () => {
       if (config.configure.ai?.aiCoDriver?.enabled) {
         const triggerReason = shouldAIPilotWakeUp(AIContext.current)
         if (triggerReason) {
-          console.log('AI领航员 isGoAi', triggerReason, AIContext.current)
+          console.log(
+            'AI领航员 isGoAi',
+            triggerReason,
+            AIContext.current,
+            config.configure?.ai?.aiCoDriver?.trigger
+          )
 
           loadModal('AiChatModal', () => {
             dispatch(
@@ -1291,16 +1296,18 @@ const TripPage = () => {
       ? 10
       : (aiTrigger?.minMovementThreshold ?? 500)
     // 全局冷却时间 (ms)
-    const GLOBAL_COOLDOWN =
-      (config.devTrip ? 0.1 : (aiTrigger?.globalCooldownMs ?? 5)) * 60 * 1000
+    const GLOBAL_COOLDOWN = config.devTrip
+      ? 0.1 * 60 * 1000
+      : (aiTrigger?.globalCooldownMs ?? 5 * 60 * 1000)
     // 停车判定“重新出发”时长 (ms)
-    const REST_AWAKE_THRESHOLD =
-      (config.devTrip ? 1 : (aiTrigger?.restAwakeThresholdMs ?? 20)) * 60 * 1000
+    const REST_AWAKE_THRESHOLD = config.devTrip
+      ? 1 * 60 * 1000
+      : (aiTrigger?.restAwakeThresholdMs ?? 20 * 60 * 1000)
 
     // 疲劳驾驶间隔 (ms)
     const DROWSY_DRIVING = config.devTrip
       ? 60 * 1000
-      : (aiTrigger?.drowsyDrivingMs ?? 2) * 60 * 60 * 1000
+      : (aiTrigger?.drowsyDrivingMs ?? 2 * 60 * 60 * 1000)
 
     // 特殊时间点：中午、傍晚、深夜
     const SPECIAL_HOURS = aiTrigger?.specialHours ?? [12, 18, 22, 0]
