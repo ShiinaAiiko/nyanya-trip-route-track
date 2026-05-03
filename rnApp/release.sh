@@ -37,7 +37,7 @@ clear() {
 }
 
 copyU() {
-  cp "/mnt/code-workspace/Workspace/Development/@Aiiko/ShiinaAiikoDevWorkspace/@OpenSourceProject/nyanya/nyanya-trip-route-track/rnApp/android/app/build/outputs/apk/release/app-release.apk" \
+  cp "/mnt/code-workspace/Workspace/Development/@Aiiko/ShiinaAiikoDevWorkspace/OpenSourceProject/nyanya/nyanya-trip-route-track/rnApp/android/app/build/outputs/apk/release/app-release.apk" \
     "/media/shiina_aiiko/SHIINAAIIKO/"
 }
 

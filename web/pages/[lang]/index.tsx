@@ -329,7 +329,7 @@ const TripPage = () => {
           // 'http://192.168.204.130:23203/s//lRzQNG8Pq.json'
           // 'http://192.168.204.130:23203/s//kbZ4vhU21'
           // 'http://192.168.204.130:23203/s//jZwjLXZ0S'
-          'http://192.168.204.130:23203/s//bDkFXZVgq'
+          'http://127.0.0.1:23203/s//bDkFXZVgq'
         )
         // console.log('testData', getTestData.data)
         // console.log('testData', getTestData.data.reverse())
@@ -764,8 +764,8 @@ const TripPage = () => {
 
           dispatch(
             geoSlice.actions.setSelectPosition({
-              longitude: testData.positions[i].longitude as any,
-              latitude: testData.positions[i].latitude as any,
+              latitude: -10000,
+              longitude: -10000,
             })
           )
 
@@ -1471,7 +1471,13 @@ const TripPage = () => {
       // console.log('geo.position', geo.position, geo.position?.coords?.heading)
       addPosition(geo.position, false)
 
-      startTrip &&
+      if (startTrip) {
+        dispatch(
+          geoSlice.actions.setSelectPosition({
+            latitude: -10000,
+            longitude: -10000,
+          })
+        )
         dispatch(
           methods.geo.GetRoadInfo({
             position: geo.position,
@@ -1486,6 +1492,7 @@ const TripPage = () => {
               addRoad(roadInfoList.current)
             }
           })
+      }
     } catch (error) {
       snackbar({
         message: JSON.stringify(error),

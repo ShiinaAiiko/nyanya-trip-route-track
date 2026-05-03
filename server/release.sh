@@ -8,6 +8,7 @@ configFilePath="config.pro.json"
 DIR=$(cd $(dirname $0) && pwd)
 allowMethods=("unzip backup runexec run stop gitpull protos dockerremove start logs")
 
+
 gitpull() {
 	echo "-> 正在拉取远程仓库"
 	git reset --hard
