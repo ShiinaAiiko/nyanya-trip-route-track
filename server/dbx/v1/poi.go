@@ -54,7 +54,7 @@ func (d *POIDbx) InitTripPOI() error {
 	defer t.TimeEnd("InitTripPOI")
 
 	log.Info("------ 开始高效三阶段 POI 初始化 ------")
-	pbfPath := "/media/shiina_aiiko/CodeDisk/Workspace/Development/@Aiiko/ShiinaAiikoDevWorkspace/@Private/Devtools/pro/Nominatim/poi/china-trip-poi.osm.pbf"
+	pbfPath := "~/ShiinaAiikoDevWorkspace/Private/Devtools/pro/Nominatim/poi/china-trip-poi.osm.pbf"
 
 	// --- 阶段 1: 标记 ---
 	log.Info("[阶段 1/3] 扫描 Way 引用关系...")
