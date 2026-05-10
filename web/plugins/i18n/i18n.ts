@@ -15,10 +15,10 @@ function compareJsonKeys(
   path: string = ''
 ): CompareResult {
   /**
-   * 比较两个JSON对象的key差异
+   *  比较两个JSON对象的key差异
    * @param json1 第一个JSON对象
    * @param json2 第二个JSON对象
-   * @param path 当前路径（用于嵌套key）
+   * @param path 当前路径（ 用于嵌套key ）
    * @returns { missingKeys: string[], extraKeys: string[] }
    * missingKeys: json1相对于json2缺少的key
    * extraKeys: json1相对于json2多余的key

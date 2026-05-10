@@ -13,6 +13,7 @@ import (
 	"github.com/cherrai/nyanyago-utils/cipher"
 	"github.com/cherrai/nyanyago-utils/narrays"
 	"github.com/cherrai/nyanyago-utils/nmath"
+	"github.com/cherrai/nyanyago-utils/nstrings"
 	"github.com/cherrai/nyanyago-utils/validation"
 	sso "github.com/cherrai/saki-sso-go"
 	"github.com/gin-gonic/gin"
@@ -415,8 +416,12 @@ func (cl *CityController) GetAllCitiesVisitedByUser(c *gin.Context) {
 		}
 	}
 
-	lt.TimeEnd("1")
+	lt.TimeEnd("第一步、" + nstrings.ToString(len(data.TripIds)) + " : " +
+		nstrings.ToString(len(protoData.Cities)))
 
+	// 当data.TripIds为空，则视为全部获取
+
+	protoData.Cities = protoData.Cities[:0]
 	if len(protoData.Cities) == 0 {
 
 		lt2 := log.Time()
@@ -428,7 +433,8 @@ func (cl *CityController) GetAllCitiesVisitedByUser(c *gin.Context) {
 			return
 		}
 
-		lt2.TimeEnd("2")
+		lt2.TimeEnd("2：" + nstrings.ToString(len(data.TripIds)))
+		log.Info(len(cityIds))
 
 		cityIdsMap := map[string]*dbxV1.UserVisitedCities{}
 		ids := narrays.Map(cityIds, func(v *dbxV1.UserVisitedCities, index int) string {
@@ -516,17 +522,17 @@ func (cl *CityController) GetAllCitiesVisitedByUser(c *gin.Context) {
 			return cities
 		}
 
-		// log.Info("ids", len(citiesProto))
+		// log.Info("ids", len(citiesProto), citiesProto[0])
 		for _, city := range citiesProto {
-			// log.Info(city.ParentCityId == "", city.Name)
 			if city.ParentCityId == "" {
+				// log.Info(city.ParentCityId == "", city.Name)
 				city.Cities = getSubCities(city, []*protos.CityItem{})
 				protoData.Cities = append(protoData.Cities, city)
 				break
 			}
 		}
 
-		if err = fsdb.CitiesProto.Set(k, protoData.Cities, 15*time.Minute); err != nil {
+		if err = fsdb.CitiesProto.Set(k, protoData.Cities, 1*time.Hour); err != nil {
 			log.Error(err)
 		}
 		lt3.TimeEnd("3" + k)

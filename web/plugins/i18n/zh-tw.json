@@ -225,8 +225,8 @@
     "visitedCity": "已走過"
   },
   "trackRoutePage": {
-    "pageTitle": "歷史行程軌跡",
-    "subtitle": "已記錄的行程所有軌跡路線會被繪製",
+    "pageTitle": "足跡地圖",
+    "subtitle": "已走過的行程所有軌跡路線均會被繪製在地圖上",
     "startDate": "開始日期",
     "endDate": "結束日期",
     "now": "現在",
@@ -386,20 +386,19 @@
     "thinkFailed": "請求失敗，請重試",
     "thinkStopped": "已停止分析",
 
-    "coDriverPlaceholder1": "AI 領航員工作中...",
-    "coDriverPlaceholder2": "正在幫你盯著前方...",
-    "coDriverPlaceholder3": "正在努力幫你中看路中 (๑•̀ㅂ•́)و",
-    "coDriverPlaceholder4": "正在深度研判這段路...",
-    "coDriverPlaceholder5": "路況分析中，請稍等下下哦",
-    "coDriverPlaceholder6": "正在為你觀察路況...",
-    "coDriverPlaceholder7": "前方情報打探中，嘿咻嘿咻！",
-    "coDriverPlaceholder8": "正在揉眼睛，仔細看路中 (⊙o⊙)",
-    "coDriverPlaceholder9": "報告！正在同步實時環境數據",
-    "coDriverPlaceholder10": "海拔氣溫都在監測中，我會乖乖噠",
-    "coDriverPlaceholder11": "正在認真思考，大腦飛速運轉裡...",
-    "coDriverPlaceholder12": "我在幫你中看風景，也在看路哦 (✿◡‿◡)",
-    "coDriverPlaceholder13": "正在探測前方動態，馬上就來！",
-    "coDriverPlaceholder14": "領航建議生成中，等我一下下嘛",
+    "coDriverMsg_CHANGE_CITY": "已離開 {{leavingCity}}，進入 {{enteringCity}}",
+    "coDriverMsg_FIRST_OPEN_DISTANCE": "今日行程正式開始",
+    "coDriverMsg_MILESTONE_DISTANCE": "已經跑了 {{dist}}",
+    "coDriverMsg_ALTITUDE_JUMP": "海拔上升到 {{altitude}} 公尺了",
+    "coDriverMsg_CLIMB_ACHIEVEMENT": "這一路爬升了 {{climbAlt}} 公尺",
+    "coDriverMsg_DESCEND_WARNING": "長下坡，注意控制車速",
+    "coDriverMsg_TEMPERATURE_DROP": "外面降溫了，只有 {{temp}} 度",
+    "coDriverMsg_SUDDEN_STOP": "剛才這下煞車有點猛",
+    "coDriverMsg_CHANGE_ROAD": "切入 {{road_name}} 行駛",
+    "coDriverMsg_WEATHER_CHANGE": "前方天氣從 {{lastW}} 轉為 {{curW}}",
+    "coDriverMsg_TIME_EVENT": "趕上 {{time}} 了，咱們還在趕路",
+    "coDriverMsg_REST_WELCOME_BACK": "休息好了，咱們繼續出發",
+    "coDriverMsg_DROWSY_DRIVING": "偵測到駕駛時長過長，找個地方歇會兒吧",
 
     "aiAgentRemindsYou": "AI 領航員提醒您：",
 
@@ -449,7 +448,9 @@
     "drowsyDrivingMs": "疲勞駕駛",
 
     "globalCooldownMs": "全局冷卻時間",
-    "specialHours": "特殊關懷時段"
+    "specialHours": "特殊關懷時段",
+
+    "networkOffline": "進入訊號盲區，暫時停止服務"
   },
   "settings": {
     "title": "設置",

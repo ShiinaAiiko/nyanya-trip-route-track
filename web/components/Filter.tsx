@@ -343,6 +343,8 @@ const FilterComponent = ({
         end: citiesMap[endTime],
       }
     })
+
+    console.log('cccccc', trips, tripCityDetailsMap.current)
     return trips
   }, [
     selectedTypes,
@@ -1723,7 +1725,7 @@ const FilterComponent = ({
                                     'ftd-l-item ' + v.type + ' ' + config.lang
                                   }
                                 >
-                                  <div className="item-top">
+                                  <div data-id={v.id} className="item-top">
                                     <span className="name">
                                       {t((v.type || '')?.toLowerCase(), {
                                         ns: 'tripPage',

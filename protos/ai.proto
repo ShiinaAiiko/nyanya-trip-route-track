@@ -144,6 +144,7 @@ message AICoDriverCurrentTripData {
   message CityCoords {
     double latitude = 1;
     double longitude = 2;
+    double heading = 3;
   }
   CityCoords coords = 9;
   int64 time = 10;
@@ -161,6 +162,8 @@ message AICoDriver {
   message Request {
     string sessionId = 7;
     string messageId = 8;
+    string lang = 9;
+    string vehicle = 10;
     // 是否已开始行程，用于判断驾驶状态
     bool startTrip = 1;
     // 嵌套行程数据

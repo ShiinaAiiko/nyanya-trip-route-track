@@ -32,7 +32,7 @@ var (
 	AppManifest = []*AppManifestItem{
 		{ID: "NAV_HOME", Desc: "主页/行程路线轨迹。查看当前地图、速度、海拔及里程数据，开启新行程。"},
 		{ID: "NAV_TRIP_HISTORY", Desc: "行程历史列表。按日期、载具或记忆筛选过去的行驶记录。"},
-		{ID: "NAV_TRACK_ROUTE", Desc: "历史行程轨迹。在地图上查看所有走过的足迹汇总。"},
+		{ID: "NAV_TRACK_ROUTE", Desc: "足迹地图。已走过的行程所有轨迹路线均会被绘制在地图上。"},
 		{ID: "NAV_JOURNEY_MEMORY", Desc: "旅途记忆。以多媒体形式回顾路上的笔记、照片和视频。"},
 		{ID: "NAV_ROADBOOK", Desc: "自驾路书。创建专业行程、测算里程时长或参考车主精品路线。"},
 		{ID: "NAV_ALTITUDE", Desc: "实时海拔。精准测量当前位置的经纬度、海拔高度。"},

@@ -98,13 +98,13 @@ type TripData struct {
 
 // UserInputParams 根对象 (极致精简协议)
 type UserInputParams struct {
-	IsDriving       bool                     `json:"isDriving,omitempty"`       // 核心约束判定：是否在驾驶
-	CurrentTripData *TripData                `json:"currentTripData,omitempty"` // 当前数据
-	LastTripData    *TripData                `json:"lastTripData,omitempty"`    // 上一阶段数据，用于对比
-	Stats           *TripStatistics          `json:"stats,omitempty"`           // 统计数据
-	SystemTime      string                   `json:"sysTime,omitempty"`         // 系统时间
-	ContextHint     []string                 `json:"hints,omitempty"`           // 上下文引导
-	ContextData     []*dbxV1.ContextDataItem `json:"data,omitempty"`            // 动态注入的 POIs/Memory
+	IsDriving       bool                     `json:"isDriving,omitempty"` // 核心约束判定：是否在驾驶
+	CurrentTripData *TripData                `json:"arrival,omitempty"`   // 当前数据
+	LastTripData    *TripData                `json:"departure,omitempty"` // 上一阶段数据，用于对比
+	Stats           *TripStatistics          `json:"stats,omitempty"`     // 统计数据
+	SystemTime      string                   `json:"sysTime,omitempty"`   // 系统时间
+	ContextHint     []string                 `json:"hints,omitempty"`     // 上下文引导
+	ContextData     []*dbxV1.ContextDataItem `json:"data,omitempty"`      // 动态注入的 POIs/Memory
 	// UserMessage     string             `json:"userMsg,omitempty"`         // 用户主动输入
 }
 
@@ -124,12 +124,13 @@ func (fc *AIController) AICoDriver(c *gin.Context) {
 		return
 	}
 
+	log.Info(len(data.Message))
 	// 3、验证参数
 	if err = validation.ValidateStruct(
 		data,
 		validation.Parameter(&data.StartTrip),
 		validation.Parameter(&data.TriggerReason, validation.Type("string")),
-		validation.Parameter(&data.Message, validation.Length(1, 100), validation.Required()),
+		validation.Parameter(&data.Message, validation.Length(1, 150), validation.Required()),
 	); err != nil {
 		res.Errors(err)
 		res.Code = 10002
@@ -396,7 +397,8 @@ func (fc *AIController) AICoDriver(c *gin.Context) {
 	//     toneInstruction = "用户对这里非常熟悉。禁止使用'欢迎'、'重地重游'等词汇。请直接关注实时路况、天气或目的地信息，话术要精简、高效。"
 	// }
 
-	userMessage := ncommon.IfElse(data.StartTrip, "", data.Message)
+	userMessage := data.Message
+	// userMessage := ncommon.IfElse(data.StartTrip, "", data.Message)
 
 	userInputParams := UserInputParams{
 		IsDriving:  data.StartTrip,
@@ -560,10 +562,11 @@ func (fc *AIController) AICoDriver(c *gin.Context) {
 
 		// POIs 获取
 		poiPoints, err := poiDbx.SearchPOI(c.Request.Context(), dbxV1.POISearchParams{
-			Lat:    &data.CurrentTripData.Coords.Latitude,
-			Lon:    &data.CurrentTripData.Coords.Longitude,
-			Radius: radius,
-			Limit:  10,
+			Lat:     &data.CurrentTripData.Coords.Latitude,
+			Lon:     &data.CurrentTripData.Coords.Longitude,
+			Heading: &data.CurrentTripData.Coords.Heading,
+			Radius:  radius,
+			Limit:   10,
 		})
 		if err != nil {
 			res.Errors(err)
@@ -582,6 +585,8 @@ func (fc *AIController) AICoDriver(c *gin.Context) {
 						Name:        v.POI.Name,
 						WikiSummary: v.POI.Wiki.Summary,
 						DistanceM:   aiDbx.Round(v.POI.Distance, 1),
+						Direction:   v.POI.Direction,
+						BearingDeg:  v.POI.Bearing,
 					})
 				}
 			}
@@ -721,6 +726,26 @@ func (fc *AIController) AICoDriver(c *gin.Context) {
 		if data.TriggerReason != "" {
 			spMap.InteractionGuideline = ""
 
+			var TriggerInstructions = map[string]string{
+				"FIRST_OPEN_DISTANCE": "航线启程：定位地理起点，核算全程逻辑，简述今日地貌演变趋势及核心地标。",
+				"MILESTONE_DISTANCE":  fmt.Sprintf("里程节点：实测行驶%.2fkm。分析当前位置与起点的生境差异，量化空间位移带来的视觉变化，禁止使用恭喜及感性修饰。", data.CurrentTripData.Statistics.Distance/1000),
+				"ALTITUDE_JUMP":       "气压与动力：监测到海拔剧烈起伏。评估含氧量对动力系统的衰减影响，提示植被垂直分布带从[低海拔]向[高海拔]的演替规律。",
+				"CLIMB_ACHIEVEMENT":   "地形突破：攻克垭口。解析当前褶皱山系或冰川地貌的形成机制，拆解典型弯道的工程学布局。",
+				"DESCEND_WARNING":     "势能预警：进入长下坡路段。提示利用发动机制动减解制动热衰退，预报坡底气压升高后的体感变化及微气候差异。",
+				"TEMPERATURE_DROP":    "热力演变：气温骤降。解析冷锋或辐射降温对路面附着力的影响，评估凝冻或暗冰风险，提示优化座舱环境参数。",
+				"SUDDEN_STOP":         "静止状态监测：识别当前停车坐标。若为景观区，解析周边地质构造或人文历史背景；若为非预定停车，启动安全冗余提示。",
+				"CHANGE_ROAD":         "路径切变：切换行驶序列。对比新旧路网的铺装等级、设计时速及历史筑路背景，定位核心航向转折点。",
+				"CHANGE_CITY":         "行政边界穿越：捕获跨行政区瞬间。对比两地文化图腾、建筑形制演变及方言地理分界线，量化行政区划间的海拔梯度。",
+				"WEATHER_CHANGE":      "气象重构：深度解构当前气象场。评估湿度、能见度对驾驶视距的物理影响，分析云系演变对光影景观的潜在贡献。",
+				"TIME_EVENT":          "光影相位：步入关键时间节点。分析色温变化对视觉疲劳的影响，提示在地特质体验，适配当前光照环境。",
+				"REST_WELCOME_BACK":   "序列重启：数据链路重连。精准回溯休整前状态，实时同步停机期间的环境变量漂移，校准后续航程预期。",
+				"DROWSY_DRIVING":      "生理冗余监测：分析血氧饱和度下降与驾驶时长间的关联。基于地理坐标检索最近的生境修复点（如观景台），提示物理休整，严禁说教。",
+			}
+			userInputParams.ContextHint = append(userInputParams.ContextHint,
+				"SCENARIO: "+data.TriggerReason,
+				TriggerInstructions[data.TriggerReason],
+			)
+
 		}
 
 		switch data.TriggerReason {
@@ -761,9 +786,6 @@ func (fc *AIController) AICoDriver(c *gin.Context) {
 			//	spMap.TriggerReason = `
 			//
 			// 监测到驾驶员存在疲劳驾驶风险、已连续驾驶2小时，需立即介入进行安全干预。`
-			userInputParams.ContextHint = append(userInputParams.ContextHint,
-				"SCENARIO: "+"DROWSY_DRIVING",
-				"监测到驾驶员存在疲劳驾驶风险、已连续驾驶2小时，需立即介入进行安全干预。")
 
 			spMap.Constraints = `
 1. **生命至上**：强制执行极简回复（<40字），严禁任何地理人文废话。
@@ -781,9 +803,6 @@ func (fc *AIController) AICoDriver(c *gin.Context) {
 
 			// spMap.TriggerReason = `
 			// 驶入了新的城市，需要提供该城市的美食推荐、景区推荐、文化科普、及驾驶天气变化提醒。`
-			userInputParams.ContextHint = append(userInputParams.ContextHint,
-				"SCENARIO: "+"CHANGE_CITY",
-				"驶入了新的城市，需要提供该城市的美食推荐、景区推荐、文化科普、及驾驶天气变化提醒。")
 
 			spMap.Constraints = `
 1. **地域边界感**：必须点出“离开[旧城]，进入[新城]”的瞬间感。
@@ -797,25 +816,6 @@ func (fc *AIController) AICoDriver(c *gin.Context) {
 
 		default:
 			log.Info("驾驶状态、其他类型的AI领航员")
-			var TriggerInstructions = map[string]string{
-				"FIRST_OPEN_DISTANCE": "行程启动：展示领航员欢迎语，强调今日行程的地理起点与预期亮点，建立探索仪式感。",
-				"MILESTONE_DISTANCE":  fmt.Sprintf("里程里程碑：祝贺行驶%.2fkm，对比当前与起点的地貌差异，强化长途穿越的成就感。", data.CurrentTripData.Statistics.Distance/1000),
-				"ALTITUDE_JUMP":       "海拔剧变：分析海拔快速上升/下降对车辆动力及人体的潜在影响，引导用户观察植被带的变化。",
-				"CLIMB_ACHIEVEMENT":   "攀爬成就：点出刚刚攻克的垭口高度，利用地形数据解释‘复式折线’或‘发卡弯’的地理成因。",
-				"DESCEND_WARNING":     "下坡预警：强调长下坡的安全隐患，提醒利用引擎制动，并告知坡底后的气候或景观变化。",
-				"TEMPERATURE_DROP":    "气温骤降：结合天气数据，提醒路面可能存在的结冰或浓雾风险，并建议用户调整车内环境。",
-				"SUDDEN_STOP":         "异常停车：识别是否为景观摄影停车或紧急路况，若是景观则提供周边深度背景知识，若是路况则提供安全慰问。",
-				"CHANGE_ROAD":         "路网切换：解释新旧道路的历史地位或驾驶难度差异，提示关键的转弯节点。",
-				"CHANGE_CITY":         "城市边界：点出‘离开与进入’的瞬间，对比两地的文化符号（如建筑风格、方言、特色饮食）和海拔落差。",
-				"WEATHER_CHANGE":      "天气演变：深度解读天气变化，提醒对能见度的影响，避免单纯播报气象参数。",
-				"TIME_EVENT":          "时间节点：如正午、黄昏或深夜，结合光线变化提醒驾驶安全，或推荐适合当前时间的在地体验。",
-				"REST_WELCOME_BACK":   "休整归来：以老友语气唤醒对话，快速回顾休整前的驾驶进度，同步当前的最新环境数据。",
-				"DROWSY_DRIVING":      "疲劳提醒：严禁生硬说教。结合当前海拔氧含量和连续驾驶时长，推荐附近最近的‘提神点’（如观景台或服务区）。",
-			}
-			userInputParams.ContextHint = append(userInputParams.ContextHint,
-				"SCENARIO: "+data.TriggerReason,
-				TriggerInstructions[data.TriggerReason],
-			)
 		}
 
 	case "INTENT_STATS":
@@ -1096,9 +1096,9 @@ func (fc *AIController) AICoDriver(c *gin.Context) {
 								StreamOptions: &openai.StreamOptions{
 									IncludeUsage: true, // 必须设为 true，否则 Usage 永远是 nil
 								},
-								// ResponseFormat: &openai.ChatCompletionResponseFormat{
-								// 	Type: openai.ChatCompletionResponseFormatTypeJSONObject,
-								// },
+								ResponseFormat: &openai.ChatCompletionResponseFormat{
+									Type: openai.ChatCompletionResponseFormatTypeJSONObject,
+								},
 							})
 
 							if err != nil {
@@ -1901,8 +1901,8 @@ func (fc *AIController) testSSE(c *gin.Context, res *response.ResponseProtobufTy
         "isRelevant": true
     },
     "display": {
-        "message": "### 重庆自驾指南\n\n**城市特色**：\n- 山城地形，高低起伏，8D魔幻城市\n- 长江与嘉陵江交汇，两江四岸风光\n- 独特的桥都文化，众多跨江大桥",
-        "warning": "重庆地形复杂，自驾新手需谨慎。老城区道路狭窄，高峰期拥堵严重。夏季多雨，山区道路可能有落石风险。"
+        "message": "### 重庆自驾指南\n\n**城市特色**：独特的桥都文化，众多跨江大桥",
+        "warning": "重庆地形复杂，自驾新手需谨慎。"
     },
 }`
 
@@ -1957,8 +1957,8 @@ func (fc *AIController) testSSE(c *gin.Context, res *response.ResponseProtobufTy
 			Message: rawJSON,
 		}
 		res.Display = &protos.AIResponse_Display{
-			Message: "### 重庆自驾指南\n\n**城市特色**：\n- 山城地形，高低起伏，8D魔幻城市\n- 长江与嘉陵江交汇，两江四岸风光\n- 独特的桥都文化，众多跨江大桥\n\n**自驾亮点**：\n- **导航技巧**：重庆是立体城市，导航需注意高程差\n- **停车挑战**：老旧小区可能无固定车位，建议使用APP\n- **限行政策**：工作日7:00-20:00部分区域限行\n\n**必驾路线**：\n- 北滨路-南滨江景观大道\n- 黄桷坪涂鸦街-四川美术学院\n- 缙云山-缙云寺环线\n\n**美食推荐**：\n- 火锅、小面、酸辣粉、江湖菜\n\n**注意事项**：\n- 山城道路陡峭，自动挡车型更佳\n- 雾天较多，行车需谨慎\n- 老城区单行道多，提前规划路线",
-			Warning: "重庆地形复杂，自驾新手需谨慎。老城区道路狭窄，高峰期拥堵严重。夏季多雨，山区道路可能有落石风险。",
+			Message: "### 重庆自驾指南\n\n**城市特色**：独特的桥都文化，众多跨江大桥",
+			Warning: "重庆地形复杂，自驾新手需谨慎。",
 		}
 		res.Meta = metaArr
 

@@ -1095,6 +1095,7 @@ const TripPage = () => {
         coords: {
           latitude: Number(geo.position.coords.latitude.toFixed(6)),
           longitude: Number(geo.position.coords.longitude.toFixed(6)),
+          heading: Number(geo.position.coords.heading?.toFixed(6)) || 0,
         },
         time: geo.position.timestamp,
         statistics: statistics.current,
@@ -1154,7 +1155,8 @@ const TripPage = () => {
                     lastTripData: AIContext.current.lastTriggerData,
                   }
                 : {
-                    triggerReason: 'FIRST_OPEN_DISTANCE',
+                    // triggerReason: 'FIRST_OPEN_DISTANCE',
+                    triggerReason: 'CHANGE_CITY',
                     autoPlayVoice: false,
                     autoCloseTime: 0,
 
@@ -1168,6 +1170,7 @@ const TripPage = () => {
                       coords: {
                         latitude: 29.977319,
                         longitude: 99.087103,
+                        heading: 270,
                       },
                       time: 1757218995000,
                       statistics: {
@@ -1191,6 +1194,7 @@ const TripPage = () => {
                       coords: {
                         latitude: 29.977319,
                         longitude: 99.087103,
+                        heading: 270,
                       },
                       time: 1757218995000,
                       statistics: {
@@ -2476,14 +2480,14 @@ const TripPage = () => {
         }).open()
         // 检测是否没传完，没传完的在这里继续，然后重新FinshTrip
 
-        setTimeout(() => {
+        requestAnimationFrame(() => {
           dispatch(
             tripMethods.GetTripAddresses({
               trips: [trip],
-              isSnackbar: false,
+              isSnackbar: true,
             })
           ).unwrap()
-        }, 50)
+        })
 
         if (res?.data?.positionLength !== tempPositions.current.length) {
           await httpApi.v1.ResumeTrip({
@@ -3012,9 +3016,9 @@ const TripPage = () => {
             {mounted ? (
               <saki-tabs
                 type="Flex"
-                // header-background-color='rgb(245, 245, 245)'
+                // header-background-color="rgb(245, 245, 245)"
                 // header-max-width='740px'
-                // header-border-bottom='none'
+                header-border-bottom="1px solid #ddd"
                 header-padding="0 10px"
                 // header-item-min-width='40px'
                 header-item-padding={

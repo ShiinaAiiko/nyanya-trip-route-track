@@ -31,7 +31,6 @@ package-lock.json
 /protos/**/*.js
 /protos/**/*.d.ts
 
-ssh.sh
 
 .npmrc
 .yarnrc

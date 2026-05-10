@@ -226,8 +226,8 @@
     "visitedCity": "已走过"
   },
   "trackRoutePage": {
-    "pageTitle": "历史行程轨迹",
-    "subtitle": "已记录过的行程所有轨迹路线均会被绘制",
+    "pageTitle": "足迹地图",
+    "subtitle": "已走过的行程所有轨迹路线均会被绘制在地图上",
     "startDate": "开始日期",
     "endDate": "结束日期",
     "now": "现在",
@@ -387,7 +387,7 @@
     "thinkFailed": "请求失败，请重试",
     "thinkStopped": "已停止分析",
 
-    "coDriverMsg_CHANGE_CITY": "已进入 {{city}}",
+    "coDriverMsg_CHANGE_CITY": "已离开 {{leavingCity}}，进入 {{enteringCity}}",
     "coDriverMsg_FIRST_OPEN_DISTANCE": "今日行程正式开始",
     "coDriverMsg_MILESTONE_DISTANCE": "已经跑了{{dist}}",
     "coDriverMsg_ALTITUDE_JUMP": "海拔上升到{{altitude}}米了",
@@ -449,7 +449,9 @@
     "drowsyDrivingMs": "疲劳驾驶",
 
     "globalCooldownMs": "全局冷却时间",
-    "specialHours": "特殊关怀时段"
+    "specialHours": "特殊关怀时段",
+
+    "networkOffline": "进入信号盲区，暂时停止服务"
   },
   "settings": {
     "title": "设置",

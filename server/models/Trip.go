@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"errors"
 	"time"
 
@@ -8,7 +9,9 @@ import (
 	mongodb "github.com/ShiinaAiiko/nyanya-trip-route-track/server/db/mongo"
 	"github.com/cherrai/nyanyago-utils/fileStorageDB"
 	"github.com/cherrai/nyanyago-utils/validation"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type TripPosition struct {
@@ -223,6 +226,55 @@ func (s *Trip) Default() error {
 
 func (s *Trip) GetCollectionName() string {
 	return "Trip"
+}
+
+func (s *Trip) CreateIndex() {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// 定义你最核心的复合索引：ESR原则 (Equal, Sort, Range)
+	// authorId (等值) -> status (等值) -> createTime (排序)
+	indexModels := []mongo.IndexModel{
+		{
+			Keys: bson.D{
+				{Key: "authorId", Value: 1},
+				{Key: "status", Value: 1},
+				{Key: "createTime", Value: -1},
+			},
+			Options: options.Index().SetName("idx_author_status_time"),
+		},
+		{
+			Keys: bson.D{
+				{Key: "authorId", Value: 1},
+				{Key: "type", Value: 1},
+				{Key: "createTime", Value: -1},
+			},
+			Options: options.Index().SetName("idx_author_type_time"),
+		},
+		// 如果你经常按车辆过滤，建议也给 vehicleId 加一个索引
+		{
+			Keys: bson.D{
+				{Key: "authorId", Value: 1},
+				{Key: "vehicleId", Value: 1},
+				{Key: "createTime", Value: -1},
+			},
+			Options: options.Index().SetName("idx_author_vehicle_time"),
+		},
+		// 针对 lastUpdateTime 的范围查询
+		{
+			Keys:    bson.D{{Key: "lastUpdateTime", Value: -1}},
+			Options: options.Index().SetName("idx_last_update"),
+		},
+	}
+
+	// 执行创建
+	names, err := s.GetCollection().Indexes().CreateMany(ctx, indexModels)
+	if err != nil {
+		log.Error("自动化索引创建失败 (可能已存在): %v", err)
+		return
+	}
+
+	log.Info("索引自动化检查完成: %v", names)
 }
 
 type TripFsDB struct {

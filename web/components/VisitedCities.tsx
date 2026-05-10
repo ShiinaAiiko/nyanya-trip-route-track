@@ -551,12 +551,12 @@ const VisitedCitiesModal = () => {
     return type === 'world'
       ? t('visitedWorldTitle')
       : type === 'region'
-      ? t('journeyedCountryTitle', {
-          country: getCityName(selectCountry?.name),
-        })
-      : t('exploredCityTitle', {
-          city: getCityName(selectCity?.fullName)?.split(',').join('·'),
-        })
+        ? t('journeyedCountryTitle', {
+            country: getCityName(selectCountry?.name),
+          })
+        : t('exploredCityTitle', {
+            city: getCityName(selectCity?.fullName)?.split(',').join('·'),
+          })
   }
 
   useEffect(() => {
@@ -665,6 +665,11 @@ const VisitedCitiesModal = () => {
         (a, b) => Number(b.firstEntryTime) - Number(a.firstEntryTime)
       )
     }
+    // tempCities.forEach((v) => {
+    //   if (v.name?.shortName?.includes('海南')) {
+    //     console.log('tempCities', v, v.cities?.[0]?.cities?.[0]?.id)
+    //   }
+    // })
 
     return formatTimeLineCities(tempCities)
   }, [cityDistricts, selectCountry])
@@ -951,8 +956,8 @@ const VisitedCitiesModal = () => {
                                           {v === 'region'
                                             ? getCityName(selectCountry?.name)
                                             : v === 'town'
-                                            ? getCityName(selectCity?.name)
-                                            : ''}
+                                              ? getCityName(selectCity?.name)
+                                              : ''}
                                         </span>
 
                                         <saki-icon
@@ -971,8 +976,8 @@ const VisitedCitiesModal = () => {
                                     v === 'world'
                                       ? tempCountryTimeline
                                       : v === 'region'
-                                      ? tempCitiesTimeline
-                                      : tempTownTimeline
+                                        ? tempCitiesTimeline
+                                        : tempTownTimeline
                                   }
                                   layout="VisitedCities"
                                 />

@@ -123,6 +123,8 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
   const [loadProgressBar, setLoadProgressBar] = useState(false)
   const [progressBar, setProgressBar] = useState(0.01)
 
+  const [sakiuiWSUrl, setSakiUiWSUrl] = useState('')
+
   useEffect(() => {
     console.log('debug', debug, router.query, !!nativeConsole)
 
@@ -165,6 +167,8 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
 
   useEffect(() => {
     console.log('dddddd 1', 111)
+
+    setSakiUiWSUrl('ws://' + location.hostname + ':32300')
 
     const L: typeof Leaflet = (window as any).L
 
@@ -452,6 +456,8 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
         <script src="/js/leaflet-polycolor.min.js"></script>
         <script src="/js/TileLayer.ColorScale.js" crossOrigin=""></script>
 
+        {/* <script src="/js/glify-browser.min.js" crossOrigin=""></script> */}
+
         <script src="/js/leaflet-rotate.js"></script>
 
         {/* {debug === 'true' ? (
@@ -500,7 +506,7 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
                 }) as any
               }
               debug={process.env.CLIENT_ENV === 'development'}
-              debugWSUrl={'ws://192.168.204.130:32300'}
+              debugWSUrl={sakiuiWSUrl}
             ></SakiInit>
             {user.isInit && !user.isLogin ? (
               <saki-sso-init

@@ -573,8 +573,10 @@ export const initTripItemCity = async (
   init: boolean,
   isSnackbar: boolean
 ) => {
+  console.log('initTripItemCity', trip.cities?.length && !init)
   if (trip.cities?.length && !init) return
 
+  console.log('initTripItemCity', trip.cities?.length && !init)
   if (init) {
     const res = await httpApi.v1.ClearTripCities({
       tripId: trip.id,
@@ -612,7 +614,7 @@ export const initTripItemCity = async (
 
       if (Number(v.timestamp) > nextPosTime) {
         // console.log('initCity', count, v.latitude, v.timestamp)
-        nextPosTime = Number(v.timestamp) + 90
+        nextPosTime = Number(v.timestamp) + 120
         count++
 
         // console.log("initTripCity  cityinfo", count)
@@ -620,17 +622,20 @@ export const initTripItemCity = async (
         const lat = v.latitude
         const lng = v.longitude
 
+        let baseUrl = toolApiUrl
+        // baseUrl = 'http://127.0.0.1:23201'
+
         const res = await R.request({
           method: 'GET',
           url:
             // `https://restapi.amap.com/v3/geocode/regeo?output=json&location=104.978701,24.900169&key=fb7fdf3663af7a532b8bdcd1fc3e6776&radius=100&extensions=all`
             // `https://restapi.amap.com/v3/geocode/regeo?output=json&location=${lon},${lat}&key=fb7fdf3663af7a532b8bdcd1fc3e6776&radius=100&extensions=all`
-            toolApiUrl +
-            `/api/v1/geocode/regeo?latitude=${lat}&longitude=${lng}`,
+            `${baseUrl}/api/v1/geocode/regeo?latitude=${lat}&longitude=${lng}&platform=Amap`,
           // `https://tools.aiiko.club/api/v1/geocode/regeo?latitude=${lat}&longitude=${lng}&platform=Amap`
         })
         const data = res?.data?.data as any
 
+        console.log('initTripCity', data)
         if (!data?.country || res?.data?.code !== 200) continue
         let newCi = {
           country: data.country,
@@ -661,6 +666,7 @@ export const initTripItemCity = async (
         // console.log("initTripCity  cityinfo", count, data, data.platform, newCi, [lat, lng], nres,
         //   moment(Number(v.timestamp) * 1000).format("YYYY-MM-DD HH:mm:ss"))
         // console.log('initTripCity', nres, newCi)
+        console.log('initTripCity', i)
         _snackbar?.setMessage(
           t('loadedData', {
             ns: 'prompt',
@@ -1114,11 +1120,13 @@ export const getTrips = async ({
   trips: protoRoot.trip.ITrip[]
   startTime: number
 }> => {
-  const pageSize = 10 * 10000
+  let pageSize = 10 * 10000
+  // pageSize = 10 * 20
 
   // let startTime =  1540915200
   let tempStartTime = 1540915200
 
+  console.log('getTrips start getTrips')
   const res = await httpApi.v1.GetTrips({
     type,
     lastUpdateTimeLimit: [startTime || 1540915200, 32503651200],
@@ -1130,7 +1138,12 @@ export const getTrips = async ({
     pageNum,
     pageSize,
   })
-  console.log('GetTripStatistics res', res)
+  console.log(
+    'getTrips res',
+    res,
+    (new TextEncoder().encode(JSON.stringify(res)).length / 1024).toFixed(2) +
+      ' KB'
+  )
   if (res.code === 200 && res.data?.list) {
     const promiseAll: Promise<any>[] = []
     res.data?.list.forEach((v) => {
@@ -1719,7 +1732,7 @@ export const tripMethods = {
         })
 
         console.log(
-          'baseTrips getTripsCloud',
+          'getTrips getTripsCloud',
           getTripsCloud,
           localTime,
           getTripsCloud.startTime
@@ -1797,12 +1810,13 @@ export const tripMethods = {
           })
         ).unwrap()
 
-        console.log('baseTrips', baseTrips)
+        console.log('baseTrips', cityDetails, baseTrips)
 
         if (cityDetails) {
           const cities = await dispatch(
             cityMethods.GetAllCitiesVisitedByUser({
               tripIds: [],
+              // tripIds: baseTrips.map((v) => v.id || ''),
             })
           ).unwrap()
           console.log('GetAllCitiesVisitedByUser gcv', cities)
@@ -1831,12 +1845,16 @@ export const tripMethods = {
             }
           )
 
-          // console.log("gcv cityDetailsMap", cityDetailsMap)
+          // console.log('gcv cityDetailsMap', cityDetailsMap)
           baseTrips.forEach((v) => {
-            v.cities?.forEach((v) => {
-              v.cityDetails = cityDetailsMap[v?.cityId || '']
+            v.cities?.forEach((sv) => {
+              sv.cityDetails = cityDetailsMap[sv?.cityId || '']
             })
           })
+          // console.log(
+          //   'gcv baseTrips',
+          //   baseTrips.filter((v) => v.id === 'VnMTKbvWU')
+          // )
         }
 
         const tripsTemp = Object.fromEntries(

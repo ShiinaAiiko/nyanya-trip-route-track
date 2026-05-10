@@ -17,6 +17,7 @@ import (
 	mongodb "github.com/ShiinaAiiko/nyanya-trip-route-track/server/db/mongo"
 	redisdb "github.com/ShiinaAiiko/nyanya-trip-route-track/server/db/redis"
 	dbxv1 "github.com/ShiinaAiiko/nyanya-trip-route-track/server/dbx/v1"
+	"github.com/ShiinaAiiko/nyanya-trip-route-track/server/models"
 	"github.com/ShiinaAiiko/nyanya-trip-route-track/server/services/gin_service"
 	"github.com/ShiinaAiiko/nyanya-trip-route-track/server/services/typings"
 	"github.com/sashabaranov/go-openai"
@@ -188,6 +189,8 @@ func main() {
 		// conf.OpenAIModel = "gemini-2.5-flash"
 
 		conf.InitFsDB()
+		// 初始化索引
+		models.InitModelIndex()
 
 		ntimer.SetTimeout(func() {
 
@@ -209,6 +212,7 @@ func main() {
 			}, "Day")
 
 			ntimer.SetTimeout(func() {
+				// aiDbx.TestPOIBearing()
 				// aiDbx.TestCallAgentTools()
 				// log.Error(tripMemoryDbx.BatchCleanupAndReplanEmbedding(context.Background()))
 

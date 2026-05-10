@@ -893,7 +893,9 @@ type POIsItem struct {
 	Name        string  `json:"name"`
 	Address     string  `json:"address,omitempty"`
 	WikiSummary string  `json:"wiki,omitempty"`
-	DistanceM   float64 `json:"dist_m,omitempty"` // 距离当前位置
+	DistanceM   float64 `json:"dist_m,omitempty"`
+	Direction   string  `json:"direction,omitempty"`
+	BearingDeg  float64 `json:"bearing_deg"`
 }
 
 type WeatherItem struct {
@@ -1392,6 +1394,23 @@ func (fc *AIDbx) CallAgentTools(c *gin.Context, flusher http.Flusher, toolCall o
 
 }
 
+func (fc *AIDbx) TestPOIBearing() {
+	log.Info("TestPOIBearing")
+
+	poiPoints, err := poiDbx.SearchPOI(context.Background(), POISearchParams{
+		Lat:    ToPtr(29.417632),
+		Lon:    ToPtr(105.594949),
+		Radius: 5000,
+		Limit:  10,
+	})
+	if err != nil {
+		log.Error(err)
+		return
+	}
+
+	log.Info("poiPoints", poiPoints)
+}
+
 func (fc *AIDbx) TestCallAgentTools() {
 
 	ctx, cancel := context.WithTimeout(context.Background(),
@@ -1771,6 +1790,8 @@ func (fc *AIDbx) CallAgentToolsFunc(ctx context.Context,
 						Address:     address,
 						WikiSummary: v.POI.Wiki.Summary,
 						DistanceM:   aiDbx.Round(v.POI.Distance, 1),
+						Direction:   v.POI.Direction,
+						BearingDeg:  v.POI.Bearing,
 					})
 				}
 			}
@@ -2079,6 +2100,8 @@ func (fc *AIDbx) CallAgentToolsFunc(ctx context.Context,
 							Name:        v.POI.Name,
 							WikiSummary: v.POI.Wiki.Summary,
 							DistanceM:   aiDbx.Round(v.POI.Distance, 1),
+							Direction:   v.POI.Direction,
+							BearingDeg:  v.POI.Bearing,
 						})
 					}
 				}

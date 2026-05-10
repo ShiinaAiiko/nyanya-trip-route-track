@@ -509,7 +509,7 @@ const TripHistoryPage = ({
           await dispatch(
             methods.trip.GetTripHistoryData({
               loadCloudData: true,
-              alert: false,
+              alert: true,
             })
           ).unwrap()
         }

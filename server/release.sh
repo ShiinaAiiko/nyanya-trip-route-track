@@ -66,6 +66,7 @@ start() {
 		-v $DIR/fsdb:/fsdb \
 		-v /etc/timezone:/etc/timezone:ro \
 		-v /etc/localtime:/etc/localtime:ro \
+    --add-host=host.docker.internal:host-gateway \
 		--name=$name \
 		$(cat /etc/hosts | sed 's/^#.*//g' | grep '[0-9][0-9]' | tr "\t" " " | awk '{print "--add-host="$2":"$1 }' | tr '\n' ' ') \
 		-p $port:$port \
@@ -102,6 +103,8 @@ run() {
 	mkdir -p $DIR/fsdb
 
 	echo "-> 准备构建Docker"
+
+
 	docker build \
 		-t \
 		$runName \
@@ -120,6 +123,7 @@ run() {
 		-v $DIR/fsdb:/fsdb \
 		-v /etc/timezone:/etc/timezone:ro \
 		-v /etc/localtime:/etc/localtime:ro \
+    --add-host=host.docker.internal:host-gateway \
 		--name=$runName \
 		-p $port:$port \
 		--restart=always \

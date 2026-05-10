@@ -653,7 +653,7 @@ export const AiChatModal = () => {
   }) => {
     if (loadingMessageId) return
 
-    const { geo, trip, city } = store.getState()
+    const { geo, trip, city, network } = store.getState()
     const { weatherInfo } = trip
     const { cityInfo } = city
 
@@ -680,15 +680,16 @@ export const AiChatModal = () => {
         'coDriverMsg_' + triggerReason,
         {
           ns: 'aiChatModal',
-
-          city: ['state', 'region', 'city', 'town', 'road']
-            .map((v) => {
-              const si: any = cityInfo
-              let s = si[v]
-              return s
-            })
-            .filter((v) => !!v)
-            .join(''),
+          leavingCity: lastTripData?.city?.split('·').slice(-2).join(''),
+          enteringCity: currentTripData?.city?.split('·').slice(-2).join(''),
+          // city: ['state', 'region', 'city', 'town', 'road']
+          //   .map((v) => {
+          //     const si: any = cityInfo
+          //     let s = si[v]
+          //     return s
+          //   })
+          //   .filter((v) => !!v)
+          //   .join(''),
           dist: formatDistance(currentTripData?.statistics?.distance || 0),
           altitude: (
             Math.round((currentTripData?.altitude || 0) * 10) / 10
@@ -751,6 +752,42 @@ export const AiChatModal = () => {
     setLoadingMessageId(id)
 
     setLastMsgId('')
+
+    // 在这里检测是否有网络，没网直接返
+
+    if (network.status !== 'online') {
+      tempAiMessages = tempAiMessages.concat({
+        id,
+        aiMessage: {
+          status: { isRelevant: true },
+          error: t('networkOffline', {
+            ns: 'aiChatModal',
+          }),
+          code: 10001,
+          meta: [],
+          reasoning: { message: '' },
+          display: { message: '', warning: '' },
+          data: null,
+          createTime: moment().unix(),
+          historyMessages: [],
+          tokenUsage: {},
+        },
+      })
+
+      setAiMessages(tempAiMessages)
+
+      setTimeout(() => {
+        stopStream({
+          id,
+          tempMessages,
+          tempAiMessages,
+          autoPlayVoice: false,
+          autoCloseTime:
+            (launchAICoDriver ? layout.openAiChatModal.autoCloseTime : 0) || 0,
+        })
+      }, 500)
+      return
+    }
 
     let isExits = false
     abortControllerRef.current = new AbortController()
@@ -828,6 +865,7 @@ export const AiChatModal = () => {
       const params: protoRoot.ai.AICoDriver.IRequest = {
         messageId: id,
         sessionId,
+        lang: config.lang,
         startTrip: !!triggerReason,
         triggerReason,
         currentTripData,
@@ -1051,7 +1089,6 @@ export const AiChatModal = () => {
     if (editMessage?.id !== id) {
       setAiCoDriverQueue(tempAiCoDriverQueue)
     }
-    setLoadingMessageId('')
 
     if (
       autoPlayVoice &&
@@ -1076,6 +1113,8 @@ export const AiChatModal = () => {
       // console.log('AI领航员 WebVoiceBroadcast res', res)
       setPlayVoiceKey('')
     }
+
+    setLoadingMessageId('')
 
     if (!tempAiCoDriverQueue.length && autoCloseTime) {
       clearTimeout(autoCloseTimer.current)
@@ -1254,7 +1293,7 @@ export const AiChatModal = () => {
         : ''
 
       // console.log('AI领航员a tokenInfo', tokenInfo)
-      // console.log('AI领航员a', curMsg?.status, isEnd, startStream)
+      console.log('AI领航员a', aiMessage)
       msg = `${
         curMsg?.message && (isEnd || !startStream)
           ? t('isUserSpeaking', {
@@ -1265,14 +1304,18 @@ export const AiChatModal = () => {
       }
 
 ${
-  loadingText && (isEnd || (startStream && !aiMessage?.reasoning?.message))
+  aiMessage?.error !==
+    t('networkOffline', {
+      ns: 'aiChatModal',
+    }) &&
+  loadingText &&
+  (isEnd || (startStream && !aiMessage?.reasoning?.message))
     ? t('isAISpeaking', {
         ns: 'aiChatModal',
         message: loadingText,
       })
     : ''
 }
-
 
 ${
   aiMessage?.error && (isEnd || (startStream && !aiMessage?.reasoning?.message))
@@ -1490,8 +1533,8 @@ ${aiMessage?.display?.warning || ''}
                   // console.log('ai-codriver-main', el, el.className)
 
                   if (
-                    el.className.includes('ai-codriver-main') ||
-                    el.className.includes('ai-live-wave-container')
+                    el?.className?.includes('ai-codriver-main') ||
+                    el?.className?.includes('ai-live-wave-container')
                   ) {
                     dispatch(
                       layoutSlice.actions.setOpenAiChatModal({
@@ -1511,7 +1554,7 @@ ${aiMessage?.display?.warning || ''}
                 setMessage(newStripHtmlTags(msg || ''))
               }}
               bottomLeftChildren={
-                loadingMessageId == '' && !message
+                !loadingMessageId || playVoiceKey
                   ? liveMessage.bottomLeftChildren
                   : undefined
               }
@@ -2548,9 +2591,10 @@ ${aiMessage?.display?.warning || ''}
 
                                           setPlayVoiceKey(v.id || '')
                                           await WebVoiceBroadcast(
-                                            t('aiAgentRemindsYou', {
-                                              ns: 'aiChatModal',
-                                            }) + text,
+                                            // t('aiAgentRemindsYou', {
+                                            //   ns: 'aiChatModal',
+                                            // }) +
+                                            text,
                                             v.id || '',
                                             config.lang
                                           )

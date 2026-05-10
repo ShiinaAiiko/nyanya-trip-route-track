@@ -1330,6 +1330,8 @@ export const cityMethods = {
         console.log(
           'renderPolyline res gcv',
           tripIds.length,
+          jmId,
+          tripId,
           res,
           JSON.stringify(res).length
         )

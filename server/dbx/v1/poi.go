@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"os"
 	"runtime"
@@ -982,7 +983,9 @@ type POIPayload struct {
 	OSM        OSMInfo      `json:"osm"`
 
 	// 搜索点位距离POI的距离，非距离搜索则为-1
-	Distance float64
+	Distance  float64 `json:"distance"`
+	Bearing   float64 `json:"bearing"`
+	Direction string  `json:"direction"`
 }
 
 type AddressInfo struct {
@@ -1061,7 +1064,9 @@ func (d *POIDbx) getValueInterface(v *qdrant.Value) interface{} {
 		return nil
 	}
 }
-func (d *POIDbx) QdrantMapPayloadToStruct(id *qdrant.PointId, payload map[string]*qdrant.Value) (*POIPayload, error) {
+func (d *POIDbx) QdrantMapPayloadToStruct(id *qdrant.PointId, payload map[string]*qdrant.Value,
+	lat *float64, lon *float64, heading *float64,
+) (*POIPayload, error) {
 	tempMap := make(map[string]interface{})
 
 	for k, v := range payload {
@@ -1093,6 +1098,8 @@ func (d *POIDbx) QdrantMapPayloadToStruct(id *qdrant.PointId, payload map[string
 		log.Error(err)
 		// return nil, err
 	}
+
+	poi.GetPOIRelativePosition(lat, lon, heading)
 
 	return &poi, nil
 }
@@ -1337,12 +1344,85 @@ func (poi *POIPayload) GetWikiSummary() error {
 	return nil
 }
 
+func (poi *POIPayload) GetPOIRelativePosition(lat1, lon1, heading *float64) {
+	// 安全检查：如果位置坐标缺失，无法进行任何几何计算，直接返回
+	if lat1 == nil || lon1 == nil {
+		return
+	}
+
+	const R = 6371000.0 // 地球半径 (米)
+	lat2, lon2 := poi.Location.Lat, poi.Location.Lon
+
+	// 1. 距离计算 (Haversine 公式)
+	p1 := *lat1 * math.Pi / 180
+	p2 := lat2 * math.Pi / 180
+	dPhi := (lat2 - *lat1) * math.Pi / 180
+	dLambda := (lon2 - *lon1) * math.Pi / 180
+
+	a := math.Sin(dPhi/2)*math.Sin(dPhi/2) +
+		math.Cos(p1)*math.Cos(p2)*
+			math.Sin(dLambda/2)*math.Sin(dLambda/2)
+	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
+
+	poi.Distance = R * c
+
+	// 2. 方向计算逻辑：只有当 heading 不为 nil 时才执行
+	if heading != nil {
+		// 计算绝对方位角 (Absolute Bearing)
+		y := math.Sin(dLambda) * math.Cos(p2)
+		x := math.Cos(p1)*math.Sin(p2) -
+			math.Sin(p1)*math.Cos(p2)*math.Cos(dLambda)
+
+		absBearing := math.Mod(math.Atan2(y, x)*180/math.Pi+360, 360)
+
+		// 计算相对角度 (Relative Bearing)
+		relAngle := absBearing - *heading
+
+		// 标准化到 [-180, 180]
+		if relAngle > 180 {
+			relAngle -= 360
+		} else if relAngle < -180 {
+			relAngle += 360
+		}
+
+		// 映射文案
+		poi.Bearing = math.Round(relAngle)
+		poi.Direction = getDirectionText(relAngle)
+	}
+}
+
+// getDirectionText 将角度映射为专业领航文案
+func getDirectionText(angle float64) string {
+	// 采用 45 度分区逻辑
+	switch {
+	case angle >= -15 && angle <= 15:
+		return "正前方"
+	case angle > 15 && angle <= 60:
+		return "右前方"
+	case angle > 60 && angle <= 120:
+		return "右方"
+	case angle > 120 && angle <= 165:
+		return "右后方"
+	case angle > 165 || angle <= -165:
+		return "正后方"
+	case angle > -165 && angle <= -120:
+		return "左后方"
+	case angle > -120 && angle <= -60:
+		return "左方"
+	case angle > -60 && angle < -15:
+		return "左前方"
+	default:
+		return "位置识别中"
+	}
+}
+
 // POISearchParams 定义了 Agent 可以使用的所有聚合查询维度
 type POISearchParams struct {
 	// 地理位置
-	Lat    *float64 `json:"lat"`    // 纬度
-	Lon    *float64 `json:"lon"`    // 经度
-	Radius float32  `json:"radius"` // 半径（米）
+	Lat     *float64 `json:"lat"`     // 纬度
+	Lon     *float64 `json:"lon"`     // 经度
+	Heading *float64 `json:"heading"` // 经度
+	Radius  float32  `json:"radius"`  // 半径（米）
 
 	// 文本搜索
 	Name string `json:"name"` // POI 名称（模糊匹配）
@@ -1554,16 +1634,18 @@ func (d *POIDbx) SearchPOI(ctx context.Context, params POISearchParams) ([]*Sear
 	results := []*SearchPOIResult{}
 	for _, v := range res.GetResult() {
 
-		poi, err := d.QdrantMapPayloadToStruct(v.Id, v.Payload)
+		poi, err := d.QdrantMapPayloadToStruct(v.Id, v.Payload,
+			params.Lat, params.Lon, params.Heading)
 		if err != nil {
 			return nil, err
 		}
 
-		distance := float64(0)
+		// 根据当前位置获取方向
+		// distance := float64(0)
 
-		if params.Lat != nil && params.Lon != nil {
-			distance = methods.GetGeoDistance(poi.Location.Lat, poi.Location.Lon, *params.Lat, *params.Lon)
-		}
+		// if params.Lat != nil && params.Lon != nil {
+		// 	distance = methods.GetGeoDistance(poi.Location.Lat, poi.Location.Lon, *params.Lat, *params.Lon)
+		// }
 
 		score := poi.CalculateFinalScore()
 
@@ -1581,7 +1663,9 @@ func (d *POIDbx) SearchPOI(ctx context.Context, params POISearchParams) ([]*Sear
 			}
 		}
 
-		poi.Distance = distance
+		// poi.Distance = distance
+
+		// log.Info(poi.Name, distance)
 
 		results = append(results, &SearchPOIResult{
 			Point: v,

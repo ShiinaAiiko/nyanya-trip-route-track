@@ -301,6 +301,18 @@ const TrackRoutePage = () => {
 
   useEffect(() => {
     dispatch(layoutSlice.actions.setLayoutHeaderLogoText(t('pageTitle')))
+
+    dispatch(
+      layoutSlice.actions.setOpenAiChatModalInfo({
+        type: 'coDriver',
+        title: t('aiModelTitle', {
+          ns: 'tripPage',
+        }),
+        subtitle: t('aiModelSubtitle', {
+          ns: 'tripPage',
+        }),
+      })
+    )
   }, [i18n.language])
 
   useEffect(() => {
@@ -394,7 +406,7 @@ const TrackRoutePage = () => {
         methods.trip.GetTripHistoryData({
           loadCloudData: true,
           alert: true,
-          cityDetails: false,
+          cityDetails: true,
         })
       )
         .unwrap()
@@ -1108,6 +1120,7 @@ const TrackRoutePage = () => {
 
         console.log('layer.current', layer.current)
         mapLayer && roadColorFade(mapLayer, layer.current)
+        // ;(L as any).glify.latitudeFirst()
 
         console.log('layer', layer)
 
@@ -1369,6 +1382,7 @@ const TrackRoutePage = () => {
             indexPage
             currentPosition
             layer={false}
+            aichat={true}
             onCurrentPosition={() => {
               setDisablePanTo(true)
               geo.position && panToMap(geo.position, true)

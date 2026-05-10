@@ -45,7 +45,7 @@ gitpull() {
 
 dockerremove() {
 	echo "-> 删除无用镜像"
-	docker rm $(docker ps -q -f status=exited) 2 &>/dev/null
+	docker rm $(docker ps -q -f status=exited) 2&>/dev/null
 	docker rmi -f $(docker images | grep '<none>' | awk '{print $3}') 2 &>/dev/null
 }
 setVersion() {
@@ -78,7 +78,7 @@ start() {
 	echo "-> 正在准备相关资源"
 	cp -r ./$configFilePath $DIR/config.temp.json
 
-	protos
+	# protos
 
 	# 获取npm配置
 	# yarn config set cache-folder ~/.yarn/cache
@@ -87,7 +87,7 @@ start() {
 	# yarn config set link-folder ~/.yarn/link
 	cp -r ~/.npmrc $DIR
 	cp -r ~/.yarnrc $DIR
-	cp -r ./server/protos $DIR/protos_temp
+	cp -r ../protos $DIR/protos_temp
 
 	echo "-> 准备构建Docker"
 	docker build \
@@ -157,6 +157,7 @@ protos() {
 	yarn protos
 	rm -rf $DIR/protos_temp
 	echo "-> 编译Protobuf成功"
+	
 
 }
 

@@ -189,19 +189,28 @@ export const AILiveWave: React.FC<{
 
   const d = useRef(new Debounce())
   useEffect(() => {
-    if (!loadingMessage && message) {
+    if ((!loadingMessage || playVoiceKey) && message) {
       d.current.increase(() => {
         mkEl.current?.scrollTo('Bottom')
-      }, 300)
+        d.current.increase(() => {
+          mkEl.current?.scrollTo('Bottom')
+        }, 300)
+      }, 100)
     }
-  }, [message, loadingMessage])
+  }, [message, loadingMessage, playVoiceKey])
 
-  // console.log('AI领航员a tokenInfo', bottomLeftChildren)
+  // console.log(
+  //   'AI领航员a tokenInfo',
+  //   loadingMessage,
+  //   playVoiceKey,
+  //   !!(!loadingMessage || playVoiceKey),
+  //   !!((!loadingMessage || playVoiceKey) && haveAiMessage)
+  // )
 
   return (
     <div
       ref={containerRef}
-      className={`ai-live-wave-container ${className} ${!loadingMessage && haveAiMessage ? 'column' : ''}`}
+      className={`ai-live-wave-container ${className} ${(!loadingMessage || playVoiceKey) && haveAiMessage ? 'column' : ''}`}
       style={{}}
     >
       <canvas ref={canvasRef} />
@@ -287,7 +296,7 @@ export const AILiveWave: React.FC<{
               : bottomLeftChildren}
           </div>
           <div className="uimb-right">
-            {!loadingMessage && haveAiMessage ? (
+            {(!loadingMessage || playVoiceKey) && haveAiMessage ? (
               <saki-button
                 ref={bindEvent({
                   tap: () => {

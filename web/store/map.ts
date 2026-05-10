@@ -915,7 +915,6 @@ export const renderPolylineItem = async ({
 
     // console.log('layer', layer)
 
-    // speedColor !== 'auto' &&
     clickFunc &&
       layer?.addEventListener('click', () => {
         console.log('clickFunc params', params)

@@ -225,8 +225,8 @@
     "visitedCity": "Visited"
   },
   "trackRoutePage": {
-    "pageTitle": "Historical trip track",
-    "subtitle": "All tracks and routes of recorded trips will be drawn",
+    "pageTitle": "Footprint Map",
+    "subtitle": "All tracks from your completed trips will be drawn on the map",
     "startDate": "Start Date",
     "endDate": "End Date",
     "now": "Now",
@@ -386,20 +386,19 @@
     "thinkFailed": "Request failed, please try again",
     "thinkStopped": "Analysis stopped",
 
-    "coDriverPlaceholder1": "AI Navigator at work...",
-    "coDriverPlaceholder2": "Watching the road ahead for you...",
-    "coDriverPlaceholder3": "Keeping an eye on the road (๑•̀ㅂ•́)و",
-    "coDriverPlaceholder4": "Deeply analyzing this stretch of road...",
-    "coDriverPlaceholder5": "Analyzing traffic, please wait a sec...",
-    "coDriverPlaceholder6": "Observing road conditions for you...",
-    "coDriverPlaceholder7": "Scouting information ahead, heave-ho!",
-    "coDriverPlaceholder8": "Rubbing my eyes and looking closely (⊙o⊙)",
-    "coDriverPlaceholder9": "Reporting! Syncing real-time environmental data",
-    "coDriverPlaceholder10": "Monitoring altitude and temperature, I'll be good!",
-    "coDriverPlaceholder11": "Thinking hard, brain whirring at full speed...",
-    "coDriverPlaceholder12": "Watching the scenery and the road (✿◡‿◡)",
-    "coDriverPlaceholder13": "Detecting dynamics ahead, coming right up!",
-    "coDriverPlaceholder14": "Generating navigation advice, give me a moment",
+    "coDriverMsg_CHANGE_CITY": "Left {{leavingCity}}, entering {{enteringCity}}",
+    "coDriverMsg_FIRST_OPEN_DISTANCE": "Today's journey has officially begun",
+    "coDriverMsg_MILESTONE_DISTANCE": "You've traveled {{dist}}",
+    "coDriverMsg_ALTITUDE_JUMP": "Altitude has risen to {{altitude}} meters",
+    "coDriverMsg_CLIMB_ACHIEVEMENT": "You've climbed {{climbAlt}} meters so far",
+    "coDriverMsg_DESCEND_WARNING": "Long downhill ahead, please control your speed",
+    "coDriverMsg_TEMPERATURE_DROP": "It's getting colder outside, only {{temp}}°",
+    "coDriverMsg_SUDDEN_STOP": "That was a sharp brake just now",
+    "coDriverMsg_CHANGE_ROAD": "Switching onto {{road_name}}",
+    "coDriverMsg_WEATHER_CHANGE": "Weather ahead changing from {{lastW}} to {{curW}}",
+    "coDriverMsg_TIME_EVENT": "It's already {{time}}, and we're still on the road",
+    "coDriverMsg_REST_WELCOME_BACK": "Hope you're rested, let's keep going",
+    "coDriverMsg_DROWSY_DRIVING": "Long driving duration detected, please find a place to rest",
 
     "aiAgentRemindsYou": "AI Navigator Reminds You:",
 
@@ -449,7 +448,9 @@
     "drowsyDrivingMs": "Fatigue Driving",
 
     "globalCooldownMs": "Global Cooldown",
-    "specialHours": "Special Care Hours"
+    "specialHours": "Special Care Hours",
+
+    "networkOffline": "Entering signal dead zone, service temporarily suspended"
   },
   "settings": {
     "title": "Settings",

@@ -1908,7 +1908,7 @@ func (fc *TripController) GetTripStatistics(c *gin.Context) {
 	getTripsBaseData, err := tripDbx.GetTripsBaseData(
 		filterTripIds,
 		authorId, data.Type,
-		1, 100000,
+		1, 10*10000,
 		// data.PageNum, data.PageSize,
 		data.TimeLimit, []int64{}, data.VehicleLimit,
 		data.DistanceLimit[0]*1000,

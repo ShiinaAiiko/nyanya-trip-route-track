@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"sort"
 	"strconv"
 	"strings"
@@ -13,7 +14,6 @@ import (
 	"github.com/ShiinaAiiko/nyanya-trip-route-track/server/models"
 	"github.com/ShiinaAiiko/nyanya-trip-route-track/server/protos"
 	"github.com/ShiinaAiiko/nyanya-trip-route-track/server/services/response"
-	"github.com/cherrai/nyanyago-utils/cipher"
 	"github.com/cherrai/nyanyago-utils/narrays"
 	"github.com/cherrai/nyanyago-utils/nint"
 	"github.com/cherrai/nyanyago-utils/nstrings"
@@ -225,13 +225,13 @@ func (t *CityDbx) UpdateCity(
 }
 
 func (t *CityDbx) GetCity(id, parentCityId, name string, fullName string) (*models.City, error) {
-	city := new(models.City)
+	city := &models.City{}
 
 	key := conf.Redisdb.GetKey("GetCity")
 	err := conf.Redisdb.GetStruct(key.GetKey(id+fullName), city)
 
 	// log.Error("GetCity", city)
-	if err != nil || true {
+	if err != nil || city.Id == "" {
 		match := []bson.M{}
 		if id != "" {
 			match = append(match, bson.M{
@@ -302,9 +302,10 @@ func (t *CityDbx) GetCity(id, parentCityId, name string, fullName string) (*mode
 		}
 		city = results[0]
 	}
-	err = conf.Redisdb.SetStruct(key.GetKey(id+fullName), city, key.GetExpiration())
-	if err != nil {
+
+	if err := conf.Redisdb.SetStruct(key.GetKey(id+fullName), city, key.GetExpiration()); err != nil {
 		log.Info(err)
+		return nil, err
 	}
 
 	return city, nil
@@ -398,38 +399,71 @@ func (t *CityDbx) getCities(ids []string, lastResultIds []string) ([]*models.Cit
 	// }
 
 	if err != nil || len(emptyKeys) != 0 {
-		params := []bson.M{
-			{
-				"$match": bson.M{
-					"_id": bson.M{
-						"$in": emptyKeys,
+
+		// 1. 定义结果容器和批次大小
+		const batchSize = 500
+		totalKeys := len(emptyKeys)
+
+		log.Info("开始分批获取城市数据，总计 ID 数:", totalKeys)
+
+		for i := 0; i < totalKeys; i += batchSize {
+			// 计算当前批次的边界
+			end := i + batchSize
+			if end > totalKeys {
+				end = totalKeys
+			}
+
+			// 2. 截取当前批次的 ID 列表
+			currentBatchKeys := emptyKeys[i:end]
+
+			// 3. 构建当前批次的查询参数
+			params := []bson.M{
+				{
+					"$match": bson.M{
+						"_id": bson.M{
+							"$in": currentBatchKeys,
+						},
 					},
 				},
-			},
-			{
-				"$project": cityProject,
-			},
+				{
+					"$project": cityProject,
+				},
+			}
+
+			aOptions := options.Aggregate()
+			aOptions.SetAllowDiskUse(true)
+			// 显式设置 BatchSize，配合手动分批，让单次往返更高效
+			aOptions.SetBatchSize(int32(batchSize))
+
+			// 4. 执行聚合查询
+			var batchResults []*models.City
+
+			l := log.Time()
+			cursor, err := city.GetCollection().Aggregate(context.TODO(), params, aOptions)
+			if err != nil {
+				log.Error("批次查询失败:", err)
+				return nil, err
+			}
+			l.TimeEnd(fmt.Sprintf("Aggregate [Batch %d-%d]", i, end))
+
+			// 5. 解析当前批次数据
+			l2 := log.Time()
+			if err = cursor.All(context.TODO(), &batchResults); err != nil {
+				log.Error("解析批次数据失败:", err)
+				cursor.Close(context.TODO())
+				return nil, err
+			}
+			l2.TimeEnd(fmt.Sprintf("opts.All [Batch %d-%d]", i, end))
+			cursor.Close(context.TODO())
+
+			// 6. 汇总结果
+			results = append(results, batchResults...)
 		}
 
-		aOptions := options.Aggregate()
-		aOptions.SetAllowDiskUse(true)
+		// 将汇总结果赋值回原变量
+		// results = allResults
 
-		// var results []map[string]any
-
-		var newResults []*models.City
-
-		opts, err := city.GetCollection().Aggregate(context.TODO(), params,
-			aOptions)
-		if err != nil {
-			log.Error(err)
-			return nil, err
-		}
-		if err = opts.All(context.TODO(), &newResults); err != nil {
-			log.Error(err)
-			return nil, err
-		}
-
-		results = append(results, newResults...)
+		// results = append(results, newResults...)
 
 		if len(results) == 0 {
 			return nil, nil
@@ -479,40 +513,47 @@ func (t *CityDbx) GetCities(ids []string) ([]*models.City, error) {
 
 	fsdb := t.city.GetFsDB()
 
-	k := cipher.MD5(strings.Join(ids, ","))
+	// k := cipher.MD5(strings.Join(ids, ","))
 
-	results, err := fsdb.Cities.Get(k)
-	if err == nil {
+	// results, err := fsdb.Cities.Get(k)
+	// if err == nil {
 
-		tempResult := results.Value()
-		if len(tempResult) > 0 {
-			cities = tempResult
-		}
-	}
-
-	// results := fsdb.City.MGet(ids)
-
-	// tempIds := []string{}
-
-	// // log.Info(results)
-	// for _, val := range results {
-	// 	if val.Err == nil {
-	// 		tempVal := val.Val.Value()
-
-	// 		// log.Info(val.Key)
-	// 		// fsdb.City.Delete(val.Key)
-
-	// 		cities = append(cities, tempVal)
-	// 	} else {
+	// 	tempResult := results.Value()
+	// 	if len(tempResult) > 0 {
+	// 		cities = tempResult
 	// 	}
-	// 	tempIds = append(tempIds, val.Key)
 	// }
 
-	// log.Info(len(ids), len(cities), len(tempIds))
-	if len(cities) == 0 {
-		tempCities, err := t.getCities(ids, []string{})
+	results := fsdb.City.MGet(ids)
 
-		// log.Error("tempCities", len(tempCities), ids)
+	tempIds := []string{}
+
+	// log.Info(results)
+	for _, val := range results {
+		// log.Info(val.Key, val.Err)
+		if val.Err == nil {
+			tempVal := val.Val.Value()
+
+			// log.Info(val.Key)
+			// fsdb.City.Delete(val.Key)
+
+			cities = append(cities, tempVal)
+			if tempVal.ParentCityId != "" && !narrays.Includes(tempIds, tempVal.ParentCityId) {
+				tempIds = append(tempIds, tempVal.ParentCityId)
+			}
+			continue
+		}
+		tempIds = append(tempIds, val.Key)
+	}
+
+	// cities = cities[:0]
+	// tempIds = ids
+
+	log.Info("GetCities", len(ids), len(cities), len(tempIds))
+	if len(cities) == 0 || len(tempIds) > 0 {
+		tempCities, err := t.getCities(tempIds, []string{})
+
+		log.Error("tempCities", len(tempCities), len(tempIds))
 		if err != nil {
 			return nil, err
 		}
@@ -525,13 +566,23 @@ func (t *CityDbx) GetCities(ids []string) ([]*models.City, error) {
 			return nil, err
 		}
 
-		cities = tempCities
+		// cities = tempCities
 
-		err = fsdb.Cities.Set(k, cities, 15*time.Minute)
+		for _, v := range tempCities {
+			err = fsdb.City.Set(v.Id, v, 15*7*24*time.Hour)
 
-		if err != nil {
-			log.Error(err)
+			if err != nil {
+				log.Error(err)
+			}
 		}
+
+		cities = append(cities, tempCities...)
+
+		// err = fsdb.Cities.Set(k, cities, 15*time.Minute)
+
+		// if err != nil {
+		// 	log.Error(err)
+		// }
 
 	}
 	// log.Info(len(ids), len(cities), len(ids))
@@ -613,6 +664,10 @@ func (t *CityDbx) GetAllCitiesVisitedByUser(authorId string, tripIds []string) (
 	params := []bson.M{
 		{
 			"$match": match,
+		}, {
+			"$project": bson.M{
+				"cities": 1,
+			},
 		},
 		{
 			"$unwind": "$cities",
@@ -1118,7 +1173,8 @@ func (t *CityDbx) CityI18n(city *models.City, cities []*models.City) (*I18nInfo,
 		city.Names = new(models.CityNames)
 	}
 
-	// log.Info("CityI18n", city.Id, city.Names.CreateTime >= timestamp, len(city.Names.Names))
+	// log.Info("CityI18n", city.Id,
+	// 	city.Names.CreateTime >= timestamp, len(city.Names.Names))
 
 	if city.Names.CreateTime >= timestamp && len(city.Names.Names) > 0 {
 		result = t.FortmatNames(city, &OsmInfo{

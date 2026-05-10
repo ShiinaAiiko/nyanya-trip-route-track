@@ -1074,7 +1074,7 @@ func (t *TripDbx) GetTrip(id string, authorId string) (*models.Trip, error) {
 			return nil, err
 		}
 
-		if err := fsdb.Trip.Set(id, trip, 61*time.Minute); err != nil {
+		if err := fsdb.Trip.Set(id, trip, 7*24*time.Hour); err != nil {
 			log.Error(err)
 		}
 	}
@@ -1888,7 +1888,12 @@ func (t *TripDbx) GetTripsBaseData(
 	// 		nstrings.ToString(endTime),
 	// ), results)
 	l2 := log.Time()
+
+	log.Info("---------即将获取数据库---------",
+		len(results) == 0 || !cache)
+
 	if len(results) == 0 || !cache {
+		results = results[:0]
 
 		match := bson.M{
 			"authorId": authorId,
@@ -1953,39 +1958,67 @@ func (t *TripDbx) GetTripsBaseData(
 					// "lastUpdateTime": -1,
 				},
 			},
-			{
-				"$skip": pageSize * (pageNum - 1),
-			},
-			{
-				"$limit": pageSize,
-			},
-			{
-				"$project": tripProject,
-			},
 		}
 
-		opts, err := trip.GetCollection().Aggregate(context.TODO(), params)
+		if pageSize > 0 && pageSize < 10*10000 {
+			params = append(params, bson.M{
+				"$skip": pageSize * (pageNum - 1),
+			}, bson.M{
+				"$limit": pageSize,
+			})
+		}
+
+		params = append(params, bson.M{
+			"$project": tripProject,
+		})
+
+		// log.Info("params", params)
+
+		cursor, err := trip.GetCollection().Aggregate(context.TODO(), params)
 		if err != nil {
-			// log.Error(err)
 			return nil, err
 		}
-		if err = opts.All(context.TODO(), &results); err != nil {
-			// log.Error(err)
-			return nil, err
+		defer cursor.Close(context.TODO())
+
+		l2.TimeEnd("已拉取数据库，正在解析")
+		l4 := log.Time()
+		// count := 0
+		// errCount := 0
+		for cursor.Next(context.TODO()) {
+			// count++
+			var t models.Trip
+			if err := cursor.Decode(&t); err != nil {
+				// errCount++
+				log.Error(err)
+				continue
+			}
+			// log.Info(count, errCount, t.Id)
+			results = append(results, &t)
 		}
+		l4.TimeEnd("解析数据耗时")
+
+		// opts, err := trip.GetCollection().Aggregate(context.TODO(), params)
+		// if err != nil {
+		// 	// log.Error(err)
+		// 	return nil, err
+		// }
+		// if err = opts.All(context.TODO(), &results); err != nil {
+		// 	// log.Error(err)
+		// 	return nil, err
+		// }
 
 		if cache {
 			l3 := log.Time()
 			tripIds := narrays.Map(results, func(v *models.Trip, i int) string {
 				return v.Id
 			})
-			err = fsdb.TripIds.Set(k, tripIds, 60*time.Minute)
+			err = fsdb.TripIds.Set(k, tripIds, 7*23*time.Hour)
 			if err != nil {
 				log.Error(err)
 			} else {
 
 				for _, v := range results {
-					if err := fsdb.Trip.Set(v.Id, v, 61*time.Minute); err != nil {
+					if err := fsdb.Trip.Set(v.Id, v, 7*24*time.Hour); err != nil {
 						log.Error(err)
 					}
 				}
@@ -1993,7 +2026,6 @@ func (t *TripDbx) GetTripsBaseData(
 			l3.TimeEnd(" fsdb.TripIds.Set(k, narray")
 		}
 	}
-	l2.TimeEnd("trip.GetCollection().Aggregate(context.TODO")
 
 	// log.Info(len(results))
 
