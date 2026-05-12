@@ -56,5 +56,6 @@ module.exports = withPWA({
     DEFAULT_LANGUAGE: 'zh-CN',
     CLIENT_ENV: process.env.CLIENT_ENV,
     DOCKER_LOCALHOST: process.env.DOCKER_LOCALHOST,
+    BUILD_OUTPUT_TYPE: process.env.BUILD_OUTPUT_TYPE,
   },
 })

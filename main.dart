@@ -126,7 +126,7 @@ class _GeckoContainerState extends State<GeckoContainer> with WidgetsBindingObse
                 setState(() {
                   _isLoading = false;
                 });
-                _startSensorBridge();
+                // _startSensorBridge();
               },
             ),
             AnimatedOpacity(

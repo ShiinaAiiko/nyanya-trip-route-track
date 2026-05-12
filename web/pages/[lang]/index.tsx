@@ -869,8 +869,10 @@ const TripPage = () => {
         }).open()
 
         rnJSBridge.enableLocation(true)
-        rnJSBridge.enableBackgroundTasks(true)
+        rnJSBridge.enableBackgroundLocation(true)
+        // rnJSBridge.enableBackgroundTasks(true)
         rnJSBridge.keepScreenOn(true)
+        rnJSBridge.enableCarData(true)
       }
 
       dispatch(configSlice.actions.setShowIndexPageButton(true))
@@ -998,7 +1000,8 @@ const TripPage = () => {
         color: '#fff',
       }).open()
       rnJSBridge.keepScreenOn(false)
-      rnJSBridge.enableBackgroundTasks(false)
+      rnJSBridge.enableBackgroundLocation(false)
+      // rnJSBridge.enableBackgroundTasks(false)
     }
 
     statistics.current = {
@@ -1050,7 +1053,7 @@ const TripPage = () => {
       if (Math.floor(listenTime / 1000) % 45 === 0) {
         if (config.appConfig.version) {
           rnJSBridge.keepScreenOn(true)
-          rnJSBridge.enableBackgroundTasks(true)
+          // rnJSBridge.enableBackgroundTasks(true)
         }
         refreshMapSizeDebounce.current.increase(() => {
           map.current?.invalidateSize(true)
@@ -1103,7 +1106,7 @@ const TripPage = () => {
 
       // console.log('AI领航员 config', config.configure.ai)
 
-      if (config.configure.ai?.aiCoDriver?.enabled) {
+      if (user.isLogin && config.configure.ai?.aiCoDriver?.enabled) {
         const triggerReason = shouldAIPilotWakeUp(AIContext.current)
         if (triggerReason) {
           console.log(

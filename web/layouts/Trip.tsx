@@ -68,6 +68,7 @@ import {
   networkConnectionStatusDetection,
   networkConnectionStatusDetectionEnum,
 } from '@nyanyajs/utils/dist/common/common'
+import { setTimeout } from 'timers'
 
 // import { testGpsData } from '../plugins/methods'
 // import parserFunc from 'ua-parser-js'
@@ -96,12 +97,6 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
     // )
     pageProps && i18n.language !== lang && changeLanguage(lang)
   }
-
-  useEffect(() => {
-    const l = lang || 'system'
-
-    l && dispatch(methods.config.setLanguage(l))
-  }, [lang])
 
   const [mounted, setMounted] = useState(false)
   const [watchPosDeb] = useState(new Debounce())
@@ -315,6 +310,12 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
   }, [])
 
   useEffect(() => {
+    const l = lang || 'system'
+
+    mounted && l && dispatch(methods.config.setLanguage(l))
+  }, [lang, mounted])
+
+  useEffect(() => {
     if (loadProgressBar && sakiuiInit && mounted) {
       progressBar < 1 &&
         setTimeout(() => {
@@ -361,15 +362,24 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
   // }, [config.trackRouteMapUrl])
 
   const d = useRef(new Debounce())
+  const getCarDataTimer = useRef<NodeJS.Timeout>()
   // const rnJSBridge = useRef<ReactNativeWebJSBridge>()
 
   useEffect(() => {
     try {
+      clearInterval(getCarDataTimer.current)
       if (!rnJSBridge) {
         initRnJSBridge()
       }
       if (rnJSBridge?.isInReactNative()) {
         rnJSBridge.enableLocation(true)
+
+        rnJSBridge.enableCarData(true)
+
+        getCarDataTimer.current = setInterval(() => {
+          console.log('Flutter getCarData')
+          rnJSBridge.getCarData()
+        }, 3000)
 
         rnJSBridge.removeEvent('location')
         rnJSBridge.on('location', (val: any) => {
@@ -384,6 +394,10 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
         rnJSBridge.on('appConfig', (val) => {
           console.log('appConfig', val)
           dispatch(configSlice.actions.setAppConfig(val))
+        })
+        rnJSBridge.on('carData', (val) => {
+          console.log('carData', val)
+          dispatch(configSlice.actions.setCarData(val))
         })
         return
       }

@@ -1,5 +1,21 @@
 import { NEventListener } from '@nyanyajs/utils'
 
+export interface CarData {
+  speed: number
+  elecPercentage: number
+  fuelPercentage: number
+  accelerateDepth: number
+  brakeDepth: number
+  totalMileage: number
+  evMileage: number
+  tyrePressure: {
+    leftFront: number
+    rightFront: number
+    leftRear: number
+    rightRear: number
+  }
+  timestamp: number
+}
 export class ReactNativeWebJSBridge extends NEventListener<{
   location: {
     coords: {
@@ -17,6 +33,7 @@ export class ReactNativeWebJSBridge extends NEventListener<{
     version: string
     system: string
   }
+  carData: CarData
 }> {
   rnWebView: any = undefined
   private count = 0
@@ -25,18 +42,18 @@ export class ReactNativeWebJSBridge extends NEventListener<{
     super()
 
     this.rnWebView = (window as any)?.ReactNativeWebView
-    this.isFlutterEnv = !this.rnWebView
+    this.isFlutterEnv = !!(window as any)?.isFlutterApp
 
     setTimeout(() => {
-      this.load()
       // 接收原生返回的数据
       window.removeEventListener('message', this.onMessage)
       window.addEventListener('message', this.onMessage)
-      
+
       // Flutter 环境：注册全局消息处理函数
       if (this.isFlutterEnv) {
         ;(window as any).onFlutterMessage = this.handleFlutterMessage
       }
+      this.load()
     }, 700)
   }
   keepScreenOn(b: boolean = true) {
@@ -45,14 +62,23 @@ export class ReactNativeWebJSBridge extends NEventListener<{
   enableLocation(b: boolean = true) {
     this.sendMessage('enableLocation', b)
   }
+  enableBackgroundLocation(b: boolean = true) {
+    this.sendMessage('enableBackgroundLocation', b)
+  }
   setLanguage(lang: string) {
     this.sendMessage('setLanguage', lang)
   }
   enableBackgroundTasks(b: boolean = true) {
     this.sendMessage('enableBackgroundTasks', b)
   }
+  enableCarData(b: boolean = true) {
+    this.sendMessage('enableCarData', b)
+  }
+  getCarData() {
+    this.sendMessage('getCarData', null)
+  }
   load() {
-    this.sendMessage('load', undefined)
+    this.sendMessage('load', null)
   }
 
   sendMessage(
@@ -60,7 +86,10 @@ export class ReactNativeWebJSBridge extends NEventListener<{
       | 'setLanguage'
       | 'keepScreenOn'
       | 'enableLocation'
+      | 'enableBackgroundLocation'
       | 'enableBackgroundTasks'
+      | 'enableCarData'
+      | 'getCarData'
       | 'load',
     payload: any
   ) {
@@ -68,17 +97,20 @@ export class ReactNativeWebJSBridge extends NEventListener<{
       type,
       payload,
     })
-    
-    // Flutter 环境：使用 fetch 发送消息，不触发页面导航
+
+    // Flutter 环境：使用 XMLHttpRequest 发送消息，不触发页面导航
     if (this.isFlutterEnv) {
       const encodedMessage = encodeURIComponent(message)
-      fetch(`http://localhost:8080/__flutter_bridge__?message=${encodedMessage}`, {
-        method: 'GET',
-        mode: 'no-cors',
-      }).catch(() => {})
+      const xhr = new XMLHttpRequest()
+      xhr.open(
+        'GET',
+        `http://localhost:8080/__flutter_bridge__?message=${encodedMessage}`,
+        true
+      )
+      xhr.send()
       return
     }
-    
+
     // React Native 环境：使用原生 postMessage
     this.rnWebView?.postMessage(message)
   }
@@ -102,9 +134,9 @@ export class ReactNativeWebJSBridge extends NEventListener<{
 
   private handleFlutterMessage = (data: any) => {
     try {
+      console.log('handleFlutterMessage', this.count, data.type, data.payload)
       if (!data?.type) return
       this.count++
-      console.log('handleFlutterMessage', this.count, data)
       if (data.type === 'location') {
         this.dispatch('location', data.payload as GeolocationPosition)
         return
@@ -117,6 +149,6 @@ export class ReactNativeWebJSBridge extends NEventListener<{
   }
 
   isInReactNative() {
-    return !!this.rnWebView || !!(window as any).isFlutterApp
+    return !!this.rnWebView || !!(window as any)?.isFlutterApp
   }
 }

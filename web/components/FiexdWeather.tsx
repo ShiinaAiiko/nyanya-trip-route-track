@@ -61,7 +61,12 @@ import {
   voiceBroadcast,
 } from '../store/city'
 
-import { eventListener, getTrackRouteColor, maps } from '../store/config'
+import {
+  eventListener,
+  getTrackRouteColor,
+  maps,
+  rnJSBridge,
+} from '../store/config'
 import { UserInfo } from '@nyanyajs/utils/dist/sakisso'
 import { getIconType } from './Vehicle'
 import {
@@ -383,6 +388,56 @@ const FiexdWeatherComponent = ({
           ) : (
             ''
           )}
+        </div>
+      ) : (
+        ''
+      )}
+
+      {rnJSBridge?.isInReactNative() ? (
+        <div
+          style={{
+            backgroundColor: '#fff',
+          }}
+          className="dashbord-latlng"
+        >
+          {[
+            {
+              name: '速',
+              value: Math.round(config.carData.speed),
+            },
+            {
+              name: '油',
+              value:
+                Math.round(config.carData.elecPercentage * 100) / 100 +
+                '/' +
+                Math.round(config.carData.fuelPercentage * 100) / 100,
+            },
+            {
+              name: '油门',
+              value: Math.round(config.carData.accelerateDepth * 100) / 100,
+            },
+            {
+              name: '刹车',
+              value: Math.round(config.carData.brakeDepth * 100) / 100,
+            },
+            {
+              name: '总',
+              value: Math.round(config.carData.totalMileage * 10) / 10,
+            },
+            {
+              name: '胎',
+              value: Math.round(config.carData.tyrePressure.leftFront),
+            },
+          ].map((v, i) => {
+            return (
+              <span
+                style={{
+                  whiteSpace: 'nowrap',
+                  color: '#444',
+                }}
+              >{`${v.name}:${v.value}`}</span>
+            )
+          })}
         </div>
       ) : (
         ''

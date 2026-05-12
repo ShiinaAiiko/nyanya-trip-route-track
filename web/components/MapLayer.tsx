@@ -21,6 +21,7 @@ import {
   defaultMapLayerItem,
   TrackSpeedColorType,
   getMapUrlAuto,
+  rnJSBridge,
 } from '../store/config'
 import { parseQuery, Query } from '../plugins/methods'
 import { storage, storageMethods } from '../store/storage'
@@ -1563,6 +1564,34 @@ const Maps = ({
             </div>
           </div>
         </>
+      ) : (
+        ''
+      )}
+      {rnJSBridge?.isInReactNative() ? (
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            margin: '20px 0 0',
+            whiteSpace: 'wrap',
+          }}
+        >
+          {Object.keys(config.carData).map((v, i) => {
+            return (
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'row',
+                  gap: '10px',
+                }}
+                key={v}
+              >
+                <div>{v}:</div>
+                <div> {JSON.stringify((config.carData as any)[v])}</div>
+              </div>
+            )
+          })}
+        </div>
       ) : (
         ''
       )}

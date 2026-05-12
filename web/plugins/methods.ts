@@ -1388,72 +1388,65 @@ export class SpeechPilot {
   }
 }
 
-export async function downloadApp(platform: string) {
-  let baseUrl = server.url + '/packages/'
+export interface AppVersion {
+  version: string
+  url: string
+  fileName: string
+}
 
-  baseUrl = 'https://trip.aiiko.club/packages/'
+const BASE_URL = 'https://trip.aiiko.club/packages/'
 
+/**
+ * 获取版本列表 (由高到低排序)
+ */
+export async function getVersionList(platform: string): Promise<AppVersion[]> {
   try {
-    // 1. 获取 Nginx 目录页面内容
-    const response = await fetch(baseUrl)
+    const response = await fetch(BASE_URL)
     const html = await response.text()
 
-    // console.log('apkFiles html', html)
-    // 2. 解析 HTML
     const parser = new DOMParser()
     const doc = parser.parseFromString(html, 'text/html')
     const links = Array.from(doc.querySelectorAll('a'))
 
-    // 3. 筛选出符合条件的 apk 文件
-    // 规则：包含 arm64-v8a 且以 .apk 结尾
-    const apkFiles = links
-      .map((link) => link.getAttribute('href'))
+    const versions: AppVersion[] = links
+      .map((link) => link.getAttribute('href') || '')
+      // 过滤：包含平台关键字 (如 arm64-v8a) 且是 apk 文件
       .filter(
         (href) => href && href.includes(platform) && href.endsWith('.apk')
       )
+      .map((href) => {
+        // 提取版本号 vX.Y.Z
+        const versionMatch = href.match(/v(\d+\.\d+\.\d+)/)
+        return {
+          version: versionMatch ? versionMatch[1] : '0.0.0',
+          url: new URL(href, BASE_URL).href,
+          fileName: href,
+        }
+      })
 
-    // console.log('apkFiles', apkFiles)
-    if (apkFiles.length === 0) {
-      console.error('未找到符合架构的 APK 文件')
-
-      snackbar({
-        message: '未找到符合架构的 APK 文件',
-        autoHideDuration: 2000,
-        vertical: 'top',
-        horizontal: 'center',
-        backgroundColor: 'var(--saki-default-color)',
-        color: '#fff',
-      }).open()
-      return
-    }
-
-    // 4. 版本排序找到最新的（假设格式为 trip-route-track-vX.Y.Z-arm64-v8a.apk）
-    const latestApk = apkFiles.sort((a, b) => {
-      const versionA = a?.match(/v(\d+\.\d+\.\d+)/)?.[1] || '0.0.0'
-      const versionB = b?.match(/v(\d+\.\d+\.\d+)/)?.[1] || '0.0.0'
-      // 使用 localeCompare 进行版本号比较
-      return versionB.localeCompare(versionA, undefined, {
+    // 排序：从高版本到低版本
+    return versions.sort((a, b) => {
+      return b.version.localeCompare(a.version, undefined, {
         numeric: true,
         sensitivity: 'base',
       })
-    })[0]
-    if (!latestApk) {
-      snackbar({
-        message: '未找到符合架构的 APK 文件',
-        autoHideDuration: 2000,
-        vertical: 'top',
-        horizontal: 'center',
-        backgroundColor: 'var(--saki-default-color)',
-        color: '#fff',
-      }).open()
-      return
-    }
+    })
+  } catch (error) {
+    console.error('获取版本列表失败:', error)
+    return []
+  }
+}
 
-    // 5. 执行下载
-    const downloadUrl = new URL(latestApk, baseUrl).href
-    console.log('正在下载最新版本:', downloadUrl)
+/**
+ * 传入 URL 直接下载
+ */
+export function downloadAppByUrl(url: string) {
+  try {
+    console.log('正在下载:', url)
+
+    // 弹出提示（沿用你的 snackbar）
     snackbar({
-      message: '正在下载 App',
+      message: '正在开始下载...',
       autoHideDuration: 2000,
       vertical: 'top',
       horizontal: 'center',
@@ -1462,18 +1455,13 @@ export async function downloadApp(platform: string) {
     }).open()
 
     const a = document.createElement('a')
-    a.href = downloadUrl
-    a.download = '' // Nginx 通常会处理文件名
+    a.href = url
+    // 显式设置 download 属性，尝试让浏览器保存文件而非预览
+    a.download = ''
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
   } catch (error) {
-    console.error('自动检测下载失败:', error)
-    snackbar({
-      message: '自动检测下载失败: ' + error,
-      autoHideDuration: 2000,
-      vertical: 'top',
-      horizontal: 'center',
-    }).open()
+    console.error('执行下载失败:', error)
   }
 }

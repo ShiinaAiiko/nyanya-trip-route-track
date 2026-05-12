@@ -28,7 +28,10 @@ import { httpApi } from '../plugins/http/api'
 import { protoRoot } from '../protos'
 // import screenfull from 'screenfull'
 import { config } from 'process'
-import { ReactNativeWebJSBridge } from '../plugins/reactNativeWebJsBridge'
+import {
+  CarData,
+  ReactNativeWebJSBridge,
+} from '../plugins/reactNativeWebJsBridge'
 import axios from 'axios'
 import { appListUrl } from '../config'
 
@@ -688,6 +691,22 @@ export const configSlice = createSlice({
       version: '',
       system: '',
     },
+    carData: {
+      speed: 0.0,
+      elecPercentage: 0.0,
+      fuelPercentage: 0,
+      accelerateDepth: 0,
+      brakeDepth: 0,
+      totalMileage: 0,
+      evMileage: 0,
+      tyrePressure: {
+        leftFront: 0,
+        rightFront: 0,
+        leftRear: 0,
+        rightRear: 0,
+      },
+      timestamp: 1778609999000,
+    } as CarData,
     configure: defaultConfigure,
     initConfigure: false,
     mapRecommend: {
@@ -834,6 +853,10 @@ export const configSlice = createSlice({
     ) => {
       state.appList = params.payload
     },
+    setCarData: (state, params: ActionParams<typeof state.carData>) => {
+      state.carData = params.payload
+    },
+
     setSakiuiI18n: (
       state,
       params: {

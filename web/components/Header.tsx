@@ -1,6 +1,6 @@
 import Head from 'next/head'
 import Link from 'next/link'
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/router'
 import {
   RootState,
@@ -25,7 +25,11 @@ import {
 } from './saki-ui-react/components'
 import NoSSR from './NoSSR'
 import { languages } from '../plugins/i18n/i18n'
-import { downloadApp } from '../plugins/methods'
+import {
+  AppVersion,
+  downloadAppByUrl,
+  getVersionList,
+} from '../plugins/methods'
 
 const HeaderComponent = ({
   // 暂时仅fixed可用
@@ -113,6 +117,16 @@ const HeaderComponent = ({
     })
     return appList
   }, [router])
+
+  const [openAppVersionListDP, setOpenAppVersionListDP] = useState(false)
+
+  const [appVersionList, setAppVersionList] = useState([] as AppVersion[])
+  useEffect(() => {
+    const init = async () => {
+      setAppVersionList(await getVersionList('arm64-v8a'))
+    }
+    init()
+  }, [])
 
   return (
     <div
@@ -204,22 +218,55 @@ const HeaderComponent = ({
 
         {mounted && (
           <>
-            <SakiButton
-              style={{
-                display: config.showIndexPageButton ? 'block' : 'none',
-              }}
-              onTap={async () => {
-                downloadApp('arm64-v8a')
-              }}
-              padding="6px 8px"
-              borderRadius="6px"
-              margin="0 10px 0 0"
-              fontSize="12px"
-              type="Normal"
-              bg-color="rgba(255,255,255,0.7)"
+            <saki-dropdown
+              visible={openAppVersionListDP}
+              floating-direction="Left"
+              z-index="1000"
+              ref={bindEvent({
+                close: () => {
+                  setOpenAppVersionListDP(false)
+                },
+              })}
             >
-              <span>{'下载 App'}</span>
-            </SakiButton>
+              <SakiButton
+                style={{
+                  display: config.showIndexPageButton ? 'block' : 'none',
+                }}
+                onTap={async () => {
+                  setOpenAppVersionListDP(true)
+                }}
+                padding="6px 8px"
+                borderRadius="6px"
+                margin="0 10px 0 0"
+                fontSize="12px"
+                type="Normal"
+                bg-color="rgba(255,255,255,0.7)"
+              >
+                <span>{'下载 App'}</span>
+              </SakiButton>
+
+              <div slot="main">
+                <saki-menu
+                  ref={bindEvent({
+                    selectvalue: async (e) => {
+                      // quickInput(e.detail.value)
+
+                      downloadAppByUrl(e.detail.value)
+
+                      setOpenAppVersionListDP(false)
+                    },
+                  })}
+                >
+                  {appVersionList.map((v, i) => {
+                    return (
+                      <saki-menu-item key={i} padding="10px 18px" value={v.url}>
+                        <span>v{v.version}</span>
+                      </saki-menu-item>
+                    )
+                  })}
+                </saki-menu>
+              </div>
+            </saki-dropdown>
 
             <meow-apps-dropdown
               style={{
@@ -406,7 +453,7 @@ const HeaderComponent = ({
                           )
                           break
                         case 'DownloadApp':
-                          downloadApp('arm64-v8a')
+                          setOpenAppVersionListDP(true)
                           break
 
                         default:

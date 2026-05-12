@@ -17,6 +17,7 @@ import {
   defaultSpeedColorLimit,
   getTrackRouteColor,
   eventListener,
+  rnJSBridge,
 } from '../store/config'
 import { parseQuery, Query } from '../plugins/methods'
 import { storage, storageMethods } from '../store/storage'
@@ -1985,14 +1986,12 @@ const About = ({ show }: { show: boolean }) => {
   const { t, i18n } = useTranslation('settings')
   // const appearance = useSelector((state: RootState) => state.appearance)
   const config = useSelector((state: RootState) => state.config)
+  const user = useSelector((state: RootState) => state.user)
 
   const dispatch = useDispatch<AppDispatch>()
 
-  const [ua,setUa] = useState("")
+  const browserVersion = `${user.userAgent.browser.name} ${user.userAgent.browser.major}`
 
-  useEffect(()=>{
-setUa(navigator?.userAgent||"")
-  },[])
   return (
     <div
       style={{
@@ -2004,14 +2003,12 @@ setUa(navigator?.userAgent||"")
         <img src="/icons/256x256.png" alt="" />
         <div className="version-code">
           <span>Version v{config.appConfig.version || version}</span>
-          {config.appConfig.system ? (
-            <span>{config.appConfig.system}</span>
-          ) : (
-            ''
-          )}
+          <span>{config.appConfig.system || 'Web'}</span>
         </div>
       </div>
-<div>{ua}</div>
+      <div className="version-info">
+        <span className="version-code">{browserVersion}</span>
+      </div>
       <SettingsItem
         subtitle={() => (
           <div>
