@@ -195,6 +195,13 @@ export const language: LanguageType = defaultLanguage as any
 export let country = ''
 export let connectionOSM = true
 
+export const getStaticPath = (path: string) => {
+  if (process.env.BUILD_OUTPUT_TYPE === 'flutter' && path.startsWith('/')) {
+    return `./${path.slice(1)}`
+  }
+  return path
+}
+
 let speedColorRGBs: string[] = []
 
 export let eventListener = new NEventListener()

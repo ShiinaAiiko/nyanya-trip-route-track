@@ -384,8 +384,8 @@ export const geoMethods = {
                       config.lang === 'zh-CN'
                         ? 'zhHans'
                         : config.lang === 'zh-TW'
-                        ? 'zhHant'
-                        : 'en'
+                          ? 'zhHant'
+                          : 'en'
                     ] || (v.name as any)['zhHans']) + ''
 
                   arr.push(v.code + name)

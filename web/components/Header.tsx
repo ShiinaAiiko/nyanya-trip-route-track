@@ -25,6 +25,7 @@ import {
 } from './saki-ui-react/components'
 import NoSSR from './NoSSR'
 import { languages } from '../plugins/i18n/i18n'
+import { downloadApp } from '../plugins/methods'
 
 const HeaderComponent = ({
   // 暂时仅fixed可用
@@ -203,6 +204,23 @@ const HeaderComponent = ({
 
         {mounted && (
           <>
+            <SakiButton
+              style={{
+                display: config.showIndexPageButton ? 'block' : 'none',
+              }}
+              onTap={async () => {
+                downloadApp('arm64-v8a')
+              }}
+              padding="6px 8px"
+              borderRadius="6px"
+              margin="0 10px 0 0"
+              fontSize="12px"
+              type="Normal"
+              bg-color="rgba(255,255,255,0.7)"
+            >
+              <span>{'下载 App'}</span>
+            </SakiButton>
+
             <meow-apps-dropdown
               style={{
                 display: config.showIndexPageButton ? 'block' : 'none',
@@ -387,6 +405,9 @@ const HeaderComponent = ({
                             configSlice.actions.setVConsole(!config.vConsole)
                           )
                           break
+                        case 'DownloadApp':
+                          downloadApp('arm64-v8a')
+                          break
 
                         default:
                           break
@@ -552,6 +573,12 @@ const HeaderComponent = ({
                   ) : (
                     ''
                   )}
+                  <saki-menu-item padding="10px 18px" value={'DownloadApp'}>
+                    <div className="tb-h-r-user-item">
+                      <saki-icon color="#666" type="Download"></saki-icon>
+                      <span>{'下载 App'}</span>
+                    </div>
+                  </saki-menu-item>
                   {/* {user.isLogin ? (
                     <saki-menu-item
                       padding="10px 18px"

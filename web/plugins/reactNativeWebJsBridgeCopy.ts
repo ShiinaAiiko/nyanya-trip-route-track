@@ -20,23 +20,16 @@ export class ReactNativeWebJSBridge extends NEventListener<{
 }> {
   rnWebView: any = undefined
   private count = 0
-  private isFlutterEnv = false
   constructor() {
     super()
 
     this.rnWebView = (window as any)?.ReactNativeWebView
-    this.isFlutterEnv = !this.rnWebView
 
     setTimeout(() => {
       this.load()
       // 接收原生返回的数据
       window.removeEventListener('message', this.onMessage)
       window.addEventListener('message', this.onMessage)
-      
-      // Flutter 环境：注册全局消息处理函数
-      if (this.isFlutterEnv) {
-        ;(window as any).onFlutterMessage = this.handleFlutterMessage
-      }
     }, 700)
   }
   keepScreenOn(b: boolean = true) {
@@ -64,23 +57,12 @@ export class ReactNativeWebJSBridge extends NEventListener<{
       | 'load',
     payload: any
   ) {
-    const message = JSON.stringify({
-      type,
-      payload,
-    })
-    
-    // Flutter 环境：使用 fetch 发送消息，不触发页面导航
-    if (this.isFlutterEnv) {
-      const encodedMessage = encodeURIComponent(message)
-      fetch(`http://localhost:8080/__flutter_bridge__?message=${encodedMessage}`, {
-        method: 'GET',
-        mode: 'no-cors',
-      }).catch(() => {})
-      return
-    }
-    
-    // React Native 环境：使用原生 postMessage
-    this.rnWebView?.postMessage(message)
+    this.rnWebView?.postMessage(
+      JSON.stringify({
+        type,
+        payload,
+      })
+    )
   }
 
   private onMessage = (event: MessageEvent<any>) => {
@@ -99,24 +81,7 @@ export class ReactNativeWebJSBridge extends NEventListener<{
       // console.error(e)
     }
   }
-
-  private handleFlutterMessage = (data: any) => {
-    try {
-      if (!data?.type) return
-      this.count++
-      console.log('handleFlutterMessage', this.count, data)
-      if (data.type === 'location') {
-        this.dispatch('location', data.payload as GeolocationPosition)
-        return
-      }
-
-      this.dispatch(data.type, data.payload)
-    } catch (e) {
-      // console.error(e)
-    }
-  }
-
   isInReactNative() {
-    return !!this.rnWebView || !!(window as any).isFlutterApp
+    return !!this.rnWebView
   }
 }

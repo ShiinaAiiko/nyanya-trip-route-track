@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+option go_package = "./;protos";
+package navigation;
+import "roadbook.proto";
+
+message GetNavigationData {
+  message Request {
+    message Coords {
+      double latitude = 1;
+      double longitude = 2;
+    }
+    // 导航途径点
+    repeated Coords waypoints = 1;
+
+    // driving-car / 	driving-hgv / cycling-regular / foot-walking
+    string travelOptions = 2;
+    string preference = 3;
+    repeated string routeOptions = 4;
+  }
+  message Response { roadbook.RoadbookWaypointNavigation navigationData = 1; }
+}

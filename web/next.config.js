@@ -23,13 +23,18 @@ const withPWA = require('next-pwa')({
   dynamicStartUrl: true,
   disable: process.env.NODE_ENV === 'development',
 })
+// console.log('process.env.BUILD_OUTPUT_TYPE', process.env.BUILD_OUTPUT_TYPE)
+
 module.exports = withPWA({
   ...(process.env.OUTPUT === 'export'
     ? {
         output: 'export',
       }
     : {}),
-  trailingSlash: false,
+  assetPrefix: process.env.BUILD_OUTPUT_TYPE === 'flutter' ? './' : '/',
+  trailingSlash: process.env.BUILD_OUTPUT_TYPE === 'flutter',
+  // assetPrefix: './',
+  // trailingSlash: true,
   reactStrictMode: false,
   swcMinify: false,
   // compiler: {

@@ -1,0 +1,71 @@
+syntax = "proto3";
+
+option go_package = "./;protos";
+package position;
+import "trip.proto";
+
+message UserPositionItem {
+  string id = 1;
+  trip.TripPosition position = 2;
+  // 位置共享类型 5 所有人 1 仅本人可看 -1 禁止共享
+  int64 positionShare = 3;
+  int64 createTime = 4;
+  int64 lastUpdateTime = 5;
+}
+
+message UpdateUserPosition {
+  message Request { trip.TripPosition position = 1; }
+  message Response {}
+}
+
+message GetUserPositionAndVehiclePosition {
+  message Request {
+    // 最大距离
+    int64 maxDistance = 1;
+    repeated double latitudeLimit = 2;
+    repeated double longitudeLimit = 3;
+    // 可选 [createTime,endTime]
+    repeated int64 timeLimit = 4;
+  }
+  message Response {
+    message UserInfo {
+      string uid = 1;
+      string avatar = 2;
+      string nickname = 3;
+    }
+    message VehicleInfo {
+      string id = 1;
+      string logo = 2;
+      string name = 3;
+      string carModel = 4;
+      string type = 5;
+    }
+
+    message PositionItem {
+      // User / Vehicle
+      string type = 2;
+      trip.TripPosition position = 3;
+
+      UserInfo userInfo = 4;
+      VehicleInfo vehicleInfo = 5;
+    }
+    repeated PositionItem list = 1;
+    int64 total = 2;
+  }
+}
+
+message UpdateUserPositionShare {
+  message Request {
+    // -1 1 5
+    int64 positionShare = 1;
+  }
+  message Response {}
+}
+
+message GetUserPositionShare {
+  message Request {}
+  message Response {
+    // -1 1 5
+    int64 positionShare = 1;
+  }
+}

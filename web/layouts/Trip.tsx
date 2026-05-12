@@ -44,7 +44,12 @@ import Leaflet from 'leaflet'
 import { useRouter } from 'next/router'
 import { storage } from '../store/storage'
 import { isFullScreen } from '../plugins/methods'
-import { eventListener, initRnJSBridge, rnJSBridge } from '../store/config'
+import {
+  eventListener,
+  getStaticPath,
+  initRnJSBridge,
+  rnJSBridge,
+} from '../store/config'
 import FindLocationComponent from '../components/FindLocation'
 // import screenfull from 'screenfull'
 import Script from 'next/script'
@@ -126,6 +131,10 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
   const [sakiuiWSUrl, setSakiUiWSUrl] = useState('')
 
   useEffect(() => {
+    if (process.env.BUILD_OUTPUT_TYPE == 'flutter') {
+      return
+    }
+
     console.log('debug', debug, router.query, !!nativeConsole)
 
     const lf = console.log
@@ -451,14 +460,21 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
           name="viewport"
           content="width=device-width, initial-scale=1.0"
         ></meta>
-        <link rel="stylesheet" href="/css/leaflet.css" crossOrigin="" />
-        <script src="/js/leaflet.js" crossOrigin=""></script>
-        <script src="/js/leaflet-polycolor.min.js"></script>
-        <script src="/js/TileLayer.ColorScale.js" crossOrigin=""></script>
+        <link
+          rel="stylesheet"
+          href={getStaticPath('/css/leaflet.css')}
+          crossOrigin=""
+        />
+        <script src={getStaticPath('/js/leaflet.js')} crossOrigin=""></script>
+        <script src={getStaticPath('/js/leaflet-polycolor.min.js')}></script>
+        <script
+          src={getStaticPath('/js/TileLayer.ColorScale.js')}
+          crossOrigin=""
+        ></script>
 
         {/* <script src="/js/glify-browser.min.js" crossOrigin=""></script> */}
 
-        <script src="/js/leaflet-rotate.js"></script>
+        <script src={getStaticPath('/js/leaflet-rotate.js')}></script>
 
         {/* {debug === 'true' ? (
 					<script src='https://unpkg.com/vconsole@latest/dist/vconsole.min.js'></script>
@@ -472,7 +488,7 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
 						new (window as any).VConsole({ theme: 'dark' })
 					}}
 				></Script> */}
-        <script src="/js/responsivevoice.js"></script>
+        <script src={getStaticPath('/js/responsivevoice.js')}></script>
         {/* <script src='https://code.responsivevoice.org/responsivevoice.js?key=qH3G8T7O'></script> */}
 
         {/* <link

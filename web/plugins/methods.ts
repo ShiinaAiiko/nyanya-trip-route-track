@@ -14,7 +14,7 @@ import { protoRoot } from '../protos'
 import { imageColorInversion } from '@nyanyajs/utils/dist/images/imageColorInversion'
 import { t } from './i18n/i18n'
 import { alert, snackbar } from '@saki-ui/core'
-import { edgeTTS } from '../config'
+import { edgeTTS, server } from '../config'
 
 export const getRegExp = (type: 'email') => {
   return /^\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$/
@@ -1385,5 +1385,95 @@ export class SpeechPilot {
       clearTimeout(this.silenceTimer)
       this.silenceTimer = null
     }
+  }
+}
+
+export async function downloadApp(platform: string) {
+  let baseUrl = server.url + '/packages/'
+
+  baseUrl = 'https://trip.aiiko.club/packages/'
+
+  try {
+    // 1. 获取 Nginx 目录页面内容
+    const response = await fetch(baseUrl)
+    const html = await response.text()
+
+    // console.log('apkFiles html', html)
+    // 2. 解析 HTML
+    const parser = new DOMParser()
+    const doc = parser.parseFromString(html, 'text/html')
+    const links = Array.from(doc.querySelectorAll('a'))
+
+    // 3. 筛选出符合条件的 apk 文件
+    // 规则：包含 arm64-v8a 且以 .apk 结尾
+    const apkFiles = links
+      .map((link) => link.getAttribute('href'))
+      .filter(
+        (href) => href && href.includes(platform) && href.endsWith('.apk')
+      )
+
+    // console.log('apkFiles', apkFiles)
+    if (apkFiles.length === 0) {
+      console.error('未找到符合架构的 APK 文件')
+
+      snackbar({
+        message: '未找到符合架构的 APK 文件',
+        autoHideDuration: 2000,
+        vertical: 'top',
+        horizontal: 'center',
+        backgroundColor: 'var(--saki-default-color)',
+        color: '#fff',
+      }).open()
+      return
+    }
+
+    // 4. 版本排序找到最新的（假设格式为 trip-route-track-vX.Y.Z-arm64-v8a.apk）
+    const latestApk = apkFiles.sort((a, b) => {
+      const versionA = a?.match(/v(\d+\.\d+\.\d+)/)?.[1] || '0.0.0'
+      const versionB = b?.match(/v(\d+\.\d+\.\d+)/)?.[1] || '0.0.0'
+      // 使用 localeCompare 进行版本号比较
+      return versionB.localeCompare(versionA, undefined, {
+        numeric: true,
+        sensitivity: 'base',
+      })
+    })[0]
+    if (!latestApk) {
+      snackbar({
+        message: '未找到符合架构的 APK 文件',
+        autoHideDuration: 2000,
+        vertical: 'top',
+        horizontal: 'center',
+        backgroundColor: 'var(--saki-default-color)',
+        color: '#fff',
+      }).open()
+      return
+    }
+
+    // 5. 执行下载
+    const downloadUrl = new URL(latestApk, baseUrl).href
+    console.log('正在下载最新版本:', downloadUrl)
+    snackbar({
+      message: '正在下载 App',
+      autoHideDuration: 2000,
+      vertical: 'top',
+      horizontal: 'center',
+      backgroundColor: 'var(--saki-default-color)',
+      color: '#fff',
+    }).open()
+
+    const a = document.createElement('a')
+    a.href = downloadUrl
+    a.download = '' // Nginx 通常会处理文件名
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+  } catch (error) {
+    console.error('自动检测下载失败:', error)
+    snackbar({
+      message: '自动检测下载失败: ' + error,
+      autoHideDuration: 2000,
+      vertical: 'top',
+      horizontal: 'center',
+    }).open()
   }
 }

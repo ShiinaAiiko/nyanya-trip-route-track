@@ -1987,6 +1987,12 @@ const About = ({ show }: { show: boolean }) => {
   const config = useSelector((state: RootState) => state.config)
 
   const dispatch = useDispatch<AppDispatch>()
+
+  const [ua,setUa] = useState("")
+
+  useEffect(()=>{
+setUa(navigator?.userAgent||"")
+  },[])
   return (
     <div
       style={{
@@ -2005,7 +2011,7 @@ const About = ({ show }: { show: boolean }) => {
           )}
         </div>
       </div>
-
+<div>{ua}</div>
       <SettingsItem
         subtitle={() => (
           <div>

@@ -8,7 +8,7 @@ branch="main"
 configFilePath="config.pro.json"
 registryUrl="https://registry.npmmirror.com/"
 DIR=$(cd $(dirname $0) && pwd)
-allowMethods=("download:saki-ui-react download:saki-ui copySakiUIReactTypes unzip zip protos stop rm npmconfig install gitpull dockerremove start logs")
+allowMethods=("start:web start:flutter buildtoflutter download:saki-ui-react download:saki-ui copySakiUIReactTypes unzip zip protos stop rm npmconfig install gitpull dockerremove start logs")
 
 copySakiUIReactTypes() {
 	sakiUIPath="../../../saki-ui/saki-ui"
@@ -45,7 +45,7 @@ gitpull() {
 
 dockerremove() {
 	echo "-> 删除无用镜像"
-	docker rm $(docker ps -q -f status=exited) 2&>/dev/null
+	docker rm $(docker ps -q -f status=exited) 2 &>/dev/null
 	docker rmi -f $(docker images | grep '<none>' | awk '{print $3}') 2 &>/dev/null
 }
 setVersion() {
@@ -92,6 +92,7 @@ start() {
 	echo "-> 准备构建Docker"
 	docker build \
 		-t $name \
+		--build-arg BUILD_OUTPUT_TYPE=$BUILD_OUTPUT_TYPE \
 		--network host \
 		$(cat /etc/hosts | sed 's/^#.*//g' | grep '[0-9][0-9]' | tr "\t" " " | awk '{print "--add-host="$2":"$1 }' | tr '\n' ' ') \
 		. \
@@ -107,6 +108,7 @@ start() {
 
 	docker run \
 		--name=$name \
+		-e BUILD_OUTPUT_TYPE=$BUILD_OUTPUT_TYPE \
 		-v $DIR/$configFilePath:/config.temp.json \
 		$(cat /etc/hosts | sed 's/^#.*//g' | grep '[0-9][0-9]' | tr "\t" " " | awk '{print "--add-host="$2":"$1 }' | tr '\n' ' ') \
 		-p $port:$port \
@@ -117,9 +119,30 @@ start() {
 	docker cp $name:/build.tgz $DIR/build.tgz
 	stop
 
+	# rm $DIR/build.tgz
+
+}
+
+start:web() {
+	export BUILD_OUTPUT_TYPE=web
+	start
 	./ssh.sh run
 
-	rm $DIR/build.tgz
+}
+
+start:flutter() {
+	# export BUILD_OUTPUT_TYPE=flutter
+	export BUILD_OUTPUT_TYPE=web
+	start
+	buildtoflutter
+}
+
+buildtoflutter() {
+	flutterOutDir=../trip-route-track-flutter-app/assets/out
+	rm -rf $flutterOutDir
+	mkdir -p $flutterOutDir
+	tar -zxvf $DIR/build.tgz -C $flutterOutDir/
+	# rm build.tgz
 }
 
 unzip() {
@@ -157,7 +180,6 @@ protos() {
 	yarn protos
 	rm -rf $DIR/protos_temp
 	echo "-> 编译Protobuf成功"
-	
 
 }
 

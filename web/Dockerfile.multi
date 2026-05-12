@@ -4,6 +4,8 @@ WORKDIR /app
 
 ENV CLIENT_ENV=production
 # ENV NODE_ENV=production
+ARG BUILD_OUTPUT_TYPE
+ENV BUILD_OUTPUT_TYPE=$BUILD_OUTPUT_TYPE
 
 COPY .yarnrc .npmrc /root/
 COPY package.json yarn.lock ./
