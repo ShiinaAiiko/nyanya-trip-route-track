@@ -941,6 +941,7 @@ export const formartAddrName = (
     'residential',
     'unclassified',
     'town',
+    'amenity',
   ]
 
   return roadTypes.includes(v?.address?.type || '')
@@ -2290,6 +2291,7 @@ export const tripMethods = {
         const tripsData: protoRoot.trip.UpdateTripAddresses.Request.ITripItem[] =
           []
         trips.forEach((v, i) => {
+          // ?.filter(sv=>sv.address?.fullName)
           if (v.addresses?.length) return
           totalCount++
 

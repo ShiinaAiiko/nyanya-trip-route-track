@@ -30,6 +30,7 @@ import {
   downloadAppByUrl,
   getVersionList,
 } from '../plugins/methods'
+import { rnJSBridge } from '../store/config'
 
 const HeaderComponent = ({
   // 暂时仅fixed可用
@@ -44,7 +45,7 @@ const HeaderComponent = ({
   useEffect(() => {
     setMounted(true)
   }, [])
-  const store = useStore()
+  // const store = useStore()
 
   const router = useRouter()
   const dispatch = useDispatch<AppDispatch>()
@@ -113,6 +114,7 @@ const HeaderComponent = ({
         ...v,
         url: url,
         active: url === router.asPath,
+        padding: '0 10px 0 0',
       }
     })
     return appList
@@ -123,7 +125,7 @@ const HeaderComponent = ({
   const [appVersionList, setAppVersionList] = useState([] as AppVersion[])
   useEffect(() => {
     const init = async () => {
-      setAppVersionList(await getVersionList('arm64-v8a'))
+      setAppVersionList((await getVersionList('arm64-v8a')).slice(0, 10))
     }
     init()
   }, [])
@@ -178,7 +180,7 @@ const HeaderComponent = ({
                   }
                 ) as any
               }
-              openNewPage={true}
+              openNewPage={!rnJSBridge?.isInApp()}
               app-text={layout.headerLogoText}
               app-logo={
                 router.pathname.includes('/weather')
@@ -218,55 +220,67 @@ const HeaderComponent = ({
 
         {mounted && (
           <>
-            <saki-dropdown
-              visible={openAppVersionListDP}
-              floating-direction="Left"
-              z-index="1000"
-              ref={bindEvent({
-                close: () => {
-                  setOpenAppVersionListDP(false)
-                },
-              })}
-            >
-              <SakiButton
-                style={{
-                  display: config.showIndexPageButton ? 'block' : 'none',
-                }}
-                onTap={async () => {
-                  setOpenAppVersionListDP(true)
-                }}
-                padding="6px 8px"
-                borderRadius="6px"
-                margin="0 10px 0 0"
-                fontSize="12px"
-                type="Normal"
-                bg-color="rgba(255,255,255,0.7)"
+            {!rnJSBridge?.isInApp() ? (
+              <saki-dropdown
+                visible={openAppVersionListDP}
+                floating-direction="Left"
+                z-index="1000"
+                ref={bindEvent({
+                  close: () => {
+                    setOpenAppVersionListDP(false)
+                  },
+                })}
               >
-                <span>{'下载 App'}</span>
-              </SakiButton>
-
-              <div slot="main">
-                <saki-menu
-                  ref={bindEvent({
-                    selectvalue: async (e) => {
-                      // quickInput(e.detail.value)
-
-                      downloadAppByUrl(e.detail.value)
-
-                      setOpenAppVersionListDP(false)
-                    },
-                  })}
+                <SakiButton
+                  style={{
+                    display: config.showIndexPageButton ? 'block' : 'none',
+                  }}
+                  onTap={async () => {
+                    setOpenAppVersionListDP(true)
+                  }}
+                  padding="6px 8px"
+                  borderRadius="6px"
+                  margin="0 10px 0 0"
+                  fontSize="12px"
+                  type="Normal"
+                  bg-color="rgba(255,255,255,0.7)"
                 >
-                  {appVersionList.map((v, i) => {
-                    return (
-                      <saki-menu-item key={i} padding="10px 18px" value={v.url}>
-                        <span>v{v.version}</span>
-                      </saki-menu-item>
-                    )
-                  })}
-                </saki-menu>
-              </div>
-            </saki-dropdown>
+                  <span>
+                    {t('downloadApp', {
+                      ns: 'common',
+                    })}
+                  </span>
+                </SakiButton>
+
+                <div slot="main">
+                  <saki-menu
+                    ref={bindEvent({
+                      selectvalue: async (e) => {
+                        // quickInput(e.detail.value)
+
+                        downloadAppByUrl(e.detail.value)
+
+                        setOpenAppVersionListDP(false)
+                      },
+                    })}
+                  >
+                    {appVersionList.map((v, i) => {
+                      return (
+                        <saki-menu-item
+                          key={i}
+                          padding="10px 18px"
+                          value={v.url}
+                        >
+                          <span>v{v.version}</span>
+                        </saki-menu-item>
+                      )
+                    })}
+                  </saki-menu>
+                </div>
+              </saki-dropdown>
+            ) : (
+              ''
+            )}
 
             <meow-apps-dropdown
               style={{
@@ -452,9 +466,9 @@ const HeaderComponent = ({
                             configSlice.actions.setVConsole(!config.vConsole)
                           )
                           break
-                        case 'DownloadApp':
-                          setOpenAppVersionListDP(true)
-                          break
+                        // case 'DownloadApp':
+                        //   setOpenAppVersionListDP(true)
+                        //   break
 
                         default:
                           break
@@ -620,12 +634,20 @@ const HeaderComponent = ({
                   ) : (
                     ''
                   )}
-                  <saki-menu-item padding="10px 18px" value={'DownloadApp'}>
-                    <div className="tb-h-r-user-item">
-                      <saki-icon color="#666" type="Download"></saki-icon>
-                      <span>{'下载 App'}</span>
-                    </div>
-                  </saki-menu-item>
+                  {/* {!rnJSBridge?.isInApp() ? (
+                    <saki-menu-item padding="10px 18px" value={'DownloadApp'}>
+                      <div className="tb-h-r-user-item">
+                        <saki-icon color="#666" type="Download"></saki-icon>
+                        <span>
+                          {t('downloadApp', {
+                            ns: 'common',
+                          })}
+                        </span>
+                      </div>
+                    </saki-menu-item>
+                  ) : (
+                    ''
+                  )} */}
                   {/* {user.isLogin ? (
                     <saki-menu-item
                       padding="10px 18px"

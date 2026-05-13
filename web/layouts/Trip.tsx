@@ -371,7 +371,7 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
       if (!rnJSBridge) {
         initRnJSBridge()
       }
-      if (rnJSBridge?.isInReactNative()) {
+      if (rnJSBridge?.isInApp()) {
         rnJSBridge.enableLocation(true)
 
         rnJSBridge.enableCarData(true)
@@ -646,6 +646,7 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
                           el.style.display = 'none'
                           // setHideLoading(true)
                           dispatch(configSlice.actions.setHideLoading(true))
+                          rnJSBridge?.closeLoading()
                         }
                       }
                     }

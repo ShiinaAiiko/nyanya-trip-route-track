@@ -1567,7 +1567,7 @@ const Maps = ({
       ) : (
         ''
       )}
-      {rnJSBridge?.isInReactNative() ? (
+      {rnJSBridge?.isInApp() ? (
         <div
           style={{
             display: 'flex',

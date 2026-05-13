@@ -77,6 +77,9 @@ export class ReactNativeWebJSBridge extends NEventListener<{
   getCarData() {
     this.sendMessage('getCarData', null)
   }
+  closeLoading() {
+    this.sendMessage('closeLoading', null)
+  }
   load() {
     this.sendMessage('load', null)
   }
@@ -90,6 +93,7 @@ export class ReactNativeWebJSBridge extends NEventListener<{
       | 'enableBackgroundTasks'
       | 'enableCarData'
       | 'getCarData'
+      | 'closeLoading'
       | 'load',
     payload: any
   ) {
@@ -148,7 +152,10 @@ export class ReactNativeWebJSBridge extends NEventListener<{
     }
   }
 
-  isInReactNative() {
+  // isInReactNative() {
+  //   return !!this.rnWebView || !!(window as any)?.isFlutterApp
+  // }
+  isInApp() {
     return !!this.rnWebView || !!(window as any)?.isFlutterApp
   }
 }

@@ -393,7 +393,7 @@ const FiexdWeatherComponent = ({
         ''
       )}
 
-      {rnJSBridge?.isInReactNative() ? (
+      {rnJSBridge?.isInApp() ? (
         <div
           style={{
             backgroundColor: '#fff',

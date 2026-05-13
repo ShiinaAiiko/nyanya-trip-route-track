@@ -8,7 +8,7 @@ branch="main"
 configFilePath="config.pro.json"
 registryUrl="https://registry.npmmirror.com/"
 DIR=$(cd $(dirname $0) && pwd)
-allowMethods=("start:web start:flutter buildtoflutter download:saki-ui-react download:saki-ui copySakiUIReactTypes unzip zip protos stop rm npmconfig install gitpull dockerremove start logs")
+allowMethods=("build start:web start:flutter buildtoflutter download:saki-ui-react download:saki-ui copySakiUIReactTypes unzip zip protos stop rm npmconfig install gitpull dockerremove start logs")
 
 copySakiUIReactTypes() {
 	sakiUIPath="../../../saki-ui/saki-ui"
@@ -121,6 +121,13 @@ start() {
 
 	# rm $DIR/build.tgz
 
+}
+
+build() {
+	export BUILD_OUTPUT_TYPE=web
+	start
+	buildtoflutter
+	./ssh.sh run
 }
 
 start:web() {

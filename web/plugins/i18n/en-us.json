@@ -7,7 +7,8 @@
     "login": "Login",
     "logout": "Logout",
     "edit": "Edit",
-    "save": "Save"
+    "save": "Save",
+    "downloadApp": "Download App"
   },
   "languages": {
     "en-US": "English",

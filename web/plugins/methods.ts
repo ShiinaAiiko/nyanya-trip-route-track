@@ -1397,7 +1397,7 @@ export interface AppVersion {
 const BASE_URL = 'https://trip.aiiko.club/packages/'
 
 /**
- * 获取版本列表 (由高到低排序)
+ * 获取版本列表(由高到低排序)
  */
 export async function getVersionList(platform: string): Promise<AppVersion[]> {
   try {
