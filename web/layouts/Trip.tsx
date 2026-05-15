@@ -61,7 +61,11 @@ import LoadModalComponent, {
 } from '../components/LoadModal'
 import { loadPwaNewVersion } from '../plugins/loadPwaNewVersion'
 import { SakiI18n, SakiInit } from '../components/saki-ui-react/components'
-import { ReactNativeWebJSBridge } from '../plugins/reactNativeWebJsBridge'
+import {
+  defaultStatusBarData,
+  ReactNativeWebJSBridge,
+  StatusBarData,
+} from '../plugins/reactNativeWebJsBridge'
 import { loadModal } from '../store/layout'
 import { sakisso } from '../config'
 import {
@@ -353,6 +357,107 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
     dispatch(configSlice.actions.setUserPositionShare(-1))
   }, [user])
 
+  const getCarDataTimer = useRef<NodeJS.Timeout>()
+
+  const [statusBarData, setStatusBarData] = useState<StatusBarData>()
+
+  useEffect(() => {
+    clearInterval(getCarDataTimer.current)
+    if (!rnJSBridge) {
+      initRnJSBridge()
+    }
+    if (!rnJSBridge?.isInApp()) {
+      return
+    }
+    const init = async () => {
+      let count = 0
+      rnJSBridge.enableCarData(true)
+
+      getCarDataTimer.current = setInterval(async () => {
+        console.log('Flutter getCarData')
+        if (count % 10 === 0) {
+          rnJSBridge.enableCarData(true)
+        }
+        count++
+        rnJSBridge.getCarData()
+      }, 10 * 1000)
+
+      rnJSBridge.on('appConfig', (val) => {
+        console.log('appConfig', val)
+        dispatch(configSlice.actions.setAppConfig(val))
+      })
+      rnJSBridge.on('carData', (val) => {
+        console.log('carData', val)
+        if (val.hasOwnProperty('speed')) {
+          dispatch(configSlice.actions.setCarData(val))
+        }
+      })
+      rnJSBridge.on('bydLog', (val) => {
+        dispatch(configSlice.actions.setCarLog(val))
+      })
+
+      rnJSBridge.load()
+    }
+    init()
+    return () => {
+      rnJSBridge.removeEvent('appConfig')
+      rnJSBridge.removeEvent('carData')
+      rnJSBridge.removeEvent('bydLog')
+    }
+  }, [mounted, router])
+
+  // 状态栏设置
+  useEffect(() => {
+    console.log(
+      'rrrrrr',
+      router,
+      router?.pathname === '/' || router?.pathname === '/[lang]'
+    )
+
+    if (!rnJSBridge?.isInApp || !mounted || !router.pathname) {
+      return
+    }
+    if (
+      layout.openSettingsModal ||
+      layout.openLoginModal ||
+      layout.openTripHistoryModal ||
+      layout.openVehicleModal ||
+      layout.openPrivacyGeofenceModal ||
+      layout.openCreateCustomTripModal ||
+      layout.openJourneyMemoriesModal ||
+      layout.openVisitedCitiesModal.visible
+    ) {
+      rnJSBridge?.setStatusBar('light')
+      return
+    }
+    // if (router?.pathname === '/' || router?.pathname === '/[lang]') {
+    //   setTimeout(() => {
+    //     rnJSBridge.getStatusBarData().then((v) => {
+    //       setStatusBarData(v)
+    //     })
+    //     rnJSBridge?.setStatusBar('transparent-dark')
+    //   }, 700)
+    //   return
+    // }
+
+    setStatusBarData(undefined)
+    rnJSBridge?.setStatusBar('system')
+    // rnJSBridge?.getThemeColor().then((v) => {
+    //   rnJSBridge?.setStatusBar(v)
+    // })
+  }, [
+    mounted,
+    router.pathname,
+    layout.openSettingsModal,
+    layout.openLoginModal,
+    layout.openTripHistoryModal,
+    layout.openVehicleModal,
+    layout.openPrivacyGeofenceModal,
+    layout.openCreateCustomTripModal,
+    layout.openJourneyMemoriesModal,
+    layout.openVisitedCitiesModal.visible,
+  ])
+
   // useEffect(() => {
   //   router.pathname.indexOf('trackRoute') < 0 && checkMapUrl(config.mapUrl, 'BaseMap')
   // }, [config.mapUrl])
@@ -362,24 +467,13 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
   // }, [config.trackRouteMapUrl])
 
   const d = useRef(new Debounce())
-  const getCarDataTimer = useRef<NodeJS.Timeout>()
   // const rnJSBridge = useRef<ReactNativeWebJSBridge>()
 
   useEffect(() => {
     try {
-      clearInterval(getCarDataTimer.current)
-      if (!rnJSBridge) {
-        initRnJSBridge()
-      }
+      if (!mounted) return
       if (rnJSBridge?.isInApp()) {
         rnJSBridge.enableLocation(true)
-
-        rnJSBridge.enableCarData(true)
-
-        getCarDataTimer.current = setInterval(() => {
-          console.log('Flutter getCarData')
-          rnJSBridge.getCarData()
-        }, 3000)
 
         rnJSBridge.removeEvent('location')
         rnJSBridge.on('location', (val: any) => {
@@ -390,14 +484,6 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
           d.current.increase(() => {
             dispatch(geoSlice.actions.setWatchUpdateTime(new Date().getTime()))
           }, 10 * 1000)
-        })
-        rnJSBridge.on('appConfig', (val) => {
-          console.log('appConfig', val)
-          dispatch(configSlice.actions.setAppConfig(val))
-        })
-        rnJSBridge.on('carData', (val) => {
-          console.log('carData', val)
-          dispatch(configSlice.actions.setCarData(val))
         })
         return
       }
@@ -438,7 +524,7 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
         horizontal: 'center',
       }).open()
     }
-  }, [config.connectionOSM, geoWatchUpdateTime])
+  }, [mounted, config.connectionOSM, geoWatchUpdateTime])
 
   const initNyaNyaWasm = async () => {
     NyaNyaWasm.setWasmPath('./nyanyajs-utils-wasm.wasm')
@@ -514,7 +600,14 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
 				<script src='https://cdn.jsdelivr.net/npm/lightgallery/plugins/fullscreen/lg-fullscreen.umd.js'></script>
 				<script src='https://cdn.jsdelivr.net/npm/lightgallery/plugins/video/lg-video.umd.js'></script> */}
       </Head>
-      <div className="trip-layout saki-loading">
+      <div
+        style={{
+          ...({
+            '--status-bar-height': `${statusBarData?.statusBarHeight ? statusBarData?.statusBarHeight - 10 : 0}px`,
+          } as any),
+        }}
+        className="trip-layout saki-loading"
+      >
         <NoSSR>
           <>
             <saki-base-style></saki-base-style>
@@ -670,6 +763,7 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
           <div
             className={'tl-m-main ' + (layout.headerFiexd ? 'headerFiexd' : '')}
           >
+            {/* <p> {JSON.stringify(statusBarData, null, 2)}</p> */}
             {children}
           </div>
         </div>

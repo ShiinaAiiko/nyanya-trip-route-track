@@ -691,6 +691,7 @@ export const configSlice = createSlice({
       version: '',
       system: '',
     },
+    carLog: [] as string[],
     carData: {
       speed: 0.0,
       elecPercentage: 0.0,
@@ -855,6 +856,10 @@ export const configSlice = createSlice({
     },
     setCarData: (state, params: ActionParams<typeof state.carData>) => {
       state.carData = params.payload
+    },
+    setCarLog: (state, params: ActionParams<string>) => {
+      state.carLog.push(params.payload)
+      state.carLog = state.carLog.slice(-150)
     },
 
     setSakiuiI18n: (

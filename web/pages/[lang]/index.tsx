@@ -337,6 +337,8 @@ const TripPage = () => {
           positions: getTestData.data,
         })
       }
+
+      rnJSBridge?.enableLocation(true)
     }
     init()
   }, [])
@@ -855,8 +857,13 @@ const TripPage = () => {
       lastTriggerTime: 0,
     }
 
+    setMapLayerFeaturesList({
+      ...mapLayerFeaturesList,
+      headingUp: startTrip,
+    })
+
     if (startTrip) {
-      if (config.appConfig.version) {
+      if (rnJSBridge.isInApp()) {
         snackbar({
           message: t('screen_always_on_and_background_gps_enabled', {
             ns: 'tripPage',
@@ -1107,11 +1114,11 @@ const TripPage = () => {
       // console.log('AI领航员 config', config.configure.ai)
 
       if (user.isLogin && config.configure.ai?.aiCoDriver?.enabled) {
-        const triggerReason = shouldAIPilotWakeUp(AIContext.current)
-        if (triggerReason) {
+        const result = shouldAIPilotWakeUp(AIContext.current)
+        if (result.triggerReason) {
           console.log(
             'AI领航员 isGoAi',
-            triggerReason,
+            result.triggerReason,
             AIContext.current,
             config.configure?.ai?.aiCoDriver?.trigger
           )
@@ -1121,7 +1128,7 @@ const TripPage = () => {
               layoutSlice.actions.setOpenAiChatModal({
                 visible: true,
                 startTrip: true,
-                triggerReason: triggerReason,
+                triggerReason: result.triggerReason,
 
                 autoPlayVoice:
                   config.configure.ai?.aiCoDriver?.autoPlayVoice || false,
@@ -1132,6 +1139,8 @@ const TripPage = () => {
                 lastTripData: AIContext.current.lastTriggerData,
               })
             )
+
+            result?.end()
           })
         }
       }
@@ -1246,7 +1255,7 @@ const TripPage = () => {
     let triggerReason: (typeof layout.openAiChatModal)['triggerReason'] = ''
 
     // 1. 基础检查
-    if (!ctx.startTrip || !ctx.currentTripData) return triggerReason
+    if (!ctx.startTrip || !ctx.currentTripData) return { triggerReason }
 
     const {
       currentTripData,
@@ -1263,12 +1272,12 @@ const TripPage = () => {
       ctx.lastTriggerData = JSON.parse(JSON.stringify(currentTripData))
 
       ctx.lastTriggerHour = currentHour
-      return triggerReason
+      return { triggerReason }
     }
 
     const currStats = currentTripData.statistics
     const lastStats = lastTriggerData.statistics
-    if (!currStats || !lastStats) return triggerReason
+    if (!currStats || !lastStats) return { triggerReason }
 
     // ==========================================
     // 3. 阈值定义区 (根据需求可在此统一修改)
@@ -1445,25 +1454,29 @@ const TripPage = () => {
     // ==========================================
     // 6. 状态同步与返回
     // ==========================================
-    if (triggerReason) {
-      console.log(
-        `[AI领航员] 触发成功 | 原因: ${triggerReason} | 时间: ${currentHour}点`
-      )
 
-      // 自动更新上下文状态
-      ctx.lastTriggerData = JSON.parse(JSON.stringify(currentTripData))
-      ctx.lastTriggerTime = now
-      ctx.lastTriggerHour = currentHour
+    return {
+      triggerReason,
+      end: () => {
+        if (triggerReason) {
+          console.log(
+            `[AI领航员] 触发成功 | 原因: ${triggerReason} | 时间: ${currentHour}点`
+          )
 
-      if (triggerReason === 'DROWSY_DRIVING') {
-        ctx.lastStopTime = now
-      }
-      if (triggerReason === 'CHANGE_CITY') {
-        ctx.lastCity = ctx.currentCity
-      }
+          // 自动更新上下文状态
+          ctx.lastTriggerData = deepCopy(currentTripData)
+          ctx.lastTriggerTime = now
+          ctx.lastTriggerHour = currentHour
+
+          if (triggerReason === 'DROWSY_DRIVING') {
+            ctx.lastStopTime = now
+          }
+          if (triggerReason === 'CHANGE_CITY') {
+            ctx.lastCity = ctx.currentCity
+          }
+        }
+      },
     }
-
-    return triggerReason
   }
 
   const roadInfoList = useRef<protoRoot.road.IRoadInfo[]>([])
@@ -1797,9 +1810,12 @@ const TripPage = () => {
   }
 
   const lastHeading = useRef(0)
+  const isHeadingUp = useMemo(() => {
+    return !startTrip ? false : mapLayer?.headingUp
+  }, [startTrip, mapLayer?.headingUp])
   useEffect(() => {
     if (!map.current) return
-    if (mapLayer?.headingUp) {
+    if (isHeadingUp) {
       smoothSetBearing(map.current, lastHeading.current * -1, 400, 'linear')
     } else {
       ;(map.current as any)?.setBearing(0)
@@ -1810,7 +1826,7 @@ const TripPage = () => {
         '.map_current_position_icon-wrap .icon'
       )
 
-      if (mapLayer?.headingUp) {
+      if (isHeadingUp) {
         el?.classList.add('disallowRotate')
         el?.classList.remove('allowRotate')
       } else {
@@ -1818,7 +1834,7 @@ const TripPage = () => {
         el?.classList.add('allowRotate')
       }
     }
-  }, [mapLayer?.headingUp])
+  }, [isHeadingUp])
 
   const selectPositionMarker = useRef<Leaflet.Marker<any>>()
 
@@ -1918,12 +1934,12 @@ const TripPage = () => {
           map.current,
           [lat, lon],
           mapLayer?.showAvatarAtCurrentPosition || false,
-          mapLayer?.headingUp || false
+          isHeadingUp || false
         )
       }
       marker.current.setLatLng([lat, lon])
 
-      if (mapLayer?.headingUp) {
+      if (isHeadingUp) {
         if ((position.coords.speed || 0) > 0) {
           lastHeading.current = position.coords.heading || 0
           smoothSetBearing(
@@ -2876,7 +2892,7 @@ const TripPage = () => {
                   return v.code !== 'A404'
                 }) || []
               }
-              headingUp={mapLayer?.headingUp || false}
+              headingUp={isHeadingUp || false}
               mapLayerType={mapLayerType}
             ></NewDashboardComponent>
           </NoSSR>

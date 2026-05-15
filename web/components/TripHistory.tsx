@@ -41,7 +41,12 @@ import {
   reupdateTripPositions,
   tripMethods,
 } from '../store/trip'
-import { deviceType, eventListener, TabsTripType } from '../store/config'
+import {
+  deviceType,
+  eventListener,
+  rnJSBridge,
+  TabsTripType,
+} from '../store/config'
 import { uploadFile } from '../store/file'
 // import { isCorrectedData } from '../store/trip'
 
@@ -1325,7 +1330,11 @@ const TripHistoryPage = ({
                             })}
                             padding="8px 10px"
                             type="Primary"
-                            loading={trip.tripStatistics?.length === 0}
+                            loading={
+                              v.type === 'Local'
+                                ? false
+                                : trip.tripStatistics?.length === 0
+                            }
                           >
                             {t('statistics', {
                               ns: 'tripPage',

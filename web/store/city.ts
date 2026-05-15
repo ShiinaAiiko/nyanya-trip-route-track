@@ -1284,7 +1284,7 @@ export const cityMethods = {
 
       console.trace('GetAllCitiesVisitedByUser')
 
-      const { city } = store.getState()
+      const { city, user } = store.getState()
 
       // if (
       //   city.cities.length &&
@@ -1321,6 +1321,8 @@ export const cityMethods = {
           dispatch(citySlice.actions.setCities(cities?.cities || []))
           // return (cities?.cities || []) as protoRoot.city.ICityItem[]
         }
+
+        if (!user.isLogin) return
 
         const res = await httpApi.v1.GetAllCitiesVisitedByUser({
           tripIds,

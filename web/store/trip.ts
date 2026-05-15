@@ -1473,10 +1473,11 @@ export const tripMethods = {
       thunkAPI
     ) => {
       const dispatch = thunkAPI.dispatch
+      const { user } = store.getState()
 
       console.log('getTrip', tripId)
 
-      if (tripId.indexOf('IDB_') >= 0) {
+      if (tripId.indexOf('IDB_') >= 0 || !user.isLogin) {
         const v = await storage.trips.get(tripId)
         console.log('getTrip', v)
         if (v) {
@@ -1486,6 +1487,16 @@ export const tripMethods = {
               ...(v.positions?.map((v) => v.altitude || 0) || [0])
             )
           }
+          const tp = await storage.tripPositions.get(tripId)
+
+          if (tp?.positions) {
+            const positions = formatPositionsStr(
+              Number(tp.startTime),
+              tp.positions || []
+            )
+            v.positions = positions
+          }
+
           dispatch(tripSlice.actions.setTripForDetailPage(v))
           return v
         }
@@ -1822,7 +1833,7 @@ export const tripMethods = {
           ).unwrap()
           console.log('GetAllCitiesVisitedByUser gcv', cities)
 
-          const cityDetailsMap = cities.reduce(
+          const cityDetailsMap = cities?.reduce(
             (results, v, i) => {
               v.cities?.forEach((sv) => {
                 sv.cities?.forEach((ssv) => {
@@ -1849,7 +1860,7 @@ export const tripMethods = {
           // console.log('gcv cityDetailsMap', cityDetailsMap)
           baseTrips.forEach((v) => {
             v.cities?.forEach((sv) => {
-              sv.cityDetails = cityDetailsMap[sv?.cityId || '']
+              sv.cityDetails = cityDetailsMap?.[sv?.cityId || '']
             })
           })
           // console.log(

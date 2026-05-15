@@ -160,6 +160,7 @@ const FiexdWeatherComponent = ({
               methods.city.GetCity({
                 lat,
                 lng,
+                customGPS: geo.selectPosition.latitude !== -10000,
               })
             )
           }
@@ -393,7 +394,7 @@ const FiexdWeatherComponent = ({
         ''
       )}
 
-      {rnJSBridge?.isInApp() ? (
+      {/* {rnJSBridge?.isInApp() ? (
         <div
           style={{
             backgroundColor: '#fff',
@@ -426,7 +427,7 @@ const FiexdWeatherComponent = ({
             },
             {
               name: '胎',
-              value: Math.round(config.carData.tyrePressure.leftFront),
+              value: Math.round(config.carData.tyrePressure?.leftFront),
             },
           ].map((v, i) => {
             return (
@@ -438,6 +439,36 @@ const FiexdWeatherComponent = ({
               >{`${v.name}:${v.value}`}</span>
             )
           })}
+        </div>
+      ) : (
+        ''
+      )} */}
+      {config.carLog?.length ? (
+        <div
+          onClick={() => {
+            copyText(JSON.stringify(config.carLog, null, 2))
+            snackbar({
+              message: t('copySuccessfully', {
+                ns: 'prompt',
+              }),
+              autoHideDuration: 2000,
+              vertical: 'top',
+              horizontal: 'center',
+              backgroundColor: 'var(--saki-default-color)',
+              color: '#fff',
+            }).open()
+          }}
+          style={{
+            backgroundColor: '#fff',
+          }}
+          className="dashbord-latlng"
+        >
+          <span
+            style={{
+              // whiteSpace: 'nowrap',
+              color: '#444',
+            }}
+          >{`${config.carLog.slice(-3)}`}</span>
         </div>
       ) : (
         ''

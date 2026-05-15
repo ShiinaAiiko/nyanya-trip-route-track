@@ -4,6 +4,7 @@
   align-items: center;
   height: 50px;
   // border: 1px solid #eee;
+  // background-color: red;
   position: relative;
   transition: translate 0.3s;
 
@@ -22,7 +23,10 @@
 
   &.fixed {
     position: absolute;
-    top: 0px;
+    // position: fixed;
+    top: var(--status-bar-height);
+    // top: 0;
+    // padding-top: var(--status-bar-height);
     left: 0;
     width: 100%;
     z-index: 500;

@@ -49,7 +49,7 @@
     .tp-m-type-buttons {
       position: absolute;
       left: 50%;
-      top: 60px;
+      top: calc(60px + var(--status-bar-height));
       transform: translate(-50%, 0);
       max-width: 400px;
       width: 100%;
