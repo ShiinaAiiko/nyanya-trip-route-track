@@ -111,9 +111,6 @@ const FiexdWeatherComponent = ({
     }
   )
 
-  const altitude = (coords?.altitude || 0).toFixed(1)
-  const speed = coords?.speed || 0
-
   const dispatch = useDispatch<AppDispatch>()
 
   const d = useRef(new Debounce())
@@ -282,7 +279,7 @@ const FiexdWeatherComponent = ({
     let altitude =
       (geo.selectPosition.latitude !== -10000
         ? 0
-        : geo.position?.coords?.altitude) || 0
+        : geo.position?.coords?.altitude) || 121.321
 
     const unit = getLatLngUnit(lat, lng)
 
@@ -394,7 +391,7 @@ const FiexdWeatherComponent = ({
         ''
       )}
 
-      {/* {rnJSBridge?.isInApp() ? (
+      {rnJSBridge?.isInApp() ? (
         <div
           style={{
             backgroundColor: '#fff',
@@ -442,8 +439,8 @@ const FiexdWeatherComponent = ({
         </div>
       ) : (
         ''
-      )} */}
-      {config.carLog?.length ? (
+      )}
+      {config.carLog?.length && config.appConfig.fullVersion.includes('dev') ? (
         <div
           onClick={() => {
             copyText(JSON.stringify(config.carLog, null, 2))
@@ -460,6 +457,7 @@ const FiexdWeatherComponent = ({
           }}
           style={{
             backgroundColor: '#fff',
+            maxHeight: '100px',
           }}
           className="dashbord-latlng"
         >

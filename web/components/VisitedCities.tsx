@@ -400,6 +400,11 @@ const VisitedCitiesModal = () => {
 
     loadData.open()
 
+    let lcb = await storage.global.get('loadCityBoundaries')
+
+    console.log('lcb', lcb)
+    lcb?.length && setCityBoundaries(lcb)
+
     const cities = await store
       .dispatch(
         methods.city.GetAllCitiesVisitedByUser({
@@ -407,6 +412,7 @@ const VisitedCitiesModal = () => {
         })
       )
       .unwrap()
+
     console.log('renderPolyline gcv', cities)
     // const res = await httpApi.v1.GetAllCitiesVisitedByUser({
     //   tripIds: layout.openVisitedCitiesModal?.tripIds || [],
@@ -450,8 +456,15 @@ const VisitedCitiesModal = () => {
     setSelectCountry(tempCityDistricts['country'][0])
     // setCityDistricts(tempCityDistricts)
 
-    Object.keys(tempCityDistricts).length &&
-      setCityBoundaries(await loadCityBoundaries(tempCityDistricts[showType]))
+    if (Object.keys(tempCityDistricts).length) {
+      const lcb = await loadCityBoundaries(tempCityDistricts[showType])
+
+      console.log('lcb', lcb)
+      await storage.global.set('loadCityBoundaries', lcb)
+
+      setCityBoundaries(lcb)
+    }
+
     // }
 
     await dispatch(methods.trip.GetTripHistoricalStatistics({ type: 'All' }))
@@ -897,25 +910,30 @@ const VisitedCitiesModal = () => {
                                         <span>
                                           {t('travelSummary', {
                                             days: historicalStatistics['All']
-                                              ?.days,
+                                              ?.statistics?.days,
                                             hours:
-                                              historicalStatistics['All']
-                                                ?.time < 0
+                                              Number(
+                                                historicalStatistics['All']
+                                                  ?.statistics?.time
+                                              ) < 0
                                                 ? 0
                                                 : Math.round(
-                                                    ((historicalStatistics[
-                                                      'All'
-                                                    ]?.time || 0) /
+                                                    ((Number(
+                                                      historicalStatistics[
+                                                        'All'
+                                                      ]?.statistics?.time
+                                                    ) || 0) /
                                                       3600) *
                                                       100
                                                   ) / 100 || 0,
                                             trips:
                                               historicalStatistics['All']
-                                                ?.count,
+                                                ?.statistics?.count,
                                             distance:
                                               Math.round(
                                                 (historicalStatistics['All']
-                                                  ?.distance || 0) / 100
+                                                  ?.statistics?.distance || 0) /
+                                                  100
                                               ) / 10 || 0,
                                           })}
                                         </span>

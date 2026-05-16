@@ -544,7 +544,8 @@ export function updateCityMarkers(
   citiesArr: CityInfo[],
   zoom: number
 ) {
-  if (!map) return
+  if (!map || !map?.getContainer()) return
+
   const L: typeof Leaflet = (window as any).L
 
   // console.log('citiesArr', citiesArr)

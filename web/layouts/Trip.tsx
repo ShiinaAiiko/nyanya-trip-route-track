@@ -375,7 +375,7 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
 
       getCarDataTimer.current = setInterval(async () => {
         console.log('Flutter getCarData')
-        if (count % 10 === 0) {
+        if (count % 2 === 0) {
           rnJSBridge.enableCarData(true)
         }
         count++
@@ -408,13 +408,13 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
 
   // 状态栏设置
   useEffect(() => {
-    console.log(
-      'rrrrrr',
-      router,
-      router?.pathname === '/' || router?.pathname === '/[lang]'
-    )
+    // console.log(
+    //   'rrrrrr',
+    //   router,
+    //   router?.pathname === '/' || router?.pathname === '/[lang]'
+    // )
 
-    if (!rnJSBridge?.isInApp || !mounted || !router.pathname) {
+    if (!rnJSBridge?.isInApp()) {
       return
     }
     if (

@@ -14,7 +14,7 @@ import {
   getZoom,
   isPointInPolygon,
 } from '../plugins/methods'
-import { eventListener, R, TabsTripType } from './config'
+import { eventListener, R, TabsTripType, tripTypes } from './config'
 import { httpApi } from '../plugins/http/api'
 import store, { layoutSlice, methods } from '.'
 import { isLinearGradient } from 'html2canvas/dist/types/css/types/image'
@@ -87,14 +87,22 @@ export const state = {
     precipitation: 0,
   },
 
-  historicalStatistics: {} as {
-    [type: string]: {
-      distance: 0
-      time: 0
-      count: 0
-      days: 0
-    }
-  },
+  historicalStatistics: Object.fromEntries(
+    ['All', ...tripTypes].map((type) => [
+      type,
+      {
+        loadStatus: 'loaded',
+        statistics: {
+          count: 0,
+          distance: 0,
+          time: 0,
+        },
+      } as {
+        loadStatus: 'loading' | 'loaded' | 'noMore'
+        statistics: protoRoot.trip.ITripHistoricalStatistics
+      },
+    ])
+  ),
 
   privacyGeofencePoints:
     [] as protoRoot.privacyGeofence.IPrivacyGeofencePointsItem[],
@@ -990,6 +998,8 @@ export const tripSlice = createSlice({
       }
     ) => {
       state.historicalStatistics = params.payload
+
+      storage.global.setSync('historicalStatistics', params.payload)
     },
     setWeatherInfo: (
       state,
@@ -1094,7 +1104,7 @@ export const tripSlice = createSlice({
         type: string
       }
     ) => {
-      console.log('getTDistance1', params.payload)
+      // console.log('getTDistance1', params.payload)
       state.tripStatistics = params.payload
     },
     setReplayTripId: (
@@ -1475,29 +1485,32 @@ export const tripMethods = {
       const dispatch = thunkAPI.dispatch
       const { user } = store.getState()
 
-      console.log('getTrip', tripId)
+      console.log('getTrip1', tripId)
 
+      let v = await storage.trips.get(tripId)
+      console.log('getTrip1', v)
+      if (v) {
+        // setTrip(res?.data?.trip)
+        if (v.statistics && v?.positions?.length) {
+          v.statistics.minAltitude = Math.min(
+            ...(v.positions?.map((v) => v.altitude || 0) || [0])
+          )
+        }
+        const tp = await storage.tripPositions.get(tripId)
+
+        if (tp?.positions) {
+          const positions = formatPositionsStr(
+            Number(tp.startTime),
+            tp.positions || []
+          )
+          v.positions = positions
+        }
+
+        dispatch(tripSlice.actions.setTripForDetailPage(v))
+        v = deepCopy(v)
+      }
       if (tripId.indexOf('IDB_') >= 0 || !user.isLogin) {
-        const v = await storage.trips.get(tripId)
-        console.log('getTrip', v)
         if (v) {
-          // setTrip(res?.data?.trip)
-          if (v.statistics && v?.positions?.length) {
-            v.statistics.minAltitude = Math.min(
-              ...(v.positions?.map((v) => v.altitude || 0) || [0])
-            )
-          }
-          const tp = await storage.tripPositions.get(tripId)
-
-          if (tp?.positions) {
-            const positions = formatPositionsStr(
-              Number(tp.startTime),
-              tp.positions || []
-            )
-            v.positions = positions
-          }
-
-          dispatch(tripSlice.actions.setTripForDetailPage(v))
           return v
         }
         return undefined
@@ -1506,7 +1519,7 @@ export const tripMethods = {
       const res = await httpApi.v1.GetTrip({
         id: tripId,
       })
-      console.log('getTrip', res)
+      console.log('getTrip1', res)
       if (res.code !== 200) {
         dispatch(
           tripSlice.actions.setTripForDetailPage({
@@ -1673,7 +1686,8 @@ export const tripMethods = {
             }
           }
         }
-
+        await storage.trips.set(tripId, res?.data?.trip)
+        console.log('getTrip1 setTripForDetailPage', res?.data?.trip)
         dispatch(tripSlice.actions.setTripForDetailPage(res?.data?.trip))
 
         // dispatch(
@@ -1792,28 +1806,51 @@ export const tripMethods = {
       const { trip, config, user } = store.getState()
 
       try {
-        const ts: typeof trip.tripStatistics = [
-          {
-            type: 'All',
-            count: 0,
-            distance: 0,
-            uselessData: [],
-            time: 0,
-            list: [],
-            // list: res?.data?.list || [],
-          },
-        ]
-        config.tripTypes.forEach((v) => {
-          ts.push({
-            type: v as any,
-            count: 0,
-            distance: 0,
-            uselessData: [],
-            time: 0,
-            list: [],
-            // list: res?.data?.list || [],
+        let ts = deepCopy(trip.tripStatistics)
+
+        // console.log('tsts ts', ts)
+        if (!ts.length) {
+          ts = [
+            {
+              type: 'All',
+              count: 0,
+              distance: 0,
+              uselessData: [],
+              time: 0,
+              list: [],
+              // list: res?.data?.list || [],
+            },
+          ]
+
+          config.tripTypes.forEach((v) => {
+            ts.push({
+              type: v as any,
+              count: 0,
+              distance: 0,
+              uselessData: [],
+              time: 0,
+              list: [],
+              // list: res?.data?.list || [],
+            })
           })
-        })
+
+          const tempTS: typeof trip.tripStatistics = await storage.global.get(
+            'getTripHistoryDataTS'
+          )
+          // console.log(
+          //   'tsts tempTS1',
+          //   tempTS.filter((v) => v),
+          //   config.tripTypes.length + 1,
+          //   tempTS.filter((v) => v)?.length >= config.tripTypes.length + 1
+          // )
+          if (tempTS?.filter((v) => v)?.length >= config.tripTypes.length + 1) {
+            ts = tempTS
+            dispatch(tripSlice.actions.setTripStatistics(ts))
+            ts = deepCopy(ts)
+          }
+        }
+
+        // console.log('tsts listlist getTripHistoryDataTS tempTS', ts)
 
         const baseTrips = await dispatch(
           methods.trip.GetTripsBaseData({
@@ -1822,7 +1859,7 @@ export const tripMethods = {
           })
         ).unwrap()
 
-        console.log('baseTrips', cityDetails, baseTrips)
+        // console.log('tsts baseTrips', cityDetails, baseTrips, ts)
 
         if (cityDetails) {
           const cities = await dispatch(
@@ -1877,13 +1914,13 @@ export const tripMethods = {
             .map((v) => [v?.id || '', v])
         )
 
-        const tripStatistics: protoRoot.trip.ITrip[] = Object.keys(
-          tripsTemp
-        ).map((v) => {
-          return tripsTemp[v]
-        })
+        const trips: protoRoot.trip.ITrip[] = Object.keys(tripsTemp).map(
+          (v) => {
+            return tripsTemp[v]
+          }
+        )
 
-        tripStatistics?.forEach((v) => {
+        trips?.forEach((v) => {
           let i = [0]
           if (v.type === 'Running') {
             i.push(1)
@@ -1916,7 +1953,7 @@ export const tripMethods = {
             ts[sv].distance += Number(v.statistics?.distance) || 0
             ts[sv].count += 1
             ts[sv].list =
-              tripStatistics?.filter((v) => {
+              trips?.filter((v) => {
                 if (ts[sv].type === 'All') {
                   return true
                 }
@@ -1931,13 +1968,15 @@ export const tripMethods = {
           })
         })
 
-        tripStatistics.forEach((v) => {
-          if (v.cities?.length || v.id === 'JxoX2UrkU') {
-            // console.log('cccccc', v)
-          }
-        })
+        // tripStatistics.forEach((v) => {
+        //   if (v.cities?.length || v.id === 'JxoX2UrkU') {
+        //     // console.log('cccccc', v)
+        //   }
+        // })
 
-        console.log('tsts listlist', ts)
+        console.log('tsts listlist', deepCopy(ts))
+
+        await storage.global.set('getTripHistoryDataTS', ts)
 
         dispatch(tripSlice.actions.setTripStatistics(ts))
       } catch (error) {
@@ -2178,57 +2217,79 @@ export const tripMethods = {
       },
       thunkAPI
     ) => {
+      if (!type) return
       const dispatch = thunkAPI.dispatch
 
-      const { user, trip } = store.getState()
+      const { user, trip, config } = store.getState()
 
-      const { historicalStatistics } = trip
+      let tempStats = deepCopy(trip.historicalStatistics)
 
+      console.log(
+        'getTripStatistics111 type',
+        type,
+        tempStats,
+        tempStats[type],
+        tempStats[type].loadStatus === 'loading' ||
+          tempStats[type].loadStatus == 'noMore',
+        user.isLogin
+      )
       try {
-        if (
-          loadStatus.GetTripStatistics === 'loading' ||
-          loadStatus.GetTripStatistics == 'noMore'
-        )
-          return
-        loadStatus.GetTripStatistics = 'loading'
-        console.log(!user.isLogin || type === 'Local')
+        if (!tempStats[type]?.statistics?.count) {
+          const stoStats = await storage.global.get('historicalStatistics')
+
+          if (stoStats?.[type]?.statistics?.count) {
+            tempStats[type].statistics = stoStats[type]?.statistics
+          }
+        }
+
         if (!user.isLogin || type === 'Local') {
           const trips = await storage.trips.getAll()
           console.log('getLocalTrips', trips)
 
-          const obj: any = {}
+          tempStats[type].statistics = {
+            count: 0,
+            distance: 0,
+            time: 0,
+          }
+
+          // const obj: (typeof tempStats)['All'] = {}
           // let distance = 0
           // let time = 0
           trips.forEach((v) => {
             if (!v.value.type) return
-            !obj[v.value.type] &&
-              (obj[v.value.type] = {
-                count: 0,
-                distance: 0,
-                time: 0,
-              })
-
-            obj[v.value.type].count += 1
-            obj[v.value.type].distance += v.value.statistics?.distance || 0
+            tempStats[v.value.type].statistics.count! += 1
+            tempStats[v.value.type].statistics.distance! +=
+              v.value.statistics?.distance || 0
             const time =
               (Number(v.value.endTime) || 0) - (Number(v.value.startTime) || 0)
 
             if (time > 0) {
-              obj[v.value.type].time += time
+              const currentTime = Number(
+                tempStats[v.value.type].statistics.time ?? 0
+              )
+              const increment = Number(time)
+
+              tempStats[v.value.type].statistics.time = currentTime + increment
             }
           })
 
-          dispatch(
-            tripSlice.actions.setHistoricalStatistics({
-              ...historicalStatistics,
-              ...obj,
-            })
-          )
+          tempStats[type].loadStatus = 'loaded'
+          dispatch(tripSlice.actions.setHistoricalStatistics(tempStats))
 
-          loadStatus.GetTripStatistics = 'loaded'
+          return
+        }
+        if (
+          tempStats[type].loadStatus === 'loading' ||
+          tempStats[type].loadStatus == 'noMore'
+        ) {
           return
         }
 
+        tempStats[type].loadStatus = 'loading'
+
+        dispatch(tripSlice.actions.setHistoricalStatistics(tempStats))
+
+        tempStats = deepCopy(tempStats)
         // const tripStatisticsCloud = await getTripStatistics(1, 'All')
 
         const res = await httpApi.v1.GetTripStatistics({
@@ -2236,24 +2297,16 @@ export const tripMethods = {
           timeLimit: [1540915200, 32503651200],
           distanceLimit: [0, 500],
         })
-        console.log('getTripStatistics', res)
+        console.log('getTripStatistics111', res, tempStats[type], user.isLogin)
         if (res.code === 200) {
-          const obj: any = {}
-          obj[type] = {
-            count: res?.data?.statistics?.count || 0,
-            distance: res?.data?.statistics?.distance || 0,
-            time: res?.data?.statistics?.time || 0,
-            days: res?.data?.statistics?.days || 0,
+          tempStats[type].statistics = {
+            ...tempStats[type].statistics,
+            ...res.data.statistics,
           }
-
-          dispatch(
-            tripSlice.actions.setHistoricalStatistics({
-              ...historicalStatistics,
-              ...obj,
-            })
-          )
         }
-        loadStatus.GetTripStatistics = 'loaded'
+        tempStats[type].loadStatus = 'loaded'
+        console.log('getTripStatistics111', deepCopy(tempStats[type]))
+        dispatch(tripSlice.actions.setHistoricalStatistics(tempStats))
       } catch (error) {
         console.error(error)
       }

@@ -1918,7 +1918,9 @@ func (t *TripDbx) GetTripsBaseData(
 				"$lt":  createTimeLimit[1],
 			}
 		}
-		if len(lastUpdateTimeLimit) == 2 {
+		if len(lastUpdateTimeLimit) == 2 &&
+			lastUpdateTimeLimit[0] > 1540915201 &&
+			lastUpdateTimeLimit[1] < 32503651200 {
 			match["lastUpdateTime"] = bson.M{
 				"$gte": lastUpdateTimeLimit[0],
 				"$lt":  lastUpdateTimeLimit[1],

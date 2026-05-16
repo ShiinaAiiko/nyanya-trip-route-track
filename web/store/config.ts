@@ -684,11 +684,26 @@ export const getMapLayer = (
   }
 }
 
+export const tripTypes = [
+  'Running',
+  'Bike',
+  'Drive',
+  'Walking',
+  'PowerWalking',
+  'Motorcycle',
+  'Train',
+  'PublicTransport',
+  'Plane',
+  'Local',
+] as TripType[]
+
 export const configSlice = createSlice({
   name: 'config',
   initialState: {
     appConfig: {
       version: '',
+      buildNumber: '',
+      fullVersion: '',
       system: '',
     },
     carLog: [] as string[],
@@ -782,18 +797,7 @@ export const configSlice = createSlice({
     // 	url: '',
     // },
 
-    tripTypes: [
-      'Running',
-      'Bike',
-      'Drive',
-      'Walking',
-      'PowerWalking',
-      'Motorcycle',
-      'Train',
-      'PublicTransport',
-      'Plane',
-      'Local',
-    ] as TripType[],
+    tripTypes: tripTypes,
 
     // trackRoute: {
     //   selectedTripTypes: [] as string[],

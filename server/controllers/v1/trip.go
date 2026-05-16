@@ -1774,6 +1774,7 @@ func (fc *TripController) GetTrips(c *gin.Context) {
 		}
 	}
 
+	log.Error("data.LastUpdateTimeLimit", data.LastUpdateTimeLimit)
 	getTrips, err := tripDbx.GetTripsBaseData(
 		filterTripIds,
 		userInfo.Uid, data.Type,

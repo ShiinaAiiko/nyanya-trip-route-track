@@ -49,6 +49,8 @@ export class ReactNativeWebJSBridge extends NEventListener<{
   }
   appConfig: {
     version: string
+    buildNumber: string
+    fullVersion: string
     system: string
   }
   carData: CarData
@@ -173,9 +175,10 @@ export class ReactNativeWebJSBridge extends NEventListener<{
     if (this.isFlutterEnv) {
       fetch(
         `${
-          process.env.CLIENT_ENV === 'development'
-            ? 'http://localhost:13218'
-            : location?.origin
+          // process.env.CLIENT_ENV === 'development'
+          //   ? 'http://localhost:13218'
+          //   : location?.origin
+          location?.origin
         }/__flutter_bridge__?message=${encodeURIComponent(message)}`
       ).catch(() => {})
       return

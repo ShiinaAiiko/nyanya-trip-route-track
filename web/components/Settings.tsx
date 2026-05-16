@@ -2002,7 +2002,7 @@ const About = ({ show }: { show: boolean }) => {
       <div className="version-info">
         <img src="/icons/256x256.png" alt="" />
         <div className="version-code">
-          <span>Version v{config.appConfig.version || version}</span>
+          <span>Version v{config.appConfig?.fullVersion || version}</span>
           <span>{config.appConfig.system || 'Web'}</span>
         </div>
       </div>

@@ -196,7 +196,7 @@ const VehiclePage = () => {
           setTrips(trips)
         })
     }
-  }, [layout.openVehicleModal, user])
+  }, [layout.openVehicleModal, user.isLogin])
 
   const deleteVehicle = (id: string) => {
     alert({

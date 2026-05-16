@@ -1123,24 +1123,21 @@ const TripPage = () => {
             config.configure?.ai?.aiCoDriver?.trigger
           )
 
+          const params = deepCopy({
+            visible: true,
+            startTrip: true,
+            triggerReason: result.triggerReason,
+
+            autoPlayVoice:
+              config.configure.ai?.aiCoDriver?.autoPlayVoice || false,
+            autoCloseTime: config.configure.ai?.aiCoDriver?.autoCloseTime || 0,
+
+            currentTripData: AIContext.current.currentTripData,
+            lastTripData: AIContext.current.lastTriggerData,
+          })
+          result?.end()
           loadModal('AiChatModal', () => {
-            dispatch(
-              layoutSlice.actions.setOpenAiChatModal({
-                visible: true,
-                startTrip: true,
-                triggerReason: result.triggerReason,
-
-                autoPlayVoice:
-                  config.configure.ai?.aiCoDriver?.autoPlayVoice || false,
-                autoCloseTime:
-                  config.configure.ai?.aiCoDriver?.autoCloseTime || 0,
-
-                currentTripData: AIContext.current.currentTripData,
-                lastTripData: AIContext.current.lastTriggerData,
-              })
-            )
-
-            result?.end()
+            dispatch(layoutSlice.actions.setOpenAiChatModal(params))
           })
         }
       }
@@ -1607,8 +1604,10 @@ const TripPage = () => {
 
   useEffect(() => {
     console.log('tyupe', router.pathname, type, user.isLogin)
-    type && dispatch(methods.trip.GetTripHistoricalStatistics({ type }))
-  }, [user.isLogin, type])
+    user.isInit &&
+      type &&
+      dispatch(methods.trip.GetTripHistoricalStatistics({ type }))
+  }, [user.isInit, type])
 
   useEffect(() => {
     if (user.isLogin && vehicle.defaultVehicleId) {
@@ -3074,7 +3073,8 @@ const TripPage = () => {
                         <div className="bi-distance">
                           <span className="value">
                             {Math.round(
-                              (historicalStatistics[type]?.distance || 0) / 100
+                              (historicalStatistics[type]?.statistics
+                                ?.distance || 0) / 100
                             ) / 10 || 0}
                           </span>
                           <span className="name">
@@ -3087,10 +3087,15 @@ const TripPage = () => {
                         <div className="bi-right">
                           <div className="bi-time">
                             <span className="value">
-                              {historicalStatistics[type]?.time < 0
+                              {Number(
+                                historicalStatistics[type]?.statistics?.time
+                              ) < 0
                                 ? 0
                                 : Math.round(
-                                    ((historicalStatistics[type]?.time || 0) /
+                                    ((Number(
+                                      historicalStatistics[type]?.statistics
+                                        ?.time
+                                    ) || 0) /
                                       3600) *
                                       100
                                   ) / 100 || 0}
@@ -3103,7 +3108,8 @@ const TripPage = () => {
                           </div>
                           <div className="bi-count">
                             <span className="value">
-                              {historicalStatistics[type]?.count || 0}
+                              {historicalStatistics[type]?.statistics?.count ||
+                                0}
                             </span>
                             <span className="name">
                               {t('trips', {

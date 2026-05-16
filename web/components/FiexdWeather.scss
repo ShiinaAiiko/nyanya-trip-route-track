@@ -113,6 +113,14 @@
 
       color: var(--dark-text-h2-color);
       margin: 0 0 0 6px;
+      @supports (-moz-appearance: none) {
+        font-family:
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          sans-serif;
+      }
     }
   }
 }

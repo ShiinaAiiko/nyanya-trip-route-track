@@ -345,7 +345,7 @@ const TripItemComponent = memo(
         !speedChart.current && outSpeedLineChart()
         !speedDistanceChart.current && renderSpeedDistanceChart()
       }
-    }, [trip?.id, map.current, speedChart.current, speedDistanceChart.current])
+    }, [trip, map.current, speedChart.current, speedDistanceChart.current])
 
     useEffect(() => {
       layer.current?.setGrayscale?.(mapLayer?.mapMode === 'Gray')
@@ -358,7 +358,7 @@ const TripItemComponent = memo(
       if (trip?.id) {
         initMap()
       }
-    }, [tripId, trip?.id])
+    }, [tripId, trip])
     useEffect(() => {
       console.log('initMap mapUrl', trip, loadedMap.current)
       if (mapUrl) {
@@ -379,7 +379,10 @@ const TripItemComponent = memo(
       console.log('---initMap---', loadedMap.current, trip?.id)
 
       if (L && tripId && !loadedMap.current && trip?.id && trip?.id !== '404') {
-        loadedMap.current = true
+        if (trip.positions?.length) {
+          loadedMap.current = true
+        }
+
         console.log(
           '---initMap--- 里面',
           document.querySelector('#tic-map'),
@@ -417,31 +420,44 @@ const TripItemComponent = memo(
         let zoom = 13
 
         let positions = trip?.positions || []
+        if (positions?.length) {
+          positions = positions?.filter((v, i) => {
+            const gss = !(v.speed === null || v.altitude === null)
 
-        positions = positions?.filter((v, i) => {
-          const gss = !(v.speed === null || v.altitude === null)
+            if (v.speed && v.speed > 45) {
+              // console.log(v.speed, v.timestamp)
+            }
+            return gss
+          })
+          if (positions.length) {
+            const startPosition = positions[0]
+            const endPosition = positions[positions.length - 1]
 
-          if (v.speed && v.speed > 45) {
-            // console.log(v.speed, v.timestamp)
+            lat =
+              (startPosition.latitude || 0) -
+              ((startPosition.latitude || 0) - (endPosition.latitude || 0)) / 2
+            lon =
+              (startPosition.longitude || 0) -
+              ((startPosition.longitude || 0) - (endPosition.longitude || 0)) /
+                2
+            zoom = getZoom(
+              startPosition.latitude || 0,
+              startPosition.longitude || 0,
+              lat,
+              lon
+            )
           }
-          return gss
-        })
-        if (positions.length) {
-          const startPosition = positions[0]
-          const endPosition = positions[positions.length - 1]
-
-          lat =
-            (startPosition.latitude || 0) -
-            ((startPosition.latitude || 0) - (endPosition.latitude || 0)) / 2
-          lon =
-            (startPosition.longitude || 0) -
-            ((startPosition.longitude || 0) - (endPosition.longitude || 0)) / 2
-          zoom = getZoom(
-            startPosition.latitude || 0,
-            startPosition.longitude || 0,
-            lat,
-            lon
-          )
+        } else {
+          if (trip?.addresses?.length) {
+            lat =
+              (Number(trip?.addresses?.[0]?.latitude) +
+                Number(trip?.addresses?.[1]?.latitude)) /
+              2
+            lon =
+              (Number(trip?.addresses?.[0]?.longitude) +
+                Number(trip?.addresses?.[1]?.longitude)) /
+              2
+          }
         }
 
         const latlng = getLatLng(mapUrl, lat, lon)
@@ -833,7 +849,7 @@ const TripItemComponent = memo(
         // )
 
         console.log('idddddd', trip)
-        if (speedChart.current) return
+        if (speedChart.current || !trip?.positions?.length) return
         const el = document.getElementById('speed-chart')
 
         let labels: any[] = []
@@ -1043,7 +1059,7 @@ const TripItemComponent = memo(
         // )
 
         console.log('idddddd', trip)
-        if (speedDistanceChart.current) return
+        if (speedDistanceChart.current || !trip?.positions?.length) return
 
         // return
         // 示例数据

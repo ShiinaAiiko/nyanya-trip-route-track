@@ -423,29 +423,29 @@ const TripHistoryPage = ({
     [t: string]: Chart<'line', any[], unknown> | undefined
   }>({})
 
-  const [tripStatistics, setTripStatistics] = useState<
-    {
-      type:
-        | 'All'
-        | 'Running'
-        | 'Bike'
-        | 'Drive'
-        | 'Motorcycle'
-        | 'Walking'
-        | 'PowerWalking'
-        | 'Train'
-        | 'Plane'
-        | 'PublicTransport'
-        | 'Local'
-      // count: number
-      // distance: number
-      // uselessData: string[]
-      // time: number
-      list: protoRoot.trip.ITrip[]
-      statistics?: protoRoot.trip.ITripHistoricalStatistics
-      // speedChart?: Chart<'line', any[], unknown>
-    }[]
-  >([])
+  // const [tripStatistics, setTripStatistics] = useState<
+  //   {
+  //     type:
+  //       | 'All'
+  //       | 'Running'
+  //       | 'Bike'
+  //       | 'Drive'
+  //       | 'Motorcycle'
+  //       | 'Walking'
+  //       | 'PowerWalking'
+  //       | 'Train'
+  //       | 'Plane'
+  //       | 'PublicTransport'
+  //       | 'Local'
+  //     // count: number
+  //     // distance: number
+  //     // uselessData: string[]
+  //     // time: number
+  //     // list: protoRoot.trip.ITrip[]
+  //     statistics?: protoRoot.trip.ITripHistoricalStatistics
+  //     // speedChart?: Chart<'line', any[], unknown>
+  //   }[]
+  // >([])
 
   // useEffect(() => {
   // 	console.log('showTripItemPage', showTripItemPage)
@@ -459,27 +459,27 @@ const TripHistoryPage = ({
   // 	}
   // }, [showTripItemPage])
 
-  useEffect(() => {
-    setTripStatistics(
-      ['All', ...config.tripTypes].map((v, i) => {
-        return {
-          type: v as any,
-          list: [],
-          statistics: {
-            count: 0,
-            uselessData: [],
-            distance: 0,
-            time: 0,
-          },
-        }
-      })
-    )
-  }, [])
+  // useEffect(() => {
+  //   setTripStatistics(
+  //     ['All', ...config.tripTypes].map((v, i) => {
+  //       return {
+  //         type: v as any,
+  //         list: [],
+  //         statistics: {
+  //           count: 0,
+  //           uselessData: [],
+  //           distance: 0,
+  //           time: 0,
+  //         },
+  //       }
+  //     })
+  //   )
+  // }, [])
 
   useEffect(() => {
     if (user.isLogin) {
-      dispatch(methods.vehicle.Init())
-      dispatch(methods.journeyMemory.GetJMBaseDataList()).unwrap
+      dispatch(methods.vehicle.Init()).unwrap()
+      dispatch(methods.journeyMemory.GetJMBaseDataList()).unwrap()
     }
   }, [user.isLogin])
 
@@ -514,7 +514,7 @@ const TripHistoryPage = ({
           await dispatch(
             methods.trip.GetTripHistoryData({
               loadCloudData: true,
-              alert: true,
+              alert: false,
             })
           ).unwrap()
         }
@@ -570,22 +570,24 @@ const TripHistoryPage = ({
       //   layout.openTripHistoryModal && !layout.openTripItemModal?.visible
       // )
       if (
-        layout.openTripHistoryModal &&
-        trip.tripStatistics.length &&
-        tripStatistics.length
+        layout.openTripHistoryModal
+        // &&
+        // // trip.tripStatistics.length &&
+        // tripStatistics.length
       ) {
         if (user.isLogin && isLoadLocal) {
-          await getTripStatistics()
+          // await getTripStatistics()
+
+          dispatch(methods.trip.GetTripHistoricalStatistics({ type }))
         }
       }
     }
     init()
   }, [
-    tripStatistics.length,
-    trip.tripStatistics.length,
+    // tripStatistics.length,
+    // trip.tripStatistics.length,
     isLoadLocal,
     type,
-    time,
   ])
 
   useEffect(() => {
@@ -622,81 +624,89 @@ const TripHistoryPage = ({
 
   useEffect(() => {
     // mergeTripStatistics()
-    console.log('outSpeedLineChart tripStatistics', tripStatistics)
-    outSpeedLineChart()
-  }, [tripStatistics])
+    // console.log('outSpeedLineChart listlist', trip.tripStatistics)
+    type && trip.tripStatistics?.length && outSpeedLineChart()
+  }, [trip.tripStatistics, type, time])
 
-  const getTripStatistics = async () => {
-    let sd = getTimeLimit(time)
-    let ed = 32503651200
-    if (startDate) {
-      sd = Math.floor(new Date(startDate).getTime() / 1000)
-    }
-    if (endDate) {
-      ed = Math.floor(new Date(endDate + ' 23:59:59').getTime() / 1000)
-    }
-    const res = await httpApi.v1.GetTripStatistics({
-      type: type,
-      timeLimit: [sd, ed],
-      vehicleLimit: selectVehicleIds,
-      journeyMemoryLimit: selectJmIds,
-      distanceLimit: [distanceRange.min, distanceRange.max],
-    })
-    console.log(
-      'getTripStatistics listlist',
-      {
-        type: type,
-        timeLimit: [getTimeLimit(time), 32503651200],
-      },
-      res,
-      res?.data?.statistics,
-      type,
-      trip.tripStatistics
-    )
-    if (res.code === 200 && res?.data?.statistics?.count) {
-      // console.log('getTripsCloud', trips)
-      // const data: {
-      // 	type: 'Year'
-      // 	key: Number.
-      // 	value:
-      // }[] = []
-      // res?.data?.list?.forEach((v) => {})
+  // const [loadStatusByTripStatistics, setLoadStatusByTripStatistics] = useState<
+  //   'loading' | 'loaded' | 'noMore'
+  // >('loaded')
+  // const getTripStatistics = async () => {
+  //   if (loadStatusByTripStatistics === 'loading') {
+  //     return
+  //   }
+  //   setLoadStatusByTripStatistics('loading')
+  //   let sd = getTimeLimit(time)
+  //   let ed = 32503651200
+  //   if (startDate) {
+  //     sd = Math.floor(new Date(startDate).getTime() / 1000)
+  //   }
+  //   if (endDate) {
+  //     ed = Math.floor(new Date(endDate + ' 23:59:59').getTime() / 1000)
+  //   }
+  //   const res = await httpApi.v1.GetTripStatistics({
+  //     type: type,
+  //     timeLimit: [sd, ed],
+  //     vehicleLimit: selectVehicleIds,
+  //     journeyMemoryLimit: selectJmIds,
+  //     distanceLimit: [distanceRange.min, distanceRange.max],
+  //   })
+  //   console.log(
+  //     'getTripStatistics111 listlist',
+  //     {
+  //       type: type,
+  //       timeLimit: [getTimeLimit(time), 32503651200],
+  //     },
+  //     res,
+  //     res?.data?.statistics,
+  //     type,
+  //     trip.tripStatistics
+  //   )
+  //   setLoadStatusByTripStatistics('loaded')
+  //   if (res.code === 200 && res?.data?.statistics?.count) {
+  //     // console.log('getTripsCloud', trips)
+  //     // const data: {
+  //     // 	type: 'Year'
+  //     // 	key: Number.
+  //     // 	value:
+  //     // }[] = []
+  //     // res?.data?.list?.forEach((v) => {})
 
-      const statistics = res?.data?.statistics
+  //     const statistics = res?.data?.statistics
 
-      onUselessData(statistics.uselessData || [])
+  //     onUselessData(statistics.uselessData || [])
 
-      const { trip } = store.getState()
-      setTripStatistics(
-        tripStatistics.map((v) => {
-          if (v.type === String(type)) {
-            return {
-              ...v,
-              // count: Number(statistics?.count),
-              // distance: Number(statistics?.distance),
-              // uselessDataCount: Number(statistics?.uselessData),
-              // time: Number(statistics?.time),
-              statistics,
-              list:
-                trip.tripStatistics.filter((v) => v.type === type)?.[0]?.list ||
-                [],
-            }
-          }
-          return v
-        })
-      )
-      return
-    }
-  }
+  //     const { trip } = store.getState()
+  //     setTripStatistics(
+  //       tripStatistics.map((v) => {
+  //         if (v.type === String(type)) {
+  //           return {
+  //             ...v,
+  //             // count: Number(statistics?.count),
+  //             // distance: Number(statistics?.distance),
+  //             // uselessDataCount: Number(statistics?.uselessData),
+  //             // time: Number(statistics?.time),
+  //             statistics,
+  //             // list:
+  //             //   trip.tripStatistics.filter((v) => v.type === type)?.[0]?.list ||
+  //             //   [],
+  //           }
+  //         }
+  //         return v
+  //       })
+  //     )
+  //     return
+  //   }
+  // }
 
   const outSpeedLineChart = () => {
     try {
       const list =
-        tripStatistics.filter((v) => {
+        trip.tripStatistics.filter((v) => {
           return v.type === type
         })?.[0]?.list || []
 
-      console.log('outSpeedLineChart', time, list, tripStatistics)
+      console.log('outSpeedLineChart listlist', time, list, trip.tripStatistics)
       const tripData: {
         [key: string]: number
       } = {}
@@ -797,17 +807,17 @@ const TripHistoryPage = ({
         default:
           break
       }
-      const tsItem = tripStatistics.filter((v) => {
-        return v.type === type
-      })?.[0]
-      console.log(
-        'outSpeedLineChart',
-        tripStatistics,
-        list,
-        // tsItem?.speedChart,
-        time,
-        tripData
-      )
+      // const tsItem = trip.tripStatistics.filter((v) => {
+      //   return v.type === type
+      // })?.[0]
+      // console.log(
+      //   'outSpeedLineChart',
+      //   tripStatistics,
+      //   list,
+      //   // tsItem?.speedChart,
+      //   time,
+      //   tripData
+      // )
 
       if (speedChart.current[type]) {
         speedChart.current[type]?.destroy()
@@ -1089,23 +1099,23 @@ const TripHistoryPage = ({
       // 			: v.type === 'Local'
       // 	})
     )
-    setTripStatistics(
-      tripStatistics.map((v) => {
-        if (v.type === 'Local') {
-          return {
-            ...v,
-            list: list || [],
-            statistics: {
-              count: list?.length,
-              distance: distance,
-              uselessDataCount: uselessDataCount,
-              time: time,
-            },
-          }
-        }
-        return v
-      })
-    )
+    // setTripStatistics(
+    //   tripStatistics.map((v) => {
+    //     if (v.type === 'Local') {
+    //       return {
+    //         ...v,
+    //         list: list || [],
+    //         statistics: {
+    //           count: list?.length,
+    //           distance: distance,
+    //           uselessDataCount: uselessDataCount,
+    //           time: time,
+    //         },
+    //       }
+    //     }
+    //     return v
+    //   })
+    // )
     setIsLoadLocal(true)
 
     // }
@@ -1175,8 +1185,8 @@ const TripHistoryPage = ({
                 },
               })}
             >
-              {tripStatistics
-                .filter((v) => {
+              {Object.keys(trip.historicalStatistics)
+                .filter((type) => {
                   // console.log(
                   //   'getLocalTrips1 filter',
                   //   v,
@@ -1191,15 +1201,18 @@ const TripHistoryPage = ({
                       //   ? !!v?.statistics?.count
                       //   :
                       true
-                    : v.type === 'Local'
+                    : type === 'Local'
                 })
-                .map((v, i) => {
+                .map((type, i) => {
+                  const v = trip.historicalStatistics[type]
+
+                  // console.log('vvvvvvv', v)
                   return true ? (
                     <saki-tabs-item
                       key={i}
                       font-size="14px"
-                      label={v.type}
-                      name={t(v.type.toLowerCase(), {
+                      label={type}
+                      name={t(type.toLowerCase(), {
                         ns: 'tripPage',
                       })}
                     >
@@ -1313,7 +1326,7 @@ const TripHistoryPage = ({
                           </div>
                         </div>
                         <div className="si-chart">
-                          <canvas className={'si-c-cvs-' + v.type}></canvas>
+                          <canvas className={'si-c-cvs-' + type}></canvas>
                         </div>
                         {/* <div className='si-statistics-button'></div> */}
                         <div className="si-buttons">
@@ -1323,7 +1336,7 @@ const TripHistoryPage = ({
                                 dispatch(
                                   layoutSlice.actions.setOpenStatisticsModal({
                                     visible: true,
-                                    type: v.type,
+                                    type: type as any,
                                   })
                                 )
                               },
@@ -1331,9 +1344,11 @@ const TripHistoryPage = ({
                             padding="8px 10px"
                             type="Primary"
                             loading={
-                              v.type === 'Local'
+                              type === 'Local'
                                 ? false
-                                : trip.tripStatistics?.length === 0
+                                : trip.tripStatistics?.length !==
+                                    config.tripTypes.length + 1 ||
+                                  v.loadStatus === 'loading'
                             }
                           >
                             {t('statistics', {
@@ -1707,9 +1722,7 @@ const TripHistoryPage = ({
         }
       >
         <StatisticsComponent
-          statistics={
-            tripStatistics?.filter((v) => v.type === type)?.[0]?.statistics
-          }
+          statistics={trip.historicalStatistics[type]?.statistics}
         />
         {/* <TripItemComponent
 					onBack={onBackTripItemComponent}
