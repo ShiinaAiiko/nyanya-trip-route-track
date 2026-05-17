@@ -1731,10 +1731,10 @@ const TripPage = () => {
         let color = { r: 12, g: 12, b: 83 }
         //VEC_C  ---天地图的地址
         //TK_KEY ---天地图的token
-        // const customLayer = new DesignTileLayer()(mapUrl, {
+        // const customLayer =   new DesignTileLayer()(mapUrl, {
         // 	color: color,
         // })
-        // // 将 customLayer 添加到 Leaflet 地图中
+        // // 将 customLayer  添加到 Leaflet 地图中
         // customLayer.addTo(map)
 
         layer.current = (L.tileLayer as any)
@@ -2685,7 +2685,7 @@ const TripPage = () => {
             }
             currentPosition={!startTrip}
             // aichat={config.showIndexPageButton}
-            aichat={true}
+            aichat={config.showIndexPageButton}
             aichatParams={{
               visible: false,
 
@@ -2798,7 +2798,7 @@ const TripPage = () => {
           >
             <LayerButtons
               mapLayer={mapLayer}
-              show={!startTrip}
+              show={config.showIndexPageButton && !startTrip}
               style={
                 startTrip
                   ? config.deviceType === 'Mobile'

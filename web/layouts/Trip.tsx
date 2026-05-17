@@ -46,6 +46,7 @@ import { storage } from '../store/storage'
 import { isFullScreen } from '../plugins/methods'
 import {
   eventListener,
+  getMapLayer,
   getStaticPath,
   initRnJSBridge,
   rnJSBridge,
@@ -790,8 +791,13 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
               <saki-button
                 ref={bindEvent({
                   tap: () => {
-                    dispatch(layoutSlice.actions.setSettingType('Maps'))
-                    dispatch(layoutSlice.actions.setOpenSettingsModal(true))
+                    loadModal('MapLayer', () => {
+                      dispatch(
+                        layoutSlice.actions.setOpenMapLayerModal({
+                          visible: true,
+                        })
+                      )
+                    })
                   },
                 })}
                 color="var(--saki-default-color)"

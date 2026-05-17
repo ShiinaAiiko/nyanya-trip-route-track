@@ -560,7 +560,7 @@ export const defaultConfigure: protoRoot.configure.IConfigure = {
 export const checkMapUrl = async (mapUrl: string) => {
   if (!mapUrl) return
 
-  // console.log('checkMapUrl', mapUrl)
+  console.log('checkMapUrl', mapUrl)
   const xyz = [812, 421, 10]
 
   let url = mapUrl
@@ -570,9 +570,15 @@ export const checkMapUrl = async (mapUrl: string) => {
     .replace('{z}', String(xyz[2]))
 
   // console.log('checkMapUrl', type, url)
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 5000)
+
   try {
-    const res = await fetch(url)
-    // console.log('checkMapUrl res', res, type)
+    const res = await fetch(url, {
+      signal: controller.signal,
+    })
+    clearTimeout(timeoutId)
+    console.log('checkMapUrl res', res.ok)
     // console.log('checkMapUrl', url, type, router, res)
     store.dispatch(configSlice.actions.setConnectionMapUrl(res.ok))
     // if (type === 'BaseMap') {

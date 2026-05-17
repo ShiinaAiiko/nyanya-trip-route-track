@@ -723,6 +723,7 @@ const Maps = ({
                     </SakiButton>
                   ) : (
                     <div
+                      key={si}
                       style={{
                         width: '50px',
                       }}

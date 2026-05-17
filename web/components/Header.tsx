@@ -180,7 +180,8 @@ const HeaderComponent = ({
                   }
                 ) as any
               }
-              openNewPage={!rnJSBridge?.isInApp()}
+              openNewPage={true}
+              // openNewPage={!rnJSBridge?.isInApp()}
               app-text={layout.headerLogoText}
               app-logo={
                 router.pathname.includes('/weather')

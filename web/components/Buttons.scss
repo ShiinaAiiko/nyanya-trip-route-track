@@ -48,20 +48,8 @@
     }
 
     &.start {
-      @keyframes anima {
-        0% {
-          box-shadow: 0 0 10px #fff;
-          background-color: var(--anima-bg-color);
-        }
-
-        100% {
-          box-shadow: 0 0 10px var(--anima-bg-color);
-          background-color: var(--anima-bg-active-color);
-        }
-      }
-
       &::after {
-        animation: anima infinite alternate-reverse 1s;
+        animation: realTimePositionButtonAnima infinite alternate-reverse 1s;
       }
     }
   }
@@ -90,5 +78,17 @@
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
     }
+  }
+}
+
+@keyframes realTimePositionButtonAnima {
+  0% {
+    box-shadow: 0 0 10px #fff;
+    background-color: var(--anima-bg-color);
+  }
+
+  100% {
+    box-shadow: 0 0 10px var(--anima-bg-color);
+    background-color: var(--anima-bg-active-color);
   }
 }

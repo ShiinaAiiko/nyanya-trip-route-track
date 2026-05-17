@@ -225,8 +225,8 @@ const ButtonsComponent = ({
           <div
             style={
               {
-                '--rpb-after-w': `calc(14px * ${buttonStyle.width} / 36px)`,
-                '--rpb-after-top': `calc(12px * ${buttonStyle.width} / 36px)`,
+                '--rpb-after-w': `calc(14px * ${parseInt(buttonStyle.width)} / 36)`,
+                '--rpb-after-top': `calc(12px * ${parseInt(buttonStyle.width)} / 36)`,
               } as any
             }
             className={
