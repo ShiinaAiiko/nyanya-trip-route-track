@@ -662,7 +662,7 @@ const TripPage = () => {
 
       console.log('resumeTrip tPositions', tPositions)
       // let i = 0
-      // const timer = setInterval(() => {
+      // const timer =  setInterval(() => {
       // 	const v = tPositions[i]
       // 	i++
 
@@ -1437,7 +1437,7 @@ const TripPage = () => {
     if (!ctx.lastStopTime) {
       ctx.lastStopTime = now
     }
-    if (now - ctx.lastStopTime >= DROWSY_DRIVING) {
+    if (now - ctx.lastStopTime >= DROWSY_DRIVING && isMoving) {
       triggerReason = 'DROWSY_DRIVING'
     }
 

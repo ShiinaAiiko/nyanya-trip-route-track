@@ -457,7 +457,7 @@ const FilterComponent = ({
         max-height={'100%'}
         mask
         mask-closable
-        // height='86%'
+        //  height='86%'
         padding="0 0 0px 0"
         // margin='0 50px 0 0'
         background-color="#fff"

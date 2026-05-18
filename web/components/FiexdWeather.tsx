@@ -423,6 +423,10 @@ const FiexdWeatherComponent = ({
               value: Math.round(config.carData.totalMileage * 10) / 10,
             },
             {
+              name: '电',
+              value: Math.round(config.carData.externalChargingPower * 10) / 10,
+            },
+            {
               name: '胎',
               value: Math.round(config.carData.tyrePressure?.leftFront),
             },

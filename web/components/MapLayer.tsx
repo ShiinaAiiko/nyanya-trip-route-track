@@ -259,7 +259,13 @@ const MapLayerModal = () => {
       max-height={
         config.deviceType === 'Mobile'
           ? '70%'
-          : Math.min(600, config.deviceWH.h) + 'px'
+          : Math.min(
+              600,
+              config.deviceWH.h -
+                (Number(
+                  layout.openMapLayerModal.modalConfig.offsetY.replace('px', '')
+                ) || 40)
+            ) + 'px'
       }
       vertical={
         config.deviceType === 'Mobile'

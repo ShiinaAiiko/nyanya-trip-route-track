@@ -383,10 +383,6 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
         rnJSBridge.getCarData()
       }, 10 * 1000)
 
-      rnJSBridge.on('appConfig', (val) => {
-        console.log('appConfig', val)
-        dispatch(configSlice.actions.setAppConfig(val))
-      })
       rnJSBridge.on('carData', (val) => {
         console.log('carData', val)
         if (val.hasOwnProperty('speed')) {
@@ -401,11 +397,10 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
     }
     init()
     return () => {
-      rnJSBridge.removeEvent('appConfig')
       rnJSBridge.removeEvent('carData')
       rnJSBridge.removeEvent('bydLog')
     }
-  }, [mounted, router])
+  }, [mounted, router, config.appConfig.fullVersion])
 
   // 状态栏设置
   useEffect(() => {
@@ -448,6 +443,7 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
     // })
   }, [
     mounted,
+    config.appConfig.fullVersion,
     router.pathname,
     layout.openSettingsModal,
     layout.openLoginModal,
@@ -472,11 +468,14 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
 
   useEffect(() => {
     try {
+      navigator.geolocation.clearWatch(watchId.current)
+      rnJSBridge?.removeEvent('location')
+
       if (!mounted) return
+
       if (rnJSBridge?.isInApp()) {
         rnJSBridge.enableLocation(true)
 
-        rnJSBridge.removeEvent('location')
         rnJSBridge.on('location', (val: any) => {
           console.log('location', val)
           dispatch(geoSlice.actions.setPosition(val))
@@ -490,8 +489,6 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
       }
 
       if (navigator.geolocation) {
-        navigator.geolocation.clearWatch(watchId.current)
-
         watchId.current = navigator.geolocation.watchPosition(
           (pos) => {
             // console.log('watchPosition', pos)
@@ -525,7 +522,12 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
         horizontal: 'center',
       }).open()
     }
-  }, [mounted, config.connectionOSM, geoWatchUpdateTime])
+  }, [
+    mounted,
+    config.appConfig.fullVersion,
+    config.connectionOSM,
+    geoWatchUpdateTime,
+  ])
 
   const initNyaNyaWasm = async () => {
     NyaNyaWasm.setWasmPath('./nyanyajs-utils-wasm.wasm')

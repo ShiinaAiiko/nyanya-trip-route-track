@@ -1,22 +1,27 @@
 import { NEventListener } from '@nyanyajs/utils'
 import md5 from 'blueimp-md5'
 
-export interface CarData {
-  speed: number
-  elecPercentage: number
-  fuelPercentage: number
-  accelerateDepth: number
-  brakeDepth: number
-  totalMileage: number
-  evMileage: number
+export const defaultCarData = {
+  speed: 65.5,
+  elecPercentage: 85.0,
+  fuelPercentage: 50,
+  accelerateDepth: 0,
+  brakeDepth: 0,
+  totalMileage: 12500,
+  evMileage: 3500,
   tyrePressure: {
-    leftFront: number
-    rightFront: number
-    leftRear: number
-    rightRear: number
-  }
-  timestamp: number
+    leftFront: 230,
+    rightFront: 235,
+    leftRear: 225,
+    rightRear: 230,
+  },
+  chargeStatus: 0,
+  chargePower: 0,
+  externalChargingPower: 15.6, // <-- 新增字段，单位：kW.h
+  timestamp: 1747454400000,
 }
+
+export type CarData = typeof defaultCarData
 export const defaultStatusBarData = {
   statusBarHeight: 46.769,
   bottomPadding: 48, // 模拟车机底部的系统导航栏
@@ -35,6 +40,7 @@ export const defaultStatusBarData = {
 }
 export type StatusBarData = typeof defaultStatusBarData
 export class ReactNativeWebJSBridge extends NEventListener<{
+  loaded: undefined
   location: {
     coords: {
       latitude: number
@@ -64,27 +70,29 @@ export class ReactNativeWebJSBridge extends NEventListener<{
   private eventListenner: {
     [k: string]: () => void
   } = {}
+  private timer: NodeJS.Timeout
   constructor() {
     super()
 
-    this.rnWebView = (window as any)?.ReactNativeWebView
-    this.isFlutterEnv = !!(window as any)?.isFlutterApp
-
     const init = () => {
-      // 接收原生返回的数据
-      window.removeEventListener('message', this.onMessage)
-      window.addEventListener('message', this.onMessage)
+      this.rnWebView = (window as any)?.ReactNativeWebView
+      this.isFlutterEnv = !!(window as any)?.isFlutterApp
 
       // Flutter 环境：注册全局消息处理函数
       if (this.isFlutterEnv) {
+        // 接收原生返回的数据
+        window.removeEventListener('message', this.onMessage)
+        window.addEventListener('message', this.onMessage)
         ;(window as any).onFlutterMessage = this.handleFlutterMessage
+
+        clearInterval(this.timer)
+        this.load()
       }
-      this.load()
     }
-    init()
-    setTimeout(() => {
+    // init()
+    this.timer = setInterval(() => {
       init()
-    }, 700)
+    }, 200)
   }
   keepScreenOn(b: boolean = true) {
     this.sendMessage('keepScreenOn', b)
@@ -129,6 +137,7 @@ export class ReactNativeWebJSBridge extends NEventListener<{
     return this.renderAPIPromise<StatusBarData>('getStatusBarData')
   }
   load() {
+    this.dispatch('loaded', undefined)
     this.sendMessage('load')
   }
   renderAPIPromise<T = any>(k: Parameters<typeof this.sendMessage>[0]) {

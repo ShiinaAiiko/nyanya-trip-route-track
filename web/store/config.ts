@@ -214,6 +214,13 @@ export let rnJSBridge: ReactNativeWebJSBridge
 export let initRnJSBridge = () => {
   if (typeof window !== 'undefined') {
     rnJSBridge = new ReactNativeWebJSBridge()
+
+    rnJSBridge.removeEvent('appConfig')
+    rnJSBridge.on('appConfig', (val) => {
+      console.log('appConfig', val)
+      store.dispatch(configSlice.actions.setAppConfig(val))
+    })
+    rnJSBridge.on('loaded', () => {})
   }
 }
 initRnJSBridge()
