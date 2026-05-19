@@ -545,7 +545,9 @@
 
     "enableGeoFence": "启用隐私围栏，对外分享的行程数据、位置分享将会在服务端进行过滤处理",
 
-    "headingUp": "方向向上"
+    "headingUp": "方向向上",
+
+    "technologyStack": "技术栈"
   },
   "prompt": {
     "next": "下一步",
@@ -649,7 +651,11 @@
     "restore": "恢复",
     "clearMessages": "清空消息列表",
     "clearMessagesContent": "您确定要清空当前消息列表吗？",
-    "clearSuccessfully": "清空成功!"
+    "clearSuccessfully": "清空成功!",
+
+    "checkNewVersion": "检查新版本",
+    "skipVersion": "7天内不再提示更新",
+    "newVersionAvailable": "新版本"
   },
   "unit": {
     "km": "公里",

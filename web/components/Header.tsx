@@ -29,8 +29,11 @@ import {
   AppVersion,
   downloadAppByUrl,
   getVersionList,
+  isNewVersion,
 } from '../plugins/methods'
-import { rnJSBridge } from '../store/config'
+import { eventListener, rnJSBridge } from '../store/config'
+import { storage } from '../store/storage'
+import moment from 'moment'
 
 const HeaderComponent = ({
   // 暂时仅fixed可用
@@ -129,6 +132,18 @@ const HeaderComponent = ({
     }
     init()
   }, [])
+
+  const [isNewVersionAvailable, setIsNewVersionAvailable] = useState(false)
+
+  useEffect(() => {
+    if (openUserDropDownMenu && rnJSBridge?.isInApp()) {
+      storage.global.get('skipVersionCode').then((skipVersionCode) => {
+        setIsNewVersionAvailable(
+          isNewVersion(config.appConfig?.version, skipVersionCode)
+        )
+      })
+    }
+  }, [openUserDropDownMenu, config.appConfig?.version])
 
   return (
     <div
@@ -467,6 +482,11 @@ const HeaderComponent = ({
                             configSlice.actions.setVConsole(!config.vConsole)
                           )
                           break
+                        case 'CheckNewVersion':
+                          rnJSBridge?.checkNewVersion({
+                            showCheckingNotification: true,
+                          })
+                          break
                         // case 'DownloadApp':
                         //   setOpenAppVersionListDP(true)
                         //   break
@@ -687,8 +707,43 @@ const HeaderComponent = ({
                           ns: 'settings',
                         })}
                       </span>
+                      {isNewVersionAvailable ? (
+                        <span
+                          style={{
+                            backgroundColor: 'var(--saki-default-color)',
+                            color: '#fff',
+                            borderRadius: '8px',
+                            margin: '0 0 0 4px',
+                            padding: '4px 4px',
+                            fontSize: '12px',
+                          }}
+                        >
+                          {t('newVersionAvailable', {
+                            ns: 'prompt',
+                          })}
+                        </span>
+                      ) : (
+                        ''
+                      )}
                     </div>
                   </saki-menu-item>
+                  {/* {rnJSBridge?.isInApp() ? (
+                    <saki-menu-item
+                      padding="10px 18px"
+                      value={'CheckNewVersion'}
+                    >
+                      <div className="tb-h-r-user-item">
+                        <saki-icon color="#666" type="Question"></saki-icon>
+                        <span>
+                          {t('checkNewVersion', {
+                            ns: 'prompt',
+                          })}
+                        </span>
+                      </div>
+                    </saki-menu-item>
+                  ) : (
+                    ''
+                  )} */}
                   <saki-menu-item padding="10px 18px" value={'VConsole'}>
                     <div className="tb-h-r-user-item">
                       <saki-icon color="#666" type="Code"></saki-icon>

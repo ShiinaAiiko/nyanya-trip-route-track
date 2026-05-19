@@ -62,6 +62,14 @@ export class ReactNativeWebJSBridge extends NEventListener<{
   carData: CarData
   bydLog: any
   getStatusBarData: StatusBarData
+  skipVersion: string
+  updateProgress: any
+  updateComplete: {
+    version: string
+  }
+  updateError: {
+    error: any
+  }
 }> {
   rnWebView: any = undefined
   private count = 0
@@ -136,6 +144,15 @@ export class ReactNativeWebJSBridge extends NEventListener<{
   getStatusBarData() {
     return this.renderAPIPromise<StatusBarData>('getStatusBarData')
   }
+  checkNewVersion({
+    showCheckingNotification = true,
+  }: {
+    showCheckingNotification: boolean
+  }) {
+    this.sendMessage('checkNewVersion', {
+      showCheckingNotification,
+    })
+  }
   load() {
     this.dispatch('loaded', undefined)
     this.sendMessage('load')
@@ -172,6 +189,7 @@ export class ReactNativeWebJSBridge extends NEventListener<{
       | 'setStatusBar'
       | 'getThemeColor'
       | 'getStatusBarData'
+      | 'checkNewVersion'
       | 'load',
     payload?: any
   ) {
@@ -225,12 +243,12 @@ export class ReactNativeWebJSBridge extends NEventListener<{
       }
 
       this.getEventNames().forEach((en) => {
-        if (en.includes(data.type)) {
-          this.dispatch(en as any, data.payload)
+        if (en === data.type) {
+          this.dispatch(data.type, data.payload)
         }
       })
 
-      this.dispatch(data.type, data.payload)
+      // this.dispatch(data.type, data.payload)
     } catch (e) {
       // console.error(e)
     }

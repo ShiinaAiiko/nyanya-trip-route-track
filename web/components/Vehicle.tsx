@@ -172,7 +172,7 @@ const VehiclePage = () => {
       ).unwrap()
 
       dispatch(
-        methods.trip.GetTripHistoryData({
+        methods.trip.GetTripsBaseData({
           loadCloudData: true,
         })
       )
@@ -1170,7 +1170,7 @@ const AddTripHere = () => {
     setLoadStatus('loading')
 
     await dispatch(
-      methods.trip.GetTripHistoryData({
+      methods.trip.GetTripsBaseData({
         loadCloudData,
       })
     ).unwrap()

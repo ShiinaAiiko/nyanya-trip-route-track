@@ -19,7 +19,7 @@ import {
   eventListener,
   rnJSBridge,
 } from '../store/config'
-import { parseQuery, Query } from '../plugins/methods'
+import { isNewVersion, parseQuery, Query } from '../plugins/methods'
 import { storage, storageMethods } from '../store/storage'
 import { byteConvert } from '@nyanyajs/utils'
 import { getPositionShareText } from './Vehicle'
@@ -27,6 +27,7 @@ import { getSpeed } from 'geolib'
 import { protoRoot } from '../protos'
 import { loadModal } from '../store/layout'
 import { config } from 'process'
+import { SakiButton } from './saki-ui-react/components'
 
 const SettingsComponent = ({
   visible,
@@ -189,6 +190,18 @@ const SettingsNavList = ({
   const { t, i18n } = useTranslation('settings')
 
   const config = useSelector((state: RootState) => state.config)
+
+  const [isNewVersionAvailable, setIsNewVersionAvailable] = useState(false)
+
+  useEffect(() => {
+    if (rnJSBridge?.isInApp()) {
+      storage.global.get('skipVersionCode').then((skipVersionCode) => {
+        setIsNewVersionAvailable(
+          isNewVersion(config.appConfig?.version, skipVersionCode)
+        )
+      })
+    }
+  }, [config.appConfig?.version])
 
   return (
     <saki-menu
@@ -369,6 +382,22 @@ const SettingsNavList = ({
               ns: 'settings',
             })}
           </span>
+          {isNewVersionAvailable && (
+            <span
+              style={{
+                backgroundColor: 'var(--saki-default-color)',
+                color: '#fff',
+                borderRadius: '8px',
+                margin: '0 0 0 4px',
+                padding: '4px 4px',
+                fontSize: '12px',
+              }}
+            >
+              {t('newVersionAvailable', {
+                ns: 'prompt',
+              })}
+            </span>
+          )}
         </div>
       </saki-menu-item>
     </saki-menu>
@@ -379,13 +408,20 @@ const SettingsItem = ({
   title,
   subtitle,
   main,
+  style,
+  center,
 }: {
   title?: () => JSX.Element
   subtitle?: () => JSX.Element
   main?: () => JSX.Element
+  style?: React.CSSProperties
+  center?: boolean
 }) => {
   return (
-    <div className="settings-item-component ">
+    <div
+      style={style}
+      className={`settings-item-component ${center ? 'center' : ''}`}
+    >
       <div className="pi-title">{title?.()}</div>
       <div className="pi-subtitle">
         <slot name="subtitle">{subtitle?.()}</slot>
@@ -1992,6 +2028,17 @@ const About = ({ show }: { show: boolean }) => {
 
   const browserVersion = `${user.userAgent.browser.name} ${user.userAgent.browser.major}`
 
+  const [isNewVersionAvailable, setIsNewVersionAvailable] = useState(false)
+
+  useEffect(() => {
+    if (rnJSBridge?.isInApp()) {
+      storage.global.get('skipVersionCode').then((skipVersionCode) => {
+        setIsNewVersionAvailable(
+          isNewVersion(config.appConfig?.version, skipVersionCode)
+        )
+      })
+    }
+  }, [show, config.appConfig?.version])
   return (
     <div
       style={{
@@ -2003,12 +2050,35 @@ const About = ({ show }: { show: boolean }) => {
         <img src="/icons/256x256.png" alt="" />
         <div className="version-code">
           <span>Version v{config.appConfig?.fullVersion || version}</span>
-          <span>{config.appConfig.system || 'Web'}</span>
+          <span>{config.appConfig.system || '' + browserVersion}</span>
         </div>
       </div>
-      <div className="version-info">
-        <span className="version-code">{browserVersion}</span>
-      </div>
+      {rnJSBridge?.isInApp() ? (
+        <div className="version-info">
+          <SakiButton
+            onTap={() => {
+              rnJSBridge?.checkNewVersion({
+                showCheckingNotification: true,
+              })
+            }}
+            margin="6px 0"
+            type="Primary"
+          >
+            <span>
+              {isNewVersionAvailable
+                ? t('newVersionAvailable', {
+                    ns: 'prompt',
+                  })
+                : t('checkNewVersion', {
+                    ns: 'prompt',
+                  })}
+            </span>
+          </SakiButton>
+          {/* <span className="version-code">{browserVersion}</span> */}
+        </div>
+      ) : (
+        ''
+      )}
       <SettingsItem
         subtitle={() => (
           <div>
@@ -2051,6 +2121,34 @@ const About = ({ show }: { show: boolean }) => {
             </saki-button>
           </div>
         )}
+        center
+      ></SettingsItem>
+
+      <SettingsItem
+        subtitle={() => (
+          <div>
+            {t('technologyStack', {
+              ns: 'settings',
+            })}
+          </div>
+        )}
+        main={() => (
+          <>
+            <div className="technology-stack-item">
+              <img src="/images/nextjs.svg" alt="" />
+              <span>Next.js</span>
+            </div>
+            <div className="technology-stack-item">
+              <img src="/images/golang.svg" alt="" />
+              <span>Golang</span>
+            </div>
+            <div className="technology-stack-item">
+              <img src="/images/flutter.svg" alt="" />
+              <span>Flutter</span>
+            </div>
+          </>
+        )}
+        center
       ></SettingsItem>
     </div>
   )

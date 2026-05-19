@@ -403,7 +403,7 @@ const TrackRoutePage = () => {
       // init()
 
       dispatch(
-        methods.trip.GetTripHistoryData({
+        methods.trip.GetTripsBaseData({
           loadCloudData: true,
           alert: true,
           cityDetails: true,
@@ -422,12 +422,7 @@ const TrackRoutePage = () => {
 
   useEffect(() => {
     // console.log("getTripHistoryPositions", map.current)
-    if (
-      user.isLogin &&
-      initLocalData &&
-      map.current &&
-      trip.tripStatistics.length
-    ) {
+    if (user.isLogin && initLocalData && map.current && trip.trips.length) {
       // setTimeout(() => {
       // }, 500);
       const init = async () => {
@@ -449,7 +444,7 @@ const TrackRoutePage = () => {
     //     getTripStatistics()
     //   }, 500);
     // }
-  }, [user.isLogin, initLocalData, trip.tripStatistics, map.current])
+  }, [user.isLogin, initLocalData, trip.trips.length, map.current])
 
   const requestWakeLock = async () => {
     try {
@@ -487,10 +482,9 @@ const TrackRoutePage = () => {
       console.log(
         'renderPolyline ffff filter1 GetTripStatistics',
         config.configure.filter?.trackRoute,
-        trip.tripStatistics.length
+        trip.trips.length
       )
-      if (!config.configure.filter?.trackRoute || !trip.tripStatistics.length)
-        return
+      if (!config.configure.filter?.trackRoute || !trip.trips.length) return
 
       const { selectedTripIds, speedRange, altitudeRange } =
         config.configure.filter?.trackRoute
@@ -934,7 +928,7 @@ const TrackRoutePage = () => {
 
     // const { selectedTripIds } = config.configure.filter?.trackRoute
 
-    let s = trip.tripStatistics?.filter((v) => v.type === 'All')?.[0]
+    // let s = trip.tripStatistics?.filter((v) => v.type === 'All')?.[0]
 
     // if (!selectedTripTypes.length) {
     let distance = 0
@@ -946,7 +940,7 @@ const TrackRoutePage = () => {
     let climbAltitude = 0
     let descendAltitude = 0
 
-    s?.list?.forEach((v) => {
+    trip.trips?.forEach((v) => {
       if (!ids.includes(v.id || '')) return
 
       // if (selectedTripIds?.length && !selectedTripIds.includes(String(v.id))) {
@@ -1047,7 +1041,7 @@ const TrackRoutePage = () => {
     config.configure.filter?.trackRoute?.altitudeRange,
     config.configure.filter?.trackRoute?.showCustomTrip,
     mapLayer?.trackRouteColor,
-    trip.tripStatistics,
+    trip.trips.length,
     loadedMap.current,
     config.initConfigure,
   ])
@@ -1350,11 +1344,11 @@ const TrackRoutePage = () => {
       ';'
     )?.[0] || ''
 
-  const trips = useMemo(() => {
-    const trips = trip.tripStatistics?.filter((v) => v.type === 'All')
+  // const trips = useMemo(() => {
+  //   const trips = trip.tripStatistics?.filter((v) => v.type === 'All')
 
-    return trips[0]?.list || []
-  }, [trip.tripStatistics])
+  //   return trips[0]?.list || []
+  // }, [trip.tripStatistics])
 
   return (
     <>
@@ -1924,7 +1918,7 @@ const TrackRoutePage = () => {
             dispatch(layoutSlice.actions.setOpenTripFilterModal(false))
           }}
           dataList
-          trips={trips}
+          trips={trip.trips}
           selectTripIds={
             config.configure.filter?.trackRoute?.selectedTripIds || []
           }

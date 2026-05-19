@@ -38,6 +38,7 @@ import FilterComponent from './Filter'
 import {
   formartAddrName,
   getTrips,
+  getTripsByTypes,
   reupdateTripPositions,
   tripMethods,
 } from '../store/trip'
@@ -241,7 +242,8 @@ const TripHistoryComponent = () => {
                     })} [${t(layout.openStatisticsModal.type.toLowerCase(), {
                       ns: 'tripPage',
                     })}]`
-                  : !trip.detailPage.trip?.authorId
+                  : !trip.detailPage.trip?.authorId &&
+                      !trip.detailPage?.trip?.id?.includes('IDB_')
                     ? t('loadingData', {
                         ns: 'prompt',
                       })
@@ -496,23 +498,13 @@ const TripHistoryPage = ({
     if (layout.openTripHistoryModal) {
       if (!user.isLogin) {
         dispatch(layoutSlice.actions.setTripHistoryType('Local'))
-        return
       }
       const init = async () => {
         const { trip } = store.getState()
-        console.log(
-          ' t1rip.tripStatistics',
-          trip.tripStatistics,
-          trip.tripStatistics?.filter((v) => v.type === 'All')?.[0]?.list
-            ?.length
-        )
 
-        if (
-          !trip.tripStatistics?.filter((v) => v.type === 'All')?.[0]?.list
-            ?.length
-        ) {
+        if (!trip.trips?.length) {
           await dispatch(
-            methods.trip.GetTripHistoryData({
+            methods.trip.GetTripsBaseData({
               loadCloudData: true,
               alert: false,
             })
@@ -575,7 +567,7 @@ const TripHistoryPage = ({
         // // trip.tripStatistics.length &&
         // tripStatistics.length
       ) {
-        if (user.isLogin && isLoadLocal) {
+        if (isLoadLocal) {
           // await getTripStatistics()
 
           dispatch(methods.trip.GetTripHistoricalStatistics({ type }))
@@ -625,8 +617,8 @@ const TripHistoryPage = ({
   useEffect(() => {
     // mergeTripStatistics()
     // console.log('outSpeedLineChart listlist', trip.tripStatistics)
-    type && trip.tripStatistics?.length && outSpeedLineChart()
-  }, [trip.tripStatistics, type, time])
+    type && trip.trips?.length && outSpeedLineChart()
+  }, [trip.trips, type, time])
 
   // const [loadStatusByTripStatistics, setLoadStatusByTripStatistics] = useState<
   //   'loading' | 'loaded' | 'noMore'
@@ -701,12 +693,12 @@ const TripHistoryPage = ({
 
   const outSpeedLineChart = () => {
     try {
-      const list =
-        trip.tripStatistics.filter((v) => {
-          return v.type === type
-        })?.[0]?.list || []
+      const list = getTripsByTypes([type])
+      // trip.tripStatistics.filter((v) => {
+      //   return v.type === type
+      // })?.[0]?.list || []
 
-      console.log('outSpeedLineChart listlist', time, list, trip.tripStatistics)
+      console.log('outSpeedLineChart listlist', time, list)
       const tripData: {
         [key: string]: number
       } = {}
@@ -1346,8 +1338,7 @@ const TripHistoryPage = ({
                             loading={
                               type === 'Local'
                                 ? false
-                                : trip.tripStatistics?.length !==
-                                    config.tripTypes.length + 1 ||
+                                : !trip.trips.length ||
                                   v.loadStatus === 'loading'
                             }
                           >

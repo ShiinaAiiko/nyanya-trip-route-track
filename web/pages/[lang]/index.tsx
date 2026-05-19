@@ -21,6 +21,7 @@ import {
   AsyncQueue,
   Debounce,
   deepCopy,
+  getShortId,
   NyaNyaWasm,
   QueueLoop,
 } from '@nyanyajs/utils'
@@ -91,12 +92,19 @@ import {
 } from '../../plugins/map'
 import { loadModal } from '../../store/layout'
 import { LayerButtons } from '../../components/MapLayer'
-import NewDashboardComponent from '../../components/Dashboard'
+// import NewDashboardComponent from '../../components/Dashboard'
+
+const NewDashboardComponent = dynamic(
+  () => import('../../components/Dashboard'),
+  { ssr: false } // 这一句直接干掉你的 NoSSR 包装
+)
+
 import { getRoadId } from '../../store/geo'
 import { uploadFile } from '../../store/file'
 
 import * as Leaflet from 'leaflet'
 import { createIconMarker } from '../../store/map'
+import dynamic from 'next/dynamic'
 // import 'leaflet-rotate'
 
 let tempTimer: any
@@ -122,9 +130,9 @@ const TripPage = () => {
   // 3. 跨模块或深层属性，依然建议分开写，以获得最佳的引用拦截效果
   const cityInfo = useSelector((state: RootState) => state.city.cityInfo)
   const weatherInfo = useSelector((state: RootState) => state.trip.weatherInfo)
-  const tripStatistics = useSelector(
-    (state: RootState) => state.trip.tripStatistics
-  )
+  // const tripStatistics = useSelector(
+  //   (state: RootState) => state.trip.tripStatistics
+  // )
   const historicalStatistics = useSelector(
     (state: RootState) => state.trip.historicalStatistics
   )
@@ -844,210 +852,213 @@ const TripPage = () => {
   // }, [config.deviceType])
 
   useEffect(() => {
-    timer && clearInterval(timer.current)
-    // navigator.geolocation.clearWatch(watchId.current)
-    bindRealTimePositionListMarkerClickEvent()
-    bindMapClickEvent()
-    dispatch(positionSlice.actions.setSelectRealTimeMarkerId(''))
+    const init = async () => {
+      timer && clearInterval(timer.current)
+      // navigator.geolocation.clearWatch(watchId.current)
+      bindRealTimePositionListMarkerClickEvent()
+      bindMapClickEvent()
+      dispatch(positionSlice.actions.setSelectRealTimeMarkerId(''))
 
-    AIContext.current = {
-      startTrip: startTrip,
-      currentTripData: undefined,
-      lastTriggerData: undefined,
-      lastTriggerTime: 0,
-    }
+      AIContext.current = {
+        startTrip: startTrip,
+        currentTripData: undefined,
+        lastTriggerData: undefined,
+        lastTriggerTime: 0,
+      }
 
-    setMapLayerFeaturesList({
-      ...mapLayerFeaturesList,
-      headingUp: startTrip,
-    })
+      setMapLayerFeaturesList({
+        ...mapLayerFeaturesList,
+        headingUp: startTrip,
+      })
 
-    if (startTrip) {
-      if (rnJSBridge.isInApp()) {
+      if (startTrip) {
+        if (rnJSBridge.isInApp()) {
+          snackbar({
+            message: t('screen_always_on_and_background_gps_enabled', {
+              ns: 'tripPage',
+            }),
+            autoHideDuration: 5000,
+            vertical: 'center',
+            horizontal: 'center',
+            backgroundColor: 'var(--saki-default-color)',
+            color: '#fff',
+          }).open()
+
+          rnJSBridge.enableLocation(true)
+          rnJSBridge.enableBackgroundLocation(true)
+          // rnJSBridge.enableBackgroundTasks(true)
+          rnJSBridge.keepScreenOn(true)
+          rnJSBridge.enableCarData(true)
+        }
+
+        dispatch(configSlice.actions.setShowIndexPageButton(true))
+
+        dispatch(layoutSlice.actions.setLayoutHeader(false))
+        dispatch(layoutSlice.actions.setBottomNavigator(false))
+
+        console.log(map, marker, map)
+        // if (!config.devTrip) {
+        !trip && addTrip()
+        // }
+
+        // map.current && marker.current && marker.current.removeFrom(map.current)
+        // if (navigator.geolocation) {
+
+        // 说明是继续项目
+        if (!resumeStartTime.current) {
+          loadedMap.current = false
+          initMap()
+          tDistance.current = 0
+          climbAltitude.current = 0
+          descendAltitude.current = 0
+          updatedPositionIndex.current = -1
+          tempPositions.current = []
+          setTripMarks([])
+          polyline.current = undefined
+        }
+
+        const startTime = resumeStartTime.current || new Date().getTime()
+        setStartTime(startTime)
+        // let time = 1000 * 20 * 60
+        let time = 0
+        setListenTime(new Date().getTime() + time)
+
+        // console.log(
+        //   'resumeTrip1 resumeStartTime.current || new Date().getTime()',
+        //   trip,
+        //   startTime,
+        //   resumeStartTime.current,
+        //   climbAltitude.current,
+        //   descendAltitude.current,
+        //   polyline.current,
+        //   tempPositions.current
+        // )
+        // console.log('testGpsData', testGpsData)
+
+        // let i = 20
+        // setInterval(() => {
+        // 	if (!testGpsData[i]) return
+        // 	const v = testGpsData[i]
+        // 	const nv = {
+        // 		coords: {
+        // 			latitude: v.latitude,
+        // 			longitude: v.longitude,
+        // 			altitude: v.altitude,
+        // 			altitudeAccuracy: v.altitudeAccuracy,
+        // 			accuracy: v.accuracy,
+        // 			speed: v.speed,
+        // 			heading: v.heading,
+        // 		},
+        // 		timestamp: v.timestamp,
+        // 	}
+        // 	console.log('testGpsData1', nv)
+        // 	dispatch(geoSlice.actions.setPosition(nv))
+        // }, 1500)
+        timer.current = setInterval(() => {
+          // console.log(
+          //   'resumeStartTime',
+          //   new Date().getTime() - startTime,
+          //   new Date().getTime(),
+          //   startTime
+          // )
+          setListenTime(new Date().getTime() + time)
+
+          // if (!testGpsData[i]) return
+          // const v = testGpsData[i]
+          // const nv: any = {
+          // 	coords: {
+          // 		latitude: v.latitude,
+          // 		longitude: v.longitude,
+          // 		altitude: v.altitude,
+          // 		altitudeAccuracy: v.altitudeAccuracy,
+          // 		accuracy: v.accuracy,
+          // 		speed: v.speed,
+          // 		heading: v.heading,
+          // 	},
+          // 	timestamp: v.timestamp,
+          // }
+          // console.log('testGpsData1', nv)
+          // dispatch(geoSlice.actions.setPosition(nv))
+          // i++
+
+          // updatedPositionIndex.current += 1
+          // const v = testGpsData[testDataIndex.current]
+          // console.log('vvvv', v, testDataIndex.current)
+          // setPosition({
+          // 	coords: {
+          // 		latitude: v.latitude,
+          // 		longitude: v.longitude,
+          // 		altitude: v.altitude,
+          // 		altitudeAccuracy: v.altitudeAccuracy,
+          // 		accuracy: v.accuracy,
+          // 		speed: v.speed,
+          // 		heading: v.heading,
+          // 	},
+          // 	timestamp: v.timestamp,
+          // })
+          // testDataIndex.current++
+        }, 1000)
+
+        // return
+        // }
+        // console.log('该浏览器不支持获取地理位置')
+        return
+      }
+      if (config.appConfig.version) {
         snackbar({
-          message: t('screen_always_on_and_background_gps_enabled', {
+          message: t('screen_always_on_and_background_gps_disabled', {
             ns: 'tripPage',
           }),
-          autoHideDuration: 5000,
+          autoHideDuration: 4000,
           vertical: 'center',
           horizontal: 'center',
           backgroundColor: 'var(--saki-default-color)',
           color: '#fff',
         }).open()
-
-        rnJSBridge.enableLocation(true)
-        rnJSBridge.enableBackgroundLocation(true)
-        // rnJSBridge.enableBackgroundTasks(true)
-        rnJSBridge.keepScreenOn(true)
-        rnJSBridge.enableCarData(true)
+        rnJSBridge.keepScreenOn(false)
+        rnJSBridge.enableBackgroundLocation(false)
+        // rnJSBridge.enableBackgroundTasks(false)
       }
 
-      dispatch(configSlice.actions.setShowIndexPageButton(true))
+      await finishTrip()
 
-      dispatch(layoutSlice.actions.setLayoutHeader(false))
-      dispatch(layoutSlice.actions.setBottomNavigator(false))
-
-      console.log(map, marker, map)
-      if (!config.devTrip) {
-        !trip && addTrip()
+      statistics.current = {
+        speed: 0,
+        maxSpeed: 0,
+        maxAltitude: 0,
+        minAltitude: 0,
+        climbAltitude: 0,
+        descendAltitude: 0,
+        averageSpeed: 0,
+        distance: 0,
       }
 
-      // map.current && marker.current && marker.current.removeFrom(map.current)
-      // if (navigator.geolocation) {
+      lastWeather.current = undefined
+      tripWeather.current = []
 
-      // 说明是继续项目
-      if (!resumeStartTime.current) {
-        loadedMap.current = false
-        initMap()
-        tDistance.current = 0
-        climbAltitude.current = 0
-        descendAltitude.current = 0
-        updatedPositionIndex.current = -1
-        tempPositions.current = []
-        setTripMarks([])
-        polyline.current = undefined
+      setListenTime(0)
+      setGpsSignalStatus(-1)
+      setStartTime(0)
+      resumeStartTime.current = 0
+      // setPositionList([])
+
+      setTrip(undefined)
+      dispatch(methods.trip.GetTripHistoricalStatistics({ type }))
+
+      dispatch(layoutSlice.actions.setBottomNavigator(true))
+      dispatch(layoutSlice.actions.setLayoutHeader(true))
+      dispatch(layoutSlice.actions.setLayoutHeaderFixed(true))
+
+      loadedMap.current = false
+      initMap()
+      // map.current &&
+      // 	marker.current &&
+      // 	marker.current.addTo(map.current).openPopup()
+      if (wakeLock.current) {
+        wakeLock.current.release().then(() => (wakeLock.current = undefined))
       }
-
-      const startTime = resumeStartTime.current || new Date().getTime()
-      setStartTime(startTime)
-      // let time = 1000 * 20 * 60
-      let time = 0
-      setListenTime(new Date().getTime() + time)
-
-      // console.log(
-      //   'resumeTrip1 resumeStartTime.current || new Date().getTime()',
-      //   trip,
-      //   startTime,
-      //   resumeStartTime.current,
-      //   climbAltitude.current,
-      //   descendAltitude.current,
-      //   polyline.current,
-      //   tempPositions.current
-      // )
-      // console.log('testGpsData', testGpsData)
-
-      // let i = 20
-      // setInterval(() => {
-      // 	if (!testGpsData[i]) return
-      // 	const v = testGpsData[i]
-      // 	const nv = {
-      // 		coords: {
-      // 			latitude: v.latitude,
-      // 			longitude: v.longitude,
-      // 			altitude: v.altitude,
-      // 			altitudeAccuracy: v.altitudeAccuracy,
-      // 			accuracy: v.accuracy,
-      // 			speed: v.speed,
-      // 			heading: v.heading,
-      // 		},
-      // 		timestamp: v.timestamp,
-      // 	}
-      // 	console.log('testGpsData1', nv)
-      // 	dispatch(geoSlice.actions.setPosition(nv))
-      // }, 1500)
-      timer.current = setInterval(() => {
-        // console.log(
-        //   'resumeStartTime',
-        //   new Date().getTime() - startTime,
-        //   new Date().getTime(),
-        //   startTime
-        // )
-        setListenTime(new Date().getTime() + time)
-
-        // if (!testGpsData[i]) return
-        // const v = testGpsData[i]
-        // const nv: any = {
-        // 	coords: {
-        // 		latitude: v.latitude,
-        // 		longitude: v.longitude,
-        // 		altitude: v.altitude,
-        // 		altitudeAccuracy: v.altitudeAccuracy,
-        // 		accuracy: v.accuracy,
-        // 		speed: v.speed,
-        // 		heading: v.heading,
-        // 	},
-        // 	timestamp: v.timestamp,
-        // }
-        // console.log('testGpsData1', nv)
-        // dispatch(geoSlice.actions.setPosition(nv))
-        // i++
-
-        // updatedPositionIndex.current += 1
-        // const v = testGpsData[testDataIndex.current]
-        // console.log('vvvv', v, testDataIndex.current)
-        // setPosition({
-        // 	coords: {
-        // 		latitude: v.latitude,
-        // 		longitude: v.longitude,
-        // 		altitude: v.altitude,
-        // 		altitudeAccuracy: v.altitudeAccuracy,
-        // 		accuracy: v.accuracy,
-        // 		speed: v.speed,
-        // 		heading: v.heading,
-        // 	},
-        // 	timestamp: v.timestamp,
-        // })
-        // testDataIndex.current++
-      }, 1000)
-
-      // return
-      // }
-      // console.log('该浏览器不支持获取地理位置')
-      return
     }
-    if (config.appConfig.version) {
-      snackbar({
-        message: t('screen_always_on_and_background_gps_disabled', {
-          ns: 'tripPage',
-        }),
-        autoHideDuration: 4000,
-        vertical: 'center',
-        horizontal: 'center',
-        backgroundColor: 'var(--saki-default-color)',
-        color: '#fff',
-      }).open()
-      rnJSBridge.keepScreenOn(false)
-      rnJSBridge.enableBackgroundLocation(false)
-      // rnJSBridge.enableBackgroundTasks(false)
-    }
-
-    statistics.current = {
-      speed: 0,
-      maxSpeed: 0,
-      maxAltitude: 0,
-      minAltitude: 0,
-      climbAltitude: 0,
-      descendAltitude: 0,
-      averageSpeed: 0,
-      distance: 0,
-    }
-
-    lastWeather.current = undefined
-    tripWeather.current = []
-
-    setListenTime(0)
-    setGpsSignalStatus(-1)
-    setStartTime(0)
-    resumeStartTime.current = 0
-    // setPositionList([])
-
-    finishTrip()
-
-    setTrip(undefined)
-    dispatch(methods.trip.GetTripHistoricalStatistics({ type }))
-
-    dispatch(layoutSlice.actions.setBottomNavigator(true))
-    dispatch(layoutSlice.actions.setLayoutHeader(true))
-    dispatch(layoutSlice.actions.setLayoutHeaderFixed(true))
-
-    loadedMap.current = false
-    initMap()
-    // map.current &&
-    // 	marker.current &&
-    // 	marker.current.addTo(map.current).openPopup()
-    if (wakeLock.current) {
-      wakeLock.current.release().then(() => (wakeLock.current = undefined))
-    }
+    init()
   }, [startTrip])
 
   useEffect(() => {
@@ -2011,7 +2022,7 @@ const TripPage = () => {
   }
 
   const addTrip = async () => {
-    let id = 'IDB_' + md5(String(new Date().getTime()))
+    let id = 'IDB_' + getShortId(12)
 
     const v: protoRoot.trip.ITrip = {
       id,
@@ -2441,6 +2452,10 @@ const TripPage = () => {
     //   positions: gpsJson.data,
     // })
 
+    await updatePosition()
+
+    await updateNetworkStatus()
+
     // if (statistics.current.distance >= 50) {
     // 先存储到本地
     const tempTrip = {
@@ -2471,93 +2486,14 @@ const TripPage = () => {
       status: 1,
       endTime: Math.floor(new Date().getTime() / 1000),
     }
+    await storage.trips.delete(trip.id)
     await storage.trips.set(trip.id, tempTrip)
     await storage.global.set('tempTripData_' + trip.id, tempTrip)
 
-    await updatePosition()
-
-    await updateNetworkStatus()
-
     // console.log('tempTrip getLocalTrips', tempTrip)
     // }
-    if (trip.id.indexOf('IDB') < 0) {
-      const res = await httpApi.v1.FinishTrip({
-        id: trip.id,
-      })
-      console.log('FinishTrip', res)
-      if (res.code === 200) {
-        snackbar({
-          message: t('finishTripTip', {
-            ns: 'prompt',
-            localNum: tempPositions.current.length,
-            cloudNum: res?.data?.positionLength,
-          }),
-          autoHideDuration: 4000,
-          vertical: 'top',
-          horizontal: 'center',
-        }).open()
-        // 检测是否没传完，没传完的在这里继续，然后重新FinshTrip
-
-        requestAnimationFrame(() => {
-          dispatch(
-            tripMethods.GetTripAddresses({
-              trips: [trip],
-              isSnackbar: true,
-            })
-          ).unwrap()
-        })
-
-        if (res?.data?.positionLength !== tempPositions.current.length) {
-          await httpApi.v1.ResumeTrip({
-            id: trip?.id,
-          })
-          await reupdateTripPositions({
-            id: trip.id || '',
-            positions: tempPositions.current,
-          })
-          const jsonString = JSON.stringify(tempPositions.current)
-
-          // 创建File对象
-          const file = new File(
-            [jsonString], // 内容
-            'backup_trip_' + trip?.id + '.json', // 文件名
-            { type: 'application/json' } // 文件类型
-          )
-
-          const res = await uploadFile(file)
-          snackbar({
-            message: res,
-            // autoHideDuration: 4000,
-            closeIcon: true,
-            onTap() {
-              copyText(res)
-            },
-            vertical: 'bottom',
-            horizontal: 'center',
-          }).open()
-
-          // 原始数组
-          // copyText(jsonString)
-
-          await httpApi.v1.FinishTrip({
-            id: trip.id,
-          })
-          return
-        }
-        if (res?.data?.deleted) {
-          snackbar({
-            message: t('shortDistanceTrip', {
-              ns: 'prompt',
-            }),
-            autoHideDuration: 2000,
-            vertical: 'top',
-            horizontal: 'center',
-          }).open()
-        }
-        // await storage.trips.delete(trip.id)
-        // await storage.trips.set(trip.id, tempTrip)
-      }
-    } else {
+    if (trip.id.includes('IDB')) {
+      console.log('statistics.current', trip.id, statistics.current)
       if (statistics.current.distance >= 50) {
         snackbar({
           message: t('tripSavedLocally', {
@@ -2578,6 +2514,83 @@ const TripPage = () => {
           horizontal: 'center',
         }).open()
       }
+      return
+    }
+    const res = await httpApi.v1.FinishTrip({
+      id: trip.id,
+    })
+    console.log('FinishTrip', res)
+    if (res.code === 200) {
+      snackbar({
+        message: t('finishTripTip', {
+          ns: 'prompt',
+          localNum: tempPositions.current.length,
+          cloudNum: res?.data?.positionLength,
+        }),
+        autoHideDuration: 4000,
+        vertical: 'top',
+        horizontal: 'center',
+      }).open()
+      // 检测是否没传完，没传完的在这里继续，然后重新FinshTrip
+
+      requestAnimationFrame(() => {
+        dispatch(
+          tripMethods.GetTripAddresses({
+            trips: [trip],
+            isSnackbar: true,
+          })
+        ).unwrap()
+      })
+
+      if (res?.data?.positionLength !== tempPositions.current.length) {
+        await httpApi.v1.ResumeTrip({
+          id: trip?.id,
+        })
+        await reupdateTripPositions({
+          id: trip.id || '',
+          positions: tempPositions.current,
+        })
+        const jsonString = JSON.stringify(tempPositions.current)
+
+        // 创建File对象
+        const file = new File(
+          [jsonString], // 内容
+          'backup_trip_' + trip?.id + '.json', // 文件名
+          { type: 'application/json' } // 文件类型
+        )
+
+        const res = await uploadFile(file)
+        snackbar({
+          message: res,
+          // autoHideDuration: 4000,
+          closeIcon: true,
+          onTap() {
+            copyText(res)
+          },
+          vertical: 'bottom',
+          horizontal: 'center',
+        }).open()
+
+        // 原始数组
+        // copyText(jsonString)
+
+        await httpApi.v1.FinishTrip({
+          id: trip.id,
+        })
+        return
+      }
+      if (res?.data?.deleted) {
+        snackbar({
+          message: t('shortDistanceTrip', {
+            ns: 'prompt',
+          }),
+          autoHideDuration: 2000,
+          vertical: 'top',
+          horizontal: 'center',
+        }).open()
+      }
+      // await storage.trips.delete(trip.id)
+      // await storage.trips.set(trip.id, tempTrip)
     }
     // setTrip(undefined)
     // dispatch(methods.trip.GetTripHistoricalStatistics({ type }))
@@ -2841,60 +2854,58 @@ const TripPage = () => {
               mapLayerType={mapLayerType}
             ></LayerButtons>
           </div>
-          <NoSSR>
-            <NewDashboardComponent
-              enable={!!(startTrip || position.selectRealTimeMarkerId)}
-              mapUrl={mapUrl}
-              mapMode={mapLayer?.mapMode || 'Normal'}
-              type={type}
-              tripId={trip?.id || ''}
-              gpsSignalStatus={
-                !position.selectRealTimeMarkerId ? gpsSignalStatus : 1
-              }
-              stopped={!position.selectRealTimeMarkerId ? stopped : false}
-              position={
-                !position.selectRealTimeMarkerId
-                  ? tempPositions.current[tempPositions.current.length - 1]
-                  : realTimePositionList.current.filter(
-                      (v) =>
-                        (v.vehicleInfo?.id || v.userInfo?.uid || '') ===
-                        position.selectRealTimeMarkerId
-                    )?.[0]?.position ||
-                    tempPositions.current[tempPositions.current.length - 1]
-              }
-              startTime={startTime}
-              listenTime={listenTime}
-              statistics={statistics.current}
-              updatedPositionsLength={updatedPositionIndex.current + 1}
-              positionsLength={tempPositions.current.length}
-              selectVehicle={!position.selectRealTimeMarkerId}
-              live={!position.selectRealTimeMarkerId}
-              markerPosition={!!position.selectRealTimeMarkerId}
-              onZoom={(v) => {
-                setZoomOutSpeedMeter(v === 'zoomOut')
-              }}
-              runTime={1000}
-              weatherInfo={weatherInfo}
-              cityInfo={cityInfo}
-              markerInfo={
-                realTimePositionList.current.filter(
-                  (v) =>
-                    (v.vehicleInfo?.id || v.userInfo?.uid || '') ===
-                    position.selectRealTimeMarkerId
-                )?.[0]
-              }
-              cities={cities.current}
-              zIndex={500}
-              speedAnimation={mapLayer?.speedAnimation || false}
-              roads={
-                roadInfoList.current?.filter((v) => {
-                  return v.code !== 'A404'
-                }) || []
-              }
-              headingUp={isHeadingUp || false}
-              mapLayerType={mapLayerType}
-            ></NewDashboardComponent>
-          </NoSSR>
+          <NewDashboardComponent
+            enable={!!(startTrip || position.selectRealTimeMarkerId)}
+            mapUrl={mapUrl}
+            mapMode={mapLayer?.mapMode || 'Normal'}
+            type={type}
+            tripId={trip?.id || ''}
+            gpsSignalStatus={
+              !position.selectRealTimeMarkerId ? gpsSignalStatus : 1
+            }
+            stopped={!position.selectRealTimeMarkerId ? stopped : false}
+            position={
+              !position.selectRealTimeMarkerId
+                ? tempPositions.current[tempPositions.current.length - 1]
+                : realTimePositionList.current.filter(
+                    (v) =>
+                      (v.vehicleInfo?.id || v.userInfo?.uid || '') ===
+                      position.selectRealTimeMarkerId
+                  )?.[0]?.position ||
+                  tempPositions.current[tempPositions.current.length - 1]
+            }
+            startTime={startTime}
+            listenTime={listenTime}
+            statistics={statistics.current}
+            updatedPositionsLength={updatedPositionIndex.current + 1}
+            positionsLength={tempPositions.current.length}
+            selectVehicle={!position.selectRealTimeMarkerId}
+            live={!position.selectRealTimeMarkerId}
+            markerPosition={!!position.selectRealTimeMarkerId}
+            onZoom={(v) => {
+              setZoomOutSpeedMeter(v === 'zoomOut')
+            }}
+            runTime={1000}
+            weatherInfo={weatherInfo}
+            cityInfo={cityInfo}
+            markerInfo={
+              realTimePositionList.current.filter(
+                (v) =>
+                  (v.vehicleInfo?.id || v.userInfo?.uid || '') ===
+                  position.selectRealTimeMarkerId
+              )?.[0]
+            }
+            cities={cities.current}
+            zIndex={500}
+            speedAnimation={mapLayer?.speedAnimation || false}
+            roads={
+              roadInfoList.current?.filter((v) => {
+                return v.code !== 'A404'
+              }) || []
+            }
+            headingUp={isHeadingUp || false}
+            mapLayerType={mapLayerType}
+          ></NewDashboardComponent>
 
           {config.showIndexPageButton ? (
             <div

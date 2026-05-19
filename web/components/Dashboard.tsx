@@ -28,7 +28,7 @@ import {
 } from '../plugins/methods'
 import moment from 'moment'
 import { storage } from '../store/storage'
-import { Statistics, TripStatisticsType, WeatherInfoType } from '../store/trip'
+import { Statistics, WeatherInfoType } from '../store/trip'
 import { protoRoot } from '../protos'
 import { VehicleLogo } from './Vehicle'
 import { httpApi } from '../plugins/http/api'
@@ -45,6 +45,7 @@ import { cityState, getSimpleCityName } from '../store/city'
 import { openWeatherWMOToEmoji } from '@akaguny/open-meteo-wmo-to-emoji'
 import { loadModal } from '../store/layout'
 import i18n, { t } from '../plugins/i18n/i18n'
+import dynamic from 'next/dynamic'
 
 const NewDashboardComponent = ({
   enable = false,
@@ -770,8 +771,8 @@ const NewDashboardComponent = ({
               stroke-width="0.6"
             />
 
-            <circle cx="0" cy="0" r="5" fill="#222222" />
-            <circle cx="0" cy="0" r="2.5" fill="#dddddd" />
+            <circle cx="0" cy="0" r="5" stroke-width="0.8" fill="#222222" />
+            <circle cx="0" cy="0" r="2.5" stroke-width="0.8" fill="#dddddd" />
           </g>
         </svg>
       </div>

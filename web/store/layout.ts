@@ -5,7 +5,7 @@ import {
   configureStore,
 } from '@reduxjs/toolkit'
 import { protoRoot } from '../protos'
-import { TabsTripType } from './config'
+import { eventListener, TabsTripType } from './config'
 import store, { citySlice, methods } from '.'
 import { alert } from '@saki-ui/core'
 // import { MediaItem } from './file'
@@ -252,6 +252,10 @@ export const layoutSlice = createSlice({
     ) => {
       state.openJourneyMemoriesModal = params.payload
       // console.log('setOpenJourneyMemoriesModal ', state.openJourneyMemoriesModal)
+      eventListener.dispatch('openModalToUrl', {
+        type: 'openJourneyMemoriesModal',
+        visible: params.payload,
+      })
     },
     setOpenVisitedCitiesModal: (
       state,
@@ -268,6 +272,11 @@ export const layoutSlice = createSlice({
       state.openVisitedCitiesModal.title = params.payload?.title || ''
       state.openVisitedCitiesModal.tripIds = params.payload?.tripIds || []
 
+      eventListener.dispatch('openModalToUrl', {
+        type: 'openVisitedCitiesModal',
+        visible: params.payload.visible,
+      })
+
       setTimeout(() => {
         store.dispatch(citySlice.actions.setCities([]))
       }, 0)
@@ -280,6 +289,10 @@ export const layoutSlice = createSlice({
       }
     ) => {
       state.openCreateCustomTripModal = params.payload
+      eventListener.dispatch('openModalToUrl', {
+        type: 'openCreateCustomTripModal',
+        visible: params.payload,
+      })
     },
     setOpenPrivacyGeofenceModal: (
       state,
@@ -289,6 +302,10 @@ export const layoutSlice = createSlice({
       }
     ) => {
       state.openPrivacyGeofenceModal = params.payload
+      eventListener.dispatch('openModalToUrl', {
+        type: 'openPrivacyGeofenceModal',
+        visible: params.payload,
+      })
     },
     setLayoutHeader: (
       state,
@@ -395,6 +412,10 @@ export const layoutSlice = createSlice({
       }
     ) => {
       state.openVehicleModal = params.payload
+      eventListener.dispatch('openModalToUrl', {
+        type: 'openVehicleModal',
+        visible: params.payload,
+      })
     },
     setEditTripModal: (
       state,
@@ -453,6 +474,11 @@ export const layoutSlice = createSlice({
       }
     ) => {
       state.openSettingsModal = params.payload
+
+      eventListener.dispatch('openModalToUrl', {
+        type: 'openSettingsModal',
+        visible: params.payload,
+      })
     },
     setOpenLoginModal: (
       state,
@@ -462,6 +488,10 @@ export const layoutSlice = createSlice({
       }
     ) => {
       state.openLoginModal = params.payload
+      eventListener.dispatch('openModalToUrl', {
+        type: 'openLoginModal',
+        visible: params.payload,
+      })
     },
     setOpenTripHistoryModal: (
       state,
@@ -470,8 +500,12 @@ export const layoutSlice = createSlice({
         type: string
       }
     ) => {
-      console.log(params.payload, 'setOpenTripHistoryModal')
+      // console.log(params.payload, 'setOpenTripHistoryModal')
       state.openTripHistoryModal = params.payload
+      eventListener.dispatch('openModalToUrl', {
+        type: 'openTripHistoryModal',
+        visible: params.payload,
+      })
     },
     setOpenStatisticsModal: (
       state,

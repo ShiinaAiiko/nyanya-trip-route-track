@@ -14,9 +14,9 @@ import {
   getZoom,
   isPointInPolygon,
 } from '../plugins/methods'
-import { eventListener, R, TabsTripType, tripTypes } from './config'
+import { eventListener, R, TabsTripType, TripType, tripTypes } from './config'
 import { httpApi } from '../plugins/http/api'
-import store, { layoutSlice, methods } from '.'
+import store, { ActionParams, layoutSlice, methods } from '.'
 import { isLinearGradient } from 'html2canvas/dist/types/css/types/image'
 import i18n from '../plugins/i18n/i18n'
 import { snackbar } from '@saki-ui/core'
@@ -41,6 +41,8 @@ export interface Statistics {
   distance: number
 }
 
+let loadTripBaseDataStatus = 'loaded'
+
 const modelName = 'trip'
 
 export const state = {
@@ -57,14 +59,6 @@ export const state = {
   replayTrip: {
     id: '',
   },
-  tripStatistics: [] as {
-    type: TabsTripType
-    count: number
-    distance: number
-    uselessData: string[]
-    time: number
-    list: protoRoot.trip.ITrip[]
-  }[],
 
   weatherInfo: {
     ipv4: '',
@@ -97,12 +91,24 @@ export const state = {
           distance: 0,
           time: 0,
         },
+        list: [],
       } as {
         loadStatus: 'loading' | 'loaded' | 'noMore'
         statistics: protoRoot.trip.ITripHistoricalStatistics
+        list: protoRoot.trip.ITrip[]
       },
     ])
   ),
+  // tripStatistics: [] as {
+  //   type: TabsTripType
+  //   count: number
+  //   distance: number
+  //   uselessData: string[]
+  //   time: number
+  //   list: protoRoot.trip.ITrip[]
+  // }[],
+
+  trips: [] as protoRoot.trip.ITrip[],
 
   privacyGeofencePoints:
     [] as protoRoot.privacyGeofence.IPrivacyGeofencePointsItem[],
@@ -110,7 +116,7 @@ export const state = {
 }
 
 export type WeatherInfoType = typeof state.weatherInfo
-export type TripStatisticsType = (typeof state.tripStatistics)[0]
+// export type TripStatisticsType = (typeof state.tripStatistics)[0]
 
 // export const isCorrectedData = async (trip: protoRoot.trip.ITrip) => {
 // 	let tDistance = 0
@@ -1097,16 +1103,21 @@ export const tripSlice = createSlice({
         ...params.payload,
       }
     },
-    setTripStatistics: (
-      state,
-      params: {
-        payload: (typeof state)['tripStatistics']
-        type: string
-      }
-    ) => {
+    // setTripStatistics: (
+    //   state,
+    //   params: {
+    //     payload: (typeof state)['tripStatistics']
+    //     type: string
+    //   }
+    // ) => {
+    //   // console.log('getTDistance1', params.payload)
+    //   state.tripStatistics = params.payload
+    // },
+    setTrips: (state, params: ActionParams<typeof state.trips>) => {
       // console.log('getTDistance1', params.payload)
-      state.tripStatistics = params.payload
+      state.trips = params.payload
     },
+
     setReplayTripId: (
       state,
       params: {
@@ -1221,6 +1232,21 @@ export const getTrips = async ({
   }
 }
 
+export const getTripsByTypes = (types: string[]) => {
+  const { trip } = store.getState()
+
+  return (
+    trip.trips?.filter((v) => {
+      return (
+        types.length === 0 ||
+        types.includes('All') ||
+        types.includes('Local') ||
+        types.includes(v.type as any)
+      )
+    }) || []
+  )
+}
+
 export const FilterTrips = ({
   selectedTripTypes,
   distanceRange,
@@ -1246,23 +1272,16 @@ export const FilterTrips = ({
 }) => {
   const { trip, journeyMemory } = store.getState()
 
-  const trips = trip.tripStatistics
-    ?.filter((v) =>
-      selectedTripTypes?.length === 0
-        ? v.type === 'All'
-        : selectedTripTypes?.includes(v.type)
+  const trips = getTripsByTypes(selectedTripTypes).filter((v) => {
+    const _shortestDistance = (distanceRange?.min || 0) * 1000
+    const _longestDistance = (distanceRange?.max || 0) * 1000
+    return (
+      Number(v.statistics?.distance) >= _shortestDistance &&
+      (_longestDistance >= 500 * 1000
+        ? true
+        : Number(v.statistics?.distance) <= _longestDistance)
     )
-    .reduce((list, v) => list.concat(v.list), [] as protoRoot.trip.ITrip[])
-    .filter((v) => {
-      const _shortestDistance = (distanceRange?.min || 0) * 1000
-      const _longestDistance = (distanceRange?.max || 0) * 1000
-      return (
-        Number(v.statistics?.distance) >= _shortestDistance &&
-        (_longestDistance >= 500 * 1000
-          ? true
-          : Number(v.statistics?.distance) <= _longestDistance)
-      )
-    })
+  })
 
   const jmTripIds: string[] = selectedJmIds.length
     ? journeyMemory.jmBaseDataList.reduce((t, v) => {
@@ -1361,17 +1380,7 @@ export const filterTrips = ({
   const { trip } = store.getState()
 
   return (
-    (list.length
-      ? list
-      : trip.tripStatistics
-          ?.filter((v) =>
-            types?.length === 0 ? v.type === 'All' : types?.includes(v.type)
-          )
-          .reduce(
-            (list, v) => list.concat(v.list),
-            [] as protoRoot.trip.ITrip[]
-          )
-    ).filter((v) => {
+    (list.length ? list : getTripsByTypes(types)).filter((v) => {
       const ct = Number(v.createTime)
       const st = Math.floor(
         new Date(
@@ -1706,9 +1715,12 @@ export const tripMethods = {
       {
         loadCloudData,
         alert = true,
+
+        cityDetails = false,
       }: {
         loadCloudData?: boolean
         alert?: boolean
+        cityDetails?: boolean
       },
       thunkAPI
     ) => {
@@ -1716,6 +1728,9 @@ export const tripMethods = {
       const { trip, config, user } = store.getState()
 
       try {
+        if (loadTripBaseDataStatus === 'loading') return
+        loadTripBaseDataStatus = 'loading'
+
         let loadBaseData: ReturnType<typeof snackbar> | undefined
         if (alert) {
           loadBaseData = snackbar({
@@ -1739,11 +1754,18 @@ export const tripMethods = {
         // storage.trips.deleteAll()
         // await storage.global.delete(k)
 
-        let getTripsLocal = (await storage.trips.getAll()).map(
-          (v): protoRoot.trip.ITrip => {
-            return ForEachLongToNumber(v.value)
-          }
-        )
+        let getTripsLocal: protoRoot.trip.ITrip[] = []
+        // const tripMap = new Map<string | number, boolean>()
+
+        ;(await storage.trips.getAll()).forEach((v) => {
+          getTripsLocal.push(ForEachLongToNumber(v.value))
+        })
+
+        if (getTripsLocal.length) {
+          dispatch(tripSlice.actions.setTrips(deepCopy(getTripsLocal)))
+        }
+
+        if (!user.isLogin) return getTripsLocal
 
         const localTime =
           getTripsLocal.length === 0
@@ -1778,8 +1800,60 @@ export const tripMethods = {
         console.log('baseTrips getTripsLocal', getTripsCloudIds, getTripsLocal)
 
         loadBaseData?.close()
+
+        dispatch(tripSlice.actions.setTrips(deepCopy(getTripsLocal)))
+
         console.timeEnd('GetTripStatistics')
 
+        if (cityDetails) {
+          const cities = await dispatch(
+            cityMethods.GetAllCitiesVisitedByUser({
+              tripIds: [],
+              onload(cities) {
+                if (cities.length) {
+                  const cityDetailsMap = cities?.reduce(
+                    (results, v, i) => {
+                      v.cities?.forEach((sv) => {
+                        sv.cities?.forEach((ssv) => {
+                          ssv.cities?.forEach((sssv) => {
+                            if (sssv.level === 5) {
+                              results[sssv?.id || ''] = [v, sv, ssv, sssv]
+                            }
+                            sssv.cities?.forEach((ssssv) => {
+                              if (ssssv.level === 5) {
+                                results[ssssv?.id || ''] = [
+                                  v,
+                                  sv,
+                                  ssv,
+                                  sssv,
+                                  ssssv,
+                                ]
+                              }
+                            })
+                          })
+                        })
+                      })
+
+                      return results
+                    },
+                    {} as {
+                      [cityId: string]: protoRoot.city.ICityItem[]
+                    }
+                  )
+                  getTripsLocal.forEach((v) => {
+                    v.cities?.forEach((sv) => {
+                      sv.cityDetails = cityDetailsMap?.[sv?.cityId || '']
+                    })
+                  })
+                  dispatch(tripSlice.actions.setTrips(getTripsLocal))
+                }
+              },
+              // tripIds: baseTrips.map((v) => v.id || ''),
+            })
+          ).unwrap()
+          console.log('GetAllCitiesVisitedByUser gcv', cities)
+        }
+        loadTripBaseDataStatus = 'loaded'
         return getTripsLocal
       } catch (error) {
         console.error(error)
@@ -1787,203 +1861,210 @@ export const tripMethods = {
       }
     }
   ),
-  GetTripHistoryData: createAsyncThunk(
-    modelName + '/GetTripHistoryData',
-    async (
-      {
-        loadCloudData,
-        alert = true,
-        cityDetails = false,
-      }: {
-        loadCloudData?: boolean
-        alert?: boolean
-        cityDetails?: boolean
-      },
-      thunkAPI
-    ) => {
-      console.log('GetTripHistoryData load')
-      const dispatch = thunkAPI.dispatch
-      const { trip, config, user } = store.getState()
+  // GetTripHistoryData: createAsyncThunk(
+  //   modelName + '/GetTripHistoryData',
+  //   async (
+  //     {
+  //       loadCloudData,
+  //       alert = true,
+  //       cityDetails = false,
+  //     }: {
+  //       loadCloudData?: boolean
+  //       alert?: boolean
+  //       cityDetails?: boolean
+  //     },
+  //     thunkAPI
+  //   ) => {
+  //     console.log('GetTripHistoryData load')
+  //     const dispatch = thunkAPI.dispatch
+  //     const { trip, config, user } = store.getState()
 
-      try {
-        let ts = deepCopy(trip.tripStatistics)
+  //     try {
+  //       let ts = deepCopy(trip.tripStatistics)
 
-        // console.log('tsts ts', ts)
-        if (!ts.length) {
-          ts = [
-            {
-              type: 'All',
-              count: 0,
-              distance: 0,
-              uselessData: [],
-              time: 0,
-              list: [],
-              // list: res?.data?.list || [],
-            },
-          ]
+  //       // console.log('tsts ts', ts)
+  //       if (!ts.length) {
+  //         ts = [
+  //           {
+  //             type: 'All',
+  //             count: 0,
+  //             distance: 0,
+  //             uselessData: [],
+  //             time: 0,
+  //             list: [],
+  //             // list: res?.data?.list || [],
+  //           },
+  //         ]
 
-          config.tripTypes.forEach((v) => {
-            ts.push({
-              type: v as any,
-              count: 0,
-              distance: 0,
-              uselessData: [],
-              time: 0,
-              list: [],
-              // list: res?.data?.list || [],
-            })
-          })
+  //         config.tripTypes.forEach((v) => {
+  //           ts.push({
+  //             type: v as any,
+  //             count: 0,
+  //             distance: 0,
+  //             uselessData: [],
+  //             time: 0,
+  //             list: [],
+  //             // list: res?.data?.list || [],
+  //           })
+  //         })
 
-          const tempTS: typeof trip.tripStatistics = await storage.global.get(
-            'getTripHistoryDataTS'
-          )
-          // console.log(
-          //   'tsts tempTS1',
-          //   tempTS.filter((v) => v),
-          //   config.tripTypes.length + 1,
-          //   tempTS.filter((v) => v)?.length >= config.tripTypes.length + 1
-          // )
-          if (tempTS?.filter((v) => v)?.length >= config.tripTypes.length + 1) {
-            ts = tempTS
-            dispatch(tripSlice.actions.setTripStatistics(ts))
-            ts = deepCopy(ts)
-          }
-        }
+  //         const tempTS: typeof trip.tripStatistics = await storage.global.get(
+  //           'getTripHistoryDataTS'
+  //         )
+  //         // console.log(
+  //         //   'tsts tempTS1',
+  //         //   tempTS.filter((v) => v),
+  //         //   config.tripTypes.length + 1,
+  //         //   tempTS.filter((v) => v)?.length >= config.tripTypes.length + 1
+  //         // )
+  //         if (tempTS?.filter((v) => v)?.length >= config.tripTypes.length + 1) {
+  //           ts = tempTS
+  //           dispatch(tripSlice.actions.setTripStatistics(ts))
+  //           ts = deepCopy(ts)
+  //         }
+  //       }
 
-        // console.log('tsts listlist getTripHistoryDataTS tempTS', ts)
+  //       // console.log('tsts listlist getTripHistoryDataTS tempTS', ts)
 
-        const baseTrips = await dispatch(
-          methods.trip.GetTripsBaseData({
-            loadCloudData,
-            alert,
-          })
-        ).unwrap()
+  //       const baseTrips = await dispatch(
+  //         methods.trip.GetTripsBaseData({
+  //           loadCloudData,
+  //           alert,
+  //         })
+  //       ).unwrap()
 
-        // console.log('tsts baseTrips', cityDetails, baseTrips, ts)
+  //       // console.log('tsts baseTrips', cityDetails, baseTrips, ts)
 
-        if (cityDetails) {
-          const cities = await dispatch(
-            cityMethods.GetAllCitiesVisitedByUser({
-              tripIds: [],
-              // tripIds: baseTrips.map((v) => v.id || ''),
-            })
-          ).unwrap()
-          console.log('GetAllCitiesVisitedByUser gcv', cities)
+  //       if (cityDetails) {
+  //         const cities = await dispatch(
+  //           cityMethods.GetAllCitiesVisitedByUser({
+  //             tripIds: [],
+  //             // tripIds: baseTrips.map((v) => v.id || ''),
+  //           })
+  //         ).unwrap()
+  //         console.log('GetAllCitiesVisitedByUser gcv', cities)
 
-          const cityDetailsMap = cities?.reduce(
-            (results, v, i) => {
-              v.cities?.forEach((sv) => {
-                sv.cities?.forEach((ssv) => {
-                  ssv.cities?.forEach((sssv) => {
-                    if (sssv.level === 5) {
-                      results[sssv?.id || ''] = [v, sv, ssv, sssv]
-                    }
-                    sssv.cities?.forEach((ssssv) => {
-                      if (ssssv.level === 5) {
-                        results[ssssv?.id || ''] = [v, sv, ssv, sssv, ssssv]
-                      }
-                    })
-                  })
-                })
-              })
+  //         const cityDetailsMap = cities?.reduce(
+  //           (results, v, i) => {
+  //             v.cities?.forEach((sv) => {
+  //               sv.cities?.forEach((ssv) => {
+  //                 ssv.cities?.forEach((sssv) => {
+  //                   if (sssv.level === 5) {
+  //                     results[sssv?.id || ''] = [v, sv, ssv, sssv]
+  //                   }
+  //                   sssv.cities?.forEach((ssssv) => {
+  //                     if (ssssv.level === 5) {
+  //                       results[ssssv?.id || ''] = [v, sv, ssv, sssv, ssssv]
+  //                     }
+  //                   })
+  //                 })
+  //               })
+  //             })
 
-              return results
-            },
-            {} as {
-              [cityId: string]: protoRoot.city.ICityItem[]
-            }
-          )
+  //             return results
+  //           },
+  //           {} as {
+  //             [cityId: string]: protoRoot.city.ICityItem[]
+  //           }
+  //         )
 
-          // console.log('gcv cityDetailsMap', cityDetailsMap)
-          baseTrips.forEach((v) => {
-            v.cities?.forEach((sv) => {
-              sv.cityDetails = cityDetailsMap?.[sv?.cityId || '']
-            })
-          })
-          // console.log(
-          //   'gcv baseTrips',
-          //   baseTrips.filter((v) => v.id === 'VnMTKbvWU')
-          // )
-        }
+  //         // console.log('gcv cityDetailsMap', cityDetailsMap)
+  //         baseTrips.forEach((v) => {
+  //           v.cities?.forEach((sv) => {
+  //             sv.cityDetails = cityDetailsMap?.[sv?.cityId || '']
+  //           })
+  //         })
+  //         // console.log(
+  //         //   'gcv baseTrips',
+  //         //   baseTrips.filter((v) => v.id === 'VnMTKbvWU')
+  //         // )
+  //       }
 
-        const tripsTemp = Object.fromEntries(
-          baseTrips
-            .filter((v) => {
-              return Number(v.status) >= 0 && v.authorId === user.userInfo.uid
-            })
-            .map((v) => [v?.id || '', v])
-        )
+  //       const tripsTemp = Object.fromEntries(
+  //         baseTrips
+  //           .filter((v) => {
+  //             return Number(v.status) >= 0 && v.authorId === user.userInfo.uid
+  //           })
+  //           .map((v) => [v?.id || '', v])
+  //       )
 
-        const trips: protoRoot.trip.ITrip[] = Object.keys(tripsTemp).map(
-          (v) => {
-            return tripsTemp[v]
-          }
-        )
+  //       const trips: protoRoot.trip.ITrip[] = Object.keys(tripsTemp).map(
+  //         (v) => {
+  //           return tripsTemp[v]
+  //         }
+  //       )
 
-        trips?.forEach((v) => {
-          let i = [0]
-          if (v.type === 'Running') {
-            i.push(1)
-          }
-          if (v.type === 'Bike') {
-            i.push(2)
-          }
-          if (v.type === 'Drive') {
-            i.push(3)
-          }
-          if (v.type === 'Walking') {
-            i.push(4)
-          }
-          if (v.type === 'PowerWalking') {
-            i.push(5)
-          }
-          if (v.type === 'Motorcycle') {
-            i.push(6)
-          }
-          if (v.type === 'Train') {
-            i.push(7)
-          }
-          if (v.type === 'PublicTransport') {
-            i.push(8)
-          }
-          if (v.type === 'Plane') {
-            i.push(9)
-          }
-          i.forEach((sv) => {
-            ts[sv].distance += Number(v.statistics?.distance) || 0
-            ts[sv].count += 1
-            ts[sv].list =
-              trips?.filter((v) => {
-                if (ts[sv].type === 'All') {
-                  return true
-                }
-                return ts[sv].type === v.type
-              }) || []
+  //       // Object.keys(ts).forEach((v: any) => {
+  //       //   ts[v].distance = 0
+  //       //   ts[v].count = 0
+  //       //   ts[v].time = 0
+  //       //   ts[v].list = []
+  //       // })
 
-            ts[sv].list.sort(
-              (a, b) => Number(b.createTime) - Number(a.createTime)
-            )
+  //       trips?.forEach((v) => {
+  //         let i = [0]
+  //         if (v.type === 'Running') {
+  //           i.push(1)
+  //         }
+  //         if (v.type === 'Bike') {
+  //           i.push(2)
+  //         }
+  //         if (v.type === 'Drive') {
+  //           i.push(3)
+  //         }
+  //         if (v.type === 'Walking') {
+  //           i.push(4)
+  //         }
+  //         if (v.type === 'PowerWalking') {
+  //           i.push(5)
+  //         }
+  //         if (v.type === 'Motorcycle') {
+  //           i.push(6)
+  //         }
+  //         if (v.type === 'Train') {
+  //           i.push(7)
+  //         }
+  //         if (v.type === 'PublicTransport') {
+  //           i.push(8)
+  //         }
+  //         if (v.type === 'Plane') {
+  //           i.push(9)
+  //         }
+  //         i.forEach((sv) => {
+  //           ts[sv].distance += Number(v.statistics?.distance) || 0
+  //           ts[sv].count += 1
+  //           ts[sv].list =
+  //             trips?.filter((v) => {
+  //               if (ts[sv].type === 'All' || ts[sv].type === 'Local') {
+  //                 return true
+  //               }
+  //               return ts[sv].type === v.type
+  //             }) || []
 
-            ts[sv].time += Number(v.endTime) - Number(v.createTime)
-          })
-        })
+  //           ts[sv].list.sort(
+  //             (a, b) => Number(b.createTime) - Number(a.createTime)
+  //           )
 
-        // tripStatistics.forEach((v) => {
-        //   if (v.cities?.length || v.id === 'JxoX2UrkU') {
-        //     // console.log('cccccc', v)
-        //   }
-        // })
+  //           ts[sv].time += Number(v.endTime) - Number(v.createTime)
+  //         })
+  //       })
 
-        console.log('tsts listlist', deepCopy(ts))
+  //       // tripStatistics.forEach((v) => {
+  //       //   if (v.cities?.length || v.id === 'JxoX2UrkU') {
+  //       //     // console.log('cccccc', v)
+  //       //   }
+  //       // })
 
-        await storage.global.set('getTripHistoryDataTS', ts)
+  //       console.log('tsts listlist', deepCopy(ts))
 
-        dispatch(tripSlice.actions.setTripStatistics(ts))
-      } catch (error) {
-        console.error(error)
-      }
-    }
-  ),
+  //       await storage.global.set('getTripHistoryDataTS', ts)
+
+  //       dispatch(tripSlice.actions.setTripStatistics(ts))
+  //     } catch (error) {
+  //       console.error(error)
+  //     }
+  //   }
+  // ),
   GetWeather: createAsyncThunk(
     modelName + '/GetWeather',
     async (
@@ -2244,13 +2325,14 @@ export const tripMethods = {
 
         if (!user.isLogin || type === 'Local') {
           const trips = await storage.trips.getAll()
-          console.log('getLocalTrips', trips)
 
-          tempStats[type].statistics = {
-            count: 0,
-            distance: 0,
-            time: 0,
-          }
+          Object.keys(tempStats).forEach((k) => {
+            tempStats[k].statistics = {
+              count: 0,
+              distance: 0,
+              time: 0,
+            }
+          })
 
           // const obj: (typeof tempStats)['All'] = {}
           // let distance = 0
@@ -2258,8 +2340,11 @@ export const tripMethods = {
           trips.forEach((v) => {
             if (!v.value.type) return
             tempStats[v.value.type].statistics.count! += 1
-            tempStats[v.value.type].statistics.distance! +=
-              v.value.statistics?.distance || 0
+            const lastDistance =
+              tempStats[v.value.type].statistics.distance || 0
+            tempStats[v.value.type].statistics.distance! =
+              lastDistance + (v.value.statistics?.distance || 0)
+
             const time =
               (Number(v.value.endTime) || 0) - (Number(v.value.startTime) || 0)
 
@@ -2270,17 +2355,26 @@ export const tripMethods = {
               const increment = Number(time)
 
               tempStats[v.value.type].statistics.time = currentTime + increment
+              tempStats['Local'].statistics.time = currentTime + increment
             }
+
+            tempStats['Local'].statistics.count! += 1
+            tempStats['Local'].statistics.distance! =
+              (tempStats['Local'].statistics.distance || 0) +
+              (v.value.statistics?.distance || 0)
           })
 
           tempStats[type].loadStatus = 'loaded'
+          tempStats['Local'].loadStatus = 'loaded'
+          // console.log('getLocalTrips', type, trips, tempStats)
           dispatch(tripSlice.actions.setHistoricalStatistics(tempStats))
 
           return
         }
         if (
           tempStats[type].loadStatus === 'loading' ||
-          tempStats[type].loadStatus == 'noMore'
+          tempStats[type].loadStatus == 'noMore' ||
+          !user.isLogin
         ) {
           return
         }

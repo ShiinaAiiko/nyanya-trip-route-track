@@ -8,13 +8,20 @@ import axios, { AxiosRequestConfig } from 'axios'
 import Leaflet from 'leaflet'
 
 import store, { userSlice } from '../store'
-import { connectionOSM, country } from '../store/config'
+import {
+  connectionOSM,
+  country,
+  eventListener,
+  rnJSBridge,
+} from '../store/config'
 import { protoRoot } from '../protos'
 // import { imageColorInversion } from './imageColorInversion'
 import { imageColorInversion } from '@nyanyajs/utils/dist/images/imageColorInversion'
 import { t } from './i18n/i18n'
 import { alert, snackbar } from '@saki-ui/core'
 import { edgeTTS, server } from '../config'
+import moment from 'moment'
+import { storage } from '../store/storage'
 
 export const getRegExp = (type: 'email') => {
   return /^\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$/
@@ -1442,7 +1449,7 @@ export async function getVersionList(platform: string): Promise<AppVersion[]> {
  */
 export function downloadAppByUrl(url: string) {
   try {
-    console.log('正在下载:', url)
+    console.log('正在下载: ', url)
 
     // 弹出提示（沿用你的 snackbar）
     snackbar({
@@ -1464,4 +1471,73 @@ export function downloadAppByUrl(url: string) {
   } catch (error) {
     console.error('执行下载失败:', error)
   }
+}
+
+export const checkNewVersion = async () => {
+  rnJSBridge.removeEvent('skipVersion')
+  rnJSBridge.on('skipVersion', async (version: string) => {
+    console.log('skipVersion', version)
+    snackbar({
+      message: t('skipVersion', {
+        ns: 'prompt',
+      }),
+      autoHideDuration: 4000,
+      vertical: 'center',
+      horizontal: 'center',
+    }).open()
+    await storage.global.set('skipVersionTime', moment().unix() + 7 * 24 * 3600)
+    await storage.global.set('skipVersionCode', version)
+  })
+
+  const skipVersionTime = await storage.global.get('skipVersionTime')
+
+  // if (moment().unix() < Number(skipVersionTime)) {
+  //   snackbar({
+  //     message: '跳过时间内，暂时更新',
+  //     autoHideDuration: 4000,
+  //     vertical: 'center',
+  //     horizontal: 'center',
+  //   }).open()
+  // }
+
+  if (!Number(skipVersionTime) || moment().unix() > Number(skipVersionTime)) {
+    rnJSBridge?.checkNewVersion({
+      showCheckingNotification: false,
+    })
+  }
+}
+
+export function isNewVersion(oldVer: string, newVer: string): boolean {
+  // 1. 标准化函数：将版本号拆分为 [核心版本(如 '1.0.7'), 预发布后缀(如 'dev')]
+  const parseVersion = (v: string) => {
+    // 移除可能存在的开头的 'v' 或 'V'
+    const cleanV = v.trim().replace(/^[vV]/, '')
+    const [main, prerelease] = cleanV.split('-')
+    const numbers = main.split('.').map(Number)
+    return { numbers, prerelease }
+  }
+
+  const oldParsed = parseVersion(oldVer)
+  const newParsed = parseVersion(newVer)
+
+  // 2. 逐位对比主版本号 [Major, Minor, Patch]
+  const maxLength = Math.max(oldParsed.numbers.length, newParsed.numbers.length)
+  for (let i = 0; i < maxLength; i++) {
+    const oldNum = oldParsed.numbers[i] || 0
+    const newNum = newParsed.numbers[i] || 0
+    if (newNum > oldNum) return true
+    if (newNum < oldNum) return false
+  }
+
+  // 3. 如果主版本号完全相同，对比预发布后缀 (Pre-release Tags)
+  // 规则：没有后缀的（正式版） > 有后缀的（开发/测试版）
+  if (!oldParsed.prerelease && newParsed.prerelease) return false // 旧的是正式版，新的是测试版 -> 不是新版
+  if (oldParsed.prerelease && !newParsed.prerelease) return true // 旧的是测试版，新的是正式版 -> 是新版
+
+  // 如果都有后缀，进行字母序对比 (比如 'beta' > 'alpha')
+  if (oldParsed.prerelease && newParsed.prerelease) {
+    return newParsed.prerelease > oldParsed.prerelease
+  }
+
+  return false // 完全相同
 }

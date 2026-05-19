@@ -544,7 +544,9 @@
 
     "enableGeoFence": "Enable the privacy fence. The trip data and location sharing shared externally will be filtered on the server.",
 
-    "headingUp": "Heading Up"
+    "headingUp": "Heading Up",
+
+    "technologyStack": "Technology Stack"
   },
   "prompt": {
     "next": "Next",
@@ -645,7 +647,11 @@
     "restore": "Restore",
     "clearMessages": "Clear Messages",
     "clearMessagesContent": "Are you sure you want to clear the current message list?",
-    "clearSuccessfully": "Cleared successfully!"
+    "clearSuccessfully": "Cleared successfully!",
+
+    "checkNewVersion": "Check for New Version",
+    "skipVersion": "Don't remind me again in 7 days",
+    "newVersionAvailable": "New version"
   },
   "unit": {
     "km": "km",

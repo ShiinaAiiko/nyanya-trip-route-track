@@ -1276,8 +1276,10 @@ export const cityMethods = {
     async (
       {
         tripIds,
+        onload,
       }: {
         tripIds: string[]
+        onload?: (cities: protoRoot.city.ICityItem[]) => void
       },
       thunkAPI
     ) => {
@@ -1319,7 +1321,9 @@ export const cityMethods = {
           cities?.cities?.length > 0 &&
           cities?.updateCitiesTime > Math.floor(new Date().getTime() / 1000)
         ) {
+          onload?.(cities?.cities || [])
           dispatch(citySlice.actions.setCities(cities?.cities || []))
+
           // return (cities?.cities || []) as protoRoot.city.ICityItem[]
         }
 
@@ -1347,7 +1351,7 @@ export const cityMethods = {
                 Math.floor(new Date().getTime() / 1000) + 10 * 60,
             }
           )
-
+          onload?.(res.data?.cities || [])
           dispatch(citySlice.actions.setCities(res.data?.cities || []))
         }
         return res.data?.cities || []

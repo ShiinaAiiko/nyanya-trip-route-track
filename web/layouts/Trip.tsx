@@ -43,7 +43,7 @@ import {
 import Leaflet from 'leaflet'
 import { useRouter } from 'next/router'
 import { storage } from '../store/storage'
-import { isFullScreen } from '../plugins/methods'
+import { checkNewVersion, isFullScreen, Query } from '../plugins/methods'
 import {
   eventListener,
   getMapLayer,
@@ -70,10 +70,13 @@ import {
 import { loadModal } from '../store/layout'
 import { sakisso } from '../config'
 import {
+  deepCopy,
   networkConnectionStatusDetection,
   networkConnectionStatusDetectionEnum,
 } from '@nyanyajs/utils/dist/common/common'
 import { setTimeout } from 'timers'
+import { count } from 'console'
+import moment from 'moment'
 
 // import { testGpsData } from '../plugins/methods'
 // import parserFunc from 'ua-parser-js'
@@ -363,6 +366,7 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
   const [statusBarData, setStatusBarData] = useState<StatusBarData>()
 
   useEffect(() => {
+    if (!config.hideLoading) return
     clearInterval(getCarDataTimer.current)
     if (!rnJSBridge) {
       initRnJSBridge()
@@ -371,6 +375,8 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
       return
     }
     const init = async () => {
+      await checkNewVersion()
+
       let count = 0
       rnJSBridge.enableCarData(true)
 
@@ -400,7 +406,189 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
       rnJSBridge.removeEvent('carData')
       rnJSBridge.removeEvent('bydLog')
     }
-  }, [mounted, router, config.appConfig.fullVersion])
+  }, [mounted, config.appConfig.fullVersion, config.hideLoading])
+
+  useEffect(() => {
+    if (!config.hideLoading) return
+    const modalRegistry: Record<string, boolean> = {
+      openSettingsModal: layout.openSettingsModal,
+      openLoginModal: layout.openLoginModal,
+      openTripHistoryModal: layout.openTripHistoryModal,
+      openVehicleModal: layout.openVehicleModal,
+      openPrivacyGeofenceModal: layout.openPrivacyGeofenceModal,
+      openCreateCustomTripModal: layout.openCreateCustomTripModal,
+      openJourneyMemoriesModal: layout.openJourneyMemoriesModal,
+      openVisitedCitiesModal: layout.openVisitedCitiesModal?.visible,
+    }
+
+    Object.keys(modalRegistry).forEach((queryKey) => {
+      const isModalInUrl = router.query[queryKey] === 'true'
+      const isModalInRedux = modalRegistry[queryKey]
+      switch (queryKey) {
+        case 'openSettingsModal':
+          if (isModalInUrl) {
+            !isModalInRedux &&
+              loadModal('Settings', () => {
+                dispatch(layoutSlice.actions.setOpenSettingsModal(true))
+              })
+          } else {
+            isModalInRedux &&
+              dispatch(layoutSlice.actions.setOpenSettingsModal(false))
+          }
+
+          break
+        case 'openLoginModal':
+          if (isModalInUrl) {
+            !isModalInRedux &&
+              loadModal('Login', () => {
+                dispatch(layoutSlice.actions.setOpenLoginModal(true))
+              })
+          } else {
+            isModalInRedux &&
+              dispatch(layoutSlice.actions.setOpenLoginModal(false))
+          }
+          break
+        case 'openTripHistoryModal':
+          if (isModalInUrl) {
+            !isModalInRedux &&
+              loadModal('TripHistory', () => {
+                dispatch(layoutSlice.actions.setOpenTripHistoryModal(true))
+              })
+          } else {
+            isModalInRedux &&
+              dispatch(layoutSlice.actions.setOpenTripHistoryModal(false))
+          }
+          break
+        case 'openVehicleModal':
+          if (isModalInUrl) {
+            if (!user.isLogin) {
+              dispatch(methods.user.loginAlert())
+              return
+            }
+            !isModalInRedux &&
+              loadModal('AddVehicle', () => {
+                dispatch(layoutSlice.actions.setOpenVehicleModal(true))
+              })
+          } else {
+            isModalInRedux &&
+              dispatch(layoutSlice.actions.setOpenVehicleModal(false))
+          }
+          break
+        case 'openPrivacyGeofenceModal':
+          if (isModalInUrl) {
+            if (!user.isLogin) {
+              dispatch(methods.user.loginAlert())
+              return
+            }
+            !isModalInRedux &&
+              loadModal('PrivacyGeofence', () => {
+                dispatch(layoutSlice.actions.setOpenPrivacyGeofenceModal(true))
+              })
+          } else {
+            isModalInRedux &&
+              dispatch(layoutSlice.actions.setOpenPrivacyGeofenceModal(false))
+          }
+          break
+        case 'openCreateCustomTripModal':
+          if (isModalInUrl) {
+            if (!user.isLogin) {
+              dispatch(methods.user.loginAlert())
+              return
+            }
+            !isModalInRedux &&
+              loadModal('CreateCustomTrip', () => {
+                dispatch(layoutSlice.actions.setOpenCreateCustomTripModal(true))
+              })
+          } else {
+            isModalInRedux &&
+              dispatch(layoutSlice.actions.setOpenCreateCustomTripModal(false))
+          }
+          break
+        case 'openJourneyMemoriesModal':
+          if (isModalInUrl) {
+            if (!user.isLogin) {
+              dispatch(methods.user.loginAlert())
+              return
+            }
+            !isModalInRedux &&
+              loadModal('JourneyMemories', () => {
+                dispatch(layoutSlice.actions.setOpenJourneyMemoriesModal(true))
+              })
+          } else {
+            isModalInRedux &&
+              dispatch(layoutSlice.actions.setOpenJourneyMemoriesModal(false))
+          }
+          break
+        case 'openVisitedCitiesModal':
+          if (isModalInUrl) {
+            if (!user.isLogin) {
+              dispatch(methods.user.loginAlert())
+              return
+            }
+            !isModalInRedux &&
+              loadModal('VisitedCities', () => {
+                dispatch(
+                  layoutSlice.actions.setOpenVisitedCitiesModal({
+                    visible: true,
+                  })
+                )
+              })
+          } else {
+            isModalInRedux &&
+              dispatch(
+                layoutSlice.actions.setOpenVisitedCitiesModal({
+                  visible: false,
+                })
+              )
+          }
+          break
+        default:
+          break
+      }
+    })
+
+    eventListener.on(
+      'openModalToUrl',
+      ({ type, visible }: { type: string; visible: boolean }) => {
+        const nextQuery = { ...router.query }
+        let isQueryChanged = false
+
+        const isModalInUrl = router.query[type] === 'true'
+        const isModalInRedux = visible
+
+        if (!isModalInUrl && !isModalInRedux && nextQuery[type]) {
+          delete nextQuery[type]
+          isQueryChanged = true
+        }
+
+        // 情况 A：Redux 打开了弹窗，但 URL 还没有参数 ➔ 在 URL 中追加参数
+        if (isModalInRedux && !isModalInUrl) {
+          nextQuery[type] = 'true'
+          isQueryChanged = true
+        }
+        // 情况 B：Redux 关闭了弹窗，但 URL 还有残留参数 ➔ 从 URL 中剔除参数
+        else if (!isModalInRedux && isModalInUrl) {
+          delete nextQuery[type]
+          isQueryChanged = true
+        }
+        // 只有当检测到 URL Query 参数确实发生了实质变动，才执行浅跳转
+        if (isQueryChanged) {
+          router.push(
+            {
+              pathname: router.pathname,
+              query: nextQuery,
+            },
+            undefined,
+            { shallow: true } // 阻止 Next.js 重新触发页面大组件的 SSR
+          )
+        }
+      }
+    )
+
+    return () => {
+      eventListener.removeEvent('openModalToUrl')
+    }
+  }, [JSON.stringify(router.query), router.pathname, config.hideLoading])
 
   // 状态栏设置
   useEffect(() => {
@@ -410,9 +598,6 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
     //   router?.pathname === '/' || router?.pathname === '/[lang]'
     // )
 
-    if (!rnJSBridge?.isInApp()) {
-      return
-    }
     if (
       layout.openSettingsModal ||
       layout.openLoginModal ||
@@ -468,10 +653,11 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
 
   useEffect(() => {
     try {
+      if (!config.hideLoading) return
+      if (!mounted) return
+
       navigator.geolocation.clearWatch(watchId.current)
       rnJSBridge?.removeEvent('location')
-
-      if (!mounted) return
 
       if (rnJSBridge?.isInApp()) {
         rnJSBridge.enableLocation(true)
@@ -527,6 +713,7 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
     config.appConfig.fullVersion,
     config.connectionOSM,
     geoWatchUpdateTime,
+    config.hideLoading,
   ])
 
   const initNyaNyaWasm = async () => {
@@ -741,8 +928,8 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
                         animation.onfinish = () => {
                           el.style.display = 'none'
                           // setHideLoading(true)
-                          dispatch(configSlice.actions.setHideLoading(true))
                           rnJSBridge?.closeLoading()
+                          dispatch(configSlice.actions.setHideLoading(true))
                         }
                       }
                     }

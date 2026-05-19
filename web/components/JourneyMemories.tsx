@@ -380,7 +380,7 @@ const JourneyMemoriesModal = () => {
     )
 
     dispatch(
-      methods.trip.GetTripHistoryData({
+      methods.trip.GetTripsBaseData({
         loadCloudData: true,
         alert: false,
         cityDetails: true,
@@ -4125,11 +4125,11 @@ const AddJourneyMemoriesTimelinePage = () => {
     }
   }
 
-  const trips = useMemo(() => {
-    const trips = trip.tripStatistics?.filter((v) => v.type === 'All')
-    // console.log('baseTrips jm', trips)
-    return trips[0]?.list || []
-  }, [trip.tripStatistics])
+  // const trips = useMemo(() => {
+  //   const trips = trip.tripStatistics?.filter((v) => v.type === 'All')
+  //   // console.log('baseTrips jm', trips)
+  //   return trips[0]?.list || []
+  // }, [trip.tripStatistics])
 
   const { disableSelectedTrips } = useMemo(() => {
     const disableSelectedTrips = jmState.tlList.reduce((ids, v) => {
@@ -4274,7 +4274,7 @@ const AddJourneyMemoriesTimelinePage = () => {
               setOpenFilterModal(false)
             }}
             dataList
-            trips={trips}
+            trips={trip.trips}
             selectTripIds={tripIds || []}
             disableSelectedTrips={disableSelectedTrips}
             selectTypes={jmState.filterConfig?.selectedTripTypes || []}

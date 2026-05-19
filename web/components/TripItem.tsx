@@ -373,319 +373,344 @@ const TripItemComponent = memo(
         ;(map.current as any).speedColorRGBs = speedColorRGBs
       }
     }, [map.current, speedColorRGBs, mapUrl])
+    const initMapDeb = useRef(new Debounce())
     const initMap = () => {
-      const L: typeof Leaflet = (window as any).L
+      initMapDeb.current.increase(() => {
+        const L: typeof Leaflet = (window as any).L
 
-      console.log('---initMap---', loadedMap.current, trip?.id)
+        console.log('---initMap---', loadedMap.current, trip?.id)
 
-      if (L && tripId && !loadedMap.current && trip?.id && trip?.id !== '404') {
-        if (trip.positions?.length) {
-          loadedMap.current = true
-        }
-
-        console.log(
-          '---initMap--- 里面',
-          document.querySelector('#tic-map'),
-          map.current,
-          loadedMap.current
-        )
-        if (map.current) {
-          map.current?.off()
-          map.current?.remove()
-          map.current = undefined
-
-          maxSpeedMarker.current?.remove()
-          maxSpeedMarker.current = undefined
-        }
-        if (!map.current) {
-          map.current = L.map('tic-map', {
-            renderer: L.canvas(),
-            preferCanvas: true,
-            zoomControl: false,
-            minZoom: 3,
-            maxZoom: 18,
-            trackResize: false,
-            zoomDelta: 0.5,
-            zoomSnap: 0.5,
-
-            zoom: 15,
-            attributionControl: false,
-            // center: [Number(res?.data?.lat), Number(res?.data?.lon)],
-          })
-        }
-
-        console.log(geo.position)
-        let lat = geo.position?.coords?.latitude || 0
-        let lon = geo.position?.coords?.longitude || 0
-        let zoom = 13
-
-        let positions = trip?.positions || []
-        if (positions?.length) {
-          positions = positions?.filter((v, i) => {
-            const gss = !(v.speed === null || v.altitude === null)
-
-            if (v.speed && v.speed > 45) {
-              // console.log(v.speed, v.timestamp)
-            }
-            return gss
-          })
-          if (positions.length) {
-            const startPosition = positions[0]
-            const endPosition = positions[positions.length - 1]
-
-            lat =
-              (startPosition.latitude || 0) -
-              ((startPosition.latitude || 0) - (endPosition.latitude || 0)) / 2
-            lon =
-              (startPosition.longitude || 0) -
-              ((startPosition.longitude || 0) - (endPosition.longitude || 0)) /
-                2
-            zoom = getZoom(
-              startPosition.latitude || 0,
-              startPosition.longitude || 0,
-              lat,
-              lon
-            )
+        if (
+          L &&
+          tripId &&
+          !loadedMap.current &&
+          trip?.id &&
+          trip?.id !== '404'
+        ) {
+          if (trip.positions?.length) {
+            loadedMap.current = true
           }
-        } else {
-          if (trip?.addresses?.length) {
-            lat =
-              (Number(trip?.addresses?.[0]?.latitude) +
-                Number(trip?.addresses?.[1]?.latitude)) /
-              2
-            lon =
-              (Number(trip?.addresses?.[0]?.longitude) +
-                Number(trip?.addresses?.[1]?.longitude)) /
-              2
-          }
-        }
 
-        const latlng = getLatLng(mapUrl, lat, lon)
-
-        console.log('latlng', latlng, [lat, lon])
-        lat = latlng[0]
-        lon = latlng[1]
-
-        if (map.current) {
-          // 检测地址如果在中国就用高德地图
-
-          // console.log('mapUrl v?.url', mapUrl)
-          map.current.setView(
-            [lat, lon],
-            // [
-            //   120.3814, -1.09],
-            zoom
+          console.log(
+            '---initMap--- 里面',
+            document.querySelector('#tic-map'),
+            map.current,
+            loadedMap.current
           )
+          if (map.current) {
+            map.current?.off()
+            map.current?.remove()
+            map.current = undefined
 
-          // setCurrentMapUrl(mapUrl)
-          layer.current = (L.tileLayer as any)
-            .colorScale(
-              mapUrl,
-              // maps.filter((v) => v.key === 'GeoQNight')?.[0]?.url ||
-              // 	mapUrl,
-              {
-                // errorTileUrl: osmMap,
-                maxZoom: 18,
-                // attribution: `&copy;`,
+            maxSpeedMarker.current?.remove()
+            maxSpeedMarker.current = undefined
+          }
+          if (!map.current) {
+            map.current = L.map('tic-map', {
+              renderer: L.canvas(),
+              preferCanvas: true,
+              zoomControl: false,
+              minZoom: 3,
+              maxZoom: 18,
+              trackResize: false,
+              zoomDelta: 0.5,
+              zoomSnap: 0.5,
+
+              zoom: 15,
+              attributionControl: false,
+              // center: [Number(res?.data?.lat), Number(res?.data?.lon)],
+            })
+          }
+
+          console.log(
+            'initMap geo.position',
+            trip?.addresses,
+            trip?.positions,
+            geo.position
+          )
+          let lat = geo.position?.coords?.latitude || 0
+          let lon = geo.position?.coords?.longitude || 0
+          let zoom = 13
+
+          let positions = trip?.positions || []
+          if (positions?.length) {
+            positions = positions?.filter((v, i) => {
+              const gss = !(v.speed === null || v.altitude === null)
+
+              if (v.speed && v.speed > 45) {
+                // console.log(v.speed, v.timestamp)
               }
+              return gss
+            })
+            if (positions.length) {
+              const startPosition = positions[0]
+              const endPosition = positions[positions.length - 1]
+
+              lat =
+                (startPosition.latitude || 0) -
+                ((startPosition.latitude || 0) - (endPosition.latitude || 0)) /
+                  2
+              lon =
+                (startPosition.longitude || 0) -
+                ((startPosition.longitude || 0) -
+                  (endPosition.longitude || 0)) /
+                  2
+              zoom = getZoom(
+                startPosition.latitude || 0,
+                startPosition.longitude || 0,
+                lat,
+                lon
+              )
+            }
+          } else {
+            if (trip?.addresses?.length) {
+              lat =
+                (Number(trip?.addresses?.[0]?.latitude) +
+                  Number(trip?.addresses?.[1]?.latitude)) /
+                2
+              lon =
+                (Number(trip?.addresses?.[0]?.longitude) +
+                  Number(trip?.addresses?.[1]?.longitude)) /
+                2
+
+              zoom = getZoom(
+                trip?.addresses?.[0].latitude || 0,
+                trip?.addresses?.[0].longitude || 0,
+                trip?.addresses?.[1].latitude || 0,
+                trip?.addresses?.[1].longitude || 0
+              )
+            }
+          }
+
+          const latlng = getLatLng(mapUrl, lat, lon)
+
+          console.log('initMap latlng', latlng, [lat, lon])
+          lat = latlng[0]
+          lon = latlng[1]
+
+          if (map.current) {
+            // 检测地址如果在中国就用高德地图
+
+            // console.log('mapUrl v?.url', mapUrl)
+            map.current.setView(
+              [lat, lon],
+              // [
+              //   120.3814, -1.09],
+              zoom
             )
-            .addTo(map.current)
-          layer.current?.setGrayscale?.(mapLayer?.mapMode === 'Gray')
-          layer.current?.setDarkscale?.(mapLayer?.mapMode === 'Dark')
-          layer.current?.setBlackscale?.(mapLayer?.mapMode === 'Black')
 
-          mapLayer && roadColorFade(mapLayer, layer.current)
+            // setCurrentMapUrl(mapUrl)
+            layer.current = (L.tileLayer as any)
+              .colorScale(
+                mapUrl,
+                // maps.filter((v) => v.key === 'GeoQNight')?.[0]?.url ||
+                // 	mapUrl,
+                {
+                  // errorTileUrl: osmMap,
+                  maxZoom: 18,
+                  // attribution: `&copy;`,
+                }
+              )
+              .addTo(map.current)
+            layer.current?.setGrayscale?.(mapLayer?.mapMode === 'Gray')
+            layer.current?.setDarkscale?.(mapLayer?.mapMode === 'Dark')
+            layer.current?.setBlackscale?.(mapLayer?.mapMode === 'Black')
 
-          map.current.panTo([lat, lon], {
-            animate: false,
-          })
-          if (trip?.positions) {
-            console.time('getLatLnggetLatLng')
+            mapLayer && roadColorFade(mapLayer, layer.current)
 
-            // testGpsData
-            // .map((v) => {
-            // 	return {
-            // 		coords: {
-            // 			latitude: v.latitude,
-            // 			longitude: v.longitude,
-            // 			altitude: v.altitude,
-            // 			altitudeAccuracy: v.altitudeAccuracy,
-            // 			accuracy: v.accuracy,
-            // 			speed: v.speed,
-            // 			heading: v.heading,
-            // 		},
-            // 		timestamp: v.timestamp,
-            // 	}
+            map.current.panTo([lat, lon], {
+              animate: false,
+            })
+            if (trip?.positions) {
+              console.time('getLatLnggetLatLng')
+
+              // testGpsData
+              // .map((v) => {
+              // 	return {
+              // 		coords: {
+              // 			latitude: v.latitude,
+              // 			longitude: v.longitude,
+              // 			altitude: v.altitude,
+              // 			altitudeAccuracy: v.altitudeAccuracy,
+              // 			accuracy: v.accuracy,
+              // 			speed: v.speed,
+              // 			heading: v.heading,
+              // 		},
+              // 		timestamp: v.timestamp,
+              // 	}
+              // })
+
+              // const latLngs: number[][] = []
+              // const colors: string[] = []
+
+              let maxSpeedPosition = positions[0]
+
+              positions
+                ?.filter((v) => {
+                  return !(
+                    Number(v.speed || 0) < 0 || Number(v.altitude || 0) < 0
+                  )
+                })
+                ?.forEach((v, i, arr) => {
+                  maxSpeedPosition =
+                    Number(maxSpeedPosition.speed) < Number(v.speed)
+                      ? v
+                      : maxSpeedPosition
+
+                  // const speedColorLimit = (
+                  //   config.configure.general?.speedColorLimit as any
+                  // )[(trip?.type?.toLowerCase() || 'running') as any]
+
+                  // latLngs.push(
+                  //   getLatLng(mapUrl, v.latitude || 0, v.longitude || 0) as any
+                  // )
+                  // colors.push(
+                  //   getSpeedColor(
+                  //     v.speed || 0,
+                  //     speedColorLimit.minSpeed,
+                  //     speedColorLimit.maxSpeed,
+                  //     speedColorRGBs
+                  //   )
+                  // )
+                  // map.current &&
+                  // 	L.polyline(
+                  // 		[
+                  // 			getLatLng(lv.latitude || 0, lv.longitude || 0) as any,
+                  // 			getLatLng(v.latitude || 0, v.longitude || 0) as any,
+                  // 		],
+                  // 		{
+                  // 			// smoothFactor:10,
+                  // 			// snakingSpeed: 200,
+                  // 			color: getSpeedColor(
+                  // 				v.speed || 0,
+                  // 				speedColorLimit.minSpeed,
+                  // 				speedColorLimit.maxSpeed
+                  // 			), //线的颜色
+                  // 			weight: config.mapPolyline.realtimeTravelTrackWidth,
+                  // 			// weight: config.mapPolyline.historyTravelTrackWidth,
+                  // 			// opacity: 0.3,
+                  // 		}
+                  // 	).addTo(map.current)
+                })
+
+              // console.log('LLLL', L)
+              // const polycolor = (L as any)
+              //   .polycolor(latLngs, {
+              //     colors: colors,
+              //     useGradient: true,
+              //     weight: mapLayer?.polylineWidth,
+              //   })
+              //   .addTo(map.current)
+              // console.log(
+              //   'fTripPositions polyline',
+              //   polycolor?.addTo,
+              //   map.current,
+              //   positions
+              // )
+              // console.log('LLLLplayline', playline)
+              // console.log('LLLLplayline', playline, playline.setLatLngs(latLngs))
+
+              // console.log('config.mapPolyline.width', config.mapPolyline.width)
+
+              if (positions?.[0]) {
+                createIconMarker({
+                  map: map.current,
+                  latlng: getLatLng(
+                    mapUrl,
+                    positions[0]?.latitude || 0,
+                    positions[0]?.longitude || 0
+                  ),
+                  type: 'StartPosition',
+                })
+              }
+              if (positions?.[positions.length - 1]) {
+                createIconMarker({
+                  map: map.current,
+                  latlng: getLatLng(
+                    mapUrl,
+                    positions[positions.length - 1]?.latitude || 0,
+                    positions[positions.length - 1]?.longitude || 0
+                  ),
+                  type: 'EndPosition',
+                })
+              }
+
+              if (maxSpeedPosition) {
+                createIconMarker({
+                  map: map.current,
+                  maxSpeed: maxSpeedPosition?.speed || 0,
+                  latlng: getLatLng(
+                    mapUrl,
+                    maxSpeedPosition.latitude || 0,
+                    maxSpeedPosition.longitude || 0
+                  ),
+                  type: 'MaxSpeed',
+                })
+              }
+              console.timeEnd('getLatLnggetLatLng')
+            }
+
+            loadData()
+
+            // 添加城市marker
+            // console.log( 'citymarker', trip.cities)
+
+            // deleteAllCityMarker('tripItem')
+            // deleteAllCityGeojsonMap('tripItem')
+            // // createCityMarkers(map.current, trip?.cities || [], zoom, 'tripItem')
+            // console.log('updateCityMarkers trip?.cities', trip?.cities)
+
+            // let cities: {
+            //   [id: string]: protoRoot.city.ICityItem
+            // } = {}
+
+            // trip?.cities?.forEach((v) => {
+            //   v.cityDetails?.forEach((sv) => {
+            //     if (!cities[sv.id || '']) {
+            //       cities[sv.id || ''] = sv
+            //     }
+            //   })
             // })
 
-            // const latLngs: number[][] = []
-            // const colors: string[] = []
+            // console.log('ucm cities', cities)
 
-            let maxSpeedPosition = positions[0]
+            // const tempCities = Object.keys(cities).map((k) => cities[k])
 
-            positions
-              ?.filter((v) => {
-                return !(
-                  Number(v.speed || 0) < 0 || Number(v.altitude || 0) < 0
-                )
-              })
-              ?.forEach((v, i, arr) => {
-                maxSpeedPosition =
-                  Number(maxSpeedPosition.speed) < Number(v.speed)
-                    ? v
-                    : maxSpeedPosition
+            // tempCities.forEach((v) => {
+            //   v.cities = tempCities.filter((sv) => v.id === sv.parentCityId)
+            // })
 
-                // const speedColorLimit = (
-                //   config.configure.general?.speedColorLimit as any
-                // )[(trip?.type?.toLowerCase() || 'running') as any]
+            // const citiesArr = formartCities(tempCities)
 
-                // latLngs.push(
-                //   getLatLng(mapUrl, v.latitude || 0, v.longitude || 0) as any
-                // )
-                // colors.push(
-                //   getSpeedColor(
-                //     v.speed || 0,
-                //     speedColorLimit.minSpeed,
-                //     speedColorLimit.maxSpeed,
-                //     speedColorRGBs
-                //   )
-                // )
-                // map.current &&
-                // 	L.polyline(
-                // 		[
-                // 			getLatLng(lv.latitude || 0, lv.longitude || 0) as any,
-                // 			getLatLng(v.latitude || 0, v.longitude || 0) as any,
-                // 		],
-                // 		{
-                // 			// smoothFactor:10,
-                // 			// snakingSpeed: 200,
-                // 			color: getSpeedColor(
-                // 				v.speed || 0,
-                // 				speedColorLimit.minSpeed,
-                // 				speedColorLimit.maxSpeed
-                // 			), //线的颜色
-                // 			weight: config.mapPolyline.realtimeTravelTrackWidth,
-                // 			// weight: config.mapPolyline.historyTravelTrackWidth,
-                // 			// opacity: 0.3,
-                // 		}
-                // 	).addTo(map.current)
-              })
+            // updateCityMarkers(map.current, citiesArr, zoom)
 
-            // console.log('LLLL', L)
-            // const polycolor = (L as any)
-            //   .polycolor(latLngs, {
-            //     colors: colors,
-            //     useGradient: true,
-            //     weight: mapLayer?.polylineWidth,
-            //   })
-            //   .addTo(map.current)
-            // console.log(
-            //   'fTripPositions polyline',
-            //   polycolor?.addTo,
-            //   map.current,
-            //   positions
-            // )
-            // console.log('LLLLplayline', playline)
-            // console.log('LLLLplayline', playline, playline.setLatLngs(latLngs))
+            // map.current.on('moveend', (e) => {
+            //   // console.log('citymarker moveEnd', e)
+            //   map.current &&
+            //     updateCityMarkers(map.current, citiesArr, e.target._zoom)
+            // })
+            // map.current.on('zoomend', (e) => {
+            //   // console.log('zoomEvent', e.target._zoom)
+            //   map.current &&
+            //     updateCityMarkers(map.current, citiesArr, e.target._zoom)
+            // })
 
-            // console.log('config.mapPolyline.width', config.mapPolyline.width)
-
-            if (positions?.[0]) {
-              createIconMarker({
-                map: map.current,
-                latlng: getLatLng(
-                  mapUrl,
-                  positions[0]?.latitude || 0,
-                  positions[0]?.longitude || 0
-                ),
-                type: 'StartPosition',
-              })
-            }
-            if (positions?.[positions.length - 1]) {
-              createIconMarker({
-                map: map.current,
-                latlng: getLatLng(
-                  mapUrl,
-                  positions[positions.length - 1]?.latitude || 0,
-                  positions[positions.length - 1]?.longitude || 0
-                ),
-                type: 'EndPosition',
-              })
-            }
-
-            if (maxSpeedPosition) {
-              createIconMarker({
-                map: map.current,
-                maxSpeed: maxSpeedPosition?.speed || 0,
-                latlng: getLatLng(
-                  mapUrl,
-                  maxSpeedPosition.latitude || 0,
-                  maxSpeedPosition.longitude || 0
-                ),
-                type: 'MaxSpeed',
-              })
-            }
-            console.timeEnd('getLatLnggetLatLng')
+            // console.log('cityBoundaries', cityBoundaries)
           }
+          // L.marker([lat, lon]).addTo(m).openPopup()
 
-          // 添加城市marker
-          // console.log('citymarker', trip.cities)
+          // setTimeout(() => {
+          // 	outShareImage()
+          // }, 1000)
+          // console.log('connectionOSM', connectionOSM)
 
-          // deleteAllCityMarker('tripItem')
-          // deleteAllCityGeojsonMap('tripItem')
-          // // createCityMarkers(map.current, trip?.cities || [], zoom, 'tripItem')
-          // console.log('updateCityMarkers trip?.cities', trip?.cities)
-
-          // let cities: {
-          //   [id: string]: protoRoot.city.ICityItem
-          // } = {}
-
-          // trip?.cities?.forEach((v) => {
-          //   v.cityDetails?.forEach((sv) => {
-          //     if (!cities[sv.id || '']) {
-          //       cities[sv.id || ''] = sv
-          //     }
-          //   })
-          // })
-
-          // console.log('ucm cities', cities)
-
-          // const tempCities = Object.keys(cities).map((k) => cities[k])
-
-          // tempCities.forEach((v) => {
-          //   v.cities = tempCities.filter((sv) => v.id === sv.parentCityId)
-          // })
-
-          // const citiesArr = formartCities(tempCities)
-
-          // updateCityMarkers(map.current, citiesArr, zoom)
-
-          // map.current.on('moveend', (e) => {
-          //   // console.log('citymarker moveEnd', e)
-          //   map.current &&
-          //     updateCityMarkers(map.current, citiesArr, e.target._zoom)
-          // })
-          // map.current.on('zoomend', (e) => {
-          //   // console.log('zoomEvent', e.target._zoom)
-          //   map.current &&
-          //     updateCityMarkers(map.current, citiesArr, e.target._zoom)
-          // })
-
-          // console.log('cityBoundaries', cityBoundaries)
+          // console.log('map', map)
         }
-        // L.marker([lat, lon]).addTo(m).openPopup()
 
         // setTimeout(() => {
-        // 	outShareImage()
-        // }, 1000)
-        // console.log('connectionOSM', connectionOSM)
-
-        // console.log('map', map)
-      }
-
-      // setTimeout(() => {
-      //   outShareImage()
-      // }, 500);
+        //   outShareImage()
+        // }, 500);
+      }, 700)
     }
     useEffect(() => {
       loadData()
@@ -709,7 +734,8 @@ const TripItemComponent = memo(
         //     type: ['Polyline'],
         //   })
 
-        map.current &&
+        trip?.positions?.length &&
+          map.current &&
           renderPolyline({
             map: map.current,
             alert: true,
@@ -1576,6 +1602,7 @@ const TripItemComponent = memo(
           // onDelete(tripId)
           if (!trip?.authorId) {
             storage.trips.delete(trip?.id || '')
+            storage.global.delete('tempTripData_' + (trip?.id || ''))
             snackbar({
               message: t('deletedSuccessfully', {
                 ns: 'prompt',
@@ -2093,235 +2120,234 @@ const TripItemComponent = memo(
                               type="Share"
                             ></SakiIcon>
                           </SakiButton>
-                          {user.isLogin ? (
-                            <saki-dropdown
-                              visible={openMoreDropDownMenu}
-                              floating-direction="Left"
-                              z-index="1099"
+                          <saki-dropdown
+                            visible={openMoreDropDownMenu}
+                            floating-direction="Left"
+                            z-index="1099"
+                            ref={bindEvent({
+                              close: (e) => {
+                                setOpenMoreDropDownMenu(false)
+                              },
+                            })}
+                          >
+                            <saki-button
                               ref={bindEvent({
-                                close: (e) => {
-                                  setOpenMoreDropDownMenu(false)
+                                tap: () => {
+                                  setOpenMoreDropDownMenu(!openMoreDropDownMenu)
                                 },
                               })}
+                              type="CircleIconGrayHover"
                             >
-                              <saki-button
+                              <saki-icon color="#999" type="More"></saki-icon>
+                            </saki-button>
+
+                            <div slot="main">
+                              <saki-menu
                                 ref={bindEvent({
-                                  tap: () => {
-                                    setOpenMoreDropDownMenu(
-                                      !openMoreDropDownMenu
-                                    )
+                                  selectvalue: async (e) => {
+                                    console.log(e.detail.value)
+                                    switch (e.detail.value) {
+                                      case 'Share':
+                                        console.log(trip)
+                                        switchShareKey(true)
+                                        break
+                                      case 'AddTripToOnline':
+                                        addTripToOnline()
+                                        break
+                                      case 'FinishTrip':
+                                        finishTrip(false)
+                                        break
+                                      case 'ResumeTrip':
+                                        trip?.id &&
+                                          dispatch(
+                                            methods.trip.ResumeTrip({
+                                              trip,
+                                            })
+                                          )
+                                        break
+                                      case 'initTripCity':
+                                        initTripItemCity(
+                                          trip,
+                                          true,
+                                          true
+                                        ).finally(() => {
+                                          getTrip()
+                                        })
+
+                                        break
+                                      case 'initTripRoad':
+                                        initTripItemRoad(
+                                          trip,
+                                          true,
+                                          true
+                                        ).finally(() => {
+                                          getTrip()
+                                        })
+
+                                        break
+                                      case 'CorrectedData':
+                                        finishTrip(true)
+                                        break
+                                      case 'CancelVehicle':
+                                        cancelVehicle()
+
+                                        break
+                                      case 'Edit':
+                                        trip &&
+                                          loadModal('TripEdit', () => {
+                                            dispatch(
+                                              layoutSlice.actions.setEditTripModal(
+                                                {
+                                                  visible: true,
+                                                  trip: trip,
+                                                }
+                                              )
+                                            )
+                                          })
+
+                                        break
+                                      // case 'Replay':
+                                      // 	dispatch(
+                                      // 		tripSlice.actions.setReplayTripId({
+                                      // 			id: trip?.id || '',
+                                      // 			shareKey,
+                                      // 		})
+                                      // 	)
+                                      // 	dispatch(
+                                      // 		layoutSlice.actions.setOpenReplayTripModal(
+                                      // 			true
+                                      // 		)
+                                      // 	)
+                                      // 	break
+                                      case 'Delete':
+                                        deleteTrip()
+                                        break
+                                      case 'TempPos':
+                                        const jsonString = JSON.stringify(
+                                          tempPos?.positions || []
+                                        )
+
+                                        // 创建File对象
+                                        const file = new File(
+                                          [jsonString], // 内容
+                                          'backup_trip_' +
+                                            trip?.id +
+                                            '_temp.json', // 文件名
+                                          { type: 'application/json' } // 文件类型
+                                        )
+
+                                        const res = await uploadFile(file)
+                                        snackbar({
+                                          message: res,
+                                          // autoHideDuration: 4000,
+                                          closeIcon: true,
+                                          onTap() {
+                                            copyText(res)
+                                          },
+                                          vertical: 'bottom',
+                                          horizontal: 'center',
+                                        }).open()
+
+                                        await httpApi.v1.ResumeTrip({
+                                          id: trip?.id,
+                                        })
+
+                                        snackbar({
+                                          message: String(
+                                            tempPos?.positions?.length || 0
+                                          ),
+                                          // autoHideDuration: 4000,
+                                          closeIcon: true,
+                                          onTap() {
+                                            copyText(res)
+                                          },
+                                          vertical: 'top',
+                                          horizontal: 'center',
+                                        }).open()
+
+                                        await reupdateTripPositions({
+                                          id: trip.id || '',
+                                          positions:
+                                            (tempPos?.positions as any) || [],
+                                        })
+                                        await httpApi.v1.FinishTrip({
+                                          id: trip.id,
+                                        })
+
+                                        break
+
+                                      default:
+                                        break
+                                    }
+                                    setOpenMoreDropDownMenu(false)
                                   },
                                 })}
-                                type="CircleIconGrayHover"
                               >
-                                <saki-icon color="#999" type="More"></saki-icon>
-                              </saki-button>
-
-                              <div slot="main">
-                                <saki-menu
-                                  ref={bindEvent({
-                                    selectvalue: async (e) => {
-                                      console.log(e.detail.value)
-                                      switch (e.detail.value) {
-                                        case 'Share':
-                                          console.log(trip)
-                                          switchShareKey(true)
-                                          break
-                                        case 'AddTripToOnline':
-                                          addTripToOnline()
-                                          break
-                                        case 'FinishTrip':
-                                          finishTrip(false)
-                                          break
-                                        case 'ResumeTrip':
-                                          trip?.id &&
-                                            dispatch(
-                                              methods.trip.ResumeTrip({
-                                                trip,
-                                              })
-                                            )
-                                          break
-                                        case 'initTripCity':
-                                          initTripItemCity(
-                                            trip,
-                                            true,
-                                            true
-                                          ).finally(() => {
-                                            getTrip()
-                                          })
-
-                                          break
-                                        case 'initTripRoad':
-                                          initTripItemRoad(
-                                            trip,
-                                            true,
-                                            true
-                                          ).finally(() => {
-                                            getTrip()
-                                          })
-
-                                          break
-                                        case 'CorrectedData':
-                                          finishTrip(true)
-                                          break
-                                        case 'CancelVehicle':
-                                          cancelVehicle()
-
-                                          break
-                                        case 'Edit':
-                                          trip &&
-                                            loadModal('TripEdit', () => {
-                                              dispatch(
-                                                layoutSlice.actions.setEditTripModal(
-                                                  {
-                                                    visible: true,
-                                                    trip: trip,
-                                                  }
-                                                )
-                                              )
-                                            })
-
-                                          break
-                                        // case 'Replay':
-                                        // 	dispatch(
-                                        // 		tripSlice.actions.setReplayTripId({
-                                        // 			id: trip?.id || '',
-                                        // 			shareKey,
-                                        // 		})
-                                        // 	)
-                                        // 	dispatch(
-                                        // 		layoutSlice.actions.setOpenReplayTripModal(
-                                        // 			true
-                                        // 		)
-                                        // 	)
-                                        // 	break
-                                        case 'Delete':
-                                          deleteTrip()
-                                          break
-                                        case 'TempPos':
-                                          const jsonString = JSON.stringify(
-                                            tempPos?.positions || []
-                                          )
-
-                                          // 创建File对象
-                                          const file = new File(
-                                            [jsonString], // 内容
-                                            'backup_trip_' +
-                                              trip?.id +
-                                              '_temp.json', // 文件名
-                                            { type: 'application/json' } // 文件类型
-                                          )
-
-                                          const res = await uploadFile(file)
-                                          snackbar({
-                                            message: res,
-                                            // autoHideDuration: 4000,
-                                            closeIcon: true,
-                                            onTap() {
-                                              copyText(res)
-                                            },
-                                            vertical: 'bottom',
-                                            horizontal: 'center',
-                                          }).open()
-
-                                          await httpApi.v1.ResumeTrip({
-                                            id: trip?.id,
-                                          })
-
-                                          snackbar({
-                                            message: String(
-                                              tempPos?.positions?.length || 0
-                                            ),
-                                            // autoHideDuration: 4000,
-                                            closeIcon: true,
-                                            onTap() {
-                                              copyText(res)
-                                            },
-                                            vertical: 'top',
-                                            horizontal: 'center',
-                                          }).open()
-
-                                          await reupdateTripPositions({
-                                            id: trip.id || '',
-                                            positions:
-                                              (tempPos?.positions as any) || [],
-                                          })
-                                          await httpApi.v1.FinishTrip({
-                                            id: trip.id,
-                                          })
-
-                                          break
-
-                                        default:
-                                          break
-                                      }
-                                      setOpenMoreDropDownMenu(false)
-                                    },
-                                  })}
-                                >
+                                {user.isLogin ? (
+                                  <saki-menu-item
+                                    padding="10px 18px"
+                                    value={'TempPos'}
+                                  >
+                                    <div className="tb-h-r-user-item">
+                                      {trip.positions?.length} ·{' '}
+                                      {tempPos?.positions?.length || 0} ·{' '}
+                                      {tempPos?.positionList?.length || 0}
+                                    </div>
+                                  </saki-menu-item>
+                                ) : (
+                                  ''
+                                )}
+                                {isResumeTrip(trip) ? (
                                   <>
                                     <saki-menu-item
                                       padding="10px 18px"
-                                      value={'TempPos'}
+                                      value={'ResumeTrip'}
                                     >
                                       <div className="tb-h-r-user-item">
-                                        {trip.positions?.length} ·{' '}
-                                        {tempPos?.positions?.length || 0} ·{' '}
-                                        {tempPos?.positionList?.length || 0}
+                                        <span>
+                                          {t('resumeTrip', {
+                                            ns: 'tripPage',
+                                          })}
+                                        </span>
                                       </div>
                                     </saki-menu-item>
                                   </>
-                                  {isResumeTrip(trip) ? (
+                                ) : (
+                                  ''
+                                )}
+
+                                {user.isLogin ? (
+                                  trip?.status === 1 ? (
                                     <>
                                       <saki-menu-item
                                         padding="10px 18px"
-                                        value={'ResumeTrip'}
+                                        value={'Edit'}
                                       >
-                                        <div className="tb-h-r-user-item">
+                                        <div className="tb-h -r-user-item">
                                           <span>
-                                            {t('resumeTrip', {
-                                              ns: 'tripPage',
+                                            {t('edit', {
+                                              ns: 'common',
                                             })}
                                           </span>
                                         </div>
                                       </saki-menu-item>
-                                    </>
-                                  ) : (
-                                    ''
-                                  )}
-
-                                  {user.isLogin ? (
-                                    trip?.status === 1 ? (
-                                      <>
+                                      {trip?.vehicle?.id ? (
                                         <saki-menu-item
                                           padding="10px 18px"
-                                          value={'Edit'}
+                                          value={'CancelVehicle'}
                                         >
                                           <div className="tb-h -r-user-item">
                                             <span>
-                                              {t('edit', {
-                                                ns: 'common',
+                                              {t('cancelVehicle', {
+                                                ns: 'vehicleModal',
                                               })}
                                             </span>
                                           </div>
                                         </saki-menu-item>
-                                        {trip?.vehicle?.id ? (
-                                          <saki-menu-item
-                                            padding="10px 18px"
-                                            value={'CancelVehicle'}
-                                          >
-                                            <div className="tb-h -r-user-item">
-                                              <span>
-                                                {t('cancelVehicle', {
-                                                  ns: 'vehicleModal',
-                                                })}
-                                              </span>
-                                            </div>
-                                          </saki-menu-item>
-                                        ) : (
-                                          ''
-                                        )}
-                                        {/* <saki-menu-item
+                                      ) : (
+                                        ''
+                                      )}
+                                      {/* <saki-menu-item
                                padding='10px 18px'
                                value={'Replay'}
                              >
@@ -2333,7 +2359,7 @@ const TripItemComponent = memo(
                                  </span>
                                </div>
                              </saki-menu-item> */}
-                                        {/* {trip?.statistics?.distance !==
+                                      {/* {trip?.statistics?.distance !==
                                trip?.positions?.[trip?.positions.length - 1]
                                  ?.distance || 0 ? (
                                <saki-menu-item
@@ -2351,87 +2377,36 @@ const TripItemComponent = memo(
                              ) : (
                                ''
                              )} */}
-                                        {user.isLogin ? (
-                                          <saki-menu-item
-                                            padding="10px 18px"
-                                            value={'Share'}
-                                          >
-                                            <div className="tb-h-r-user-item">
-                                              <span>
-                                                {!trip?.permissions?.allowShare
-                                                  ? t('share', {
-                                                      ns: 'prompt',
-                                                    })
-                                                  : t('unshare', {
-                                                      ns: 'prompt',
-                                                    })}
-                                              </span>
-                                            </div>
-                                          </saki-menu-item>
-                                        ) : (
-                                          ''
-                                        )}
-                                      </>
-                                    ) : trip?.status !== 1 || !trip?.status ? (
-                                      <>
+                                      {user.isLogin ? (
                                         <saki-menu-item
                                           padding="10px 18px"
-                                          value={'FinishTrip'}
+                                          value={'Share'}
                                         >
                                           <div className="tb-h-r-user-item">
                                             <span>
-                                              {t('finishTrip', {
-                                                ns: 'tripPage',
-                                              })}
+                                              {!trip?.permissions?.allowShare
+                                                ? t('share', {
+                                                    ns: 'prompt',
+                                                  })
+                                                : t('unshare', {
+                                                    ns: 'prompt',
+                                                  })}
                                             </span>
                                           </div>
                                         </saki-menu-item>
-                                      </>
-                                    ) : (
-                                      ''
-                                    )
-                                  ) : (
-                                    ''
-                                  )}
-                                  {!trip?.authorId && user.isLogin ? (
-                                    <saki-menu-item
-                                      padding="10px 18px"
-                                      value={'AddTripToOnline'}
-                                    >
-                                      <div className="tb-h-r-user-item">
-                                        <span>
-                                          {t('addTripToOnline', {
-                                            ns: 'tripPage',
-                                          })}
-                                        </span>
-                                      </div>
-                                    </saki-menu-item>
-                                  ) : (
-                                    ''
-                                  )}
-                                  {user.isLogin && Number(trip.status) >= 1 ? (
+                                      ) : (
+                                        ''
+                                      )}
+                                    </>
+                                  ) : trip?.status !== 1 || !trip?.status ? (
                                     <>
                                       <saki-menu-item
                                         padding="10px 18px"
-                                        value={'initTripCity'}
-                                        // disabled={!!trip?.cities?.length}
+                                        value={'FinishTrip'}
                                       >
                                         <div className="tb-h-r-user-item">
                                           <span>
-                                            {t('initTripCity', {
-                                              ns: 'tripPage',
-                                            })}
-                                          </span>
-                                        </div>
-                                      </saki-menu-item>
-                                      <saki-menu-item
-                                        padding="10px 18px"
-                                        value={'initTripRoad'}
-                                        // disabled={!!trip?.cities?.length}
-                                      >
-                                        <div className="tb-h-r-user-item">
-                                          <span>
-                                            {t('initTripRoad', {
+                                            {t('finishTrip', {
                                               ns: 'tripPage',
                                             })}
                                           </span>
@@ -2440,25 +2415,73 @@ const TripItemComponent = memo(
                                     </>
                                   ) : (
                                     ''
-                                  )}
+                                  )
+                                ) : (
+                                  ''
+                                )}
+                                {!trip?.authorId && user.isLogin ? (
                                   <saki-menu-item
                                     padding="10px 18px"
-                                    value={'Delete'}
+                                    value={'AddTripToOnline'}
                                   >
                                     <div className="tb-h-r-user-item">
                                       <span>
-                                        {t('delete', {
-                                          ns: 'prompt',
+                                        {t('addTripToOnline', {
+                                          ns: 'tripPage',
                                         })}
                                       </span>
                                     </div>
                                   </saki-menu-item>
-                                </saki-menu>
-                              </div>
-                            </saki-dropdown>
-                          ) : (
-                            ''
-                          )}
+                                ) : (
+                                  ''
+                                )}
+                                {user.isLogin && Number(trip.status) >= 1 ? (
+                                  <>
+                                    <saki-menu-item
+                                      padding="10px 18px"
+                                      value={'initTripCity'}
+                                      // disabled={!!trip?.cities?.length}
+                                    >
+                                      <div className="tb-h-r-user-item">
+                                        <span>
+                                          {t('initTripCity', {
+                                            ns: 'tripPage',
+                                          })}
+                                        </span>
+                                      </div>
+                                    </saki-menu-item>
+                                    <saki-menu-item
+                                      padding="10px 18px"
+                                      value={'initTripRoad'}
+                                      // disabled={!!trip?.cities?.length}
+                                    >
+                                      <div className="tb-h-r-user-item">
+                                        <span>
+                                          {t('initTripRoad', {
+                                            ns: 'tripPage',
+                                          })}
+                                        </span>
+                                      </div>
+                                    </saki-menu-item>
+                                  </>
+                                ) : (
+                                  ''
+                                )}
+                                <saki-menu-item
+                                  padding="10px 18px"
+                                  value={'Delete'}
+                                >
+                                  <div className="tb-h-r-user-item">
+                                    <span>
+                                      {t('delete', {
+                                        ns: 'prompt',
+                                      })}
+                                    </span>
+                                  </div>
+                                </saki-menu-item>
+                              </saki-menu>
+                            </div>
+                          </saki-dropdown>
                         </div>
                       </div>
                       <div className="ti-distance">

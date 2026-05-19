@@ -190,6 +190,9 @@ export const renderPolyline = async ({
   allowZoom?: boolean
   allowSetView?: boolean
 }) => {
+  if (!trips?.length) {
+    return
+  }
   let loadBaseData: ReturnType<typeof snackbar> | undefined
   if (alert) {
     loadBaseData = snackbar({

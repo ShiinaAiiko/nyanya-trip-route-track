@@ -344,7 +344,7 @@ const FilterComponent = ({
       }
     })
 
-    console.log('cccccc', trips, tripCityDetailsMap.current)
+    // console.log('cccccc', trips, tripCityDetailsMap.current)
     return trips
   }, [
     selectedTypes,
@@ -386,8 +386,7 @@ const FilterComponent = ({
   const [mainHeight, setMainHeight] = useState(0)
 
   const { allTrips, distanceMap } = useMemo(() => {
-    const allTrips =
-      trip.tripStatistics.filter((v) => v.type === 'All')?.[0]?.list || []
+    const allTrips = trip.trips
 
     const allTripDistanceMap = new Map(
       allTrips.map((v) => {
@@ -438,7 +437,7 @@ const FilterComponent = ({
     })
 
     return { allTrips, distanceMap }
-  }, [trip.tripStatistics, jmBaseDataList, vehicle.vehicles])
+  }, [trip.trips, jmBaseDataList, vehicle.vehicles])
 
   return (
     <NoSSR>
@@ -578,9 +577,8 @@ const FilterComponent = ({
                       .map((v, i) => {
                         const distance =
                           Math.round(
-                            (trip.tripStatistics?.filter(
-                              (sv) => sv.type === (v as any)
-                            )?.[0]?.distance || 0) / 100
+                            (trip.historicalStatistics?.[v as any]?.statistics
+                              ?.distance || 0) / 100
                           ) / 10 || 0
 
                         return (
