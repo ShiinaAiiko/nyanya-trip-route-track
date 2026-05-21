@@ -196,6 +196,9 @@ const SettingsNavList = ({
   const { t, i18n } = useTranslation('settings')
 
   const config = useSelector((state: RootState) => state.config)
+  const openSettingsModal = useSelector(
+    (state: RootState) => state.layout.openSettingsModal
+  )
 
   const [isNewVersionAvailable, setIsNewVersionAvailable] = useState(false)
 
@@ -207,7 +210,7 @@ const SettingsNavList = ({
         )
       })
     }
-  }, [config.appConfig?.version])
+  }, [openSettingsModal, config.appConfig?.version])
 
   return (
     <saki-menu
@@ -2225,7 +2228,7 @@ const About = ({ show }: { show: boolean }) => {
                       border="none"
                     >
                       <span>
-                        {t('selectWebVersion', {
+                        {t('switchWebResources', {
                           ns: 'prompt',
                         })}
                       </span>
@@ -2296,7 +2299,8 @@ const About = ({ show }: { show: boolean }) => {
                                 (v) => v.version === e.detail.value
                               )?.url || ''
                             console.log('downloadUrl', downloadUrl)
-                            if (e.detail.value !== version && downloadUrl) {
+                            // e.detail.value !== version &&
+                            if (downloadUrl) {
                               switchResourcesAlert(
                                 'v' + e.detail.value,
                                 async () => {
@@ -2387,7 +2391,7 @@ const About = ({ show }: { show: boolean }) => {
             <div
               ref={
                 bindEvent({
-                  tap: () => {
+                  click: async () => {
                     if (!isInApp) return
                     if (webviewCount.current === 0) {
                       webviewSnackbar.current = snackbar({
@@ -2395,7 +2399,7 @@ const About = ({ show }: { show: boolean }) => {
                           count: 0,
                           ns: 'prompt',
                         }),
-                        vertical: 'center',
+                        vertical: 'bottom',
                         horizontal: 'center',
                       })
                       webviewSnackbar.current.open()
@@ -2411,7 +2415,25 @@ const About = ({ show }: { show: boolean }) => {
 
                     if (webviewCount.current >= 6) {
                       webviewSnackbar.current?.close()
-                      restartApp()
+
+                      alert({
+                        title: t('restartApp', {
+                          ns: 'prompt',
+                        }),
+                        content: t('restartAppContent2', {
+                          ns: 'prompt',
+                        }),
+                        cancelText: t('cancel', {
+                          ns: 'prompt',
+                        }),
+                        confirmText: t('restart', {
+                          ns: 'prompt',
+                        }),
+                        onCancel() {},
+                        async onConfirm() {
+                          rnJSBridge?.restartApp()
+                        },
+                      }).open()
                     }
 
                     webviewDeb.current.increase(() => {

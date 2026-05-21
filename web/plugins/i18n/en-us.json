@@ -78,6 +78,7 @@
     "resumeTripDistanceLimit": "The distance from your last location is more than 100 meters. You can start a new trip.",
     "date": "Travel date",
     "initTripCity": "Initialize Visited Cities",
+    "initTripAddresses": "Initializing trip addresses",
     "distanceFilter": "Distance Filter",
     "speedFilter": "Speed Filter",
     "altitudeFilter": "Altitude Filter",
@@ -663,12 +664,14 @@
     "useLocalWeb": "Use Local Resources",
     "appStaticWeb": "App Built-in Static Resources",
     "switchResources": "Switch Resources",
+    "switchWebResources": "Switch Web Resources",
 
     "switchResourcesContent": "Are you sure you want to switch to {{content}}?",
     "cloudWeb": "Cloud Resources",
     "localWeb": "Local Resources",
 
     "restartApp": "Restart App",
+    "restartAppContent2": "The app is about to restart. Please confirm",
     "restartAppContent": "The app needs to restart to apply the resource changes. Restart now?",
     "restart": "Restart",
     "webviewClickCount": "Clicked {{count}} times consecutively",

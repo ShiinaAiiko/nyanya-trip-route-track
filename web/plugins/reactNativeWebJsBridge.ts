@@ -344,10 +344,10 @@ export class ReactNativeWebJSBridge extends NEventListener<{
           // process.env.CLIENT_ENV === 'development'
           //   ? 'http://localhost:13218'
           //   : location?.origin
-          // location?.origin.includes('localhost')
-          //   ? location.origin
-          //   :
-          this.environment ? 'http://localhost:13218' : 'http://localhost:13219'
+          (window as any).flutterServerHost ||
+          (location?.origin.includes('localhost')
+            ? location.origin
+            : 'http://localhost:13219')
         }/__flutter_bridge__?message=${encodeURIComponent(message)}`
       ).catch(() => {})
       return

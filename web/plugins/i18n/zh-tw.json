@@ -78,6 +78,7 @@
     "resumeTripDistanceLimit": "距離您上一個位置超過 100 公尺。您可以開始新的行程。",
     "date": "出遊日期",
     "initTripCity": "初始化走過的城市",
+    "initTripAddresses": "初始化行程地址",
     "distanceFilter": "距離篩選",
     "speedFilter": "速度篩選",
     "altitudeFilter": "海拔篩選",
@@ -662,12 +663,14 @@
     "useLocalWeb": "使用本地資源",
     "appStaticWeb": "App 內建靜態資源",
     "switchResources": "切換資源",
+    "switchWebResources": "切換 Web 資源",
 
     "switchResourcesContent": "您確定要切換到 {{content}} 嗎？",
     "cloudWeb": "雲端資源",
     "localWeb": "本地資源",
 
     "restartApp": "重啟應用程式",
+    "restartAppContent2": "即將重啟 App，請確認",
     "restartAppContent": "切換資源後需要重啟應用程式，是否現在重啟？",
     "restart": "重啟",
     "webviewClickCount": "已連續點擊 {{count}} 次",

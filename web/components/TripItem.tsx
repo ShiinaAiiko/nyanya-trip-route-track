@@ -2165,6 +2165,22 @@ const TripItemComponent = memo(
                                             })
                                           )
                                         break
+                                      case 'initTripAddresses':
+                                        dispatch(
+                                          tripMethods.GetTripAddresses({
+                                            trips: [
+                                              {
+                                                ...trip,
+                                                addresses: [],
+                                              },
+                                            ],
+                                          })
+                                        )
+                                          .unwrap()
+                                          .finally(() => {
+                                            getTrip()
+                                          })
+                                        break
                                       case 'initTripCity':
                                         initTripItemCity(
                                           trip,
@@ -2437,6 +2453,19 @@ const TripItemComponent = memo(
                                 )}
                                 {user.isLogin && Number(trip.status) >= 1 ? (
                                   <>
+                                    <saki-menu-item
+                                      padding="10px 18px"
+                                      value={'initTripAddresses'}
+                                      // disabled={!!trip?.cities?.length}
+                                    >
+                                      <div className="tb-h-r-user-item">
+                                        <span>
+                                          {t('initTripAddresses', {
+                                            ns: 'tripPage',
+                                          })}
+                                        </span>
+                                      </div>
+                                    </saki-menu-item>
                                     <saki-menu-item
                                       padding="10px 18px"
                                       value={'initTripCity'}
