@@ -36,3 +36,5 @@ rnApp
 /components/saki-ui-react/
 
 /tmp
+/build
+ssh.sh

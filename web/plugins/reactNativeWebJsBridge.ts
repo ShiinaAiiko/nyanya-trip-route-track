@@ -1,4 +1,4 @@
-import { NEventListener } from '@nyanyajs/utils'
+import { getShortId, NEventListener } from '@nyanyajs/utils'
 import md5 from 'blueimp-md5'
 
 export const defaultCarData = {
@@ -79,6 +79,9 @@ export class ReactNativeWebJSBridge extends NEventListener<{
     [k: string]: () => void
   } = {}
   private timer: NodeJS.Timeout
+
+  private environment: 'Production' | 'Development' = 'Development'
+
   constructor() {
     super()
 
@@ -138,6 +141,129 @@ export class ReactNativeWebJSBridge extends NEventListener<{
   ) {
     this.sendMessage('setStatusBar', type)
   }
+  // 这个是要求切换内置内核的主页域名，可能会传入本地静态服务的域名，
+  // 也可能是云端。要持久化存储，要能记住用户上次改了哪个主页
+  async switchResources(
+    host: string | 'http://localhost:13218' | 'http://localhost:13219'
+  ) {
+    console.log('switchResources', host)
+
+    return await this.renderAPIPromise<{
+      success: boolean
+      error?: string
+      host?: string
+    }>('switchResources', host)
+  }
+  // 这是下载并切换本地静态资源，前端传一个URL给flutter，flutter下载这个压缩包，
+  // 然后解压得到静态资源，然后替换目前项目的静态资源，以实现热更新。
+  // 这个是案例地址，以后传的都是这种。
+  // 记住，这个接口目的就是实现静态资源热更新
+  updateLocalWebResources(downloadUrl: string) {
+    return new Promise<{
+      success: boolean
+      error?: string
+    }>((res, rej) => {
+      const k = 'updateLocalWebResources'
+
+      const bridgeId = getShortId(12)
+      const updateLocalWebResourcesCompleted =
+        'updateLocalWebResourcesCompleted' + ':' + bridgeId
+
+      try {
+        this.on(updateLocalWebResourcesCompleted as any, (val) => {
+          res(val)
+          this.removeEvent(updateLocalWebResourcesCompleted as any)
+        })
+
+        this.sendMessage(k, downloadUrl, bridgeId)
+      } catch (error) {
+        console.error(error)
+        this.removeEvent(updateLocalWebResourcesCompleted as any)
+        rej()
+      }
+    })
+  }
+  //  调用这个就立即重启App
+  restartApp() {
+    this.sendMessage('restartApp')
+  }
+  // 关闭App
+  quitApp() {
+    this.sendMessage('quitApp')
+  }
+
+  /**
+   * 发送或更新系统通知
+   */
+  sendNotification(payload: {
+    /** 通知唯一标识（用于更新同一条通知，不传则每次都弹全新的） */
+    id?: string | null
+    /** 通知标题 */
+    title: string
+    /** 通知内容 */
+    body: string
+    /** 是否常驻（true 为常驻不消失，false 或不传则为普通通知） */
+    ongoing?: boolean
+    /** 是否允许用户手动滑动/点击关闭（默认为 true） */
+    closable?: boolean
+    /** 自动关闭延迟时间（单位：毫秒，例如 3000。如果不传或为 0 则不自动关闭） */
+    autoCloseTimeout?: number
+    // ================= 🚀 参考 Android & iOS 补充的高级原生参数 =================
+    /** * 通知渠道/分类 ID (主要针对 Android 8.0+)
+     * 例如: 'download', 'alert', 'chat'。不同渠道可以有不同的原生铃声和重要程度
+     */
+    channelId?: string
+    /** * 通知重要程度 / 优先级
+     * 'min': 不对用户进行视觉干扰，没有声音
+     * 'low': 状态栏有图标，但不会弹窗轰炸
+     * 'default': 默认，有声音，状态栏有图标
+     * 'high': 头部横幅悬浮弹出（Heads-up notification），强烈提醒
+     */
+    priority?: 'min' | 'low' | 'default' | 'high'
+    /** * 通知提示音配置
+     * 'default': 播放系统默认提示音
+     * 'none': 静音
+     * 'custom_sound_name': 播放打包在 App 本地的自定义音频文件名 (如 'alert.mp3')
+     */
+    sound?: 'default' | 'none' | string
+    /** * 是否开启震动提示（默认为 true）
+     */
+    vibrate?: boolean
+    /** * 应用图标右上角的小红点数字（数字角标 Badge）
+     * 设置为 0 清除角标，不传则不改变当前角标数
+     */
+    badge?: number
+    /** * 点击通知后的跳转行为类型
+     * 'default': 仅唤醒 App 到前台，不做特殊处理
+     * 'deeplink': 点击后让 App 内部跳转到指定路由或页面
+     * 'none': 点击无反应（常用于 ongoing 进度条通知）
+     */
+    clickActionType?: 'default' | 'deeplink' | 'none'
+    /** * 点击通知后跳转的页面地址
+     * 当 clickActionType 为 'deeplink' 时生效，例如: '/pages/route-track/detail?id=123'
+     * 同时通过flutter bridge发送消息给前端，类型为notificationClickActionUrl
+     */
+    clickActionUrl?: string
+    /** * 附加自定义业务数据
+     * 传递给原生端，方便原生端在点击通知、拉起 App 时，透传给前端或上报日志
+     * 通过flutter bridge发送消息给前端，类型为notificationExtra
+     */
+    extra?: Record<string, any>
+  }) {
+    return this.renderAPIPromise<{
+      success: boolean
+      error?: string
+      id?: string
+    }>('sendNotification', payload)
+  }
+
+  /**
+   * 根据 ID 手动关闭指定的通知
+   */
+  cancelNotification(id: string) {
+    this.sendMessage('cancelNotification', id)
+  }
+
   getThemeColor() {
     return this.renderAPIPromise<'dark' | 'light'>('getThemeColor')
   }
@@ -157,9 +283,13 @@ export class ReactNativeWebJSBridge extends NEventListener<{
     this.dispatch('loaded', undefined)
     this.sendMessage('load')
   }
-  renderAPIPromise<T = any>(k: Parameters<typeof this.sendMessage>[0]) {
+  renderAPIPromise<T = any>(
+    k: Parameters<typeof this.sendMessage>[0],
+    payload?: any
+  ) {
     return new Promise<T>((res, rej) => {
-      const randKey = k + ':' + md5(new Date().getTime().toString())
+      const bridgeId = getShortId(12)
+      const randKey = k + ':' + bridgeId
 
       try {
         this.on(randKey as any, (val) => {
@@ -167,7 +297,7 @@ export class ReactNativeWebJSBridge extends NEventListener<{
           this.removeEvent(randKey as any)
         })
 
-        this.sendMessage(k)
+        this.sendMessage(k, payload, bridgeId)
       } catch (error) {
         console.error(error)
         this.removeEvent(randKey as any)
@@ -190,13 +320,22 @@ export class ReactNativeWebJSBridge extends NEventListener<{
       | 'getThemeColor'
       | 'getStatusBarData'
       | 'checkNewVersion'
+      | 'switchResources'
+      | 'updateLocalWebResources'
+      | 'restartApp'
+      | 'quitApp'
+      | 'sendNotification'
+      | 'cancelNotification'
       | 'load',
-    payload?: any
+    payload?: any,
+    bridgeId?: string
   ) {
     const message = JSON.stringify({
       type,
       payload: payload || null,
+      bridgeId,
     })
+    console.log('sendMessage', message)
 
     // Flutter 环境：使用 XMLHttpRequest 发送消息，不触发页面导航
     if (this.isFlutterEnv) {
@@ -205,7 +344,10 @@ export class ReactNativeWebJSBridge extends NEventListener<{
           // process.env.CLIENT_ENV === 'development'
           //   ? 'http://localhost:13218'
           //   : location?.origin
-          location?.origin
+          // location?.origin.includes('localhost')
+          //   ? location.origin
+          //   :
+          this.environment ? 'http://localhost:13218' : 'http://localhost:13219'
         }/__flutter_bridge__?message=${encodeURIComponent(message)}`
       ).catch(() => {})
       return
@@ -226,15 +368,26 @@ export class ReactNativeWebJSBridge extends NEventListener<{
         return
       }
 
+      if (data?.bridgeId) {
+        const randKey = data.type + ':' + data?.bridgeId
+
+        this.dispatch(randKey as any, data.payload)
+        return
+      }
+
       this.dispatch(data.type, data.payload)
     } catch (e) {
       // console.error(e)
     }
   }
 
-  private handleFlutterMessage = (data: any) => {
+  private handleFlutterMessage = (dataAny: any) => {
     try {
-      console.log('handleFlutterMessage', this.count, data.type, data.payload)
+      let data = dataAny
+      console.log('handleFlutterMessage', this.count, dataAny)
+      if (typeof dataAny === 'string') {
+        data = JSON.parse(dataAny || '{}') || {}
+      }
       if (!data?.type) return
       this.count++
       if (data.type === 'location') {
@@ -242,15 +395,28 @@ export class ReactNativeWebJSBridge extends NEventListener<{
         return
       }
 
-      this.getEventNames().forEach((en) => {
-        if (en === data.type) {
-          this.dispatch(data.type, data.payload)
-        }
-      })
+      if (data.type === 'appConfig') {
+        this.environment = data.payload?.appConfig?.fullVersion?.includes('dev')
+          ? 'Development'
+          : 'Production'
+      }
 
-      // this.dispatch(data.type, data.payload)
+      if (data?.bridgeId) {
+        const randKey = data.type + ':' + data?.bridgeId
+
+        this.dispatch(randKey as any, data.payload)
+        return
+      }
+
+      // this.getEventNames().forEach((en) => {
+      //   if (en.includes(data.type)) {
+      //     this.dispatch(en as any, data.payload)
+      //   }
+      // })
+
+      this.dispatch(data.type, data.payload)
     } catch (e) {
-      // console.error(e)
+      console.error(e)
     }
   }
 

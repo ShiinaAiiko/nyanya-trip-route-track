@@ -655,7 +655,30 @@
 
     "checkNewVersion": "检查新版本",
     "skipVersion": "7天内不再提示更新",
-    "newVersionAvailable": "新版本"
+    "newVersionAvailable": "新版本",
+
+    "versionInfo": "版本信息",
+    "webVersion": "Web 版本",
+    "appVersion": "App 版本",
+    "webviewVersion": "Webview 版本",
+    "selectWebVersion": "选择 Web 版本",
+
+    "useCloudWeb": "使用云端资源",
+    "useLocalWeb": "使用本地资源",
+    "appStaticWeb": "App 内置静态资源",
+    "switchResources": "切换资源",
+
+    "switchResourcesContent": "您确定要切换到 {{content}} 吗？",
+    "cloudWeb": "云端资源",
+    "localWeb": "本地资源",
+
+    "restartApp": "重启应用",
+    "restartAppContent": "切换资源后需要重启应用，是否现在重启？",
+    "restart": "重启",
+    "webviewClickCount": "已连续点击 {{count}} 次",
+
+    "hotUpdateComplete": "已完成热更新",
+    "hotUpdateCompleteContent": "重启App后，方可使用新版本。"
   },
   "unit": {
     "km": "公里",

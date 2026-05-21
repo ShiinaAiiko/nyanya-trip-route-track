@@ -650,7 +650,30 @@
 
     "checkNewVersion": "檢查新版本",
     "skipVersion": "7天內不再提示更新",
-    "newVersionAvailable": "新版本"
+    "newVersionAvailable": "新版本",
+
+    "versionInfo": "版本資訊",
+    "webVersion": "Web 版本",
+    "appVersion": "App 版本",
+    "webviewVersion": "Webview 版本",
+    "selectWebVersion": "選擇 Web 版本",
+
+    "useCloudWeb": "使用雲端資源",
+    "useLocalWeb": "使用本地資源",
+    "appStaticWeb": "App 內建靜態資源",
+    "switchResources": "切換資源",
+
+    "switchResourcesContent": "您確定要切換到 {{content}} 嗎？",
+    "cloudWeb": "雲端資源",
+    "localWeb": "本地資源",
+
+    "restartApp": "重啟應用程式",
+    "restartAppContent": "切換資源後需要重啟應用程式，是否現在重啟？",
+    "restart": "重啟",
+    "webviewClickCount": "已連續點擊 {{count}} 次",
+
+    "hotUpdateComplete": "已完成熱更新",
+    "hotUpdateCompleteContent": "重啟 App 後，方可使用新版本。"
   },
   "unit": {
     "km": "公里",

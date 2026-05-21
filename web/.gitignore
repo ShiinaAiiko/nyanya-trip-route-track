@@ -41,3 +41,5 @@ build.tgz
 /rnApp/crash.log
 /tmp
 /protos_temp
+
+/build

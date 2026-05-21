@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 
 import { useSelector, useDispatch } from 'react-redux'
 import store, { RootState, AppDispatch, methods, layoutSlice } from '../store'
@@ -6,7 +6,7 @@ import { useRouter } from 'next/router'
 
 import { sakisso, version } from '../config'
 
-import { bindEvent } from '@saki-ui/core'
+import { alert, bindEvent, snackbar } from '@saki-ui/core'
 // console.log(sakiui.bindEvent)
 import { useTranslation } from 'react-i18next'
 import {
@@ -19,15 +19,21 @@ import {
   eventListener,
   rnJSBridge,
 } from '../store/config'
-import { isNewVersion, parseQuery, Query } from '../plugins/methods'
+import {
+  getWebVersionList,
+  isNewVersion,
+  parseQuery,
+  Query,
+  WebVersion,
+} from '../plugins/methods'
 import { storage, storageMethods } from '../store/storage'
-import { byteConvert } from '@nyanyajs/utils'
+import { byteConvert, Debounce } from '@nyanyajs/utils'
 import { getPositionShareText } from './Vehicle'
 import { getSpeed } from 'geolib'
 import { protoRoot } from '../protos'
 import { loadModal } from '../store/layout'
 import { config } from 'process'
-import { SakiButton } from './saki-ui-react/components'
+import { SakiButton, SakiIcon, SakiMenuItem } from './saki-ui-react/components'
 
 const SettingsComponent = ({
   visible,
@@ -706,7 +712,7 @@ const Language = ({ show }: { show: boolean }) => {
                 })
                 // console.log('basePathname', basePathname)
                 const pathname = Query(
-                  (e.detail.value === 'system' ? '' : '/' + e.detail.value) +
+                  (e.detail.value === 'system' ? '/' : '/' + e.detail.value) +
                     basePathname,
                   {
                     ...router.query,
@@ -2029,31 +2035,106 @@ const About = ({ show }: { show: boolean }) => {
   const browserVersion = `${user.userAgent.browser.name} ${user.userAgent.browser.major}`
 
   const [isNewVersionAvailable, setIsNewVersionAvailable] = useState(false)
+  const [openWebVersionDP, setOpenWebVersionDP] = useState(false)
+
+  const [webVersionList, setWebVersionList] = useState<WebVersion[]>([])
+
+  const [staticMode, setStaticMode] = useState('Cloud')
+
+  let isInApp = config.devTrip ? true : rnJSBridge?.isInApp()
 
   useEffect(() => {
-    if (rnJSBridge?.isInApp()) {
-      storage.global.get('skipVersionCode').then((skipVersionCode) => {
-        setIsNewVersionAvailable(
-          isNewVersion(config.appConfig?.version, skipVersionCode)
-        )
-      })
+    if (isInApp) {
+      const init = async () => {
+        setStaticMode(location.host === 'trip.aiiko.club' ? 'Cloud' : 'Local')
+
+        storage.global.get('skipVersionCode').then((skipVersionCode) => {
+          skipVersionCode &&
+            setIsNewVersionAvailable(
+              isNewVersion(config.appConfig?.version, skipVersionCode)
+            )
+        })
+        setWebVersionList(await getWebVersionList())
+      }
+      init()
     }
   }, [show, config.appConfig?.version])
+
+  const appVersion = config.appConfig?.fullVersion || ''
+
+  const switchResourcesAlert = (content: string, onConfirm: () => void) => {
+    alert({
+      title: t('switchResources', {
+        ns: 'prompt',
+      }),
+      content: t('switchResourcesContent', {
+        ns: 'prompt',
+        content,
+      }),
+      cancelText: t('cancel', {
+        ns: 'prompt',
+      }),
+      confirmText: t('confirm', {
+        ns: 'prompt',
+      }),
+      onCancel() {},
+      async onConfirm() {
+        onConfirm()
+      },
+    }).open()
+  }
+  const restartApp = async () => {
+    const res = await rnJSBridge?.sendNotification({
+      title: t('hotUpdateComplete', {
+        ns: 'prompt',
+      }),
+      body: t('hotUpdateCompleteContent', {
+        ns: 'prompt',
+      }),
+      closable: true,
+    })
+    alert({
+      title: t('restartApp', {
+        ns: 'prompt',
+      }),
+      content: t('restartAppContent', {
+        ns: 'prompt',
+      }),
+      cancelText: t('cancel', {
+        ns: 'prompt',
+      }),
+      confirmText: t('restart', {
+        ns: 'prompt',
+      }),
+      onCancel() {
+        res?.id && rnJSBridge?.cancelNotification(res?.id || '')
+      },
+      async onConfirm() {
+        res?.id && rnJSBridge?.cancelNotification(res?.id || '')
+        rnJSBridge?.restartApp()
+      },
+    }).open()
+  }
+
+  const webviewDeb = useRef(new Debounce())
+  const webviewCount = useRef(0)
+  const webviewSnackbar = useRef<ReturnType<typeof snackbar> | null>(null)
+
   return (
     <div
       style={{
         display: show ? 'block' : 'none',
       }}
-      className="setting-about-page"
+      className="setting-about-page scrollBarHover"
     >
       <div className="version-info">
         <img src="/icons/256x256.png" alt="" />
-        <div className="version-code">
+        {/* <div className="version-code">
           <span>Version v{config.appConfig?.fullVersion || version}</span>
           <span>{config.appConfig.system || '' + browserVersion}</span>
-        </div>
+        </div> */}
       </div>
-      {rnJSBridge?.isInApp() ? (
+      {/* {isInApp ? (
         <div className="version-info">
           <SakiButton
             onTap={() => {
@@ -2074,11 +2155,283 @@ const About = ({ show }: { show: boolean }) => {
                   })}
             </span>
           </SakiButton>
-          {/* <span className="version-code">{browserVersion}</span> */}
         </div>
       ) : (
         ''
-      )}
+      )} */}
+
+      <SettingsItem
+        subtitle={() => (
+          <span>
+            {t('versionInfo', {
+              ns: 'prompt',
+            })}
+          </span>
+        )}
+        main={() => (
+          <>
+            {isInApp && (
+              <div className="version-item">
+                <div className="vi-left">
+                  <span>{t('appVersion', { ns: 'prompt' })}</span>
+                  <span>{appVersion}</span>
+                </div>
+                <div className="vi-right">
+                  <SakiButton
+                    onTap={() => {
+                      rnJSBridge?.checkNewVersion({
+                        showCheckingNotification: true,
+                      })
+                    }}
+                    margin="6px 0"
+                    type="Primary"
+                  >
+                    <span>
+                      {isNewVersionAvailable
+                        ? t('newVersionAvailable', {
+                            ns: 'prompt',
+                          })
+                        : t('checkNewVersion', {
+                            ns: 'prompt',
+                          })}
+                    </span>
+                  </SakiButton>
+                </div>
+              </div>
+            )}
+            <div className="version-item">
+              <div className="vi-left">
+                <span>{t('webVersion', { ns: 'prompt' })}</span>
+                <span>{`${version} (${staticMode})`}</span>
+              </div>
+              <div className="vi-right">
+                {isInApp ? (
+                  <saki-dropdown
+                    visible={openWebVersionDP}
+                    floating-direction="Left"
+                    z-index="1000"
+                    ref={bindEvent({
+                      close: () => {
+                        setOpenWebVersionDP(false)
+                      },
+                    })}
+                  >
+                    <SakiButton
+                      onTap={() => {
+                        setOpenWebVersionDP(true)
+                      }}
+                      margin="6px 0"
+                      type="Normal"
+                      border="none"
+                    >
+                      <span>
+                        {t('selectWebVersion', {
+                          ns: 'prompt',
+                        })}
+                      </span>
+                      <SakiIcon
+                        width="12px"
+                        height="12px"
+                        color="#666"
+                        margin="0 0 0 6px"
+                        type="Bottom"
+                      ></SakiIcon>
+                    </SakiButton>
+                    <div slot="main">
+                      <saki-menu
+                        ref={bindEvent({
+                          selectvalue: async (e) => {
+                            console.log(
+                              'select web version',
+                              e.detail.value,
+                              e.detail.value === staticMode
+                            )
+                            setOpenWebVersionDP(false)
+                            if (
+                              e.detail.value === 'Cloud' ||
+                              e.detail.value === 'Local'
+                            ) {
+                              if (e.detail.value === staticMode) {
+                                return
+                              }
+                              switchResourcesAlert(
+                                e.detail.value === 'Cloud'
+                                  ? t('cloudWeb', {
+                                      ns: 'prompt',
+                                    })
+                                  : t('localWeb', {
+                                      ns: 'prompt',
+                                    }),
+                                async () => {
+                                  setStaticMode(e.detail.value)
+
+                                  const res = await rnJSBridge?.switchResources(
+                                    e.detail.value === 'Cloud'
+                                      ? 'https://trip.aiiko.club'
+                                      : config.appConfig.fullVersion.includes(
+                                            'dev'
+                                          )
+                                        ? 'http://localhost:13218'
+                                        : 'http://localhost:13219'
+                                  )
+                                  if (res?.error) {
+                                    snackbar({
+                                      message: res?.error,
+                                      autoHideDuration: 2000,
+                                      vertical: 'top',
+                                      horizontal: 'center',
+                                    }).open()
+                                    return
+                                  }
+                                  if (res.success) {
+                                    restartApp()
+                                  }
+                                }
+                              )
+                              return
+                            }
+
+                            const downloadUrl =
+                              webVersionList.find(
+                                (v) => v.version === e.detail.value
+                              )?.url || ''
+                            console.log('downloadUrl', downloadUrl)
+                            if (e.detail.value !== version && downloadUrl) {
+                              switchResourcesAlert(
+                                'v' + e.detail.value,
+                                async () => {
+                                  const res =
+                                    await rnJSBridge?.updateLocalWebResources(
+                                      downloadUrl
+                                    )
+                                  if (res?.error) {
+                                    snackbar({
+                                      message: res?.error,
+                                      autoHideDuration: 2000,
+                                      vertical: 'top',
+                                      horizontal: 'center',
+                                    }).open()
+                                    return
+                                  }
+                                  if (res.success) {
+                                    restartApp()
+                                  }
+                                }
+                              )
+                            }
+                          },
+                        })}
+                      >
+                        {staticMode === 'Local' &&
+                          webVersionList
+                            .filter((v, i) => {
+                              return v.version === version || i < 10
+                            })
+                            .map((v, i) => {
+                              return (
+                                <SakiMenuItem
+                                  key={i}
+                                  minWidth="60px"
+                                  padding="10px 18px"
+                                  value={v.version}
+                                  active={v.version === version}
+                                  subtitle={
+                                    i === 0
+                                      ? t('appStaticWeb', {
+                                          ns: 'prompt',
+                                        })
+                                      : ''
+                                  }
+                                >
+                                  <span className="text-elipsis">
+                                    v{v.version}
+                                  </span>
+                                </SakiMenuItem>
+                              )
+                            })}
+                        <SakiMenuItem
+                          minWidth="60px"
+                          padding="10px 18px"
+                          value={'Local'}
+                          subtitle={t('switchResources', {
+                            ns: 'prompt',
+                          })}
+                          active={staticMode === 'Local'}
+                        >
+                          <span className="text-elipsis">
+                            {t('useLocalWeb', {
+                              ns: 'prompt',
+                            })}
+                          </span>
+                        </SakiMenuItem>
+                        <SakiMenuItem
+                          minWidth="60px"
+                          padding="10px 18px"
+                          value={'Cloud'}
+                          active={staticMode === 'Cloud'}
+                        >
+                          <span className="text-elipsis">
+                            {t('useCloudWeb', {
+                              ns: 'prompt',
+                            })}
+                          </span>
+                        </SakiMenuItem>
+                      </saki-menu>
+                    </div>
+                  </saki-dropdown>
+                ) : (
+                  ''
+                )}
+              </div>
+            </div>
+            <div
+              ref={
+                bindEvent({
+                  tap: () => {
+                    if (!isInApp) return
+                    if (webviewCount.current === 0) {
+                      webviewSnackbar.current = snackbar({
+                        message: t('webviewClickCount', {
+                          count: 0,
+                          ns: 'prompt',
+                        }),
+                        vertical: 'center',
+                        horizontal: 'center',
+                      })
+                      webviewSnackbar.current.open()
+                    }
+                    webviewCount.current++
+
+                    webviewSnackbar.current?.setMessage(
+                      t('webviewClickCount', {
+                        count: webviewCount.current,
+                        ns: 'prompt',
+                      })
+                    )
+
+                    if (webviewCount.current >= 6) {
+                      webviewSnackbar.current?.close()
+                      restartApp()
+                    }
+
+                    webviewDeb.current.increase(() => {
+                      webviewCount.current = 0
+                      webviewSnackbar.current?.close()
+                    }, 2000)
+                  },
+                }) as any
+              }
+              className="version-item"
+            >
+              <div className="vi-left">
+                <span>{t('webviewVersion', { ns: 'prompt' })}</span>
+                <span>{browserVersion}</span>
+              </div>
+            </div>
+          </>
+        )}
+        // center
+      ></SettingsItem>
       <SettingsItem
         subtitle={() => (
           <div>
@@ -2121,7 +2474,7 @@ const About = ({ show }: { show: boolean }) => {
             </saki-button>
           </div>
         )}
-        center
+        // center
       ></SettingsItem>
 
       <SettingsItem
@@ -2148,7 +2501,7 @@ const About = ({ show }: { show: boolean }) => {
             </div>
           </>
         )}
-        center
+        // center
       ></SettingsItem>
     </div>
   )

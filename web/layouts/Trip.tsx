@@ -377,27 +377,27 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
     const init = async () => {
       await checkNewVersion()
 
-      let count = 0
-      rnJSBridge.enableCarData(true)
+      // let count = 0
+      // rnJSBridge.enableCarData(true)
 
-      getCarDataTimer.current = setInterval(async () => {
-        console.log('Flutter getCarData')
-        if (count % 2 === 0) {
-          rnJSBridge.enableCarData(true)
-        }
-        count++
-        rnJSBridge.getCarData()
-      }, 10 * 1000)
+      // getCarDataTimer.current = setInterval(async () => {
+      //   console.log('Flutter getCarData')
+      //   if (count % 2 === 0) {
+      //     rnJSBridge.enableCarData(true)
+      //   }
+      //   count++
+      //   rnJSBridge.getCarData()
+      // }, 10 * 1000)
 
-      rnJSBridge.on('carData', (val) => {
-        console.log('carData', val)
-        if (val.hasOwnProperty('speed')) {
-          dispatch(configSlice.actions.setCarData(val))
-        }
-      })
-      rnJSBridge.on('bydLog', (val) => {
-        dispatch(configSlice.actions.setCarLog(val))
-      })
+      // rnJSBridge.on('carData', (val) => {
+      //   console.log('carData', val)
+      //   if (val.hasOwnProperty('speed')) {
+      //     dispatch(configSlice.actions.setCarData(val))
+      //   }
+      // })
+      // rnJSBridge.on('bydLog', (val) => {
+      //   dispatch(configSlice.actions.setCarLog(val))
+      // })
 
       rnJSBridge.load()
     }

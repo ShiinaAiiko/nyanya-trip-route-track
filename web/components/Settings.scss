@@ -89,6 +89,34 @@
 }
 
 .setting-about-page {
+  height: 100%;
+  .version-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 6px 0;
+    .vi-left {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      span {
+        &:first-child {
+          color: #333;
+          font-weight: 500;
+          font-size: 14px;
+        }
+        &:last-child {
+          color: #777;
+          font-size: 12px;
+        }
+      }
+    }
+    .vi-right {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+    }
+  }
   .version-info {
     display: flex;
     justify-content: flex-start;
@@ -123,7 +151,8 @@
 
   .about-links {
     display: flex;
-    justify-content: center;
+    // justify-content: center;
+    justify-content: flex-start;
     align-items: center;
 
     .settings-link {
@@ -149,7 +178,8 @@
     margin: 12px 0;
     display: flex;
     align-items: center;
-    justify-content: center;
+    // justify-content: center;
+    justify-content: flex-start;
     img {
       width: 26px;
       height: 26px;

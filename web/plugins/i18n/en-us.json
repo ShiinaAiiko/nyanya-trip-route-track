@@ -651,7 +651,30 @@
 
     "checkNewVersion": "Check for New Version",
     "skipVersion": "Don't remind me again in 7 days",
-    "newVersionAvailable": "New version"
+    "newVersionAvailable": "New version",
+
+    "versionInfo": "Version Info",
+    "webVersion": "Web Version",
+    "appVersion": "App Version",
+    "webviewVersion": "Webview Version",
+    "selectWebVersion": "Select Web Version",
+
+    "useCloudWeb": "Use Cloud Resources",
+    "useLocalWeb": "Use Local Resources",
+    "appStaticWeb": "App Built-in Static Resources",
+    "switchResources": "Switch Resources",
+
+    "switchResourcesContent": "Are you sure you want to switch to {{content}}?",
+    "cloudWeb": "Cloud Resources",
+    "localWeb": "Local Resources",
+
+    "restartApp": "Restart App",
+    "restartAppContent": "The app needs to restart to apply the resource changes. Restart now?",
+    "restart": "Restart",
+    "webviewClickCount": "Clicked {{count}} times consecutively",
+
+    "hotUpdateComplete": "Hot update completed",
+    "hotUpdateCompleteContent": "Please restart the app to apply the new version."
   },
   "unit": {
     "km": "km",

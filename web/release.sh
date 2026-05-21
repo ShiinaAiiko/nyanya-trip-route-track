@@ -1,7 +1,7 @@
 #! /bin/bash
 name="nyanya-trip-route-track"
 port=23202
-version="v1.0.45"
+version="v1.0.46"
 sakiuiVersion="v1.0.14"
 branch="main"
 # configFilePath="config.dev.json"
@@ -51,7 +51,7 @@ dockerremove() {
 setVersion() {
 	echo "-> $version"
 	sed -i "s/\"version\":.*$/\"version\":\"${version:1}\",/" ./config.dev.json
-	# sed -i "s/\"version\":.*$/\"version\":\"${version:1}\",/" ./config.pro.json
+	sed -i "s/\"version\":.*$/\"version\":\"${version:1}\",/" ./config.pro.json
 
 	# jsurl='https:\/\/saki-ui.aiiko.club\/packages\/'$sakiuiVersion'\/saki-ui\/saki-ui.js'
 	# sed -i "10,13s/\"jsurl\":.*$/\"jsurl\": \"$jsurl\",/" ./config.pro.json
@@ -121,11 +121,15 @@ start() {
 
 	# rm $DIR/build.tgz
 
+	mkdir -p $DIR/build/packages/
+	cp "$DIR/build.tgz" "$DIR/build/packages/trip-route-track-web-${version}-build.tgz"
+
 }
 
 build() {
 	export BUILD_OUTPUT_TYPE=web
 	start
+
 	buildtoflutter
 	./ssh.sh run
 }
@@ -133,6 +137,7 @@ build() {
 start:web() {
 	export BUILD_OUTPUT_TYPE=web
 	start
+
 	./ssh.sh run
 
 }

@@ -1401,37 +1401,48 @@ export interface AppVersion {
   fileName: string
 }
 
-const BASE_URL = 'https://trip.aiiko.club/packages/'
+// 1. 将基础地址改为无斜杠的形式，方便后续拼接或直接请求
+const BASE_URL = 'https://trip.aiiko.club/packages'
+const API_URL = `${BASE_URL}?format=json`
+
+// Nginx 返回的原始数据结构
 
 /**
  * 获取版本列表(由高到低排序)
  */
 export async function getVersionList(platform: string): Promise<AppVersion[]> {
   try {
-    const response = await fetch(BASE_URL)
-    const html = await response.text()
+    // 2. 直接请求 JSON 接口
+    const response = await fetch(API_URL)
+    interface NginxFileItem {
+      mtime: string
+      name: string
+      size: number
+      type: string
+    }
+    const fileList: NginxFileItem[] = await response.json()
 
-    const parser = new DOMParser()
-    const doc = parser.parseFromString(html, 'text/html')
-    const links = Array.from(doc.querySelectorAll('a'))
-
-    const versions: AppVersion[] = links
-      .map((link) => link.getAttribute('href') || '')
-      // 过滤：包含平台关键字 (如 arm64-v8a) 且是 apk 文件
+    // 3. 直接对原生的 JSON 数组进行过滤与转换
+    const versions: AppVersion[] = fileList
       .filter(
-        (href) => href && href.includes(platform) && href.endsWith('.apk')
+        (item) =>
+          item.type === 'file' && // 必须是文件
+          item.name.includes(platform) && // 包含平台关键字 (如 arm64-v8a)
+          item.name.endsWith('.apk') // 必须是 apk 文件
       )
-      .map((href) => {
+      .map((item) => {
         // 提取版本号 vX.Y.Z
-        const versionMatch = href.match(/v(\d+\.\d+\.\d+)/)
+        const versionMatch = item.name.match(/v(\d+\.\d+\.\d+)/)
+
         return {
           version: versionMatch ? versionMatch[1] : '0.0.0',
-          url: new URL(href, BASE_URL).href,
-          fileName: href,
+          // 4. 完美拼接下载地址。注意：下载物理文件时，按照标准的 URL 规范，中间必须带上补全的斜杠
+          url: `${BASE_URL}/${item.name}`,
+          fileName: item.name,
         }
       })
 
-    // 排序：从高版本到低版本
+    // 5. 排序：从高版本到低版本
     return versions.sort((a, b) => {
       return b.version.localeCompare(a.version, undefined, {
         numeric: true,
@@ -1540,4 +1551,58 @@ export function isNewVersion(oldVer: string, newVer: string): boolean {
   }
 
   return false // 完全相同
+}
+
+export interface WebVersion {
+  version: string
+  url: string
+  fileName: string
+}
+
+/**
+ * 获取静态包版本列表(由高到低排序)
+ */
+export async function getWebVersionList(): Promise<WebVersion[]> {
+  try {
+    const BASE_URL = 'https://trip.aiiko.club/packages/static'
+    const API_URL = `${BASE_URL}/?format=json`
+
+    const response = await fetch(API_URL)
+    interface NginxFileItem {
+      mtime: string
+      name: string
+      size: number
+      type: string
+    }
+
+    const fileList: NginxFileItem[] = await response.json()
+
+    const versions: WebVersion[] = fileList
+      .filter(
+        (item) => item.type === 'file' && item.name.endsWith('.tgz') // 过滤出所有的 tgz 压缩包
+      )
+      .map((item) => {
+        // 2. 匹配版本号：捕获类似 web-1.0.45 中的数字部分
+        // \d+\.\d+\.\d+ 可以精准匹配 X.Y.Z 格式
+        const versionMatch = item.name.match(/(\d+\.\d+\.\d+)/)
+
+        return {
+          version: versionMatch ? versionMatch[1] : '0.0.0',
+          // 3. 顺着你的软链接路径，拼出完美的绝对下载/拉取地址
+          url: `${BASE_URL}/${item.name}`,
+          fileName: item.name,
+        }
+      })
+
+    // 4. 排序：从高版本到低版本
+    return versions.sort((a, b) => {
+      return b.version.localeCompare(a.version, undefined, {
+        numeric: true,
+        sensitivity: 'base',
+      })
+    })
+  } catch (error) {
+    console.error('获取静态包版本列表失败:', error)
+    return []
+  }
 }
