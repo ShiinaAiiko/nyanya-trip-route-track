@@ -1,5 +1,6 @@
 import { getShortId, NEventListener } from '@nyanyajs/utils'
 import md5 from 'blueimp-md5'
+import { UrlWithStringQuery } from 'url'
 
 export const defaultCarData = {
   speed: 65.5,
@@ -39,7 +40,41 @@ export const defaultStatusBarData = {
   safeAreaBottom: 46.769,
 }
 export type StatusBarData = typeof defaultStatusBarData
-export class ReactNativeWebJSBridge extends NEventListener<{
+
+export type NotificationMessage = {
+  title: string
+  message: string
+  type: 'success' | 'info' | 'warning' | 'error'
+  notification: boolean
+  module: string
+}
+
+export type LogMessage = {
+  type: 'carLog' | 'appLog'
+  message: string
+}
+
+// 第三方登录类型
+export type ThirdPartyLoginType = 'google' | 'qq' | 'github'
+
+// 第三方登录结果
+export type ThirdPartyLoginResult = {
+  success: boolean
+  error?: string
+  data?: {
+    type: ThirdPartyLoginType
+    idToken?: string
+    accessToken?: string
+    user?: {
+      id: string
+      name?: string
+      email?: string
+      avatar?: string
+    }
+  }
+}
+
+export class NyaNyaWebJSBridge extends NEventListener<{
   loaded: undefined
   location: {
     coords: {
@@ -58,9 +93,9 @@ export class ReactNativeWebJSBridge extends NEventListener<{
     buildNumber: string
     fullVersion: string
     system: string
+    engine: string
   }
   carData: CarData
-  bydLog: any
   getStatusBarData: StatusBarData
   skipVersion: string
   updateProgress: any
@@ -70,8 +105,30 @@ export class ReactNativeWebJSBridge extends NEventListener<{
   updateError: {
     error: any
   }
+  gpsPermissionDenied: NotificationMessage
+  gpsServiceDisabled: NotificationMessage
+  locationEnabled: NotificationMessage
+  locationDisabled: NotificationMessage
+  screenKeptOn: NotificationMessage
+  screenKeptOff: NotificationMessage
+  backgroundLocationEnableFailed: NotificationMessage
+  backgroundServiceStartFailed: NotificationMessage
+  backgroundLocationDisabled: NotificationMessage
+  log: LogMessage
+  appStart: any
+  appResume: any
+  appPause: any
+  appInactive: any
+  appHidden: any
+  appLifecycleChange: {
+    state: 'resumed' | 'inactive' | 'paused' | 'hidden' | 'detached'
+  }
+  thirdPartyLoginResult: ThirdPartyLoginResult
 }> {
   rnWebView: any = undefined
+
+  private allowNotifications: boolean = true
+
   private count = 0
   private isFlutterEnv = false
 
@@ -82,8 +139,10 @@ export class ReactNativeWebJSBridge extends NEventListener<{
 
   private environment: 'Production' | 'Development' = 'Development'
 
-  constructor() {
+  constructor({ allowNotifications = true }: { allowNotifications?: boolean }) {
     super()
+
+    this.allowNotifications = allowNotifications
 
     const init = () => {
       this.rnWebView = (window as any)?.ReactNativeWebView
@@ -105,7 +164,9 @@ export class ReactNativeWebJSBridge extends NEventListener<{
       init()
     }, 200)
   }
-  keepScreenOn(b: boolean = true) {
+  async keepScreenOn(b: boolean = true) {
+    // this.on("screenKeptOn",)
+
     this.sendMessage('keepScreenOn', b)
   }
   enableLocation(b: boolean = true) {
@@ -154,6 +215,14 @@ export class ReactNativeWebJSBridge extends NEventListener<{
       host?: string
     }>('switchResources', host)
   }
+  async switchEngine(type: 'gecko' | 'system') {
+    return await this.renderAPIPromise<{
+      success: boolean
+      engine?: 'gecko' | 'system'
+      message?: string
+      error?: string
+    }>('switchEngine', type)
+  }
   // 这是下载并切换本地静态资源，前端传一个URL给flutter，flutter下载这个压缩包，
   // 然后解压得到静态资源，然后替换目前项目的静态资源，以实现热更新。
   // 这个是案例地址，以后传的都是这种。
@@ -183,13 +252,29 @@ export class ReactNativeWebJSBridge extends NEventListener<{
       }
     })
   }
-  //  调用这个就立即重启App
+  // 调用这个就立即重启App
   restartApp() {
     this.sendMessage('restartApp')
   }
   // 关闭App
   quitApp() {
     this.sendMessage('quitApp')
+  }
+  // 跳转到应用设置页面（可用于引导用户开启权限）
+  // permissionType 可选参数：'location' | 'notification' | 'storage' | 'camera' | 'microphone'
+  openAppSettings(
+    permissionType?:
+      | 'location'
+      | 'notification'
+      | 'storage'
+      | 'camera'
+      | 'microphone'
+  ) {
+    this.sendMessage('openAppSettings', permissionType)
+  }
+  // 第三方登录
+  thirdPartyLogin(type: ThirdPartyLoginType) {
+    return this.renderAPIPromise<ThirdPartyLoginResult>('thirdPartyLogin', type)
   }
 
   /**
@@ -326,13 +411,16 @@ export class ReactNativeWebJSBridge extends NEventListener<{
       | 'quitApp'
       | 'sendNotification'
       | 'cancelNotification'
-      | 'load',
+      | 'openAppSettings'
+      | 'switchEngine'
+      | 'load'
+      | 'thirdPartyLogin',
     payload?: any,
     bridgeId?: string
   ) {
     const message = JSON.stringify({
       type,
-      payload: payload || null,
+      payload: payload,
       bridgeId,
     })
     console.log('sendMessage', message)
@@ -390,6 +478,27 @@ export class ReactNativeWebJSBridge extends NEventListener<{
       }
       if (!data?.type) return
       this.count++
+
+      // 通知类消息（使用 title+message+module 的 md5 作为通知 id，实现去重和延期）
+      if (
+        this.allowNotifications &&
+        data?.payload?.notification &&
+        data?.payload?.title
+      ) {
+        const title = data?.payload?.title || ''
+        const message = data?.payload?.message || ''
+        const module = data?.payload?.module || ''
+        const type = data?.payload?.type || ''
+        const id = md5(`${title}${message}${module}${type}`)
+        this?.sendNotification({
+          id, // 基于 title+message+module 生成唯一 id，实现去重
+          title,
+          body: message,
+          autoCloseTimeout: 4000,
+          closable: true,
+        })
+      }
+
       if (data.type === 'location') {
         this.dispatch('location', data.payload as GeolocationPosition)
         return

@@ -11,10 +11,10 @@ import store, {
   layoutSlice,
 } from '../store'
 import { useTranslation } from 'react-i18next'
-import { prompt, alert, bindEvent } from '@saki-ui/core'
+import { prompt, alert, bindEvent, snackbar } from '@saki-ui/core'
 import { Debounce } from '@nyanyajs/utils'
 import { sakisso } from '../config'
-import { eventListener } from '../store/config'
+import { eventListener, nyanyaJSBridge } from '../store/config'
 
 const loginDebounce = new Debounce()
 const LoginComponent = () => {
@@ -79,6 +79,7 @@ const LoginComponent = () => {
           <saki-sso
             ref={bindEvent({
               login: (e) => {
+                // console.log('ssssssssssss', e)
                 loginDebounce.increase(() => {
                   store.dispatch(
                     userSlice.actions.login({
@@ -92,11 +93,53 @@ const LoginComponent = () => {
                   dispatch(layoutSlice.actions.setOpenLoginModal(false))
                 }, 100)
               },
+              thirdPartyLogin: async (e: any) => {
+                if (e.detail.type === 'google') {
+                  const res = await nyanyaJSBridge?.thirdPartyLogin('google')
+                  // const res = {
+                  //   success: true,
+                  //   data: {
+                  //     type: 'google',
+                  //     idToken: '',
+                  //     accessToken: '',
+                  //     user: {
+                  //       id: 'xxxxx',
+                  //       name: 'xxxx',
+                  //       email: '',
+                  //       avatar:
+                  //           'g',
+                  //     },
+                  //   },
+                  // }
+
+                  console.log('thirdPartyLogin res', res)
+                  if (res?.success && res?.data?.user?.id) {
+                    e?.target?.setThirdPartyLoginData({
+                      type: res.data.type,
+                      user: {
+                        openId: res.data.user.id,
+                        name: res.data.user.name,
+                        avatar: res.data.user.avatar,
+                        email: res.data.user.email,
+                      },
+                    })
+                  } else {
+                    snackbar({
+                      message: res?.error || '谷歌登录失败',
+                      autoHideDuration: 2000,
+                      vertical: 'center',
+                      horizontal: 'center',
+                    }).open()
+                  }
+                  return
+                }
+              },
             })}
             style={{
               flex: 1,
             }}
             class="disabled-dark"
+            platform={nyanyaJSBridge?.isInApp() ? 'AndroidApp' : 'Web'}
             language={config.language}
             // appearance={appearance.mode}
             app-id={sakisso.appId}

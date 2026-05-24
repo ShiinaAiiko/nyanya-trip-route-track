@@ -17,7 +17,7 @@ import {
   defaultSpeedColorLimit,
   getTrackRouteColor,
   eventListener,
-  rnJSBridge,
+  nyanyaJSBridge,
 } from '../store/config'
 import {
   getWebVersionList,
@@ -203,7 +203,7 @@ const SettingsNavList = ({
   const [isNewVersionAvailable, setIsNewVersionAvailable] = useState(false)
 
   useEffect(() => {
-    if (rnJSBridge?.isInApp()) {
+    if (nyanyaJSBridge?.isInApp()) {
       storage.global.get('skipVersionCode').then((skipVersionCode) => {
         setIsNewVersionAvailable(
           isNewVersion(config.appConfig?.version, skipVersionCode)
@@ -2039,27 +2039,32 @@ const About = ({ show }: { show: boolean }) => {
 
   const [isNewVersionAvailable, setIsNewVersionAvailable] = useState(false)
   const [openWebVersionDP, setOpenWebVersionDP] = useState(false)
+  const [openEngineDP, setOpenEngineDP] = useState(false)
 
   const [webVersionList, setWebVersionList] = useState<WebVersion[]>([])
 
   const [staticMode, setStaticMode] = useState('Cloud')
 
-  let isInApp = config.devTrip ? true : rnJSBridge?.isInApp()
+  let isInApp = config.devTrip ? true : nyanyaJSBridge?.isInApp()
 
   useEffect(() => {
-    if (isInApp) {
-      const init = async () => {
-        setStaticMode(location.host === 'trip.aiiko.club' ? 'Cloud' : 'Local')
+    if (show) {
+      setStaticMode(location.host === 'trip.aiiko.club' ? 'Cloud' : 'Local')
 
-        storage.global.get('skipVersionCode').then((skipVersionCode) => {
-          skipVersionCode &&
-            setIsNewVersionAvailable(
-              isNewVersion(config.appConfig?.version, skipVersionCode)
-            )
-        })
-        setWebVersionList(await getWebVersionList())
+      if (config.appConfig?.version) {
+        const init = async () => {
+          getWebVersionList().then((res) => {
+            setWebVersionList(res)
+          })
+          storage.global.get('skipVersionCode').then((skipVersionCode) => {
+            skipVersionCode &&
+              setIsNewVersionAvailable(
+                isNewVersion(config.appConfig?.version, skipVersionCode)
+              )
+          })
+        }
+        init()
       }
-      init()
     }
   }, [show, config.appConfig?.version])
 
@@ -2087,7 +2092,7 @@ const About = ({ show }: { show: boolean }) => {
     }).open()
   }
   const restartApp = async () => {
-    const res = await rnJSBridge?.sendNotification({
+    const res = await nyanyaJSBridge?.sendNotification({
       title: t('hotUpdateComplete', {
         ns: 'prompt',
       }),
@@ -2110,11 +2115,11 @@ const About = ({ show }: { show: boolean }) => {
         ns: 'prompt',
       }),
       onCancel() {
-        res?.id && rnJSBridge?.cancelNotification(res?.id || '')
+        res?.id && nyanyaJSBridge?.cancelNotification(res?.id || '')
       },
       async onConfirm() {
-        res?.id && rnJSBridge?.cancelNotification(res?.id || '')
-        rnJSBridge?.restartApp()
+        res?.id && nyanyaJSBridge?.cancelNotification(res?.id || '')
+        nyanyaJSBridge?.restartApp()
       },
     }).open()
   }
@@ -2141,7 +2146,7 @@ const About = ({ show }: { show: boolean }) => {
         <div className="version-info">
           <SakiButton
             onTap={() => {
-              rnJSBridge?.checkNewVersion({
+              nyanyaJSBridge?.checkNewVersion({
                 showCheckingNotification: true,
               })
             }}
@@ -2182,7 +2187,7 @@ const About = ({ show }: { show: boolean }) => {
                 <div className="vi-right">
                   <SakiButton
                     onTap={() => {
-                      rnJSBridge?.checkNewVersion({
+                      nyanyaJSBridge?.checkNewVersion({
                         showCheckingNotification: true,
                       })
                     }}
@@ -2268,15 +2273,16 @@ const About = ({ show }: { show: boolean }) => {
                                 async () => {
                                   setStaticMode(e.detail.value)
 
-                                  const res = await rnJSBridge?.switchResources(
-                                    e.detail.value === 'Cloud'
-                                      ? 'https://trip.aiiko.club'
-                                      : config.appConfig.fullVersion.includes(
-                                            'dev'
-                                          )
-                                        ? 'http://localhost:13218'
-                                        : 'http://localhost:13219'
-                                  )
+                                  const res =
+                                    await nyanyaJSBridge?.switchResources(
+                                      e.detail.value === 'Cloud'
+                                        ? 'https://trip.aiiko.club'
+                                        : config.appConfig.fullVersion.includes(
+                                              'dev'
+                                            )
+                                          ? 'http://localhost:13218'
+                                          : 'http://localhost:13219'
+                                    )
                                   if (res?.error) {
                                     snackbar({
                                       message: res?.error,
@@ -2305,7 +2311,7 @@ const About = ({ show }: { show: boolean }) => {
                                 'v' + e.detail.value,
                                 async () => {
                                   const res =
-                                    await rnJSBridge?.updateLocalWebResources(
+                                    await nyanyaJSBridge?.updateLocalWebResources(
                                       downloadUrl
                                     )
                                   if (res?.error) {
@@ -2368,6 +2374,7 @@ const About = ({ show }: { show: boolean }) => {
                             })}
                           </span>
                         </SakiMenuItem>
+
                         <SakiMenuItem
                           minWidth="60px"
                           padding="10px 18px"
@@ -2431,7 +2438,7 @@ const About = ({ show }: { show: boolean }) => {
                         }),
                         onCancel() {},
                         async onConfirm() {
-                          rnJSBridge?.restartApp()
+                          nyanyaJSBridge?.restartApp()
                         },
                       }).open()
                     }
@@ -2448,6 +2455,119 @@ const About = ({ show }: { show: boolean }) => {
               <div className="vi-left">
                 <span>{t('webviewVersion', { ns: 'prompt' })}</span>
                 <span>{browserVersion}</span>
+              </div>
+              <div className="vi-right">
+                {isInApp ? (
+                  <saki-dropdown
+                    visible={openEngineDP}
+                    floating-direction="Left"
+                    z-index="1000"
+                    ref={bindEvent({
+                      close: () => {
+                        setOpenEngineDP(false)
+                      },
+                    })}
+                  >
+                    <SakiButton
+                      onTap={() => {
+                        setOpenEngineDP(true)
+                      }}
+                      margin="6px 0"
+                      type="Normal"
+                      border="none"
+                    >
+                      <span>
+                        {t('switchEngine', {
+                          ns: 'prompt',
+                        })}
+                      </span>
+                      <SakiIcon
+                        width="12px"
+                        height="12px"
+                        color="#666"
+                        margin="0 0 0 6px"
+                        type="Bottom"
+                      ></SakiIcon>
+                    </SakiButton>
+                    <div slot="main">
+                      <saki-menu
+                        ref={bindEvent({
+                          selectvalue: async (e) => {
+                            setOpenEngineDP(false)
+                            alert({
+                              title: t('switchEngine', {
+                                ns: 'prompt',
+                              }),
+                              content: t('switchResourcesContent', {
+                                ns: 'prompt',
+                                content:
+                                  e.detail.value === 'gecko'
+                                    ? t('geckoView', {
+                                        ns: 'prompt',
+                                      })
+                                    : t('systemWebview', {
+                                        ns: 'prompt',
+                                      }),
+                              }),
+                              cancelText: t('cancel', {
+                                ns: 'prompt',
+                              }),
+                              confirmText: t('confirm', {
+                                ns: 'prompt',
+                              }),
+                              onCancel() {},
+                              async onConfirm() {
+                                const res = await nyanyaJSBridge?.switchEngine(
+                                  e.detail.value
+                                )
+                                if (res?.error) {
+                                  snackbar({
+                                    message: res?.error,
+                                    autoHideDuration: 2000,
+                                    vertical: 'top',
+                                    horizontal: 'center',
+                                  }).open()
+                                  return
+                                }
+                                if (res.success) {
+                                  restartApp()
+                                }
+                              },
+                            }).open()
+                          },
+                        })}
+                      >
+                        {[
+                          {
+                            value: 'gecko',
+                            text: t('geckoView', {
+                              ns: 'prompt',
+                            }),
+                          },
+                          {
+                            value: 'system',
+                            text: t('systemWebview', {
+                              ns: 'prompt',
+                            }),
+                          },
+                        ].map((v) => {
+                          return (
+                            <SakiMenuItem
+                              minWidth="60px"
+                              padding="10px 18px"
+                              value={v.value}
+                              active={config.appConfig?.engine === v.value}
+                            >
+                              <span className="text-elipsis">{v.text}</span>
+                            </SakiMenuItem>
+                          )
+                        })}
+                      </saki-menu>
+                    </div>
+                  </saki-dropdown>
+                ) : (
+                  ''
+                )}
               </div>
             </div>
           </>

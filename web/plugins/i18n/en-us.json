@@ -662,7 +662,7 @@
 
     "useCloudWeb": "Use Cloud Resources",
     "useLocalWeb": "Use Local Resources",
-    "appStaticWeb": "App Built-in Static Resources",
+    "appStaticWeb": "Built-in local static resources",
     "switchResources": "Switch Resources",
     "switchWebResources": "Switch Web Resources",
 
@@ -677,7 +677,16 @@
     "webviewClickCount": "Clicked {{count}} times consecutively",
 
     "hotUpdateComplete": "Hot update completed",
-    "hotUpdateCompleteContent": "Please restart the app to apply the new version."
+    "hotUpdateCompleteContent": "Please restart the app to apply the new version.",
+
+    "screen_kept_on": "Screen kept on",
+    "screen_kept_off": "Screen timeout restored",
+    "location_enabled": "Location enabled",
+    "location_disabled": "Location disabled",
+
+    "switchEngine": "Switch rendering engine",
+    "geckoView": "GeckoView",
+    "systemWebview": "Android System Webview"
   },
   "unit": {
     "km": "km",

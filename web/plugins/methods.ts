@@ -12,7 +12,7 @@ import {
   connectionOSM,
   country,
   eventListener,
-  rnJSBridge,
+  nyanyaJSBridge,
 } from '../store/config'
 import { protoRoot } from '../protos'
 // import { imageColorInversion } from './imageColorInversion'
@@ -1485,8 +1485,8 @@ export function downloadAppByUrl(url: string) {
 }
 
 export const checkNewVersion = async () => {
-  rnJSBridge.removeEvent('skipVersion')
-  rnJSBridge.on('skipVersion', async (version: string) => {
+  nyanyaJSBridge.removeEvent('skipVersion')
+  nyanyaJSBridge.on('skipVersion', async (version: string) => {
     console.log('skipVersion', version)
     snackbar({
       message: t('skipVersion', {
@@ -1512,7 +1512,7 @@ export const checkNewVersion = async () => {
   // }
 
   if (!Number(skipVersionTime) || moment().unix() > Number(skipVersionTime)) {
-    rnJSBridge?.checkNewVersion({
+    nyanyaJSBridge?.checkNewVersion({
       showCheckingNotification: false,
     })
   }

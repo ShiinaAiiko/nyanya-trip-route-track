@@ -31,7 +31,7 @@ import {
   getVersionList,
   isNewVersion,
 } from '../plugins/methods'
-import { eventListener, rnJSBridge } from '../store/config'
+import { eventListener, nyanyaJSBridge } from '../store/config'
 import { storage } from '../store/storage'
 import moment from 'moment'
 
@@ -136,7 +136,7 @@ const HeaderComponent = ({
   const [isNewVersionAvailable, setIsNewVersionAvailable] = useState(false)
 
   useEffect(() => {
-    if (openUserDropDownMenu && rnJSBridge?.isInApp()) {
+    if (openUserDropDownMenu && nyanyaJSBridge?.isInApp()) {
       storage.global.get('skipVersionCode').then((skipVersionCode) => {
         setIsNewVersionAvailable(
           isNewVersion(config.appConfig?.version, skipVersionCode)
@@ -196,7 +196,7 @@ const HeaderComponent = ({
                 ) as any
               }
               openNewPage={true}
-              // openNewPage={!rnJSBridge?.isInApp()}
+              // openNewPage={!nyanyaJSBridge?.isInApp()}
               app-text={layout.headerLogoText}
               app-logo={
                 router.pathname.includes('/weather')
@@ -236,7 +236,7 @@ const HeaderComponent = ({
 
         {mounted && (
           <>
-            {!rnJSBridge?.isInApp() ? (
+            {!nyanyaJSBridge?.isInApp() ? (
               <saki-dropdown
                 visible={openAppVersionListDP}
                 floating-direction="Left"
@@ -481,12 +481,13 @@ const HeaderComponent = ({
                           dispatch(
                             configSlice.actions.setVConsole(!config.vConsole)
                           )
+                          nyanyaJSBridge?.openAppSettings('location')
                           break
-                        case 'CheckNewVersion':
-                          rnJSBridge?.checkNewVersion({
-                            showCheckingNotification: true,
-                          })
-                          break
+                        // case 'CheckNewVersion':
+                        //   nyanyaJSBridge?.checkNewVersion({
+                        //     showCheckingNotification: true,
+                        //   })
+                        //   break
                         // case 'DownloadApp':
                         //   setOpenAppVersionListDP(true)
                         //   break
@@ -655,7 +656,7 @@ const HeaderComponent = ({
                   ) : (
                     ''
                   )}
-                  {/* {!rnJSBridge?.isInApp() ? (
+                  {/* {!nyanyaJSBridge?.isInApp() ? (
                     <saki-menu-item padding="10px 18px" value={'DownloadApp'}>
                       <div className="tb-h-r-user-item">
                         <saki-icon color="#666" type="Download"></saki-icon>
@@ -727,7 +728,7 @@ const HeaderComponent = ({
                       )}
                     </div>
                   </saki-menu-item>
-                  {/* {rnJSBridge?.isInApp() ? (
+                  {/* {nyanyaJSBridge?.isInApp() ? (
                     <saki-menu-item
                       padding="10px 18px"
                       value={'CheckNewVersion'}

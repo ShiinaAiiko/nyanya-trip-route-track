@@ -45,7 +45,7 @@ import {
 import {
   deviceType,
   eventListener,
-  rnJSBridge,
+  nyanyaJSBridge,
   TabsTripType,
 } from '../store/config'
 import { uploadFile } from '../store/file'

@@ -21,7 +21,7 @@ import {
   defaultMapLayerItem,
   TrackSpeedColorType,
   getMapUrlAuto,
-  rnJSBridge,
+  nyanyaJSBridge,
 } from '../store/config'
 import { parseQuery, Query } from '../plugins/methods'
 import { storage, storageMethods } from '../store/storage'
@@ -1574,7 +1574,7 @@ const Maps = ({
       ) : (
         ''
       )}
-      {rnJSBridge?.isInApp() ? (
+      {nyanyaJSBridge?.isInApp() ? (
         <div
           style={{
             display: 'flex',

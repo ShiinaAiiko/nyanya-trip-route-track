@@ -54,7 +54,7 @@ import {
   eventListener,
   getMapLayer,
   osmMap,
-  rnJSBridge,
+  nyanyaJSBridge,
 } from '../../store/config'
 import { storage } from '../../store/storage'
 import NoSSR from '../../components/NoSSR'
@@ -346,7 +346,7 @@ const TripPage = () => {
         })
       }
 
-      rnJSBridge?.enableLocation(true)
+      nyanyaJSBridge?.enableLocation(true)
     }
     init()
   }, [])
@@ -872,7 +872,7 @@ const TripPage = () => {
       })
 
       if (startTrip) {
-        if (rnJSBridge.isInApp()) {
+        if (nyanyaJSBridge.isInApp()) {
           snackbar({
             message: t('screen_always_on_and_background_gps_enabled', {
               ns: 'tripPage',
@@ -884,11 +884,11 @@ const TripPage = () => {
             color: '#fff',
           }).open()
 
-          rnJSBridge.enableLocation(true)
-          rnJSBridge.enableBackgroundLocation(true)
-          // rnJSBridge.enableBackgroundTasks(true)
-          rnJSBridge.keepScreenOn(true)
-          rnJSBridge.enableCarData(true)
+          nyanyaJSBridge.enableLocation(true)
+          nyanyaJSBridge.enableBackgroundLocation(true)
+          // nyanyaJSBridge.enableBackgroundTasks(true)
+          nyanyaJSBridge.keepScreenOn(true)
+          // nyanyaJSBridge.enableCarData(true)
         }
 
         dispatch(configSlice.actions.setShowIndexPageButton(true))
@@ -1015,9 +1015,9 @@ const TripPage = () => {
           backgroundColor: 'var(--saki-default-color)',
           color: '#fff',
         }).open()
-        rnJSBridge.keepScreenOn(false)
-        rnJSBridge.enableBackgroundLocation(false)
-        // rnJSBridge.enableBackgroundTasks(false)
+        nyanyaJSBridge.keepScreenOn(false)
+        nyanyaJSBridge.enableBackgroundLocation(false)
+        // nyanyaJSBridge.enableBackgroundTasks(false)
       }
 
       await finishTrip()
@@ -1070,8 +1070,8 @@ const TripPage = () => {
       // 30秒一次初始化容器
       if (Math.floor(listenTime / 1000) % 45 === 0) {
         if (config.appConfig.version) {
-          rnJSBridge.keepScreenOn(true)
-          // rnJSBridge.enableBackgroundTasks(true)
+          nyanyaJSBridge.keepScreenOn(true)
+          // nyanyaJSBridge.enableBackgroundTasks(true)
         }
         refreshMapSizeDebounce.current.increase(() => {
           map.current?.invalidateSize(true)

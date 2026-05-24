@@ -48,8 +48,8 @@ import {
   eventListener,
   getMapLayer,
   getStaticPath,
-  initRnJSBridge,
-  rnJSBridge,
+  initNyaNyaJSBridge,
+  nyanyaJSBridge,
 } from '../store/config'
 import FindLocationComponent from '../components/FindLocation'
 // import screenfull from 'screenfull'
@@ -64,9 +64,8 @@ import { loadPwaNewVersion } from '../plugins/loadPwaNewVersion'
 import { SakiI18n, SakiInit } from '../components/saki-ui-react/components'
 import {
   defaultStatusBarData,
-  ReactNativeWebJSBridge,
   StatusBarData,
-} from '../plugins/reactNativeWebJsBridge'
+} from '../plugins/nyanyaWebJsBridge'
 import { loadModal } from '../store/layout'
 import { sakisso } from '../config'
 import {
@@ -368,43 +367,44 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
   useEffect(() => {
     if (!config.hideLoading) return
     clearInterval(getCarDataTimer.current)
-    if (!rnJSBridge) {
-      initRnJSBridge()
+    if (!nyanyaJSBridge) {
+      initNyaNyaJSBridge()
     }
-    if (!rnJSBridge?.isInApp()) {
+    if (!nyanyaJSBridge?.isInApp()) {
       return
     }
     const init = async () => {
       await checkNewVersion()
 
       // let count = 0
-      // rnJSBridge.enableCarData(true)
+      // nyanyaJSBridge.enableCarData(true)
 
       // getCarDataTimer.current = setInterval(async () => {
       //   console.log('Flutter getCarData')
       //   if (count % 2 === 0) {
-      //     rnJSBridge.enableCarData(true)
+      //     nyanyaJSBridge.enableCarData(true)
       //   }
       //   count++
-      //   rnJSBridge.getCarData()
+      //   nyanyaJSBridge.getCarData()
       // }, 10 * 1000)
 
-      // rnJSBridge.on('carData', (val) => {
+      // nyanyaJSBridge.on('carData', (val) => {
       //   console.log('carData', val)
       //   if (val.hasOwnProperty('speed')) {
       //     dispatch(configSlice.actions.setCarData(val))
       //   }
       // })
-      // rnJSBridge.on('bydLog', (val) => {
-      //   dispatch(configSlice.actions.setCarLog(val))
-      // })
+      nyanyaJSBridge.on('log', (val) => {
+        val.type === 'carLog' &&
+          dispatch(configSlice.actions.setCarLog(val.message))
+      })
 
-      rnJSBridge.load()
+      nyanyaJSBridge.load()
     }
     init()
     return () => {
-      rnJSBridge.removeEvent('carData')
-      rnJSBridge.removeEvent('bydLog')
+      nyanyaJSBridge.removeEvent('carData')
+      nyanyaJSBridge.removeEvent('log')
     }
   }, [mounted, config.appConfig.fullVersion, config.hideLoading])
 
@@ -608,23 +608,23 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
       layout.openJourneyMemoriesModal ||
       layout.openVisitedCitiesModal.visible
     ) {
-      rnJSBridge?.setStatusBar('light')
+      nyanyaJSBridge?.setStatusBar('light')
       return
     }
     // if (router?.pathname === '/' || router?.pathname === '/[lang]') {
     //   setTimeout(() => {
-    //     rnJSBridge.getStatusBarData().then((v) => {
+    //     nyanyaJSBridge.getStatusBarData().then((v) => {
     //       setStatusBarData(v)
     //     })
-    //     rnJSBridge?.setStatusBar('transparent-dark')
+    //     nyanyaJSBridge?.setStatusBar('transparent-dark')
     //   }, 700)
     //   return
     // }
 
     setStatusBarData(undefined)
-    rnJSBridge?.setStatusBar('system')
-    // rnJSBridge?.getThemeColor().then((v) => {
-    //   rnJSBridge?.setStatusBar(v)
+    nyanyaJSBridge?.setStatusBar('system')
+    // nyanyaJSBridge?.getThemeColor().then((v) => {
+    //   nyanyaJSBridge?.setStatusBar(v)
     // })
   }, [
     mounted,
@@ -649,7 +649,7 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
   // }, [config.trackRouteMapUrl])
 
   const d = useRef(new Debounce())
-  // const rnJSBridge = useRef<ReactNativeWebJSBridge>()
+  // const nyanyaJSBridge = useRef<ReactNativeWebJSBridge>()
 
   useEffect(() => {
     try {
@@ -657,13 +657,13 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
       if (!mounted) return
 
       navigator.geolocation.clearWatch(watchId.current)
-      rnJSBridge?.removeEvent('location')
+      nyanyaJSBridge?.removeEvent('location')
 
-      if (rnJSBridge?.isInApp()) {
-        rnJSBridge.enableLocation(true)
+      if (nyanyaJSBridge?.isInApp()) {
+        nyanyaJSBridge.enableLocation(true)
 
-        rnJSBridge.on('location', (val: any) => {
-          console.log('location', val)
+        nyanyaJSBridge.on('location', (val: any) => {
+          // console.log('location', val)
           dispatch(geoSlice.actions.setPosition(val))
           // 5秒内不更新，就重新获取GPS
 
@@ -928,7 +928,7 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
                         animation.onfinish = () => {
                           el.style.display = 'none'
                           // setHideLoading(true)
-                          rnJSBridge?.closeLoading()
+                          nyanyaJSBridge?.closeLoading()
                           dispatch(configSlice.actions.setHideLoading(true))
                         }
                       }

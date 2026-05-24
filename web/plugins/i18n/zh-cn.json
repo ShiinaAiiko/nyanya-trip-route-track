@@ -666,9 +666,9 @@
 
     "useCloudWeb": "使用云端资源",
     "useLocalWeb": "使用本地资源",
-    "appStaticWeb": "App 内置静态资源",
+    "appStaticWeb": "内置本地静态资源",
     "switchResources": "切换资源",
-    "switchWebResources": "切换 Web 资源",
+    "switchWebResources": "切换Web资源",
 
     "switchResourcesContent": "您确定要切换到 {{content}} 吗？",
     "cloudWeb": "云端资源",
@@ -681,7 +681,16 @@
     "webviewClickCount": "已连续点击 {{count}} 次",
 
     "hotUpdateComplete": "已完成热更新",
-    "hotUpdateCompleteContent": "重启App后，方可使用新版本。"
+    "hotUpdateCompleteContent": "重启App后，方可使用新版本。",
+
+    "screen_kept_on": "屏幕常亮已开启",
+    "screen_kept_off": "屏幕常亮已关闭",
+    "location_enabled": "定位已开启",
+    "location_disabled": "定位已关闭",
+
+    "switchEngine": "切换渲染引擎",
+    "geckoView": "GeckoView",
+    "systemWebview": "Android System Webview"
   },
   "unit": {
     "km": "公里",

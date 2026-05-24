@@ -53,7 +53,7 @@ import {
   eventListener,
   getMapLayer,
   osmMap,
-  rnJSBridge,
+  nyanyaJSBridge,
 } from '../../store/config'
 import { storage } from '../../store/storage'
 import NoSSR from '../../components/NoSSR'

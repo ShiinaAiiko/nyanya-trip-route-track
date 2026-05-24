@@ -28,10 +28,7 @@ import { httpApi } from '../plugins/http/api'
 import { protoRoot } from '../protos'
 // import screenfull from 'screenfull'
 import { config } from 'process'
-import {
-  CarData,
-  ReactNativeWebJSBridge,
-} from '../plugins/reactNativeWebJsBridge'
+import { CarData, NyaNyaWebJSBridge } from '../plugins/nyanyaWebJsBridge'
 import axios from 'axios'
 import { appListUrl } from '../config'
 
@@ -209,21 +206,23 @@ let speedColorRGBs: string[] = []
 
 export let eventListener = new NEventListener()
 
-export let rnJSBridge: ReactNativeWebJSBridge
+export let nyanyaJSBridge: NyaNyaWebJSBridge
 
-export let initRnJSBridge = () => {
+export let initNyaNyaJSBridge = () => {
   if (typeof window !== 'undefined') {
-    rnJSBridge = new ReactNativeWebJSBridge()
+    nyanyaJSBridge = new NyaNyaWebJSBridge({
+      allowNotifications: true,
+    })
 
-    rnJSBridge.removeEvent('appConfig')
-    rnJSBridge.on('appConfig', (val) => {
+    nyanyaJSBridge.removeEvent('appConfig')
+    nyanyaJSBridge.on('appConfig', (val) => {
       console.log('appConfig', val)
       store.dispatch(configSlice.actions.setAppConfig(val))
     })
-    rnJSBridge.on('loaded', () => {})
+    nyanyaJSBridge.on('loaded', () => {})
   }
 }
-initRnJSBridge()
+initNyaNyaJSBridge()
 
 export const getTrackSpeedColorRGBs = (type: TrackSpeedColorType) => {
   let speedColorRGBs = []
@@ -718,6 +717,7 @@ export const configSlice = createSlice({
       buildNumber: '',
       fullVersion: '',
       system: '',
+      engine: '',
     },
     carLog: [] as string[],
     carData: {
@@ -1141,7 +1141,7 @@ export const configSlice = createSlice({
     ) => {
       state.language = params.payload
 
-      rnJSBridge?.setLanguage(params.payload)
+      nyanyaJSBridge?.setLanguage(params.payload)
     },
     setLang: (
       state,

@@ -65,7 +65,7 @@ import {
   eventListener,
   getTrackRouteColor,
   maps,
-  rnJSBridge,
+  nyanyaJSBridge,
 } from '../store/config'
 import { UserInfo } from '@nyanyajs/utils/dist/sakisso'
 import { getIconType } from './Vehicle'
@@ -391,7 +391,7 @@ const FiexdWeatherComponent = ({
         ''
       )}
 
-      {rnJSBridge?.isInApp() ? (
+      {/* {nyanyaJSBridge?.isInApp() ? (
         <div
           style={{
             backgroundColor: '#fff',
@@ -462,6 +462,7 @@ const FiexdWeatherComponent = ({
           style={{
             backgroundColor: '#fff',
             maxHeight: '100px',
+            overflow: 'hidden',
           }}
           className="dashbord-latlng"
         >
@@ -474,7 +475,7 @@ const FiexdWeatherComponent = ({
         </div>
       ) : (
         ''
-      )}
+      )} */}
     </div>
   )
 
