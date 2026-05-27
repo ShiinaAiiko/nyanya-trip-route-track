@@ -540,6 +540,7 @@
     "showPosition": "Location Sharing",
     "appearanceSettings": "Appearance settings",
 
+    "devTools": "Developer Tools",
     "openVConsole": "Open vConsole",
     "closeVConsole": "Close vConsole",
 
@@ -662,7 +663,7 @@
 
     "useCloudWeb": "Use Cloud Resources",
     "useLocalWeb": "Use Local Resources",
-    "appStaticWeb": "Built-in local static resources",
+    "appStaticWeb": "Hot-updated local static resources",
     "switchResources": "Switch Resources",
     "switchWebResources": "Switch Web Resources",
 
@@ -686,7 +687,14 @@
 
     "switchEngine": "Switch rendering engine",
     "geckoView": "GeckoView",
-    "systemWebview": "Android System Webview"
+    "systemWebview": "Android System Webview",
+
+    "hotUpdateLocalResources": "New Version Available",
+    "hotUpdateLocalResourcesContent": "A new version of local resources is available ({{version}}). Would you like to perform a hot update now for the latest experience?",
+    "updateNow": "Update Now",
+    "skip": "Skip",
+
+    "locationPermissionError": "Location permission is required. Please check if location permission is enabled."
   },
   "unit": {
     "km": "km",

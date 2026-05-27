@@ -24,6 +24,7 @@ import {
   isNewVersion,
   parseQuery,
   Query,
+  restartAppByUpdate,
   WebVersion,
 } from '../plugins/methods'
 import { storage, storageMethods } from '../store/storage'
@@ -2035,7 +2036,7 @@ const About = ({ show }: { show: boolean }) => {
 
   const dispatch = useDispatch<AppDispatch>()
 
-  const browserVersion = `${user.userAgent.browser.name} ${user.userAgent.browser.major}`
+  const browserVersion = useRef('')
 
   const [isNewVersionAvailable, setIsNewVersionAvailable] = useState(false)
   const [openWebVersionDP, setOpenWebVersionDP] = useState(false)
@@ -2049,6 +2050,8 @@ const About = ({ show }: { show: boolean }) => {
 
   useEffect(() => {
     if (show) {
+      browserVersion.current = `${user.userAgent.browser.name} ${user.userAgent.browser.major}`
+
       setStaticMode(location.host === 'trip.aiiko.club' ? 'Cloud' : 'Local')
 
       if (config.appConfig?.version) {
@@ -2068,7 +2071,7 @@ const About = ({ show }: { show: boolean }) => {
     }
   }, [show, config.appConfig?.version])
 
-  const appVersion = config.appConfig?.fullVersion || ''
+  const appVersion = config.appConfig?.fullVersion || 'v1.0.12-dev+5032'
 
   const switchResourcesAlert = (content: string, onConfirm: () => void) => {
     alert({
@@ -2088,38 +2091,6 @@ const About = ({ show }: { show: boolean }) => {
       onCancel() {},
       async onConfirm() {
         onConfirm()
-      },
-    }).open()
-  }
-  const restartApp = async () => {
-    const res = await nyanyaJSBridge?.sendNotification({
-      title: t('hotUpdateComplete', {
-        ns: 'prompt',
-      }),
-      body: t('hotUpdateCompleteContent', {
-        ns: 'prompt',
-      }),
-      closable: true,
-    })
-    alert({
-      title: t('restartApp', {
-        ns: 'prompt',
-      }),
-      content: t('restartAppContent', {
-        ns: 'prompt',
-      }),
-      cancelText: t('cancel', {
-        ns: 'prompt',
-      }),
-      confirmText: t('restart', {
-        ns: 'prompt',
-      }),
-      onCancel() {
-        res?.id && nyanyaJSBridge?.cancelNotification(res?.id || '')
-      },
-      async onConfirm() {
-        res?.id && nyanyaJSBridge?.cancelNotification(res?.id || '')
-        nyanyaJSBridge?.restartApp()
       },
     }).open()
   }
@@ -2293,7 +2264,7 @@ const About = ({ show }: { show: boolean }) => {
                                     return
                                   }
                                   if (res.success) {
-                                    restartApp()
+                                    restartAppByUpdate()
                                   }
                                 }
                               )
@@ -2324,7 +2295,7 @@ const About = ({ show }: { show: boolean }) => {
                                     return
                                   }
                                   if (res.success) {
-                                    restartApp()
+                                    restartAppByUpdate()
                                   }
                                 }
                               )
@@ -2395,69 +2366,69 @@ const About = ({ show }: { show: boolean }) => {
                 )}
               </div>
             </div>
-            <div
-              ref={
-                bindEvent({
-                  click: async () => {
-                    if (!isInApp) return
-                    if (webviewCount.current === 0) {
-                      webviewSnackbar.current = snackbar({
-                        message: t('webviewClickCount', {
-                          count: 0,
-                          ns: 'prompt',
-                        }),
-                        vertical: 'bottom',
-                        horizontal: 'center',
-                      })
-                      webviewSnackbar.current.open()
-                    }
-                    webviewCount.current++
+            <div className="version-item">
+              <div
+                ref={
+                  bindEvent({
+                    click: async () => {
+                      if (!isInApp) return
+                      if (webviewCount.current === 0) {
+                        webviewSnackbar.current = snackbar({
+                          message: t('webviewClickCount', {
+                            count: 0,
+                            ns: 'prompt',
+                          }),
+                          vertical: 'bottom',
+                          horizontal: 'center',
+                        })
+                        webviewSnackbar.current.open()
+                      }
+                      webviewCount.current++
 
-                    webviewSnackbar.current?.setMessage(
-                      t('webviewClickCount', {
-                        count: webviewCount.current,
-                        ns: 'prompt',
-                      })
-                    )
+                      webviewSnackbar.current?.setMessage(
+                        t('webviewClickCount', {
+                          count: webviewCount.current,
+                          ns: 'prompt',
+                        })
+                      )
 
-                    if (webviewCount.current >= 6) {
-                      webviewSnackbar.current?.close()
+                      if (webviewCount.current >= 6) {
+                        webviewSnackbar.current?.close()
 
-                      alert({
-                        title: t('restartApp', {
-                          ns: 'prompt',
-                        }),
-                        content: t('restartAppContent2', {
-                          ns: 'prompt',
-                        }),
-                        cancelText: t('cancel', {
-                          ns: 'prompt',
-                        }),
-                        confirmText: t('restart', {
-                          ns: 'prompt',
-                        }),
-                        onCancel() {},
-                        async onConfirm() {
-                          nyanyaJSBridge?.restartApp()
-                        },
-                      }).open()
-                    }
+                        alert({
+                          title: t('restartApp', {
+                            ns: 'prompt',
+                          }),
+                          content: t('restartAppContent2', {
+                            ns: 'prompt',
+                          }),
+                          cancelText: t('cancel', {
+                            ns: 'prompt',
+                          }),
+                          confirmText: t('restart', {
+                            ns: 'prompt',
+                          }),
+                          onCancel() {},
+                          async onConfirm() {
+                            nyanyaJSBridge?.restartApp()
+                          },
+                        }).open()
+                      }
 
-                    webviewDeb.current.increase(() => {
-                      webviewCount.current = 0
-                      webviewSnackbar.current?.close()
-                    }, 2000)
-                  },
-                }) as any
-              }
-              className="version-item"
-            >
-              <div className="vi-left">
+                      webviewDeb.current.increase(() => {
+                        webviewCount.current = 0
+                        webviewSnackbar.current?.close()
+                      }, 2000)
+                    },
+                  }) as any
+                }
+                className="vi-left"
+              >
                 <span>{t('webviewVersion', { ns: 'prompt' })}</span>
-                <span>{browserVersion}</span>
+                <span>{`${browserVersion.current}`}</span>
               </div>
               <div className="vi-right">
-                {isInApp ? (
+                {isInApp && config.appConfig?.availableEngines?.length ? (
                   <saki-dropdown
                     visible={openEngineDP}
                     floating-direction="Left"
@@ -2530,44 +2501,76 @@ const About = ({ show }: { show: boolean }) => {
                                   return
                                 }
                                 if (res.success) {
-                                  restartApp()
+                                  restartAppByUpdate()
                                 }
                               },
                             }).open()
                           },
                         })}
                       >
-                        {[
-                          {
-                            value: 'gecko',
-                            text: t('geckoView', {
-                              ns: 'prompt',
-                            }),
-                          },
-                          {
-                            value: 'system',
-                            text: t('systemWebview', {
-                              ns: 'prompt',
-                            }),
-                          },
-                        ].map((v) => {
-                          return (
-                            <SakiMenuItem
-                              minWidth="60px"
-                              padding="10px 18px"
-                              value={v.value}
-                              active={config.appConfig?.engine === v.value}
-                            >
-                              <span className="text-elipsis">{v.text}</span>
-                            </SakiMenuItem>
-                          )
-                        })}
+                        {config.appConfig?.availableEngines
+                          .map((v) => {
+                            return {
+                              value: v,
+                              text: t(
+                                v === 'gecko' ? 'geckoView' : 'systemWebview',
+                                {
+                                  ns: 'prompt',
+                                }
+                              ),
+                            }
+                          })
+                          .map((v) => {
+                            return (
+                              <SakiMenuItem
+                                key={v.value}
+                                minWidth="60px"
+                                padding="10px 18px"
+                                value={v.value}
+                                active={config.appConfig?.engine === v.value}
+                              >
+                                <span className="text-elipsis">{v.text}</span>
+                              </SakiMenuItem>
+                            )
+                          })}
                       </saki-menu>
                     </div>
                   </saki-dropdown>
                 ) : (
                   ''
                 )}
+              </div>
+            </div>
+
+            <div className="version-item">
+              <div className="vi-left">
+                <span>{t('devTools', { ns: 'settings' })}</span>
+                <span></span>
+              </div>
+              <div className="vi-right">
+                <SakiButton
+                  onTap={() => {
+                    dispatch(configSlice.actions.setVConsole(!config.vConsole))
+                  }}
+                  margin="6px 0"
+                  type="Primary"
+                >
+                  <saki-icon color="#fff" type="Code"></saki-icon>
+                  <span
+                    style={{
+                      color: '#fff',
+                      margin: '0 0 0 6px',
+                    }}
+                  >
+                    {config.vConsole
+                      ? t('closeVConsole', {
+                          ns: 'settings',
+                        })
+                      : t('openVConsole', {
+                          ns: 'settings',
+                        })}
+                  </span>
+                </SakiButton>
               </div>
             </div>
           </>

@@ -8,6 +8,7 @@ import { protoRoot } from '../protos'
 import { eventListener, TabsTripType } from './config'
 import store, { citySlice, methods } from '.'
 import { alert } from '@saki-ui/core'
+import Router from 'next/router'
 // import { MediaItem } from './file'
 
 export const layoutMethods = {}
@@ -474,7 +475,6 @@ export const layoutSlice = createSlice({
       }
     ) => {
       state.openSettingsModal = params.payload
-
       eventListener.dispatch('openModalToUrl', {
         type: 'openSettingsModal',
         visible: params.payload,

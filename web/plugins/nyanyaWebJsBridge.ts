@@ -1,4 +1,4 @@
-import { getShortId, NEventListener } from '@nyanyajs/utils'
+import { deepCopy, getShortId, NEventListener } from '@nyanyajs/utils'
 import md5 from 'blueimp-md5'
 import { UrlWithStringQuery } from 'url'
 
@@ -74,27 +74,87 @@ export type ThirdPartyLoginResult = {
   }
 }
 
+// 权限类型
+export type PermissionType =
+  | 'location'
+  | 'locationAlways'
+  | 'notification'
+  | 'storage'
+  | 'camera'
+  | 'microphone'
+  | 'photos'
+  | 'contacts'
+  | 'calendar'
+  | 'sensors'
+  | 'sms'
+  | 'phone'
+  | 'bluetooth'
+  | 'activityRecognition'
+  | 'mediaLibrary'
+  | 'systemAlertWindow'
+  // 比亚迪车机权限
+  | 'bydAcCommon'
+  | 'bydBodyworkCommon'
+  | 'bydEngineCommon'
+  | 'bydTyreCommon'
+  | 'bydInstrumentCommon'
+  | 'bydDoorlockCommon'
+  | 'bydPanoramaCommon'
+  | 'bydVehiclesetCommon'
+  | 'bydSpeedGet'
+  | 'bydStatisticGet'
+  | 'bydTyreGet'
+  | 'bydEngineGet'
+  | 'bydEnergyGet'
+  | 'bydChargeGet'
+
+// 权限状态
+export type PermissionStatus =
+  | 'granted'
+  | 'denied'
+  | 'permanentlyDenied'
+  | 'restricted'
+  | 'limited'
+  | 'provisional'
+
+// 权限检查结果
+export type PermissionCheckResult = {
+  [key in PermissionType]?: PermissionStatus
+}
+
+// 权限请求结果
+export type PermissionRequestResult = {
+  success: boolean
+  results: PermissionCheckResult
+}
+
+export const defalutAppConfig = {
+  version: '',
+  buildNumber: '',
+  fullVersion: '',
+  system: '',
+  engine: '',
+  sessionId: '',
+  availableEngines: ['gecko', 'system'],
+}
+export type AppConfig = typeof defalutAppConfig
+export interface Location {
+  coords: {
+    latitude: number
+    longitude: number
+    altitude: number | null
+    accuracy: number
+    altitudeAccuracy?: number | null
+    heading: number | null
+    speed: number | null
+  }
+  timestamp: number
+}
+
 export class NyaNyaWebJSBridge extends NEventListener<{
   loaded: undefined
-  location: {
-    coords: {
-      latitude: number
-      longitude: number
-      altitude: number | null
-      accuracy: number
-      altitudeAccuracy?: number | null
-      heading: number | null
-      speed: number | null
-    }
-    timestamp: number
-  }
-  appConfig: {
-    version: string
-    buildNumber: string
-    fullVersion: string
-    system: string
-    engine: string
-  }
+  location: Location
+  appConfig: AppConfig
   carData: CarData
   getStatusBarData: StatusBarData
   skipVersion: string
@@ -124,8 +184,13 @@ export class NyaNyaWebJSBridge extends NEventListener<{
     state: 'resumed' | 'inactive' | 'paused' | 'hidden' | 'detached'
   }
   thirdPartyLoginResult: ThirdPartyLoginResult
+  notificationClickAction: {
+    clickActionType: string
+    clickActionUrl: string
+  }
 }> {
   rnWebView: any = undefined
+  nyanyaWebView: any = undefined
 
   private allowNotifications: boolean = true
 
@@ -137,6 +202,9 @@ export class NyaNyaWebJSBridge extends NEventListener<{
   } = {}
   private timer: NodeJS.Timeout
 
+  private sessionId = ''
+  private appConfig: AppConfig = deepCopy(defalutAppConfig)
+
   private environment: 'Production' | 'Development' = 'Development'
 
   constructor({ allowNotifications = true }: { allowNotifications?: boolean }) {
@@ -146,7 +214,9 @@ export class NyaNyaWebJSBridge extends NEventListener<{
 
     const init = () => {
       this.rnWebView = (window as any)?.ReactNativeWebView
+      this.nyanyaWebView = (window as any)?.nyanyaWebView
       this.isFlutterEnv = !!(window as any)?.isFlutterApp
+      this.sessionId = (window as any)?.nyanyaSessionId || ''
 
       // Flutter 环境：注册全局消息处理函数
       if (this.isFlutterEnv) {
@@ -157,6 +227,7 @@ export class NyaNyaWebJSBridge extends NEventListener<{
 
         clearInterval(this.timer)
         this.load()
+        this.test()
       }
     }
     // init()
@@ -169,9 +240,14 @@ export class NyaNyaWebJSBridge extends NEventListener<{
 
     this.sendMessage('keepScreenOn', b)
   }
+  getCurrentLocation() {
+    return this.sendMessageAwait<Location>('getCurrentLocation')
+  }
+  // 开启持续定位
   enableLocation(b: boolean = true) {
     this.sendMessage('enableLocation', b)
   }
+  // 开启持续后台定位
   enableBackgroundLocation(b: boolean = true) {
     this.sendMessage('enableBackgroundLocation', b)
   }
@@ -209,14 +285,14 @@ export class NyaNyaWebJSBridge extends NEventListener<{
   ) {
     console.log('switchResources', host)
 
-    return await this.renderAPIPromise<{
+    return await this.sendMessageAwait<{
       success: boolean
       error?: string
       host?: string
     }>('switchResources', host)
   }
   async switchEngine(type: 'gecko' | 'system') {
-    return await this.renderAPIPromise<{
+    return await this.sendMessageAwait<{
       success: boolean
       engine?: 'gecko' | 'system'
       message?: string
@@ -261,20 +337,80 @@ export class NyaNyaWebJSBridge extends NEventListener<{
     this.sendMessage('quitApp')
   }
   // 跳转到应用设置页面（可用于引导用户开启权限）
-  // permissionType 可选参数：'location' | 'notification' | 'storage' | 'camera' | 'microphone'
-  openAppSettings(
-    permissionType?:
-      | 'location'
-      | 'notification'
-      | 'storage'
-      | 'camera'
-      | 'microphone'
-  ) {
+  // permissionType 可选参数：PermissionType
+  openAppSettings(permissionType?: PermissionType) {
     this.sendMessage('openAppSettings', permissionType)
   }
   // 第三方登录
   thirdPartyLogin(type: ThirdPartyLoginType) {
-    return this.renderAPIPromise<ThirdPartyLoginResult>('thirdPartyLogin', type)
+    return this.sendMessageAwait<ThirdPartyLoginResult>('thirdPartyLogin', type)
+  }
+
+  /**
+   * 检查权限状态
+   * @param permissions 要检查的权限列表
+   */
+  checkPermissions(permissions: PermissionType[]) {
+    return this.sendMessageAwait<PermissionCheckResult>(
+      'checkPermissions',
+      permissions
+    )
+  }
+
+  /**
+   * 请求权限
+   * @param permissions 要请求的权限列表
+   */
+  requestPermissions(permissions: PermissionType[]) {
+    return this.sendMessageAwait<PermissionRequestResult>(
+      'requestPermissions',
+      permissions
+    )
+  }
+
+  // 应用存储（key-value 形式，带有效期）
+  // 根据域名区分存储，类似于前端的 LocalStorage
+  get appStorage() {
+    // 获取当前页面的域名
+    const hostname = window.location.hostname
+
+    const sendStorageMessage = async (
+      operation: 'set' | 'get' | 'delete',
+      key: string,
+      value?: any,
+      expiresIn?: number
+    ) => {
+      const payload: any = { operation, key, hostname }
+      if (operation === 'set') {
+        payload.value = value
+        if (expiresIn !== undefined) {
+          payload.expiresIn = expiresIn
+        }
+      }
+      return this.sendMessageAwait<{
+        success: boolean
+        error?: string
+        operation?: string
+        key?: string
+        value?: any
+        expired?: boolean
+      }>('appStorage', payload)
+    }
+
+    return {
+      // 存储数据
+      set: async (key: string, value: any, expiresIn?: number) => {
+        return sendStorageMessage('set', key, value, expiresIn)
+      },
+      // 获取数据
+      get: async (key: string) => {
+        return sendStorageMessage('get', key)
+      },
+      // 删除数据
+      delete: async (key: string) => {
+        return sendStorageMessage('delete', key)
+      },
+    }
   }
 
   /**
@@ -326,7 +462,6 @@ export class NyaNyaWebJSBridge extends NEventListener<{
     clickActionType?: 'default' | 'deeplink' | 'none'
     /** * 点击通知后跳转的页面地址
      * 当 clickActionType 为 'deeplink' 时生效，例如: '/pages/route-track/detail?id=123'
-     * 同时通过flutter bridge发送消息给前端，类型为notificationClickActionUrl
      */
     clickActionUrl?: string
     /** * 附加自定义业务数据
@@ -335,7 +470,7 @@ export class NyaNyaWebJSBridge extends NEventListener<{
      */
     extra?: Record<string, any>
   }) {
-    return this.renderAPIPromise<{
+    return this.sendMessageAwait<{
       success: boolean
       error?: string
       id?: string
@@ -350,10 +485,10 @@ export class NyaNyaWebJSBridge extends NEventListener<{
   }
 
   getThemeColor() {
-    return this.renderAPIPromise<'dark' | 'light'>('getThemeColor')
+    return this.sendMessageAwait<'dark' | 'light'>('getThemeColor')
   }
   getStatusBarData() {
-    return this.renderAPIPromise<StatusBarData>('getStatusBarData')
+    return this.sendMessageAwait<StatusBarData>('getStatusBarData')
   }
   checkNewVersion({
     showCheckingNotification = true,
@@ -368,7 +503,7 @@ export class NyaNyaWebJSBridge extends NEventListener<{
     this.dispatch('loaded', undefined)
     this.sendMessage('load')
   }
-  renderAPIPromise<T = any>(
+  sendMessageAwait<T = any>(
     k: Parameters<typeof this.sendMessage>[0],
     payload?: any
   ) {
@@ -414,7 +549,11 @@ export class NyaNyaWebJSBridge extends NEventListener<{
       | 'openAppSettings'
       | 'switchEngine'
       | 'load'
-      | 'thirdPartyLogin',
+      | 'thirdPartyLogin'
+      | 'appStorage'
+      | 'getCurrentLocation'
+      | 'checkPermissions'
+      | 'requestPermissions',
     payload?: any,
     bridgeId?: string
   ) {
@@ -422,22 +561,25 @@ export class NyaNyaWebJSBridge extends NEventListener<{
       type,
       payload: payload,
       bridgeId,
+      sessionId: this.sessionId,
     })
     console.log('sendMessage', message)
 
     // Flutter 环境：使用 XMLHttpRequest 发送消息，不触发页面导航
     if (this.isFlutterEnv) {
-      fetch(
-        `${
-          // process.env.CLIENT_ENV === 'development'
-          //   ? 'http://localhost:13218'
-          //   : location?.origin
-          (window as any).flutterServerHost ||
-          (location?.origin.includes('localhost')
-            ? location.origin
-            : 'http://localhost:13219')
-        }/__flutter_bridge__?message=${encodeURIComponent(message)}`
-      ).catch(() => {})
+      // fetch(
+      //   `${
+      //     // process.env.CLIENT_ENV === 'development'
+      //     //   ? 'http://localhost:13218'
+      //     //   : location?.origin
+      //     (window as any).flutterServerHost ||
+      //     (location?.origin.includes('localhost')
+      //       ? location.origin
+      //       : 'http://localhost:13219')
+      //   }/__flutter_bridge__?message=${encodeURIComponent(message)}`
+      // ).catch(() => {})
+
+      this.nyanyaWebView?.postMessage(message)
       return
     }
 
@@ -504,10 +646,12 @@ export class NyaNyaWebJSBridge extends NEventListener<{
         return
       }
 
-      if (data.type === 'appConfig') {
+      if (data.type === 'appConfig' && data.payload?.appConfig) {
         this.environment = data.payload?.appConfig?.fullVersion?.includes('dev')
           ? 'Development'
           : 'Production'
+
+        this.appConfig = data.payload?.appConfig
       }
 
       if (data?.bridgeId) {
@@ -535,4 +679,113 @@ export class NyaNyaWebJSBridge extends NEventListener<{
   isInApp() {
     return !!this.rnWebView || !!(window as any)?.isFlutterApp
   }
+  test() {
+    setTimeout(() => {
+      // nyanyaJSBridge
+      //   .sendNotification({
+      //     title: '测试标题',
+      //     body: '测试body',
+      //     ongoing: true,
+      //     clickActionType: 'deeplink',
+      //     clickActionUrl: '/trip/detail?id=xxxxx',
+      //     vibrate: true,
+      //     sound: 'defalut',
+      //     closable: true,
+      //   })
+      //   .then((res) => {})
+      // nyanyaJSBridge.on('notificationClickAction', (val) => {
+      //   snackbar({
+      //     message: val.clickActionUrl,
+      //     autoHideDuration: 4000,
+      //     vertical: 'top',
+      //     horizontal: 'center',
+      //   }).open()
+      // })
+      //   nyanyaJSBridge.checkPermissions(['location']).then((res) => {
+      //     snackbar({
+      //       message: 'location=>' + res?.location || '',
+      //       autoHideDuration: 4000,
+      //       vertical: 'top',
+      //       horizontal: 'center',
+      //     }).open()
+      //   })
+      //   nyanyaJSBridge.checkPermissions(['locationAlways']).then((res) => {
+      //     snackbar({
+      //       message: 'locationAlways=>' + res?.locationAlways || '',
+      //       autoHideDuration: 4000,
+      //       vertical: 'top',
+      //       horizontal: 'center',
+      //     }).open()
+      //   })
+      //   nyanyaJSBridge.checkPermissions(['camera']).then((res) => {
+      //     snackbar({
+      //       message: 'camera=>' + res?.camera || '',
+      //       autoHideDuration: 4000,
+      //       vertical: 'top',
+      //       horizontal: 'center',
+      //     }).open()
+      //     setTimeout(() => {
+      //       nyanyaJSBridge.requestPermissions(['camera'])
+      //     }, 3000)
+      //   })
+    }, 3000)
+  }
 }
+
+// (function() {
+//     var lastUrl = '';
+//     var lastTitle = '';
+
+//     function notifyChange() {
+//         var currentUrl = window.location.href;
+//         var currentTitle = document.title;
+
+//         if (currentUrl !== lastUrl) {
+//             try {
+//                 window.nyanyaWebView.postMessage(JSON.stringify({
+//                     type: 'onLocationChange',
+//                     payload: {
+//                         url: currentUrl,
+//                         lastUrl,
+//                     }
+//                 }));
+//             } catch(e) {}
+//             lastUrl = currentUrl;
+//         }
+
+//         if (currentTitle !== lastTitle) {
+//             try {
+//                 window.nyanyaWebView.postMessage(JSON.stringify({
+//                     type: 'onTitleChange',
+//                     payload: {
+//                         title: currentTitle,
+//                         lastTitle
+//                     }
+//                 }));
+//             } catch(e) {}
+//             lastTitle = currentTitle;
+//         }
+//     }
+
+//     window.addEventListener('popstate', function() {
+//         notifyChange();
+//     });
+
+//     var originalPushState = window.history.pushState;
+//     var originalReplaceState = window.history.replaceState;
+//     window.history.pushState = function() {
+//         originalPushState.apply(window.history, arguments);
+//         notifyChange();
+//     };
+//     window.history.replaceState = function() {
+//         originalReplaceState.apply(window.history, arguments);
+//         notifyChange();
+//     };
+
+//     window.addEventListener('hashchange', function() {
+//         notifyChange();
+//     });
+
+//     setInterval(notifyChange, 500);
+//     notifyChange()
+// })();

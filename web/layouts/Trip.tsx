@@ -41,9 +41,14 @@ import {
   initI18n,
 } from '../plugins/i18n/i18n'
 import Leaflet from 'leaflet'
-import { useRouter } from 'next/router'
+import Router, { useRouter } from 'next/router'
 import { storage } from '../store/storage'
-import { checkNewVersion, isFullScreen, Query } from '../plugins/methods'
+import {
+  checkNewVersion,
+  hotUpdateLocalResources,
+  isFullScreen,
+  Query,
+} from '../plugins/methods'
 import {
   eventListener,
   getMapLayer,
@@ -242,33 +247,35 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
       dispatch(methods.config.getDeviceType())
     })
 
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          dispatch(
-            geoSlice.actions.setSelectPosition({
-              longitude: pos.coords.longitude,
-              latitude: pos.coords.latitude,
-            })
-          )
-          dispatch(geoSlice.actions.setPosition(pos))
-        },
-        (error) => {
-          if (error.code === 1) {
-            snackbar({
-              message: '必须开启定位权限，请检查下是否开启定位权限',
-              autoHideDuration: 2000,
-              vertical: 'top',
-              horizontal: 'center',
-            }).open()
-          }
-          console.log('GetCurrentPosition Error', error)
-        },
-        { enableHighAccuracy: true }
-      )
-    } else {
-      console.log('该浏览器不支持获取地理位置')
-    }
+    // if (navigator.geolocation) {
+    //   navigator.geolocation.getCurrentPosition(
+    //     (pos) => {
+    //       dispatch(
+    //         geoSlice.actions.setSelectPosition({
+    //           longitude: pos.coords.longitude,
+    //           latitude: pos.coords.latitude,
+    //         })
+    //       )
+    //       dispatch(geoSlice.actions.setPosition(pos))
+    //     },
+    //     (error) => {
+    //       if (error.code === 1) {
+    //         snackbar({
+    //           message: t('locationPermissionError', {
+    //             ns: 'prompt',
+    //           }),
+    //           autoHideDuration: 2000,
+    //           vertical: 'top',
+    //           horizontal: 'center',
+    //         }).open()
+    //       }
+    //       console.log('GetCurrentPosition Error', error)
+    //     },
+    //     { enableHighAccuracy: true }
+    //   )
+    // } else {
+    //   console.log('该浏览器不支持获取地理位置')
+    // }
 
     const initConnectionOSM = async () => {
       try {
@@ -375,6 +382,7 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
     }
     const init = async () => {
       await checkNewVersion()
+      await hotUpdateLocalResources()
 
       // let count = 0
       // nyanyaJSBridge.enableCarData(true)
@@ -408,6 +416,7 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
     }
   }, [mounted, config.appConfig.fullVersion, config.hideLoading])
 
+  const backDeb = useRef(new Debounce())
   useEffect(() => {
     if (!config.hideLoading) return
     const modalRegistry: Record<string, boolean> = {
@@ -550,38 +559,54 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
     eventListener.on(
       'openModalToUrl',
       ({ type, visible }: { type: string; visible: boolean }) => {
-        const nextQuery = { ...router.query }
-        let isQueryChanged = false
+        backDeb.current.increase(() => {
+          const nextQuery = { ...router.query }
+          let isQueryChanged = false
+          let isBackPage = false
 
-        const isModalInUrl = router.query[type] === 'true'
-        const isModalInRedux = visible
+          const isModalInUrl = router.query[type] === 'true'
+          const isModalInRedux = visible
 
-        if (!isModalInUrl && !isModalInRedux && nextQuery[type]) {
-          delete nextQuery[type]
-          isQueryChanged = true
-        }
+          if (!isModalInUrl && !isModalInRedux && nextQuery[type]) {
+            delete nextQuery[type]
+            isQueryChanged = true
+          }
 
-        // 情况 A：Redux 打开了弹窗，但 URL 还没有参数 ➔ 在 URL 中追加参数
-        if (isModalInRedux && !isModalInUrl) {
-          nextQuery[type] = 'true'
-          isQueryChanged = true
-        }
-        // 情况 B：Redux 关闭了弹窗，但 URL 还有残留参数 ➔ 从 URL 中剔除参数
-        else if (!isModalInRedux && isModalInUrl) {
-          delete nextQuery[type]
-          isQueryChanged = true
-        }
-        // 只有当检测到 URL Query 参数确实发生了实质变动，才执行浅跳转
-        if (isQueryChanged) {
-          router.push(
-            {
-              pathname: router.pathname,
-              query: nextQuery,
-            },
-            undefined,
-            { shallow: true } // 阻止 Next.js 重新触发页面大组件的 SSR
-          )
-        }
+          // 情况 A：Redux 打开了弹窗，但 URL 还没有参数 ➔ 在 URL 中追加参数
+          if (isModalInRedux && !isModalInUrl) {
+            nextQuery[type] = 'true'
+            isQueryChanged = true
+          }
+          // 情况 B：Redux 关闭了弹窗，但 URL 还有残留参数 ➔ 从 URL 中剔除参数
+          else if (!isModalInRedux && isModalInUrl) {
+            delete nextQuery[type]
+            isQueryChanged = true
+            isBackPage = true
+          }
+          // 只有当检测到 URL Query 参数确实发生了实质变动，才执行浅跳转
+          // console.log(
+          //   'isQueryChanged',
+          //   router.pathname,
+          //   isModalInRedux,
+          //   isModalInUrl,
+          //   isQueryChanged,
+          //   isBackPage
+          // )
+          if (isQueryChanged) {
+            if (isBackPage) {
+              router.back()
+            } else {
+              router.push(
+                {
+                  pathname: router.pathname,
+                  query: nextQuery,
+                },
+                undefined,
+                { shallow: true } // 阻止 Next.js 重新触发页面大组件的 SSR
+              )
+            }
+          }
+        }, 300)
       }
     )
 
@@ -651,26 +676,30 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
   const d = useRef(new Debounce())
   // const nyanyaJSBridge = useRef<ReactNativeWebJSBridge>()
 
+  const isEnableLocation = useRef(false)
   useEffect(() => {
     try {
-      if (!config.hideLoading) return
-      if (!mounted) return
+      if (!config.hideLoading || !mounted || !config.appConfig.fullVersion)
+        return
 
       navigator.geolocation.clearWatch(watchId.current)
       nyanyaJSBridge?.removeEvent('location')
 
       if (nyanyaJSBridge?.isInApp()) {
+        if (isEnableLocation.current) return
+        isEnableLocation.current = true
         nyanyaJSBridge.enableLocation(true)
 
-        nyanyaJSBridge.on('location', (val: any) => {
+        nyanyaJSBridge.on('location', (val) => {
           // console.log('location', val)
-          dispatch(geoSlice.actions.setPosition(val))
+          dispatch(geoSlice.actions.setPosition(val as any))
           // 5秒内不更新，就重新获取GPS
 
           d.current.increase(() => {
             dispatch(geoSlice.actions.setWatchUpdateTime(new Date().getTime()))
           }, 10 * 1000)
         })
+
         return
       }
 
@@ -711,7 +740,6 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
   }, [
     mounted,
     config.appConfig.fullVersion,
-    config.connectionOSM,
     geoWatchUpdateTime,
     config.hideLoading,
   ])

@@ -19,7 +19,7 @@ import { protoRoot } from '../protos'
 import { imageColorInversion } from '@nyanyajs/utils/dist/images/imageColorInversion'
 import { t } from './i18n/i18n'
 import { alert, snackbar } from '@saki-ui/core'
-import { edgeTTS, server } from '../config'
+import { edgeTTS, server, version } from '../config'
 import moment from 'moment'
 import { storage } from '../store/storage'
 
@@ -1604,5 +1604,190 @@ export async function getWebVersionList(): Promise<WebVersion[]> {
   } catch (error) {
     console.error('获取静态包版本列表失败:', error)
     return []
+  }
+}
+
+export const hotUpdateLocalResources = async () => {
+  const newVersion = await checkUpdate(version)
+  // await storage.global.delete('skipHotUpdateLocalResources')
+  const oldUrl = await storage.global.get('skipHotUpdateLocalResources')
+
+  // console.log(
+  //   'hotUpdateLocalResources downloadUrl',
+  //   version,
+  //   newVersion.downloadUrl,
+  //   oldUrl
+  // )
+
+  if (newVersion.downloadUrl && newVersion.downloadUrl !== oldUrl) {
+    alert({
+      title: t('hotUpdateLocalResources', {
+        ns: 'prompt',
+      }),
+      content: t('hotUpdateLocalResourcesContent', {
+        ns: 'prompt',
+        version: newVersion.version,
+      }),
+      cancelText: t('skip', {
+        ns: 'prompt',
+      }),
+      confirmText: t('updateNow', {
+        ns: 'prompt',
+      }),
+      async onCancel() {
+        await storage.global.set(
+          'skipHotUpdateLocalResources',
+          newVersion.downloadUrl,
+          7 * 24 * 3600
+        )
+        snackbar({
+          message: t('skipVersion', {
+            ns: 'prompt',
+          }),
+          autoHideDuration: 4000,
+          vertical: 'center',
+          horizontal: 'center',
+        }).open()
+      },
+      async onConfirm() {
+        const res = await nyanyaJSBridge?.updateLocalWebResources(
+          newVersion.downloadUrl
+        )
+        if (res?.error) {
+          snackbar({
+            message: res?.error,
+            autoHideDuration: 2000,
+            vertical: 'top',
+            horizontal: 'center',
+          }).open()
+          return
+        }
+        if (res.success) {
+          await storage.global.delete('skipHotUpdateLocalResources')
+          restartAppByUpdate()
+        }
+      },
+    }).open()
+  }
+}
+
+export const restartAppByUpdate = async () => {
+  const res = await nyanyaJSBridge?.sendNotification({
+    title: t('hotUpdateComplete', {
+      ns: 'prompt',
+    }),
+    body: t('hotUpdateCompleteContent', {
+      ns: 'prompt',
+    }),
+    closable: true,
+  })
+  alert({
+    title: t('restartApp', {
+      ns: 'prompt',
+    }),
+    content: t('restartAppContent', {
+      ns: 'prompt',
+    }),
+    cancelText: t('cancel', {
+      ns: 'prompt',
+    }),
+    confirmText: t('restart', {
+      ns: 'prompt',
+    }),
+    onCancel() {
+      res?.id && nyanyaJSBridge?.cancelNotification(res?.id || '')
+    },
+    async onConfirm() {
+      res?.id && nyanyaJSBridge?.cancelNotification(res?.id || '')
+      nyanyaJSBridge?.restartApp()
+    },
+  }).open()
+}
+
+/**
+ * 检查是否有更新版本，并返回最新版本的下载地址和版本号
+ * @param currentVersion 当前版本号，例如 "1.0.44"
+ * @returns 有新版本时返回 { downloadUrl: string, version: string }，无新版本时两者均为空字符串
+ */
+export async function checkUpdate(
+  currentVersion: string
+): Promise<{ downloadUrl: string; version: string }> {
+  /**
+   * 从文件名中提取版本号
+   * 文件名格式: trip-route-track-web-v1.0.45-build.tgz
+   */
+  function extractVersion(filename: string): string | null {
+    const match = filename.match(/v(\d+\.\d+\.\d+)/)
+    return match ? match[1] : null
+  }
+
+  /**
+   * 比较两个版本号，如果 v1 > v2 返回正数，v1 < v2 返回负数
+   */
+  function compareVersion(v1: string, v2: string): number {
+    const parts1 = v1.split('.').map(Number)
+    const parts2 = v2.split('.').map(Number)
+
+    for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
+      const num1 = parts1[i] || 0
+      const num2 = parts2[i] || 0
+      if (num1 !== num2) return num1 - num2
+    }
+    return 0
+  }
+
+  const baseUrl = 'https://trip.aiiko.club/packages/static/'
+  const listUrl = `${baseUrl}?format=json`
+
+  try {
+    const response = await fetch(listUrl)
+    if (!response.ok) {
+      console.error(`获取版本列表失败: ${response.status}`)
+      return { downloadUrl: '', version: '' }
+    }
+    interface PackageFile {
+      name: string
+      type: string
+      mtime: string
+      size: number
+    }
+    const files: PackageFile[] = await response.json()
+
+    // 筛选出符合条件的 tgz 文件，提取版本号
+    const versions = files
+      .filter(
+        (file) =>
+          file.name.endsWith('.tgz') &&
+          file.name.includes('trip-route-track-web-')
+      )
+      .map((file) => ({
+        name: file.name,
+        version: extractVersion(file.name),
+      }))
+      .filter((item) => item.version !== null) as {
+      name: string
+      version: string
+    }[]
+
+    if (versions.length === 0) return { downloadUrl: '', version: '' }
+
+    // 找出所有比当前版本更新的版本
+    const newerVersions = versions.filter(
+      (v) => compareVersion(v.version, currentVersion) > 0
+    )
+
+    if (newerVersions.length === 0) return { downloadUrl: '', version: '' }
+
+    // 按版本排序，取最新的
+    newerVersions.sort((a, b) => compareVersion(b.version, a.version))
+    const latest = newerVersions[0]
+
+    return {
+      downloadUrl: `${baseUrl}${latest.name}`,
+      version: latest.version,
+    }
+  } catch (error) {
+    console.error('请求失败:', error)
+    return { downloadUrl: '', version: '' }
   }
 }

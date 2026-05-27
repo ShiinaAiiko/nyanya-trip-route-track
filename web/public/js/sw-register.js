@@ -172,16 +172,21 @@ if ('serviceWorker' in navigator) {
             // 	},
             // }).open()
 
-            showAlert({
-              title: t('newVersion'),
-              content: t('newVersionContent'),
-              cancelText: t('cancel'),
-              confirmText: t('refresh'),
-              onCancel() {},
-              onConfirm() {
-                window.location.reload()
-              },
-            }).open()
+            if (
+              location.host.indexOf('localhost') < 0 &&
+              location.host.indexOf('127.0.0.1') < 0
+            ) {
+              showAlert({
+                title: t('newVersion'),
+                content: t('newVersionContent'),
+                cancelText: t('cancel'),
+                confirmText: t('refresh'),
+                onCancel() {},
+                onConfirm() {
+                  window.location.reload()
+                },
+              }).open()
+            }
 
             // if (confirm('New version available. Refresh now?')) {
             // 	console.log('New version available. Refresh now?')

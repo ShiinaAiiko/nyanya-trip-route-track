@@ -145,6 +145,9 @@ const HeaderComponent = ({
     }
   }, [openUserDropDownMenu, config.appConfig?.version])
 
+  const isAltitudePage = ['/altitude', '/[lang]/altitude'].includes(
+    router.pathname
+  )
   return (
     <div
       className={
@@ -212,28 +215,6 @@ const HeaderComponent = ({
       </div>
       <div className="tb-h-center"></div>
       <div className="tb-h-right">
-        {['/altitude', '/[lang]/altitude'].includes(router.pathname) ? (
-          <SakiButton
-            onTap={async () => {
-              window.open(
-                (router.query.lang ? '/' + (router.query.lang || '') : '') + '/'
-              )
-            }}
-            // padding="24px"
-            // margin="6px 6px"
-            padding="6px 8px"
-            border="none"
-          >
-            <span>
-              {t('pageTitle', {
-                ns: 'tripPage',
-              })}
-            </span>
-          </SakiButton>
-        ) : (
-          ''
-        )}
-
         {mounted && (
           <>
             {!nyanyaJSBridge?.isInApp() ? (
@@ -256,10 +237,14 @@ const HeaderComponent = ({
                   }}
                   padding="6px 8px"
                   borderRadius="6px"
-                  margin="0 10px 0 0"
+                  margin="0 0 0 10px"
                   fontSize="12px"
-                  type="Normal"
-                  bg-color="rgba(255,255,255,0.7)"
+                  type={isAltitudePage ? 'Primary' : 'Normal'}
+                  bg-color={
+                    isAltitudePage
+                      ? 'var(--saki-default-color)'
+                      : 'rgba(255,255,255,0.7)'
+                  }
                 >
                   <span>
                     {t('downloadApp', {
@@ -298,8 +283,32 @@ const HeaderComponent = ({
               ''
             )}
 
+            {/* {isAltitudePage ? (
+              <SakiButton
+                onTap={async () => {
+                  window.open(
+                    router.query.lang ? '/' + (router.query.lang || '') : '/'
+                  )
+                }}
+                // padding="24px"
+                // margin="6px 6px"
+                margin="0 0 0 10px"
+                padding="6px 8px"
+                border="none"
+              >
+                <span>
+                  {t('pageTitle', {
+                    ns: 'tripPage',
+                  })}
+                </span>
+              </SakiButton>
+            ) : (
+              ''
+            )} */}
+
             <meow-apps-dropdown
               style={{
+                margin: '0 0 0 10px',
                 display: config.showIndexPageButton ? 'block' : 'none',
               }}
               bg-color="rgba(255,255,255,0.7)"
@@ -352,6 +361,7 @@ const HeaderComponent = ({
                   ref={bindEvent({
                     selectvalue: async (e) => {
                       console.log(e.detail.value)
+                      setOpenUserDropDownMenu(false)
                       switch (e.detail.value) {
                         case 'Settings':
                           loadModal('Settings', () => {
@@ -481,7 +491,7 @@ const HeaderComponent = ({
                           dispatch(
                             configSlice.actions.setVConsole(!config.vConsole)
                           )
-                          nyanyaJSBridge?.openAppSettings('location')
+                          // nyanyaJSBridge?.openAppSettings('location')
                           break
                         // case 'CheckNewVersion':
                         //   nyanyaJSBridge?.checkNewVersion({
@@ -495,7 +505,6 @@ const HeaderComponent = ({
                         default:
                           break
                       }
-                      setOpenUserDropDownMenu(false)
                     },
                   })}
                 >
@@ -574,16 +583,6 @@ const HeaderComponent = ({
                     ''
                   )}
 
-                  <saki-menu-item padding="10px 18px" value={'Vehicle'}>
-                    <div className="tb-h-r-user-item">
-                      <saki-icon color="#666" type="Drive"></saki-icon>
-                      <span>
-                        {t('pageTitle', {
-                          ns: 'vehicleModal',
-                        })}
-                      </span>
-                    </div>
-                  </saki-menu-item>
                   {/* {router.pathname.indexOf('trackRoute') < 0 ? (
                     <saki-menu-item padding="10px 18px" value={'Route'}>
                       <div className="tb-h-r-user-item">
@@ -609,6 +608,17 @@ const HeaderComponent = ({
                   )} */}
                   {user.isLogin ? (
                     <>
+                      <saki-menu-item padding="10px 18px" value={'Vehicle'}>
+                        <div className="tb-h-r-user-item">
+                          <saki-icon color="#666" type="Drive"></saki-icon>
+                          <span>
+                            {t('pageTitle', {
+                              ns: 'vehicleModal',
+                            })}
+                          </span>
+                        </div>
+                      </saki-menu-item>
+
                       <saki-menu-item
                         padding="10px 18px"
                         value={'PrivacyGeofence'}
@@ -745,7 +755,7 @@ const HeaderComponent = ({
                   ) : (
                     ''
                   )} */}
-                  <saki-menu-item padding="10px 18px" value={'VConsole'}>
+                  {/* <saki-menu-item padding="10px 18px" value={'VConsole'}>
                     <div className="tb-h-r-user-item">
                       <saki-icon color="#666" type="Code"></saki-icon>
                       <span>
@@ -758,7 +768,7 @@ const HeaderComponent = ({
                             })}
                       </span>
                     </div>
-                  </saki-menu-item>
+                  </saki-menu-item> */}
                   {user.isLogin ? (
                     <saki-menu-item padding="10px 18px" value={'Logout'}>
                       <div className="tb-h-r-user-item">

@@ -28,7 +28,12 @@ import { httpApi } from '../plugins/http/api'
 import { protoRoot } from '../protos'
 // import screenfull from 'screenfull'
 import { config } from 'process'
-import { CarData, NyaNyaWebJSBridge } from '../plugins/nyanyaWebJsBridge'
+import {
+  AppConfig,
+  CarData,
+  defalutAppConfig,
+  NyaNyaWebJSBridge,
+} from '../plugins/nyanyaWebJsBridge'
 import axios from 'axios'
 import { appListUrl } from '../config'
 
@@ -712,13 +717,7 @@ export const tripTypes = [
 export const configSlice = createSlice({
   name: 'config',
   initialState: {
-    appConfig: {
-      version: '',
-      buildNumber: '',
-      fullVersion: '',
-      system: '',
-      engine: '',
-    },
+    appConfig: deepCopy(defalutAppConfig),
     carLog: [] as string[],
     carData: {
       speed: 0.0,

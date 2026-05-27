@@ -540,6 +540,7 @@
     "showPosition": "位置分享",
     "appearanceSettings": "外觀設定",
 
+    "devTools": "開發者工具",
     "openVConsole": "開啟 vConsole",
     "closeVConsole": "關閉 vConsole",
 
@@ -661,7 +662,7 @@
 
     "useCloudWeb": "使用雲端資源",
     "useLocalWeb": "使用本地資源",
-    "appStaticWeb": "內建本地靜態資源",
+    "appStaticWeb": "熱更新本地靜態資源",
     "switchResources": "切換資源",
     "switchWebResources": "切換Web資源",
 
@@ -685,7 +686,14 @@
 
     "switchEngine": "切換渲染引擎",
     "geckoView": "GeckoView",
-    "systemWebview": "Android System Webview"
+    "systemWebview": "Android System Webview",
+
+    "hotUpdateLocalResources": "發現新版本",
+    "hotUpdateLocalResourcesContent": "檢測到本地資源有新版本可用 ({{version}})，是否立即進行熱更新以獲得最新體驗？",
+    "updateNow": "立即更新",
+    "skip": "跳過",
+
+    "locationPermissionError": "必須開啟定位權限，請檢查是否已開啟定位權限"
   },
   "unit": {
     "km": "公里",
