@@ -33,7 +33,7 @@ import {
   CarData,
   defalutAppConfig,
   NyaNyaWebJSBridge,
-} from '../plugins/nyanyaWebJsBridge'
+} from '../plugins/nyanyaWebJsBridge/nyanyaWebJsBridge'
 import axios from 'axios'
 import { appListUrl } from '../config'
 

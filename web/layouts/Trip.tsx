@@ -70,7 +70,7 @@ import { SakiI18n, SakiInit } from '../components/saki-ui-react/components'
 import {
   defaultStatusBarData,
   StatusBarData,
-} from '../plugins/nyanyaWebJsBridge'
+} from '../plugins/nyanyaWebJsBridge/nyanyaWebJsBridge'
 import { loadModal } from '../store/layout'
 import { sakisso } from '../config'
 import {
