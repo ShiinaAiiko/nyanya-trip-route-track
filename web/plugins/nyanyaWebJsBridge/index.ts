@@ -1,7 +1,2 @@
-import { NyaNyaWebJSBridge } from './nyanyaWebJsBridge'
+export * from './nyanyaWebJsBridge';
 
-export { NyaNyaWebJSBridge }
-
-export default {
-  NyaNyaWebJSBridge,
-}

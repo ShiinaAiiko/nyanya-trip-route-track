@@ -32,8 +32,9 @@ import {
   AppConfig,
   CarData,
   defalutAppConfig,
+  defaultCarData,
   NyaNyaWebJSBridge,
-} from '../plugins/nyanyaWebJsBridge/nyanyaWebJsBridge'
+} from '../plugins/nyanyaWebJsBridge'
 import axios from 'axios'
 import { appListUrl } from '../config'
 
@@ -719,22 +720,7 @@ export const configSlice = createSlice({
   initialState: {
     appConfig: deepCopy(defalutAppConfig),
     carLog: [] as string[],
-    carData: {
-      speed: 0.0,
-      elecPercentage: 0.0,
-      fuelPercentage: 0,
-      accelerateDepth: 0,
-      brakeDepth: 0,
-      totalMileage: 0,
-      evMileage: 0,
-      tyrePressure: {
-        leftFront: 0,
-        rightFront: 0,
-        leftRear: 0,
-        rightRear: 0,
-      },
-      timestamp: 1778609999000,
-    } as CarData,
+    carData: deepCopy(defaultCarData),
     configure: defaultConfigure,
     initConfigure: false,
     mapRecommend: {

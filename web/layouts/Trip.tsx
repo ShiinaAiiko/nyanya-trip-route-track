@@ -385,15 +385,15 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
       await hotUpdateLocalResources()
 
       // let count = 0
-      // nyanyaJSBridge.enableCarData(true)
+      // nyanyaJSBridge.vehicle.enableCarData(true)
 
       // getCarDataTimer.current = setInterval(async () => {
       //   console.log('Flutter getCarData')
       //   if (count % 2 === 0) {
-      //     nyanyaJSBridge.enableCarData(true)
+      //     nyanyaJSBridge.vehicle.enableCarData(true)
       //   }
       //   count++
-      //   nyanyaJSBridge.getCarData()
+      //   nyanyaJSBridge.vehicle.getCarData()
       // }, 10 * 1000)
 
       // nyanyaJSBridge.on('carData', (val) => {
@@ -402,10 +402,10 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
       //     dispatch(configSlice.actions.setCarData(val))
       //   }
       // })
-      nyanyaJSBridge.on('log', (val) => {
-        val.type === 'carLog' &&
-          dispatch(configSlice.actions.setCarLog(val.message))
-      })
+      // nyanyaJSBridge.on('log', (val) => {
+      //   val.type === 'carLog' &&
+      //     dispatch(configSlice.actions.setCarLog(val.message))
+      // })
 
       nyanyaJSBridge.load()
     }
