@@ -41,6 +41,7 @@ import {
   getLatLngGcj02ToWgs84,
   isRoadColorFade,
   normalizeLeafletCoordinates,
+  WebVoiceBroadcast,
   // testGpsData,
 } from '../../plugins/methods'
 import { getGeoInfo } from 'findme-js'
@@ -872,6 +873,21 @@ const TripPage = () => {
       })
 
       if (startTrip) {
+        console.log(
+          'mapLayer?.turnOnVoice',
+          t('startTripTip', {
+            ns: 'tripPage',
+          }),
+          mapLayer?.turnOnVoice
+        )
+        mapLayer?.turnOnVoice &&
+          WebVoiceBroadcast(
+            t('startTripTip', {
+              ns: 'tripPage',
+            }),
+            'startTrip',
+            config.lang
+          )
         if (nyanyaJSBridge.isInApp()) {
           snackbar({
             message: t('screen_always_on_and_background_gps_enabled', {
@@ -1614,11 +1630,14 @@ const TripPage = () => {
   // console.log('router', router.pathname)
 
   useEffect(() => {
-    console.log('tyupe', router.pathname, type, user.isLogin)
+    // console.log('tyupe', router.pathname, type, user.isLogin)
     user.isInit &&
       type &&
-      dispatch(methods.trip.GetTripHistoricalStatistics({ type }))
-  }, [user.isInit, type])
+      setTimeout(() => {
+        console.log('tyupe', router.pathname, type, user.isLogin)
+        dispatch(methods.trip.GetTripHistoricalStatistics({ type }))
+      }, 300)
+  }, [user.isLogin, type])
 
   useEffect(() => {
     if (user.isLogin && vehicle.defaultVehicleId) {
@@ -2442,6 +2461,15 @@ const TripPage = () => {
 
   const finishTrip = async () => {
     if (!trip?.id) return
+
+    mapLayer?.turnOnVoice &&
+      WebVoiceBroadcast(
+        t('finishTripTip', {
+          ns: 'tripPage',
+        }),
+        '',
+        config.lang
+      )
 
     // const gpsJson = await axios.get('http://192.168.204.130:23202/JJd7XhWhe2')
 

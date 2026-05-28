@@ -138,7 +138,10 @@
 
     "customTrip": "Custom Trip",
     "aiModelTitle": "AI Navigator Agent",
-    "aiModelSubtitle": "Go further with you, see deeper within."
+    "aiModelSubtitle": "Go further with you, see deeper within.",
+
+    "startTripTip": "Welcome to trip route tracking! Your trip has started, satellite positioning is successful, and you are ready to go!",
+    "finishTripTip": "The trip has ended. The route tracking is now complete. Thank you for using our service! Goodbye!"
   },
   "altitudePage": {
     "pageTitle": "Real-time Altitude",
@@ -694,7 +697,11 @@
     "updateNow": "Update Now",
     "skip": "Skip",
 
-    "locationPermissionError": "Location permission is required. Please check if location permission is enabled."
+    "locationPermissionError": "Location permission is required. Please check if location permission is enabled.",
+
+    "loggingin": "Logging in",
+
+    "loginSuccessfully": "Logged in successfully"
   },
   "unit": {
     "km": "km",

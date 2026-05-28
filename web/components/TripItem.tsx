@@ -2697,7 +2697,7 @@ const TripItemComponent = memo(
                               {Math.round(
                                 ((trip?.statistics?.averageSpeed || 0) * 3600) /
                                   100
-                              ) / 10}{' '}
+                              ) / 10 || 0}{' '}
                               km/h
                             </span>
                           </span>
@@ -3069,7 +3069,7 @@ const TripItemComponent = memo(
                                     })} · ${
                                       Math.round(
                                         ((v?.avgSpeed || 0) * 3600) / 100
-                                      ) / 10
+                                      ) / 10 || 0
                                     } km/h`}</span>
                                   ) : v.type === 'Driving' ? (
                                     <span>{`${t('driveDistance', {
@@ -3093,7 +3093,7 @@ const TripItemComponent = memo(
                                     })} ${
                                       Math.round(
                                         ((v?.avgSpeed || 0) * 3600) / 100
-                                      ) / 10
+                                      ) / 10 || 0
                                     } km/h`}</span>
                                   ) : v.type === 'EndTrip' ? (
                                     <span>{`${t('driveDistance', {

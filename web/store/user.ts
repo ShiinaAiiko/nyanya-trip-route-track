@@ -17,7 +17,7 @@ import { stringify } from 'querystring'
 import { resolve } from 'path'
 import { nanoid } from 'nanoid'
 import { client } from './sso'
-import { alert, snackbar } from '@saki-ui/core'
+import { alert, progressBar, snackbar } from '@saki-ui/core'
 import i18n from '../plugins/i18n/i18n'
 import { loadModal } from './layout'
 
@@ -88,12 +88,43 @@ export const userMethods = {
       },
       thunkAPI
     ) => {
+      const pb = progressBar()
+      let progress = 0
+      const setProgress = () => {
+        const { config, user } = store.getState()
+        console.log('progress', progress, config.hideLoading)
+        if (config.hideLoading) {
+          if (progress === 0) {
+            pb.open()
+          }
+          pb.setProgress({
+            progress: progress,
+            tipText: t('loggingin', {
+              ns: 'prompt',
+            }),
+            onAnimationEnd() {
+              progress += 0.05
+              progress <= 0.7 && setProgress()
+            },
+          })
+        } else {
+          if (!user.isLogin) {
+            setTimeout(() => {
+              setProgress()
+            }, 500)
+          }
+        }
+      }
+      setProgress()
       try {
+        thunkAPI.dispatch(layoutSlice.actions.setOpenLoginModal(false))
+
         const res = await client?.checkToken({
           token,
           deviceId,
         })
         console.log('res checkToken GetVehicles', res)
+
         if (res) {
           // console.log('登陆成功')
           thunkAPI.dispatch(
@@ -108,7 +139,31 @@ export const userMethods = {
         } else {
           thunkAPI.dispatch(userSlice.actions.logout({}))
         }
-      } catch (error) {}
+        if (progress > 0) {
+          progress = 1
+          pb.setProgress({
+            progress,
+            tipText: t('loginSuccessfully', {
+              ns: 'prompt',
+            }),
+            onAnimationEnd() {
+              pb.close()
+            },
+          })
+        }
+      } catch (error) {
+        if (progress > 0) {
+          progress = 1
+
+          pb.setProgress({
+            progress,
+            tipText: String(error),
+            onAnimationEnd() {
+              pb.close()
+            },
+          })
+        }
+      }
     }
   ),
   logout: createAsyncThunk(modeName + '/logout', async (_, thunkAPI) => {

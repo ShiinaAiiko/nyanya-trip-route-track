@@ -1574,7 +1574,7 @@ const Maps = ({
       ) : (
         ''
       )}
-      {nyanyaJSBridge?.isInApp() ? (
+      {config.carData?.statistic.elecPercentage ? (
         <div
           style={{
             display: 'flex',

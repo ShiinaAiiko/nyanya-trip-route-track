@@ -378,6 +378,14 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
       initNyaNyaJSBridge()
     }
     if (!nyanyaJSBridge?.isInApp()) {
+      // nyanyaJSBridge.vehicle.startTest()
+
+      // nyanyaJSBridge.on('carData', (val) => {
+      //   console.log('carData', val)
+      //   if (val.hasOwnProperty('speed')) {
+      //     dispatch(configSlice.actions.setCarData(val))
+      //   }
+      // })
       return
     }
     const init = async () => {
@@ -385,7 +393,7 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
       await hotUpdateLocalResources()
 
       // let count = 0
-      // nyanyaJSBridge.vehicle.enableCarData(true)
+      nyanyaJSBridge.vehicle.enableCarData(true)
 
       // getCarDataTimer.current = setInterval(async () => {
       //   console.log('Flutter getCarData')
@@ -396,16 +404,34 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
       //   nyanyaJSBridge.vehicle.getCarData()
       // }, 10 * 1000)
 
-      // nyanyaJSBridge.on('carData', (val) => {
+      nyanyaJSBridge.on('carData', (val) => {
+        console.log('carData', val)
+        if (val.hasOwnProperty('speed')) {
+          dispatch(configSlice.actions.setCarData(val))
+        }
+      })
+      // nyanyaJSBridge.on('speed', (val) => {
       //   console.log('carData', val)
       //   if (val.hasOwnProperty('speed')) {
-      //     dispatch(configSlice.actions.setCarData(val))
+      //     // dispatch(configSlice.actions.setCarData(val))
       //   }
       // })
-      // nyanyaJSBridge.on('log', (val) => {
-      //   val.type === 'carLog' &&
-      //     dispatch(configSlice.actions.setCarLog(val.message))
-      // })
+      nyanyaJSBridge.on('log', (val) => {
+        val.type === 'carLog' &&
+          dispatch(configSlice.actions.setCarLog(val.message))
+      })
+
+      nyanyaJSBridge?.on('deepLink', async (v) => {
+        console.log('Login deepLink', deepCopy(v))
+        if (v?.queryParameters?.token) {
+          await dispatch(
+            methods.user.checkToken({
+              token: v?.queryParameters?.token,
+              deviceId: v?.queryParameters?.deviceId,
+            })
+          ).unwrap()
+        }
+      })
 
       nyanyaJSBridge.load()
     }

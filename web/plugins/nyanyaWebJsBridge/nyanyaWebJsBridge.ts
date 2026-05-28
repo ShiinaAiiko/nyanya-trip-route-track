@@ -1,8 +1,50 @@
 import { deepCopy, getShortId, NEventListener } from '@nyanyajs/utils'
 import md5 from 'blueimp-md5'
-import { VehicleServices, CarData, SpeedData, StatisticData, InstrumentData, AcData, DoorData, VehicleSettingData, EngineData, PanoramaData, defaultCarData, SensorData, TimeData, EnergyModeData, RadarData, TyreData, AirQualityData, ChargeData, MediaData, BodyStatusData, LightData } from './vehicle'
+import {
+  VehicleServices,
+  CarData,
+  SpeedData,
+  StatisticData,
+  InstrumentData,
+  AcData,
+  DoorData,
+  VehicleSettingData,
+  EngineData,
+  PanoramaData,
+  defaultCarData,
+  SensorData,
+  TimeData,
+  EnergyModeData,
+  RadarData,
+  TyreData,
+  AirQualityData,
+  ChargeData,
+  MediaData,
+  BodyStatusData,
+  LightData,
+} from './vehicle'
 
-export type { CarData, SpeedData, StatisticData, InstrumentData, AcData, DoorData, VehicleSettingData, EngineData, PanoramaData, SensorData, TimeData, EnergyModeData, RadarData, TyreData, AirQualityData, ChargeData, MediaData, BodyStatusData, LightData }
+export type {
+  CarData,
+  SpeedData,
+  StatisticData,
+  InstrumentData,
+  AcData,
+  DoorData,
+  VehicleSettingData,
+  EngineData,
+  PanoramaData,
+  SensorData,
+  TimeData,
+  EnergyModeData,
+  RadarData,
+  TyreData,
+  AirQualityData,
+  ChargeData,
+  MediaData,
+  BodyStatusData,
+  LightData,
+}
 export { defaultCarData }
 
 export const defaultStatusBarData = {
@@ -111,6 +153,7 @@ export const defalutAppConfig = {
   engine: '',
   sessionId: '',
   availableEngines: ['gecko', 'system'],
+  packageName: '',
 }
 export type AppConfig = typeof defalutAppConfig
 export interface Location {
@@ -181,6 +224,10 @@ export class NyaNyaWebJSBridge extends NEventListener<{
   bodyStatus: BodyStatusData
   light: LightData
   carData: CarData
+  deepLink: {
+    url: string
+    queryParameters: any
+  }
 }> {
   rnWebView: any = undefined
   nyanyaWebView: any = undefined
@@ -413,6 +460,13 @@ export class NyaNyaWebJSBridge extends NEventListener<{
       showCheckingNotification,
     })
   }
+
+  openInBrowser(url: string) {
+    return this.sendMessageAwait<{
+      success: boolean
+      error: string
+    }>('openInBrowser', url)
+  }
   load() {
     this.dispatch('loaded', undefined)
     this.sendMessage('load')
@@ -471,6 +525,8 @@ export class NyaNyaWebJSBridge extends NEventListener<{
       | 'get'
       | 'enableListener'
       | 'set'
+      | 'openInBrowser'
+      | 'openInBrowser'
       | 'hasFeature',
     payload?: any,
     bridgeId?: string

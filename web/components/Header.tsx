@@ -634,6 +634,22 @@ const HeaderComponent = ({
                       </saki-menu-item>
                       <saki-menu-item
                         padding="10px 18px"
+                        value={'VisitedCities'}
+                      >
+                        <div className="tb-h-r-user-item">
+                          <saki-icon
+                            color="#666"
+                            type="MapFootprints"
+                          ></saki-icon>
+                          <span>
+                            {t('title', {
+                              ns: 'visitedCitiesModal',
+                            })}
+                          </span>
+                        </div>
+                      </saki-menu-item>
+                      <saki-menu-item
+                        padding="10px 18px"
                         value={'CreateCustomTrip'}
                       >
                         <div className="tb-h-r-user-item">
@@ -646,23 +662,6 @@ const HeaderComponent = ({
                         </div>
                       </saki-menu-item>
                     </>
-                  ) : (
-                    ''
-                  )}
-                  {user.isLogin ? (
-                    <saki-menu-item padding="10px 18px" value={'VisitedCities'}>
-                      <div className="tb-h-r-user-item">
-                        <saki-icon
-                          color="#666"
-                          type="MapFootprints"
-                        ></saki-icon>
-                        <span>
-                          {t('title', {
-                            ns: 'visitedCitiesModal',
-                          })}
-                        </span>
-                      </div>
-                    </saki-menu-item>
                   ) : (
                     ''
                   )}

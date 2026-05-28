@@ -138,7 +138,10 @@
 
     "customTrip": "自訂行程",
     "aiModelTitle": "AI 领航员 Agent",
-    "aiModelSubtitle": "陪你走得更远，看得更深"
+    "aiModelSubtitle": "陪你走得更远，看得更深",
+
+    "startTripTip": "歡迎使用行程路線軌跡！行程已開始，衛星定位成功，正式出發~！",
+    "finishTripTip": "行程已結束。本次軌跡記錄已完成。感謝您的使用！再見！"
   },
   "altitudePage": {
     "pageTitle": "即時海拔",
@@ -693,7 +696,11 @@
     "updateNow": "立即更新",
     "skip": "跳過",
 
-    "locationPermissionError": "必須開啟定位權限，請檢查是否已開啟定位權限"
+    "locationPermissionError": "必須開啟定位權限，請檢查是否已開啟定位權限",
+
+    "loggingin": "正在登入",
+
+    "loginSuccessfully": "登入成功"
   },
   "unit": {
     "km": "公里",

@@ -2548,6 +2548,25 @@ const About = ({ show }: { show: boolean }) => {
                 <span></span>
               </div>
               <div className="vi-right">
+                {/* <SakiButton
+                  onTap={() => {
+                    nyanyaJSBridge?.on('deepLink', (v) => {
+                      console.log('deepLink', v)
+                    })
+                    nyanyaJSBridge?.openInBrowser('https://apps.aiiko.club')
+                  }}
+                >
+                  <span>跳浏览器和监听deeplink</span>
+                </SakiButton>
+                <SakiButton
+                  onTap={() => {
+                    window.open(
+                      'tripappdev://oauth-callback?code=github_auth_code_here&state=random_state'
+                    )
+                  }}
+                >
+                  <span>回App</span>
+                </SakiButton> */}
                 <SakiButton
                   onTap={() => {
                     dispatch(configSlice.actions.setVConsole(!config.vConsole))
