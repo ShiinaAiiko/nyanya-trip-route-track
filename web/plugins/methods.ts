@@ -1522,7 +1522,7 @@ export function isNewVersion(oldVer: string, newVer: string): boolean {
   // 1. 标准化函数：将版本号拆分为 [核心版本(如 '1.0.7'), 预发布后缀(如 'dev')]
   const parseVersion = (v: string) => {
     // 移除可能存在的开头的 'v' 或 'V'
-    const cleanV = v.trim().replace(/^[vV]/, '')
+    const cleanV = v.trim().replace('-dev', '').replace(/^[vV]/, '')
     const [main, prerelease] = cleanV.split('-')
     const numbers = main.split('.').map(Number)
     return { numbers, prerelease }

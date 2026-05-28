@@ -334,7 +334,7 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
       progressBar < 1 &&
         setTimeout(() => {
           setProgressBar(1)
-        }, 500)
+        }, 50)
     }
   }, [loadProgressBar, sakiuiInit, mounted])
 
@@ -404,22 +404,34 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
       //   nyanyaJSBridge.vehicle.getCarData()
       // }, 10 * 1000)
 
-      nyanyaJSBridge.on('carData', (val) => {
-        console.log('carData', val)
-        if (val.hasOwnProperty('speed')) {
-          dispatch(configSlice.actions.setCarData(val))
+      nyanyaJSBridge.on(
+        'carData',
+        (val) => {
+          console.log('carData', val)
+          if (val.hasOwnProperty('speed')) {
+            dispatch(configSlice.actions.setCarData(val))
+          }
+        },
+        {
+          key: 'TripCarData',
         }
-      })
+      )
       // nyanyaJSBridge.on('speed', (val) => {
       //   console.log('carData', val)
       //   if (val.hasOwnProperty('speed')) {
       //     // dispatch(configSlice.actions.setCarData(val))
       //   }
       // })
-      nyanyaJSBridge.on('log', (val) => {
-        val.type === 'carLog' &&
-          dispatch(configSlice.actions.setCarLog(val.message))
-      })
+      nyanyaJSBridge.on(
+        'log',
+        (val) => {
+          val.type === 'carLog' &&
+            dispatch(configSlice.actions.setCarLog(val.message))
+        },
+        {
+          key: 'TripLog',
+        }
+      )
 
       nyanyaJSBridge?.on('deepLink', async (v) => {
         console.log('Login deepLink', deepCopy(v))
@@ -437,8 +449,8 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
     }
     init()
     return () => {
-      nyanyaJSBridge.removeEvent('carData')
-      nyanyaJSBridge.removeEvent('log')
+      nyanyaJSBridge.off('carData', 'TripCarData')
+      nyanyaJSBridge.off('log', 'TripLog')
     }
   }, [mounted, config.appConfig.fullVersion, config.hideLoading])
 
@@ -951,12 +963,12 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
                   loaded: () => {
                     console.log('progress-bar', progressBar)
                     setProgressBar(0)
-                    setTimeout(() => {
+                    requestAnimationFrame(() => {
                       progressBar < 1 &&
                         setProgressBar(
                           progressBar + 0.2 >= 1 ? 1 : progressBar + 0.2
                         )
-                    }, 0)
+                    })
                     setLoadProgressBar(true)
                   },
                   transitionEnd: (e: CustomEvent) => {

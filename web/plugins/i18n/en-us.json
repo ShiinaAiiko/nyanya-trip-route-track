@@ -457,6 +457,9 @@
 
     "networkOffline": "Entering signal dead zone, service temporarily suspended"
   },
+  "appPage": {
+    "pageTitle": "App"
+  },
   "settings": {
     "title": "Settings",
     "tripHistory": "Trip history",

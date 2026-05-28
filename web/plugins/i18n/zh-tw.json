@@ -457,6 +457,9 @@
 
     "networkOffline": "進入訊號盲區，暫時停止服務"
   },
+  "appPage": {
+    "pageTitle": "App"
+  },
   "settings": {
     "title": "設置",
     "tripHistory": "行程歷史",

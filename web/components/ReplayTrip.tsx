@@ -211,7 +211,7 @@ const ReplayTripPage = ({
   onPovWH,
 }: {
   zIndex: number
-  clearEvent: NEventListener
+  clearEvent: NEventListener<any>
   onPovWH: (povMode: boolean, povWH: { w: number; h: number }) => void
 }) => {
   const { t, i18n } = useTranslation('replayTripPage')

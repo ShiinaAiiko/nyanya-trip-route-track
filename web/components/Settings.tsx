@@ -2060,6 +2060,11 @@ const About = ({ show }: { show: boolean }) => {
             setWebVersionList(res)
           })
           storage.global.get('skipVersionCode').then((skipVersionCode) => {
+            console.log(
+              'config.appConfig?.version, skipVersionCode',
+              config.appConfig?.version,
+              skipVersionCode
+            )
             skipVersionCode &&
               setIsNewVersionAvailable(
                 isNewVersion(config.appConfig?.version, skipVersionCode)

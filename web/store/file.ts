@@ -5,12 +5,13 @@ import {
   configureStore,
 } from '@reduxjs/toolkit'
 import { storage } from './storage'
-import { deepCopy, SAaSS, AsyncQueue } from '@nyanyajs/utils'
+import { deepCopy, AsyncQueue } from '@nyanyajs/utils'
 import { httpApi } from '../plugins/http/api'
 import { progressBar } from '@saki-ui/core'
 // import { AsyncQueue } from './asyncQueue'
 import { protoRoot } from '../protos'
 import i18n from '../plugins/i18n/i18n'
+import SAaSS from 'saass-js'
 
 export const saass = new SAaSS({})
 
