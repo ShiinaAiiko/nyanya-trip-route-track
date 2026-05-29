@@ -1,3 +1,9 @@
 [submodule "trip-route-track-flutter-app"]
 	path = trip-route-track-flutter-app
 	url = git@github.com:ShiinaAiiko/trip-route-track-flutter-app.git
+[submodule "trip-route-track-server"]
+	path = trip-route-track-server
+	url = git@github.com:ShiinaAiiko/trip-route-track-server.git
+[submodule "trip-route-track-web"]
+	path = trip-route-track-web
+	url = git@github.com:ShiinaAiiko/trip-route-track-web.git

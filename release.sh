@@ -23,10 +23,10 @@ start() {
 protos() {
 	echo "-> 准备编译Protobuf"
 
-	cd $DIR/web
+	cd $DIR/trip-route-track-web
 	./release.sh protos
 
-	cd $DIR/server
+	cd $DIR/trip-route-track-server
 	./release.sh protos
 }
 
