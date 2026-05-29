@@ -714,7 +714,7 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
   const d = useRef(new Debounce())
   // const nyanyaJSBridge = useRef<ReactNativeWebJSBridge>()
 
-  const isEnableLocation = useRef(false)
+  // const isEnableLocation = useRef(false)
   useEffect(() => {
     try {
       if (!config.hideLoading || !mounted || !config.appConfig.fullVersion)
@@ -724,8 +724,8 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
       nyanyaJSBridge?.removeEvent('location')
 
       if (nyanyaJSBridge?.isInApp()) {
-        if (isEnableLocation.current) return
-        isEnableLocation.current = true
+        // if (isEnableLocation.current) return
+        // isEnableLocation.current = true
         nyanyaJSBridge.enableLocation(true)
 
         nyanyaJSBridge.on('location', (val) => {

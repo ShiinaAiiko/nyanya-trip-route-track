@@ -347,7 +347,7 @@ const TripPage = () => {
         })
       }
 
-      nyanyaJSBridge?.enableLocation(true)
+      // nyanyaJSBridge?.enableLocation(true)
     }
     init()
   }, [])
