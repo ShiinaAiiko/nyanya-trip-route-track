@@ -7,3 +7,6 @@
 [submodule "trip-route-track-web"]
 	path = trip-route-track-web
 	url = git@github.com:ShiinaAiiko/trip-route-track-web.git
+[submodule ".deprecated/trip-route-track-rn-app"]
+	path = .deprecated/trip-route-track-rn-app
+	url = git@github.com:ShiinaAiiko/trip-route-track-rn-app.git
