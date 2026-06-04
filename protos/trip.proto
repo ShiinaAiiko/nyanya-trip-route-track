@@ -288,7 +288,10 @@ message GetTrip {
 }
 
 message GetTripPositions {
-  message Request { string id = 1; }
+  message Request {
+    string id = 1;
+    bool simplify = 2;
+  }
   message Response {
     // 时间记得是输出秒，且输出与startTime相差多少s的数字即可
     // startTime为第一个position的时间戳
@@ -336,6 +339,8 @@ message GetTripHistoryPositions {
     bool fullData = 7;
 
     string jmId = 9;
+    // 启用服务端精简数据
+    bool simplify = 10;
   }
   message Response {
     repeated TripPositions list = 1;

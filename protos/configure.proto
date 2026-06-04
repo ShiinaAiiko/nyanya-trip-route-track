@@ -52,6 +52,9 @@ message Configure {
       int32 polylineWidth = 15;
       bool privacyGeofence = 16;
       bool headingUp = 17;
+      bool carMode = 18;
+      string filterSimilarTrips = 19;
+      bool simplify = 20;
     }
 
     MapLayerItem indexPage = 1;
