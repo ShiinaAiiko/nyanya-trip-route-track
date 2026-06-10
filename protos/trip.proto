@@ -489,3 +489,72 @@ message UpdateTripWeather {
   }
   message Response {}
 }
+
+// 单种出行方式的统计成就数据
+message TripAchievementStatsItem {
+  // 里程相关
+  double totalDistance = 1;        // 总里程 (km)
+  double nightDistance = 2;        // 夜间行驶里程 (km)
+  double singleTripDistance = 3;   // 单次最长里程 (km)
+  double highAltitudeDistance = 4; // 高海拔地区里程 (km)
+  double highwayDistance = 5;      // 高速行驶里程 (km)
+
+  // 时间相关
+  int64 totalTime = 6;      // 总时长 (s)
+  int64 singleTripTime = 7; // 单次最长时长 (s)
+
+  // 能耗相关
+  double fuel = 8;     // 油耗 (升)
+  double electric = 9; // 电耗 (度/kWh)
+
+  // 海拔相关
+  double maxAltitude = 10;  // 最高海拔 (米)
+  double maxClimb = 11;     // 单次最大爬升 (米)
+  double maxDescend = 12;   // 单次最大下降 (米)
+  double totalClimb = 13;   // 累计爬升 (米)
+  double totalDescend = 14; // 累计下降 (米)
+
+  // 速度相关
+  double maxSpeed = 15; // 最高速度 (km/h)
+  double avgSpeed = 16; // 平均速度 (km/h)
+
+  // 探索相关
+  int32 towns = 22;     // 到访镇的数量
+  int32 cities = 17;    // 到访城市数量
+  int32 regions = 21;   // 到访地级市数量
+  int32 states = 18;    // 到访省份数量
+  int32 countries = 19; // 到访国家数量
+
+  int32 tripCount = 20; // 出行次数
+}
+
+message TripAchievementStats {
+  string type = 1;
+  TripAchievementStatsItem stats = 2;
+}
+
+message GetTripAchievementStats {
+  message Request {}
+  message Response {
+    repeated TripAchievementStats list = 1;
+    int64 total = 2;
+  }
+}
+
+message GetCompletedTripAchievements {
+  message Request {}
+  message Response {
+    repeated string list = 1;
+    int32 total = 2;
+  }
+}
+
+message AddCompletedTripAchievements {
+  message Request { repeated string achievementIds = 1; }
+  message Response {}
+}
+
+message DeleteCompletedTripAchievements {
+  message Request { repeated string achievementIds = 1; }
+  message Response {}
+}
