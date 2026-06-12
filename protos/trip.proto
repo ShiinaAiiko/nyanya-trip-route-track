@@ -53,6 +53,9 @@ message TripStatistics {
   double averageAltitude = 6; // 平均海拔 (m)
   double climbAltitude = 7;   // 累计爬升高度 (m)
   double descendAltitude = 8; // 累计下降高度 (m)
+
+  double totalElecCons = 9;  // 累计总耗电量 (单位：kWh 或 度)
+  double totalFuelCons = 10; // 累计总耗油量 (单位：L 或 升)
 }
 
 message TripPermissions {
@@ -124,6 +127,78 @@ message TripNetworkStatus {
   int64 timestamp = 2;
 }
 
+// 行驶瞬间数据（高频：车速、功率、转速等）
+// 变化时存储（只看车速和功率，后面考虑看功率是否看不看，暂时看）
+message TripDrivingSample {
+  // 第一个时间戳是完整的，第二个开始就只需要前一个的增量即可
+  int64 ts = 1;     // 毫秒时间戳（字段名缩短）
+  double spd = 2;   // 车速 km/h
+  double pow = 3;   // 功率 kW
+  double rpm = 4;   // 发动机转速
+  double thr = 6;   // 油门开度 %
+  double brake = 7; // 刹车开度 %
+  double angle = 8; // 方向盘转角
+}
+
+// 车辆状态快照（低频：温度、能耗、胎压等）
+// 变化时存储（所有数据）
+message TripVehicleState {
+  int64 ts = 1; // timestamp 时间戳
+
+  // 能量状态
+  int32 soc = 2;       // batterySoc 电量 %
+  int32 fuel = 3;      // fuelLevel 油量 %
+  int32 rangeElec = 4; // rangeElectric 纯电续航 km
+  int32 rangeFuel = 5; // rangeFuel 燃油续航 km
+  bool charging = 6;   // isCharging 充电中
+
+  // 能耗数据
+  // double instConsum = 7; // instantEnergyConsumption 瞬时能耗
+  double lastElecCon = 21; // 电耗 kWh/50km
+  double lastFuelCon = 22; // 油耗 L/50km
+  // double consAvg = 8;   // 平均能耗
+
+  // 温度数据
+  int32 tempOut = 9; // outdoorTemp 室外温度 ℃
+  int32 tempIn = 10; // indoorTemp 车内温度 ℃
+  // double tempCoolant = 11; // coolantTemp 冷却液温度 ℃
+
+  // 累计数据
+  double totalMile = 16; // 本次行程里程
+  double evMile = 17;    // 本次行程EV里程
+  double elecCon = 23;   // 本次电耗
+  double fuelCon = 24;   // 本次油耗
+
+  // 驾驶模式
+  // EV \ HEV \ ICE
+  string mode = 19; // driveMode 驾驶模式
+}
+// 存储在trip_car_data
+message TripVehicleInfo {
+  // string brand = 1;     // 品牌（如：比亚迪、特斯拉）
+  // string model = 2;     // 车型（如：汉EV、Model Y）
+  // string modelYear = 3; // 年款（如：2024）
+  string vin = 4; // 车架号（可选）
+
+  // 动力类型
+  // string powertrain = 5; // BEV、PHEV、HEV、燃油
+
+  // 电池/油箱容量（用于计算百分比对应的绝对值）
+  // double batteryCapacity = 6; // 电池容量 kWh
+  // double fuelCapacity = 7;    // 油箱容量 L
+}
+
+// 存储SAaSS（参考GPS）
+message TripVehicleData {
+  // 车辆静态信息
+  TripVehicleInfo info = 1;
+  // 高频动态数据（行驶瞬间，变化时采样）
+  repeated TripDrivingSample samples = 2;
+
+  // 低频状态数据（车辆状态快照，变化时采样）
+  repeated TripVehicleState states = 3;
+}
+
 message Trip {
   string id = 1;
   // 非必填
@@ -137,6 +212,7 @@ message Trip {
   repeated TripAddresses addresses = 18;
   repeated TripNetworkStatus networkStatus = 19;
   repeated TripWeather weather = 20;
+  TripVehicleData vehicleData = 21;
   TripStatistics statistics = 5;
   TripPermissions permissions = 11;
   // 1 normal 0 ing -1 delete
@@ -557,4 +633,25 @@ message AddCompletedTripAchievements {
 message DeleteCompletedTripAchievements {
   message Request { repeated string achievementIds = 1; }
   message Response {}
+}
+
+// 更新车辆数据（增量发送）
+message UpdateTripVehicleData {
+  message Request {
+    // 必填
+    string id = 1;
+    // 车辆静态信息（首次发送或变更时发送）
+    TripVehicleInfo info = 2;
+    // 高频动态数据（增量发送）
+    repeated TripDrivingSample samples = 3;
+    // 低频状态数据（增量发送）
+    repeated TripVehicleState states = 4;
+  }
+  message Response {}
+}
+
+// 获取车辆数据
+message GetTripVehicleData {
+  message Request { string id = 1; }
+  message Response { TripVehicleData vehicleData = 1; }
 }
