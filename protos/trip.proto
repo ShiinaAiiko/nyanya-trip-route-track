@@ -44,6 +44,39 @@ message TripPosition {
   // 本地用
   double distance = 9;
 }
+
+// 每一个点的差值（除了第一个点是绝对值，后面全存相对前一个点的差值整数）
+// 每个点对应数值都要乘以10xn，保证干掉小数点，后续再复原
+
+message TripPositionOrigin {
+  int64 latitude = 1;  // 绝对值
+  int64 longitude = 2; // 绝对值
+  int32 altitude = 3;  // 绝对值
+  int32 altitudeAccuracy = 4;
+  int32 accuracy = 5;
+  int32 heading = 6;
+  int32 speed = 7;
+  int64 timestamp = 8; // 巨无霸毫秒/秒级时间戳，必须用 int64
+}
+message TripPositionDeltas {
+  // 凡是可能出现正负交替的差值，无脑死磕 sint32，Protobuf 自动给小负数抽脂
+  sint32 latitude = 1;
+  sint32 longitude = 2;
+  sint32 altitude = 3;
+  sint32 altitudeAccuracy = 4;
+  sint32 accuracy = 5;
+  sint32 heading = 6;
+  sint32 speed = 7;
+
+  // 时间戳一秒一打，差值永远是正数（+差值秒），用普通的 int32 即可
+  int64 timestamp = 8;
+}
+
+message TripPositionPayload {
+  TripPositionOrigin originPoint = 1;
+  repeated TripPositionDeltas position = 2;
+}
+
 message TripStatistics {
   double distance = 1;        // 本次行程距离 (m)
   double maxSpeed = 2;        // 最高速度 (m/s)
@@ -128,75 +161,128 @@ message TripNetworkStatus {
 }
 
 // 行驶瞬间数据（高频：车速、功率、转速等）
-// 变化时存储（只看车速和功率，后面考虑看功率是否看不看，暂时看）
+// 变化时存储
 message TripDrivingSample {
-  // 第一个时间戳是完整的，第二个开始就只需要前一个的增量即可
-  int64 ts = 1;     // 毫秒时间戳（字段名缩短）
-  double spd = 2;   // 车速 km/h
-  double pow = 3;   // 功率 kW
-  double rpm = 4;   // 发动机转速
-  double thr = 6;   // 油门开度 %
-  double brake = 7; // 刹车开度 %
-  double angle = 8; // 方向盘转角
+  int64 timestamp = 1;      // 毫秒时间戳
+  double speed = 2;         // 车速 km/h (×10, 精度 0.1)
+  double power = 3;         // 功率 kW (×10, 精度 0.1)
+  double rpm = 4;           // 发动机转速 (×10, 精度 0.1)
+  double throttle = 6;      // 油门开度 % (×10, 精度 0.1)
+  double brake = 7;         // 刹车开度 % (×10, 精度 0.1)
+  double steeringAngle = 8; // 方向盘转角 (×10, 精度 0.1)
 }
 
 // 车辆状态快照（低频：温度、能耗、胎压等）
 // 变化时存储（所有数据）
 message TripVehicleState {
-  int64 ts = 1; // timestamp 时间戳
+  int64 timestamp = 1; // 时间戳
 
   // 能量状态
-  int32 soc = 2;       // batterySoc 电量 %
-  int32 fuel = 3;      // fuelLevel 油量 %
-  int32 rangeElec = 4; // rangeElectric 纯电续航 km
-  int32 rangeFuel = 5; // rangeFuel 燃油续航 km
-  bool charging = 6;   // isCharging 充电中
+  int32 batterySoc = 2;    // 电量 % (×10, 精度 0.1)
+  int32 fuelLevel = 3;     // 油量 % (×10, 精度 0.1)
+  int32 rangeElectric = 4; // 纯电续航 km (×10, 精度 0.1)
+  int32 rangeFuel = 5;     // 燃油续航 km (×10, 精度 0.1)
+  bool isCharging = 6;     // 充电中
 
   // 能耗数据
-  // double instConsum = 7; // instantEnergyConsumption 瞬时能耗
-  double lastElecCon = 21; // 电耗 kWh/50km
-  double lastFuelCon = 22; // 油耗 L/50km
-  // double consAvg = 8;   // 平均能耗
+  double lastElectricConsumption = 21; // 电耗 kWh/50km (×10, 精度 0.1)
+  double lastFuelConsumption = 22;     // 油耗 L/50km (×10, 精度 0.1)
 
   // 温度数据
-  int32 tempOut = 9; // outdoorTemp 室外温度 ℃
-  int32 tempIn = 10; // indoorTemp 车内温度 ℃
-  // double tempCoolant = 11; // coolantTemp 冷却液温度 ℃
+  int32 outdoorTemp = 9; // 室外温度 ℃ (×10, 精度 0.1)
+  int32 indoorTemp = 10; // 车内温度 ℃ (×10, 精度 0.1)
 
   // 累计数据
-  double totalMile = 16; // 本次行程里程
-  double evMile = 17;    // 本次行程EV里程
-  double elecCon = 23;   // 本次电耗
-  double fuelCon = 24;   // 本次油耗
+  double totalMileage = 16;        // 本次行程里程 km (×10, 精度 0.1)
+  double evMileage = 17;           // 本次行程EV里程 km (×10, 精度 0.1)
+  double electricConsumption = 23; // 本次电耗 (×10, 精度 0.1)
+  double fuelConsumption = 24;     // 本次油耗 (×10, 精度 0.1)
 
   // 驾驶模式
-  // EV \ HEV \ ICE
-  string mode = 19; // driveMode 驾驶模式
+  string driveMode = 19; // EV \ HEV \ ICE
 }
+
 // 存储在trip_car_data
 message TripVehicleInfo {
-  // string brand = 1;     // 品牌（如：比亚迪、特斯拉）
-  // string model = 2;     // 车型（如：汉EV、Model Y）
-  // string modelYear = 3; // 年款（如：2024）
   string vin = 4; // 车架号（可选）
-
-  // 动力类型
-  // string powertrain = 5; // BEV、PHEV、HEV、燃油
-
-  // 电池/油箱容量（用于计算百分比对应的绝对值）
-  // double batteryCapacity = 6; // 电池容量 kWh
-  // double fuelCapacity = 7;    // 油箱容量 L
 }
 
 // 存储SAaSS（参考GPS）
 message TripVehicleData {
-  // 车辆静态信息
-  TripVehicleInfo info = 1;
-  // 高频动态数据（行驶瞬间，变化时采样）
-  repeated TripDrivingSample samples = 2;
+  TripVehicleInfo vehicleInfo = 1;        // 车辆静态信息
+  repeated TripDrivingSample samples = 2; // 高频动态数据
+  repeated TripVehicleState states = 3;   // 低频状态数据
+}
 
-  // 低频状态数据（车辆状态快照，变化时采样）
-  repeated TripVehicleState states = 3;
+// ================================================
+// 车机数据增量压缩结构（用于存储和传输）
+// ================================================
+
+// 行驶样本原始点（第一个点，存绝对值）
+message TripDrivingSampleOrigin {
+  int64 timestamp = 1;     // 毫秒时间戳
+  int32 speed = 2;         // 车速 ×10，精度 0.1 km/h
+  int32 power = 3;         // 功率 ×10，精度 0.1 kW
+  int32 rpm = 4;           // 转速 ×10，精度 0.1
+  int32 throttle = 5;      // 油门 ×10，精度 0.1 %
+  int32 brake = 6;         // 刹车 ×10，精度 0.1 %
+  int32 steeringAngle = 7; // 方向盘转角 ×10，精度 0.1°
+}
+
+// 行驶样本差值点（后续点，存相对前一个点的差值）
+message TripDrivingSampleDeltas {
+  int64 timestampDelta = 1;      // 时间戳差值（毫秒）
+  sint32 speedDelta = 2;         // 车速差值 ×10
+  sint32 powerDelta = 3;         // 功率差值 ×10
+  sint32 rpmDelta = 4;           // 转速差值 ×10
+  sint32 throttleDelta = 5;      // 油门差值 ×10
+  sint32 brakeDelta = 6;         // 刹车差值 ×10
+  sint32 steeringAngleDelta = 7; // 转角差值 ×10
+}
+
+// 车辆状态原始点（第一个点，存绝对值）
+message TripVehicleStateOrigin {
+  int64 timestamp = 1;               // 时间戳
+  int32 batterySoc = 2;              // 电量 ×10，精度 0.1 %
+  int32 fuelLevel = 3;               // 油量 ×10，精度 0.1 %
+  int32 rangeElectric = 4;           // 纯电续航 ×10，精度 0.1 km
+  int32 rangeFuel = 5;               // 燃油续航 ×10，精度 0.1 km
+  int32 isCharging = 6;              // 充电状态（0/1）
+  int32 lastElectricConsumption = 7; // 电耗 ×10，精度 0.1
+  int32 lastFuelConsumption = 8;     // 油耗 ×10，精度 0.1
+  int32 outdoorTemp = 9;             // 室外温度 ×10，精度 0.1 ℃
+  int32 indoorTemp = 10;             // 车内温度 ×10，精度 0.1 ℃
+  int32 totalMileage = 11;           // 本次行程里程 ×10，精度 0.1 km
+  int32 evMileage = 12;           // 本次行程EV里程 ×10，精度 0.1 km
+  int32 electricConsumption = 13; // 本次电耗 ×10，精度 0.1
+  int32 fuelConsumption = 14;     // 本次油耗 ×10，精度 0.1
+}
+
+// 车辆状态差值点（后续点，存相对前一个点的差值）
+message TripVehicleStateDeltas {
+  int64 timestampDelta = 1;                // 时间戳差值
+  sint32 batterySocDelta = 2;              // 电量差值 ×10
+  sint32 fuelLevelDelta = 3;               // 油量差值 ×10
+  sint32 rangeElectricDelta = 4;           // 纯电续航差值 ×10
+  sint32 rangeFuelDelta = 5;               // 燃油续航差值 ×10
+  sint32 isChargingDelta = 6;              // 充电状态差值
+  sint32 lastElectricConsumptionDelta = 7; // 电耗差值 ×10
+  sint32 lastFuelConsumptionDelta = 8;     // 油耗差值 ×10
+  sint32 outdoorTempDelta = 9;             // 室外温度差值 ×10
+  sint32 indoorTempDelta = 10;             // 车内温度差值 ×10
+  sint32 totalMileageDelta = 11;           // 行程里程差值 ×10
+  sint32 evMileageDelta = 12;              // EV里程差值 ×10
+  sint32 electricConsumptionDelta = 13;    // 电耗差值 ×10
+  sint32 fuelConsumptionDelta = 14;        // 油耗差值 ×10
+}
+
+// 车机数据增量压缩容器
+message TripVehicleDataPayload {
+  TripVehicleInfo vehicleInfo = 1;             // 车辆静态信息
+  TripDrivingSampleOrigin originSample = 2;    // 第一个行驶样本
+  repeated TripDrivingSampleDeltas sample = 3; // 后续行驶样本差值
+  TripVehicleStateOrigin originState = 4;      // 第一个车辆状态
+  repeated TripVehicleStateDeltas state = 5;   // 后续车辆状态差值
 }
 
 message Trip {
@@ -380,7 +466,8 @@ message TripPositions {
   // startTime为第一个position的时间戳
   int64 startTime = 1;
   // 禁止输出了一些数据，具体的看代码
-  repeated string positions = 2;
+  // repeated string positions = 2;
+  bytes positions = 2;
   // repeated string keys = 8;
   int64 total = 3;
   string id = 4;
@@ -412,7 +499,7 @@ message GetTripHistoryPositions {
     repeated int64 timeLimit = 6;
     repeated string vehicleLimit = 8;
 
-    bool fullData = 7;
+    // bool fullData = 7;
 
     string jmId = 9;
     // 启用服务端精简数据
@@ -641,7 +728,7 @@ message UpdateTripVehicleData {
     // 必填
     string id = 1;
     // 车辆静态信息（首次发送或变更时发送）
-    TripVehicleInfo info = 2;
+    TripVehicleInfo vehicleInfo = 2;
     // 高频动态数据（增量发送）
     repeated TripDrivingSample samples = 3;
     // 低频状态数据（增量发送）

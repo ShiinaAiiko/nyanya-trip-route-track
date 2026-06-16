@@ -8,6 +8,12 @@
 		},
 		{
 			"path": "../../saki-ui"
+		},
+		{
+			"path": "../nyanyajs-utils"
+		},
+		{
+			"path": "../../../Private/Devtools"
 		}
 	],
 	"settings": {}
