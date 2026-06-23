@@ -742,3 +742,20 @@ message GetTripVehicleData {
   message Request { string id = 1; }
   message Response { TripVehicleData vehicleData = 1; }
 }
+
+// 获取平台统计数据（全站历史累计）
+message GetPlatformStatistics {
+  message Request {}
+  message Response {
+    int64 totalUsers = 1;      // 总用户数
+    int64 totalTrips = 2;      // 总行程数
+    double totalDistance = 3;  // 总里程 (km)
+    int64 totalDuration = 4;   // 总时长 (秒)
+    
+    // 今日数据
+    int64 todayActiveUsers = 5;    // 今日活跃用户数
+    int64 todayNewTrips = 6;       // 今日新增行程数
+    double todayNewDistance = 7;   // 今日新增里程 (km)
+    int64 todayNewDuration = 8;    // 今日新增时长 (秒)
+  }
+}

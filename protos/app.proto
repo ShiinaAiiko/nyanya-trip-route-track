@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+option go_package = "./;protos";
+package app;
+
+// App版本与热更新Web版本版本映射
+message AppVersionItem {
+  string appVersion = 1;
+  // android / byd
+  string versionType = 6;
+  bool forceUpdate = 2;
+  repeated string fileName = 8;
+  repeated string downloadUrl = 4;
+  map<string, string> changelog = 3;
+  // arm64-v8a / armeabi-v7a / x86_64
+  repeated string arch = 7;
+
+  message WebVersionItem {
+    string webVersion = 1;
+    bool forceUpdate = 2;
+    repeated string downloadUrl = 3;
+    map<string, string> changelog = 4;
+  }
+
+  repeated WebVersionItem webVersions = 5;
+}
+
+// 注意，每次更新了一次app，那么当前app的web版本就为支持app的最终web版本了
+// 新的app支持新的web了，新的web老版本不允许支持了
+message GetVersionList {
+  message Request {
+    string appVersion = 1;
+    string webVersion = 2;
+    // android / byd
+    string versionType = 3;
+    // arm64-v8a / armeabi-v7a / x86_64
+    string arch = 4;
+  }
+  message Response { repeated AppVersionItem list = 1; }
+}

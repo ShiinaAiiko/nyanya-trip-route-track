@@ -192,3 +192,16 @@ message SyncConfigure {
   message Request { Configure configure = 1; }
   message Response {}
 }
+
+// 获取功能列表
+message GetFeatures {
+  message Request {
+    string appVersion = 1;
+    string webVersion = 2;
+    // android / byd
+    string versionType = 3;
+  }
+  message Response {
+    map<string, bool> features = 1;
+  }
+}
