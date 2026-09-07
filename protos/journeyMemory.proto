@@ -4,6 +4,22 @@ option go_package = "./;protos";
 package journeyMemory;
 import "trip.proto";
 
+message JourneyMemoryTimelinePriceItem {
+  string id = 1;            // 唯一标识
+  string name = 2;          // 项目名（如 "住宿费"、"加油费"）
+  double amount = 3;        // 金额
+  double actualAmount = 13; // 实付金额（实际支付的钱）
+  string currency = 4;      // 金额单位（CNY, USD, EUR, JPY 等）
+  // 类别（如 "住宿"、"交通"、"餐饮"、"门票"），非预设则是自定义
+  string category = 5;
+  string desc = 7; // 备注/描述
+  int64 time = 8;  // 消费时间
+  // repeated JourneyMemoryMediaItem media = 10; // 关联的媒体文件
+  // ID（如票据照片）
+  int64 createTime = 11;     // 创建时间
+  int64 lastUpdateTime = 12; // 最后更新时间
+}
+
 // JourneyMemoryTimeLineIMediaItem 表示媒体项
 message JourneyMemoryMediaItem {
   string type = 1; // "image", "video", etc.
@@ -20,10 +36,11 @@ message JourneyMemoryTimelineItem {
   repeated JourneyMemoryMediaItem media = 3; // 媒体项数组
   repeated string tripIds = 4;               // 旅行 ID 数组
   int64 time = 5;                            // 时间戳
-
   // 仅输出用
   trip.TripHistoricalStatistics statistics = 6;
   repeated trip.Trip trips = 8;
+  repeated JourneyMemoryTimelinePriceItem prices = 9; // 价格列表
+  repeated string tags = 10;                          // 标签
 }
 
 message JourneyMemoryPermissions { bool allowShare = 1; }
@@ -102,9 +119,11 @@ message AddJMTimeline {
     string id = 6;
     string name = 1;
     string desc = 2;
-    repeated JourneyMemoryMediaItem media = 3; // 媒体项数组
-    repeated string tripIds = 4;               // 旅行 ID 数组
-    int64 time = 5;                            // 时间戳
+    repeated JourneyMemoryMediaItem media = 3;          // 媒体项数组
+    repeated string tripIds = 4;                        // 旅行 ID 数组
+    repeated JourneyMemoryTimelinePriceItem prices = 7; // 价格列表
+    repeated string tags = 8;                           // 标签
+    int64 time = 5;                                     // 时间戳
   }
   message Response { JourneyMemoryTimelineItem journeyMemoryTimeline = 1; }
 }
@@ -115,9 +134,11 @@ message UpdateJMTimeline {
     string timelineId = 7;
     string name = 1;
     string desc = 2;
-    repeated JourneyMemoryMediaItem media = 3; // 媒体项数组
-    repeated string tripIds = 4;               // 旅行 ID 数组
-    int64 time = 5;                            // 时间戳
+    repeated JourneyMemoryMediaItem media = 3;          // 媒体项数组
+    repeated string tripIds = 4;                        // 旅行 ID 数组
+    repeated JourneyMemoryTimelinePriceItem prices = 8; // 价格列表
+    repeated string tags = 9;                           // 标签
+    int64 time = 5;                                     // 时间戳
   }
   message Response {}
 }
