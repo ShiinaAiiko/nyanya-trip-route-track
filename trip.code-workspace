@@ -14,7 +14,15 @@
 		},
 		{
 			"path": "../../../Private/Devtools"
+		},
+		{
+			"path": "../meow-ledger"
+		},
+		{
+			"path": "../../cherrai/saki-sso"
 		}
 	],
-	"settings": {}
+	"settings": {
+		"typescript.tsdk": "nyanyajs-utils/node_modules/typescript/lib"
+	}
 }

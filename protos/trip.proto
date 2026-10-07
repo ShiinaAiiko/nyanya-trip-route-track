@@ -484,6 +484,8 @@ message TripPositions {
   // 仅前端输出
   repeated TripPosition positionList = 10;
   TripPermissions permissions = 11;
+
+  repeated TripNetworkStatus networkStatus = 12;
 }
 
 message GetTripHistoryPositions {

@@ -55,6 +55,9 @@ message Configure {
       bool carMode = 18;
       string filterSimilarTrips = 19;
       bool simplify = 20;
+      bool signalTrack = 21;
+      bool altitudeTrack = 22;
+      bool routebookTrack = 23;
     }
 
     MapLayerItem indexPage = 1;
@@ -201,7 +204,5 @@ message GetFeatures {
     // android / byd
     string versionType = 3;
   }
-  message Response {
-    map<string, bool> features = 1;
-  }
+  message Response { map<string, bool> features = 1; }
 }

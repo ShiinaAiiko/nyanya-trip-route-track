@@ -62,6 +62,9 @@ message JourneyMemoryItem {
   int64 lastUpdateTime = 7;
   int64 deleteTime = 8;
 
+  // 绑定的记账本 ID（用于以账本统一记账，代替时间线里的 prices）
+  string ledgerBookId = 13;
+
   // 仅输出用
   trip.TripHistoricalStatistics statistics = 10;
 }
@@ -71,6 +74,8 @@ message AddJM {
     string name = 1;
     string desc = 2;
     repeated JourneyMemoryMediaItem media = 3;
+    // 绑定的记账本 ID（可选）
+    string ledgerBookId = 4;
   }
   message Response { JourneyMemoryItem journeyMemory = 1; }
 }
@@ -83,6 +88,8 @@ message UpdateJM {
     repeated JourneyMemoryMediaItem media = 4;
     // Allow / NotAllow
     string allowShare = 5;
+    // 绑定的记账本 ID（非空则更新）
+    string ledgerBookId = 6;
   }
   message Response {}
 }
